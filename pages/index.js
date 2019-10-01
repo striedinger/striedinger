@@ -6,14 +6,16 @@ const Home = () => (
   <React.Fragment>
     <Head>
       <title>Hugo Striedinger - Front End Engineer</title>
-      <meta name="description" property="og:description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in Tampa, FL." />
+      <meta name="description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in Tampa, FL." />
       <link rel="icon" type="image/ico" href="/static/favicon.ico" />
       <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
       <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png" />
       <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png" />
+      <meta property="og:type" content="website" />
       <meta property="og:url" content="https://striedinger.co" />
       <meta property="og:image" content="https://striedinger.co/static/social.png" />
-      <meta proeprty="og:title" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in Tampa, FL." />
+      <meta property="og:title" content="Hugo Striedinger - Front End Engineer" />
+      <meta property="og:description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in Tampa, FL." />
       <meta name="twitter:card" content="summary_large_image" />
       <script async src="https://www.googletagmanager.com/gtag/js?id=UA-66744227-1"></script>
       <script
