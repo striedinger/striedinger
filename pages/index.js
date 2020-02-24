@@ -5,8 +5,8 @@ import './index.scss';
 const Home = () => (
   <React.Fragment>
     <Head>
-      <title>Hugo Striedinger - Front End Engineer</title>
-      <meta name="description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in Tampa, FL." />
+      <title>Hugo Striedinger - Senior Front End Engineer</title>
+      <meta name="description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in New York, NY." />
       <link rel="icon" type="image/ico" href="/static/favicon.ico" />
       <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
       <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png" />
@@ -14,8 +14,8 @@ const Home = () => (
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://striedinger.co" />
       <meta property="og:image" content="https://striedinger.co/static/social.png" />
-      <meta property="og:title" content="Hugo Striedinger - Front End Engineer" />
-      <meta property="og:description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in Tampa, FL." />
+      <meta property="og:title" content="Hugo Striedinger - Senior Front End Engineer" />
+      <meta property="og:description" content="Hugo Striedinger is a Colombian born Front End Engineer who currently resides in New York, NY." />
       <meta name="twitter:card" content="summary_large_image" />
       <script async src="https://www.googletagmanager.com/gtag/js?id=UA-66744227-1"></script>
       <script
@@ -29,11 +29,13 @@ const Home = () => (
     </Head>
     <div className="hero">
       <h1><span className="line">Hi there! <span className="wave">👋</span> </span><span className="line">I'm Hugo Striedinger</span></h1>
-      <h2><span className="line">Software Developer </span><span className="line">at <a href="https://tampabay.com" target="_blank" rel="noopener noreferrer">Tampa Bay Times</a></span></h2>
+      <h2>Senior Software Developer</h2>
+      <h3><a href="https://wsj.com" target="_blank" rel="noopener noreferrer">The Wall Street Journal</a> <span className="line">at <a href="https://dowjones.com" target="_blank" rel="noopener noreferrer">Dow Jones</a></span></h3>
+      <h4>📍 New York, NY</h4>
     </div>
     <ul className="contact-links">
       <li>
-        <a href="mailto:hugo@striedinger.co">
+        <a href="mailto:striedinger@outlook.com">
           <img src="data:image/svg+xml;utf8;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIxIC0zNSA1MTEuOTk5OTMgNTExIiB3aWR0aD0iNTEycHgiIGhlaWdodD0iNTEycHgiPjxwYXRoIGQ9Im0xMjEuNDUzMTI1IDI1My4xNzE4NzUgNjMuNTU0Njg3IDE1OC44ODY3MTkgODIuNzUtODIuNzUzOTA2IDE0MS41MzUxNTcgMTEyLjUwMzkwNiAxMDIuNzA3MDMxLTQ0MS4zMDg1OTQtNTEyIDIwNS40ODA0Njl6bS0zOS45MzM1OTQtNDcuNjQwNjI1IDI0NC4wNDY4NzUtOTcuOTQ1MzEyLTE5NC4wNzQyMTggMTE3LjM2MzI4MXptMjg3LjUzNTE1Ny04OS4yNS0xNjEuOTgwNDY5IDE0OC4xODc1LTE5LjQ4NDM3NSA3My40MjU3ODEtMzYuMDM1MTU2LTkwLjA4NTkzN3ptLTE0OS44NTE1NjMgMjE5LjIzMDQ2OSA5LjgxNjQwNi0zNi45OTYwOTQgMTUuMTQ0NTMxIDEyLjAzNTE1NnptMTcxLjY1NjI1IDUzLjM5NDUzMS0xNDcuMzg2NzE5LTExNy4xNTIzNDQgMjIxLjkwMjM0NC0yMDMuMDA3ODEyem0wIDAiIGZpbGw9IiMwMDAwMDAiLz48L3N2Zz4K" alt="Contact e-mail link" />
         </a>
       </li>
@@ -54,6 +56,6 @@ const Home = () => (
       </li>
     </ul>
   </React.Fragment>
-)
+);
 
 export default Home;
