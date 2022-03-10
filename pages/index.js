@@ -1,12 +1,12 @@
-import React from 'react'
-import Head from 'next/head'
+import * as React from 'react';
+import Head from 'next/head';
 import styles from './index.module.css';
 
 const Home = () => (
   <React.Fragment>
     <Head>
       <title>Hugo Striedinger - Software Engineer</title>
-      <meta name="description" content="Hugo Striedinger is a Colombian born Software Engineer who currently resides in Tampa, FL." />
+      <meta name="description" content="Hugo Striedinger is a Colombian born Software Engineer who currently resides in New York, NY." />
       <link rel="icon" type="image/ico" href="/favicon.ico" />
       <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -15,7 +15,7 @@ const Home = () => (
       <meta property="og:url" content="https://striedinger.co" />
       <meta property="og:image" content="https://striedinger.co/social.png" />
       <meta property="og:title" content="Hugo Striedinger - Software Engineer" />
-      <meta property="og:description" content="Hugo Striedinger is a Colombian born Software Engineer who currently resides in Tampa, FL." />
+      <meta property="og:description" content="Hugo Striedinger is a Colombian born Software Engineer who currently resides in New York, NY." />
       <meta name="twitter:card" content="summary_large_image" />
       <script async src="https://www.googletagmanager.com/gtag/js?id=UA-66744227-1"></script>
       <script
@@ -31,7 +31,7 @@ const Home = () => (
       <h1><span className={styles.line}>Hi there! <span className={styles.wave}>👋</span> </span><span className={styles.line}>I'm Hugo Striedinger</span></h1>
       <h2>Software Engineer</h2>
       <h3><a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer">Twitter Inc.</a></h3>
-      <h4>📍 Tampa, FL</h4>
+      <h4>📍 New York, NY</h4>
     </div>
     <ul className={styles.links}>
       <li>
