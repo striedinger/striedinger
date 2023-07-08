@@ -29,7 +29,7 @@ const Home = () => (
     </Head>
     <div className={styles.hero}>
       <h1><span className={styles.line}>Hi there! <span className={styles.wave}>👋</span> </span><span className={styles.line}>I'm Hugo Striedinger</span></h1>
-      <h2>Software Engineer</h2>
+      <h2>Senior Software Engineer</h2>
       <h3><a href="https://www.twitter.com" target="_blank" rel="noopener noreferrer">Twitter Inc.</a></h3>
       <h4>📍 New York, NY</h4>
     </div>
