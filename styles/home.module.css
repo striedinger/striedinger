@@ -1,0 +1,67 @@
+span.line {
+  display: inline-block;
+  white-space: pre-wrap;
+}
+
+.hero {
+  text-align: center;
+  padding: 10rem 2rem 0 2rem;
+}
+
+.hero .wave {
+  animation-name: wave-animation;
+  animation-duration: 2.5s;
+  animation-iteration-count: infinite;
+  display: inline-block;
+  transform-origin: 70% 70%;
+}
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.links li {
+  display: inline-block;
+}
+
+.links li:not(:last-child) {
+  margin-right: 1rem;
+}
+
+.links li:hover a img {
+  opacity: .8;
+}
+
+.links li a img {
+  height: 2rem;
+  opacity: .3;
+  transition: opacity .5s;
+  width: 2rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero {
+    color: white;
+  }
+
+  .hero a {
+    color: gray;
+  }
+  
+  .links li a img{
+    filter: invert(1);
+  }
+}
+
+@keyframes wave-animation {
+  0% { transform: rotate(0.0deg) }
+  10% { transform: rotate(-10.0deg) }
+  20% { transform: rotate(12.0deg) }
+  30% { transform: rotate(-10.0deg) }
+  40% { transform: rotate(9.0deg) }
+  50% { transform: rotate(0.0deg) }
+  100% { transform: rotate(0.0deg) }
+}
