@@ -42,23 +42,16 @@ export function SocialCardPreview({
           ) : (
             <div className="size-full bg-[radial-gradient(circle_at_top_left,var(--color-accent),var(--color-muted))]" />
           )}
-          <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-start gap-1.5 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pt-12 pb-3">
+          <div className="absolute inset-x-0 bottom-0 z-10 flex bg-gradient-to-t from-black/80 to-transparent px-3 pt-10 pb-3">
             <Text
               as="h3"
+              numberOfLines={2}
               size="sm"
               weight="medium"
-              className="max-w-full truncate rounded-lg bg-black/75 px-2.5 py-1.5 text-white!"
+              className="max-w-full rounded-lg bg-black/75 px-2.5 py-1.5 text-white!"
             >
-              {cardTitle}
+              {cardDescription ? `${cardTitle} - ${cardDescription}` : cardTitle}
             </Text>
-            {cardDescription ? (
-              <Text
-                size="xs"
-                className="line-clamp-2 max-w-full rounded-lg bg-black/75 px-2.5 py-1.5 leading-relaxed text-white/85!"
-              >
-                {cardDescription}
-              </Text>
-            ) : null}
           </div>
         </article>
         <Text size="sm" tone="muted">

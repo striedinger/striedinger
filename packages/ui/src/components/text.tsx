@@ -17,6 +17,7 @@ type TextWeight = "normal" | "medium" | "semibold" | "bold"
 type TextFamily = "sans" | "serif" | "mono"
 type TextTone = "default" | "muted" | "destructive"
 type TextAlign = "start" | "center" | "end" | "justify"
+type TextNumberOfLines = 1 | 2 | 3 | 4 | 5 | 6
 
 const sizeClasses: Readonly<Record<TextSize, string>> = {
   xs: "text-xs leading-4",
@@ -57,10 +58,20 @@ const alignClasses: Readonly<Record<TextAlign, string>> = {
   justify: "text-justify",
 }
 
+const numberOfLinesClasses: Readonly<Record<TextNumberOfLines, string>> = {
+  1: "line-clamp-1",
+  2: "line-clamp-2",
+  3: "line-clamp-3",
+  4: "line-clamp-4",
+  5: "line-clamp-5",
+  6: "line-clamp-6",
+}
+
 type TextOwnProps<Element extends ElementType> = {
   align?: TextAlign
   as?: Element
   family?: TextFamily
+  numberOfLines?: TextNumberOfLines
   size?: TextSize
   tone?: TextTone
   weight?: TextWeight
@@ -74,6 +85,7 @@ function Text<Element extends ElementType = "p">({
   as,
   className,
   family,
+  numberOfLines,
   size = "base",
   tone = "default",
   weight = "normal",
@@ -90,6 +102,7 @@ function Text<Element extends ElementType = "p">({
         family ? familyClasses[family] : undefined,
         toneClasses[tone],
         align ? alignClasses[align] : undefined,
+        numberOfLines ? numberOfLinesClasses[numberOfLines] : undefined,
         className
       )}
       {...props}
@@ -98,4 +111,12 @@ function Text<Element extends ElementType = "p">({
 }
 
 export { Text }
-export type { TextAlign, TextFamily, TextProps, TextSize, TextTone, TextWeight }
+export type {
+  TextAlign,
+  TextFamily,
+  TextNumberOfLines,
+  TextProps,
+  TextSize,
+  TextTone,
+  TextWeight,
+}
