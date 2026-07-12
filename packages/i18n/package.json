@@ -1,0 +1,14 @@
+{
+  "name": "@workspace/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

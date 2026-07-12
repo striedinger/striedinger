@@ -1,0 +1,17 @@
+{
+  "name": "striedinger",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "typescript": "6.0.3"
+  },
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=24.18.0 <25"
+  }
+}

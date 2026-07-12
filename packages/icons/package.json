@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/icons",
+  "version": "0.0.0",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    "./*": "./src/*.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "react": "19.2.7",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}
