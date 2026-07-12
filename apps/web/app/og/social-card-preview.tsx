@@ -1,5 +1,7 @@
 import { Image } from "@workspace/ui/components/image";
+import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
+
 import type { PageMetadata } from "../../lib/og/types";
 
 interface SocialCardPreviewProps {
@@ -69,18 +71,15 @@ export function SocialCardPreview({
       aria-labelledby={`${platform}-preview-heading`}
     >
       <div className="flex items-baseline justify-between gap-4">
-        <Text
-          as="h2"
-          id={`${platform}-preview-heading`}
-          size="xl"
-          weight="semibold"
-        >
+        <Text as="h2" id={`${platform}-preview-heading`} size="xl" weight="semibold">
           {title}
         </Text>
-        <Text as="span" size="xs" tone="muted">og:type website</Text>
+        <Text as="span" size="xs" tone="muted">
+          og:type website
+        </Text>
       </div>
 
-      <article className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+      <Surface as="article" className="overflow-hidden">
         <div className="aspect-[1.91/1] overflow-hidden bg-muted">
           {cardImage ? (
             <Image
@@ -100,24 +99,16 @@ export function SocialCardPreview({
           <Text size="xs" tone="muted" className="truncate">
             {metadata.siteName}
           </Text>
-          <Text
-            as="h3"
-            weight="semibold"
-            className="line-clamp-2 leading-snug"
-          >
+          <Text as="h3" weight="semibold" className="line-clamp-2 leading-snug">
             {cardTitle}
           </Text>
           {cardDescription ? (
-            <Text
-              size="sm"
-              tone="muted"
-              className="line-clamp-2 leading-relaxed"
-            >
+            <Text size="sm" tone="muted" className="line-clamp-2 leading-relaxed">
               {cardDescription}
             </Text>
           ) : null}
         </div>
-      </article>
+      </Surface>
     </section>
   );
 }

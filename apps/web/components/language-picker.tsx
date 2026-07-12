@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  isLocale,
-  localeCookieName,
-  supportedLocales,
-  type Locale,
-} from "@workspace/i18n";
+import { isLocale, localeCookieName, supportedLocales, type Locale } from "@workspace/i18n";
 import {
   Select,
   SelectContent,
@@ -53,11 +48,7 @@ export function LanguagePicker({ label, locale }: LanguagePickerProps) {
 
   return (
     <Text as="div" size="sm" className="flex justify-center">
-      <Select
-        items={localeItems}
-        value={locale}
-        onValueChange={handleLanguageChange}
-      >
+      <Select items={localeItems} value={locale} onValueChange={handleLanguageChange}>
         <SelectTrigger
           className="w-32 cursor-pointer rounded-xl border-border/60 bg-background/90 px-3 shadow-sm hover:bg-accent/60 focus-visible:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring/30"
           size="sm"

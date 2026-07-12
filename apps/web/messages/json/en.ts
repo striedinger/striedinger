@@ -17,4 +17,8 @@ export const messages = defineMessages({
   "Collapse value": "Collapse value",
   "Enter valid JSON to see an expandable preview.":
     "Enter valid JSON to see an expandable preview.",
+  "This JSON is too large to process safely in the browser.":
+    "This JSON is too large to process safely in the browser.",
+  "This JSON is valid but too complex to preview all at once.":
+    "This JSON is valid but too complex to preview all at once.",
 });

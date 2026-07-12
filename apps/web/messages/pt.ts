@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "@workspace/i18n";
+
 import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = {
@@ -11,8 +12,14 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Hugo Striedinger on X": "Hugo Striedinger no X",
   "Hugo Striedinger on Instagram": "Hugo Striedinger no Instagram",
   "Select language": "Selecionar idioma",
-  "Hugo Striedinger - Senior Software Engineer":
-    "Hugo Striedinger - Engenheiro de software sênior",
+  Navigation: "Navegação",
+  "Open navigation menu": "Abrir menu de navegação",
+  "Close navigation": "Fechar navegação",
+  "Open Graph Preview": "Prévia Open Graph",
+  "JSON Validator and Formatter": "Validador e formatador JSON",
+  "Daily Sudoku": "Sudoku diário",
+  "Trains near you": "Trens perto de você",
+  "Hugo Striedinger - Senior Software Engineer": "Hugo Striedinger - Engenheiro de software sênior",
   "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.":
     "Hugo Striedinger é um engenheiro de software sênior nascido na Colômbia e residente em Nova York, com experiência na SpaceX, Twitter Inc. e X Corp.",
 };

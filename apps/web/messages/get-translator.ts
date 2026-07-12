@@ -1,7 +1,15 @@
 import { composeCatalogs, createTranslator, type Locale } from "@workspace/i18n";
+import { cache } from "react";
+
 import { loadMessages } from "./load-messages";
 
-export async function getTranslator(locale: Locale) {
+const getCachedTranslator = cache(createWebTranslator);
+
+export function getTranslator(locale: Locale) {
+  return getCachedTranslator(locale);
+}
+
+async function createWebTranslator(locale: Locale) {
   const webMessages = await loadMessages(locale);
   const composedMessages = composeCatalogs(webMessages);
 

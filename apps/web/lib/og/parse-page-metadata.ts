@@ -1,5 +1,6 @@
-import { PreviewError } from "./preview-error";
 import type { MetadataTag, PageMetadata } from "./types";
+
+import { PreviewError } from "./preview-error";
 
 const maximumTagValueLength = 4_096;
 const maximumDocumentMetadataTags = 98;
@@ -49,21 +50,28 @@ export function parsePageMetadata(html: string, pageUrl: URL): PageMetadata {
     metadata.get("twitter:image") ?? metadata.get("twitter:image:src"),
     pageUrl,
   );
-  const twitterImage = isXPage(pageUrl) ? image || declaredTwitterImage : declaredTwitterImage || image;
+  const twitterImage = isXPage(pageUrl)
+    ? image || declaredTwitterImage
+    : declaredTwitterImage || image;
 
   if (!title && !description && !image) {
     throw new PreviewError("missing-metadata");
   }
 
-  if (documentTitle && !tags.some(function hasDocumentTitle(tag) {
-    return tag.name === "title";
-  })) {
+  if (
+    documentTitle &&
+    !tags.some(function hasDocumentTitle(tag) {
+      return tag.name === "title";
+    })
+  ) {
     tags.push({ name: "title", value: documentTitle.slice(0, maximumTagValueLength) });
   }
 
-  if (!tags.some(function hasCanonicalUrl(tag) {
-    return tag.name === "canonical";
-  })) {
+  if (
+    !tags.some(function hasCanonicalUrl(tag) {
+      return tag.name === "canonical";
+    })
+  ) {
     tags.push({ name: "canonical", value: canonicalUrl.slice(0, maximumTagValueLength) });
   }
 

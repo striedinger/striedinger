@@ -10,8 +10,14 @@ export const messages = defineMessages({
   "Hugo Striedinger on X": "Hugo Striedinger on X",
   "Hugo Striedinger on Instagram": "Hugo Striedinger on Instagram",
   "Select language": "Select language",
-  "Hugo Striedinger - Senior Software Engineer":
-    "Hugo Striedinger - Senior Software Engineer",
+  Navigation: "Navigation",
+  "Open navigation menu": "Open navigation menu",
+  "Close navigation": "Close navigation",
+  "Open Graph Preview": "Open Graph Preview",
+  "JSON Validator and Formatter": "JSON Validator and Formatter",
+  "Daily Sudoku": "Daily Sudoku",
+  "Trains near you": "Trains near you",
+  "Hugo Striedinger - Senior Software Engineer": "Hugo Striedinger - Senior Software Engineer",
   "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.":
     "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.",
 });

@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "@workspace/i18n";
+
 import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = {
@@ -15,7 +16,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Social card previews": "社交卡片预览",
   "Open Graph preview": "Open Graph 预览",
   "X / Twitter card preview": "X / Twitter 卡片预览",
-  "From": "来自",
+  From: "来自",
   "Detected metadata": "检测到的元数据",
   "All usable meta tags, document title, and canonical URL found in the page head.":
     "页面头部中所有可用的元标签、文档标题和规范网址。",

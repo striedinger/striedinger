@@ -3,12 +3,14 @@
 import { Input } from "@workspace/ui/components/input";
 import { Text } from "@workspace/ui/components/text";
 import { useActionState, useState, type ChangeEvent, type FormEvent } from "react";
-import { previewMetadata } from "./actions";
+
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
+
+import { previewMetadata } from "./actions";
 import { MetadataTable } from "./metadata-table";
-import { OgSubmitButton } from "./og-submit-button";
 import { normalizePreviewUrl } from "./normalize-preview-url";
+import { OgSubmitButton } from "./og-submit-button";
 import { SocialCardPreview } from "./social-card-preview";
 
 interface OgPreviewFormProps {
@@ -75,12 +77,7 @@ export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
             disabled={isAlreadyPreviewed}
           />
         </div>
-        <Text
-          id="preview-security"
-          size="xs"
-          tone="muted"
-          className="leading-relaxed"
-        >
+        <Text id="preview-security" size="xs" tone="muted" className="leading-relaxed">
           {labels.security}
         </Text>
         <div id="preview-error" aria-live="polite">

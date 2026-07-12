@@ -1,5 +1,6 @@
-import { JsonTreeNode } from "./json-tree-node";
 import type { JsonValue } from "./types";
+
+import { JsonTreeNode } from "./json-tree-node";
 
 interface JsonTreeProps {
   collapseLabel: string;

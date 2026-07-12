@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+
 import { PreviewError } from "./preview-error";
 
 export interface ValidatedPublicUrl {
@@ -8,12 +9,7 @@ export interface ValidatedPublicUrl {
   url: URL;
 }
 
-const blockedHostnameSuffixes = [
-  ".internal",
-  ".local",
-  ".localhost",
-  ".home.arpa",
-];
+const blockedHostnameSuffixes = [".internal", ".local", ".localhost", ".home.arpa"];
 
 export async function validatePublicUrl(value: string): Promise<ValidatedPublicUrl> {
   if (!value || value.length > 2048) {

@@ -15,9 +15,11 @@ export interface JsonToolLabels {
   privacy: string;
   title: string;
   valid: string;
+  tooLarge: string;
+  tooComplex: string;
 }
 
 export type JsonParseResult =
   | { status: "empty" }
-  | { status: "invalid"; error: string }
-  | { status: "valid"; value: JsonValue };
+  | { status: "invalid"; error: string; reason?: "syntax" | "too-large" }
+  | { status: "valid"; value: JsonValue; previewable?: boolean };

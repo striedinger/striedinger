@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "@workspace/i18n";
+
 import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = {
@@ -15,7 +16,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Social card previews": "ソーシャルカードのプレビュー",
   "Open Graph preview": "Open Graphプレビュー",
   "X / Twitter card preview": "X / Twitterカードプレビュー",
-  "From": "提供元",
+  From: "提供元",
   "Detected metadata": "検出されたメタデータ",
   "All usable meta tags, document title, and canonical URL found in the page head.":
     "ページのheadから検出された利用可能なすべてのメタタグ、文書タイトル、正規URLです。",
@@ -23,10 +24,13 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "http:// または https:// を含む有効な絶対URLを入力してください。",
   "That address is not allowed. Private, local, and non-standard network targets are blocked.":
     "そのアドレスは許可されていません。プライベート、ローカル、非標準のネットワーク先はブロックされます。",
-  "That page could not be reached within the allowed time.": "制限時間内にページへ接続できませんでした。",
+  "That page could not be reached within the allowed time.":
+    "制限時間内にページへ接続できませんでした。",
   "The response was not an HTML page.": "応答はHTMLページではありませんでした。",
-  "The HTML response was too large to inspect safely.": "HTML応答が大きすぎるため安全に確認できません。",
-  "No usable social metadata was found on that page.": "使用可能なソーシャルメタデータが見つかりませんでした。",
+  "The HTML response was too large to inspect safely.":
+    "HTML応答が大きすぎるため安全に確認できません。",
+  "No usable social metadata was found on that page.":
+    "使用可能なソーシャルメタデータが見つかりませんでした。",
   "Too many previews were requested. Please wait a minute and try again.":
     "プレビューのリクエストが多すぎます。1分待ってから再度お試しください。",
   "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.":

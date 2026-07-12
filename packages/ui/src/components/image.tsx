@@ -1,39 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { ComponentPropsWithRef, SyntheticEvent } from "react"
+import type { ComponentPropsWithRef, SyntheticEvent } from "react";
 
-import { BrokenCameraIcon } from "@workspace/icons/broken-camera-icon"
-import { cn } from "@workspace/ui/lib/utils"
+import { BrokenCameraIcon } from "@workspace/icons/broken-camera-icon";
+import { cn } from "@workspace/ui/lib/utils";
+import { useState } from "react";
 
 type ImageProps = Omit<ComponentPropsWithRef<"img">, "alt" | "className"> & {
-  alt: string
-  className?: string
-  imageClassName?: string
-}
+  alt: string;
+  className?: string;
+  imageClassName?: string;
+};
 
-function Image({
-  alt,
-  className,
-  imageClassName,
-  onError,
-  onLoad,
-  src,
-  ...props
-}: ImageProps) {
-  const [failedSource, setFailedSource] = useState<string>()
-  const [loadedSource, setLoadedSource] = useState<string>()
-  const source = typeof src === "string" ? src : undefined
-  const status = failedSource === source ? "error" : loadedSource === source ? "loaded" : "loading"
+function Image({ alt, className, imageClassName, onError, onLoad, src, ...props }: ImageProps) {
+  const [failedSource, setFailedSource] = useState<string>();
+  const [loadedSource, setLoadedSource] = useState<string>();
+  const source = typeof src === "string" ? src : undefined;
+  const status = failedSource === source ? "error" : loadedSource === source ? "loaded" : "loading";
 
   function handleError(event: SyntheticEvent<HTMLImageElement>) {
-    setFailedSource(source)
-    onError?.(event)
+    setFailedSource(source);
+    onError?.(event);
   }
 
   function handleLoad(event: SyntheticEvent<HTMLImageElement>) {
-    setLoadedSource(source)
-    onLoad?.(event)
+    setLoadedSource(source);
+    onLoad?.(event);
   }
 
   return (
@@ -51,7 +43,7 @@ function Image({
         className={cn(
           "size-full object-cover transition-opacity duration-200",
           status === "loaded" ? "opacity-100" : "opacity-0",
-          imageClassName
+          imageClassName,
         )}
         {...props}
       />
@@ -74,8 +66,8 @@ function Image({
         </span>
       ) : null}
     </span>
-  )
+  );
 }
 
-export { Image }
-export type { ImageProps }
+export { Image };
+export type { ImageProps };

@@ -2,9 +2,10 @@ import { EmailIcon } from "@workspace/icons/email-icon";
 import { InstagramIcon } from "@workspace/icons/instagram-icon";
 import { XIcon } from "@workspace/icons/x-icon";
 import { Text } from "@workspace/ui/components/text";
-import { getTranslator } from "../messages/get-translator";
+
 import { LanguagePicker } from "../components/language-picker";
 import { SocialLink } from "../components/social-link";
+import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
 
 export default async function Page() {
@@ -35,12 +36,7 @@ export default async function Page() {
           </span>
         </Text>
 
-        <Text
-          as="h2"
-          size="2xl"
-          weight="bold"
-          className="leading-tight"
-        >
+        <Text as="h2" size="2xl" weight="bold" className="leading-tight">
           {translate("Senior Software Engineer")}
         </Text>
 
@@ -64,9 +60,7 @@ export default async function Page() {
           </a>
         </Text>
 
-        <Text weight="bold">
-          📍 {translate("New York, NY")}
-        </Text>
+        <Text weight="bold">📍 {translate("New York, NY")}</Text>
       </section>
 
       <ul

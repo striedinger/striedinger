@@ -1,4 +1,5 @@
 import type { Locale, TranslationCatalog } from "@workspace/i18n";
+
 import type { messages as englishMessages } from "./en";
 
 export async function loadOgMessages(

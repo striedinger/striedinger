@@ -1,10 +1,14 @@
-import { Text } from "@workspace/ui/components/text";
 import type { Metadata } from "next";
-import { LanguagePicker } from "../../components/language-picker";
+
+import { PageContainer } from "@workspace/ui/components/page-container";
+import { PageHeader } from "@workspace/ui/components/page-header";
+import { PageShell } from "@workspace/ui/components/page-shell";
+
+import type { JsonToolLabels } from "./types";
+
 import { getJsonTranslator } from "../../messages/json/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { JsonTool } from "./json-tool";
-import type { JsonToolLabels } from "./types";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -25,12 +29,14 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "Hugo Striedinger",
       title,
       description,
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       creator: "@striedinger",
       title,
       description,
+      images: ["/opengraph-image"],
     },
     robots: { index: true, follow: true },
   };
@@ -55,31 +61,19 @@ export default async function JsonPage() {
     privacy: translate("Your JSON stays in this browser and is never sent to the server."),
     title: translate("JSON Validator and Formatter"),
     valid: translate("Valid JSON"),
+    tooLarge: translate("This JSON is too large to process safely in the browser."),
+    tooComplex: translate("This JSON is valid but too complex to preview all at once."),
   };
 
   return (
-    <main className="min-h-svh px-6 py-12 font-serif sm:py-20">
-      <div className="mx-auto flex max-w-6xl flex-col gap-16">
-        <nav className="flex items-center justify-between gap-4" aria-label="Hugo Striedinger">
-          <Text as="a" size="sm" tone="muted" className="hover:text-foreground" href="/">
-            Hugo Striedinger
-          </Text>
-          <LanguagePicker locale={locale} label={translate("Select language")} />
-        </nav>
-
+    <PageShell>
+      <PageContainer>
         <div className="flex flex-col gap-12">
-          <header className="flex max-w-3xl flex-col gap-6">
-            <Text as="h1" size="4xl" weight="semibold" className="tracking-tight sm:text-5xl sm:leading-none">
-              {labels.title}
-            </Text>
-            <Text size="lg" tone="muted" className="leading-relaxed">
-              {labels.description}
-            </Text>
-          </header>
+          <PageHeader title={labels.title} description={labels.description} />
 
           <JsonTool labels={labels} />
         </div>
-      </div>
-    </main>
+      </PageContainer>
+    </PageShell>
   );
 }

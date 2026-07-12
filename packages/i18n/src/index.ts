@@ -42,8 +42,8 @@ export function resolveLocale(languageTags: readonly string[]): Locale {
   return "en";
 }
 
-type UnionToIntersection<Union> = (
-  Union extends unknown ? (value: Union) => void : never
-) extends (value: infer Intersection) => void
+type UnionToIntersection<Union> = (Union extends unknown ? (value: Union) => void : never) extends (
+  value: infer Intersection,
+) => void
   ? Intersection
   : never;

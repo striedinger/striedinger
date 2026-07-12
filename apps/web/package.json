@@ -9,9 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@workspace/icons": "workspace:*",
     "@workspace/i18n": "workspace:*",
+    "@workspace/icons": "workspace:*",
     "@workspace/ui": "workspace:*",
+    "gtfs-realtime-bindings": "^2.1.0",
     "next": "16.2.10",
     "react": "19.2.7",
     "react-dom": "19.2.7"

@@ -1,4 +1,5 @@
 import type { TranslationCatalog } from "@workspace/i18n";
+
 import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = {
@@ -15,7 +16,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Social card previews": "Prévias de cartões sociais",
   "Open Graph preview": "Prévia do Open Graph",
   "X / Twitter card preview": "Prévia do cartão X / Twitter",
-  "From": "De",
+  From: "De",
   "Detected metadata": "Metadados detectados",
   "All usable meta tags, document title, and canonical URL found in the page head.":
     "Todas as meta tags utilizáveis, o título do documento e a URL canônica encontrados no cabeçalho da página.",

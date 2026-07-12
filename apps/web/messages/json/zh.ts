@@ -1,4 +1,5 @@
 import { defineMessages, type TranslationCatalog } from "@workspace/i18n";
+
 import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = defineMessages({
@@ -17,4 +18,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "Expand value": "展开值",
   "Collapse value": "折叠值",
   "Enter valid JSON to see an expandable preview.": "输入有效的 JSON 以查看可展开的预览。",
+  "This JSON is too large to process safely in the browser.":
+    "此 JSON 过大，无法在浏览器中安全处理。",
+  "This JSON is valid but too complex to preview all at once.":
+    "此 JSON 有效，但结构过于复杂，无法一次性完整预览。",
 });

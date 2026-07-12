@@ -14,7 +14,7 @@ export const messages = defineMessages({
   "Social card previews": "Social card previews",
   "Open Graph preview": "Open Graph preview",
   "X / Twitter card preview": "X / Twitter card preview",
-  "From": "From",
+  From: "From",
   "Detected metadata": "Detected metadata",
   "All usable meta tags, document title, and canonical URL found in the page head.":
     "All usable meta tags, document title, and canonical URL found in the page head.",

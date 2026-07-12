@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+
+import { PageContainer } from "@workspace/ui/components/page-container";
+import { PageHeader } from "@workspace/ui/components/page-header";
+import { PageShell } from "@workspace/ui/components/page-shell";
 import { Text } from "@workspace/ui/components/text";
-import { LanguagePicker } from "../../components/language-picker";
-import { OgPreviewForm } from "./og-preview-form";
+
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
+
 import { getOgTranslator } from "../../messages/og/get-translator";
 import { getRequestLocale } from "../get-request-locale";
+import { OgPreviewForm } from "./og-preview-form";
 
 interface OpenGraphPreviewPageProps {
   searchParams: Promise<{
@@ -34,12 +39,14 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       siteName: "Hugo Striedinger",
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
       creator: "@striedinger",
+      images: ["/opengraph-image"],
     },
     robots: {
       index: true,
@@ -110,42 +117,17 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
   };
 
   return (
-    <main className="min-h-svh px-6 py-12 font-serif sm:py-20">
+    <PageShell>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
       />
-      <div className="mx-auto flex max-w-3xl flex-col gap-20">
-        <nav className="flex items-center justify-between gap-4" aria-label="Hugo Striedinger">
-          <Text
-            as="a"
-            size="sm"
-            tone="muted"
-            className="hover:text-foreground"
-            href="/"
-          >
-            Hugo Striedinger
-          </Text>
-          <div>
-            <LanguagePicker locale={locale} label={translate("Select language")} />
-          </div>
-        </nav>
-
-        <div className="flex flex-col gap-24">
+      <PageContainer>
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-24">
           <div className="flex flex-col gap-12">
-            <header className="flex max-w-2xl flex-col gap-6">
-              <Text
-                as="h1"
-                size="4xl"
-                weight="semibold"
-                className="tracking-tight sm:text-5xl sm:leading-none"
-              >
-                {labels.heading}
-              </Text>
-              <Text size="lg" tone="muted" className="leading-relaxed">
-                {labels.description}
-              </Text>
-            </header>
+            <PageHeader title={labels.heading} description={labels.description} />
 
             <OgPreviewForm key={initialUrl} initialState={initialState} labels={labels} />
           </div>
@@ -161,7 +143,7 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
             </Text>
           </section>
         </div>
-      </div>
-    </main>
+      </PageContainer>
+    </PageShell>
   );
 }

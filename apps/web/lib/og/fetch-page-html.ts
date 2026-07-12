@@ -1,7 +1,9 @@
+import type { IncomingMessage, RequestOptions } from "node:http";
+
 import { request as requestHttp } from "node:http";
 import { request as requestHttps } from "node:https";
-import type { IncomingMessage, RequestOptions } from "node:http";
 import { StringDecoder } from "node:string_decoder";
+
 import { PreviewError } from "./preview-error";
 import { validatePublicUrl } from "./validate-public-url";
 

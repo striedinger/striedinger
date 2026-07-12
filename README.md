@@ -16,6 +16,14 @@ pnpm install
 pnpm dev
 ```
 
+Run the complete local quality gate with:
+
+```sh
+pnpm check
+```
+
+Oxlint handles repository-wide linting, Oxfmt handles formatting plus import and Tailwind class ordering, and the Next.js application is built with React Compiler enabled.
+
 ## Add a shadcn component
 
 Run the CLI from the UI package so generated components stay shared:
@@ -25,6 +33,10 @@ pnpm --dir packages/ui dlx shadcn@latest add button
 ```
 
 Dark mode follows `prefers-color-scheme`; no `dark` class or theme provider is used.
+
+## Production rate limiting
+
+Remote metadata previews and MTA actions use a bounded in-process fallback during local development. For deployment-wide limits across Vercel instances, configure an Upstash-compatible Redis integration with `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (or the equivalent `KV_REST_API_URL` and `KV_REST_API_TOKEN`). Client identifiers are hashed before they are included in rate-limit keys.
 
 ## Translations
 

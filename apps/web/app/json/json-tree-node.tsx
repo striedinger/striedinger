@@ -5,6 +5,7 @@ import { ChevronUpIcon } from "@workspace/icons/chevron-up-icon";
 import { Button } from "@workspace/ui/components/button";
 import { Text } from "@workspace/ui/components/text";
 import { useState } from "react";
+
 import type { JsonValue } from "./types";
 
 interface JsonTreeNodeProps {
@@ -62,7 +63,7 @@ export function JsonTreeNode({
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col [contain-intrinsic-size:auto_24px] [content-visibility:auto]">
       <div className="flex items-center gap-1 py-0.5">
         <Button
           type="button"

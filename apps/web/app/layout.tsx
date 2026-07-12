@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
 import "@workspace/ui/globals.css";

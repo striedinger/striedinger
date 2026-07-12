@@ -3,15 +3,30 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "dev": "turbo dev",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "lint": "oxlint . --deny-warnings --report-unused-disable-directives",
+    "lint:fix": "oxlint . --fix --deny-warnings --report-unused-disable-directives",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "jsdom": "^29.1.1",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
+    "oxlint-tsgolint": "^0.24.0",
     "turbo": "latest",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": ">=24.18.0 <25"
-  }
+  },
+  "packageManager": "pnpm@11.10.0"
 }

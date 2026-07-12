@@ -1,7 +1,14 @@
 import { isLocale, localeCookieName, resolveLocale, type Locale } from "@workspace/i18n";
 import { cookies, headers } from "next/headers";
+import { cache } from "react";
 
-export async function getRequestLocale(): Promise<Locale> {
+const getCachedRequestLocale = cache(resolveRequestLocale);
+
+export function getRequestLocale(): Promise<Locale> {
+  return getCachedRequestLocale();
+}
+
+async function resolveRequestLocale(): Promise<Locale> {
   const cookieStore = await cookies();
   const savedLocale = cookieStore.get(localeCookieName)?.value;
 

@@ -3,54 +3,94 @@
 import { ChevronDownIcon } from "@workspace/icons/chevron-down-icon";
 import { ChevronUpIcon } from "@workspace/icons/chevron-up-icon";
 import { Button } from "@workspace/ui/components/button";
+import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { useEffect, useState, type ChangeEvent } from "react";
-import { JsonTree } from "./json-tree";
-import { parseJson } from "./parse-json";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+
+import type { JsonWorkerResponse } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
+
+import { JsonTree } from "./json-tree";
 
 interface JsonToolProps {
   labels: JsonToolLabels;
 }
 
 export function JsonTool({ labels }: JsonToolProps) {
+  const maximumInputCharacters = 500_000;
   const [input, setInput] = useState("");
   const [validationResult, setValidationResult] = useState<JsonParseResult>({ status: "empty" });
   const [treeVersion, setTreeVersion] = useState(0);
   const [defaultExpanded, setDefaultExpanded] = useState(true);
+  const processedInput = useRef<string | undefined>(undefined);
   const previewResult = validationResult;
 
   useEffect(
     function validateAndFormatAfterIdle() {
       if (!input.trim()) {
-        setValidationResult({ status: "empty" });
+        return;
+      }
+      if (processedInput.current === input) {
+        processedInput.current = undefined;
         return;
       }
 
+      let worker: Worker | undefined;
+      let cancelled = false;
       const timeoutId = window.setTimeout(function validateAndFormatInput() {
-        const result = parseJson(input);
-        setValidationResult(result);
-
-        if (result.status === "valid") {
-          const formattedInput = JSON.stringify(result.value, null, 2);
-
-          if (formattedInput !== input) {
-            setInput(formattedInput);
-          }
+        if (typeof Worker === "undefined") {
+          void import("./process-json").then(function processWithoutWorker({ processJson }) {
+            applyValidationResult(processJson(input));
+            return undefined;
+          });
+          return;
         }
+
+        const jsonWorker = new Worker(new URL("./json-worker.ts", import.meta.url), {
+          type: "module",
+        });
+        worker = jsonWorker;
+        jsonWorker.addEventListener(
+          "message",
+          function handleWorkerResult(event: MessageEvent<JsonWorkerResponse>) {
+            applyValidationResult(event.data);
+            jsonWorker.terminate();
+          },
+        );
+        jsonWorker.addEventListener("error", function handleWorkerError() {
+          setValidationResult({ status: "invalid", error: labels.tooComplex });
+          jsonWorker.terminate();
+        });
       }, 1_000);
 
+      function applyValidationResult(response: JsonWorkerResponse) {
+        if (cancelled) return;
+        setValidationResult(response.result);
+
+        if (response.formattedInput && response.formattedInput !== input) {
+          processedInput.current = response.formattedInput;
+          setInput(response.formattedInput);
+        }
+      }
+
       return function cancelPendingValidation() {
+        cancelled = true;
         window.clearTimeout(timeoutId);
+        worker?.terminate();
       };
     },
-    [input],
+    [input, labels.tooComplex],
   );
 
   function handleInputChange(event: ChangeEvent<HTMLTextAreaElement>) {
-    setInput(event.currentTarget.value);
-    setValidationResult({ status: "empty" });
+    const nextInput = event.currentTarget.value;
+    setInput(nextInput);
+    setValidationResult(
+      nextInput.length > maximumInputCharacters
+        ? { status: "invalid", error: labels.tooLarge, reason: "too-large" }
+        : { status: "empty" },
+    );
   }
 
   function handleToggleAll() {
@@ -94,7 +134,9 @@ export function JsonTool({ labels }: JsonToolProps) {
           ) : null}
           {validationResult.status === "invalid" ? (
             <Text size="sm" tone="destructive">
-              {labels.invalid.replace("{error}", validationResult.error)}
+              {validationResult.reason === "too-large"
+                ? validationResult.error
+                : labels.invalid.replace("{error}", validationResult.error)}
             </Text>
           ) : null}
         </div>
@@ -107,20 +149,20 @@ export function JsonTool({ labels }: JsonToolProps) {
           </Text>
         </div>
 
-        <div className="relative h-[32rem] min-h-[32rem] overflow-auto rounded-xl border border-border/70 bg-card p-4 pt-12 shadow-sm">
+        <Surface className="relative h-[32rem] min-h-[32rem] overflow-auto rounded-xl p-4 pt-12">
           <Button
             type="button"
             variant="outline"
             size="icon-sm"
             className="absolute top-3 right-3 z-10 bg-card"
             onClick={handleToggleAll}
-            disabled={previewResult.status !== "valid"}
+            disabled={previewResult.status !== "valid" || previewResult.previewable === false}
             aria-label={defaultExpanded ? labels.collapseAll : labels.expandAll}
             title={defaultExpanded ? labels.collapseAll : labels.expandAll}
           >
             {defaultExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
           </Button>
-          {previewResult.status === "valid" ? (
+          {previewResult.status === "valid" && previewResult.previewable !== false ? (
             <JsonTree
               key={treeVersion}
               collapseLabel={labels.collapseValue}
@@ -128,12 +170,16 @@ export function JsonTool({ labels }: JsonToolProps) {
               expandLabel={labels.expandValue}
               value={previewResult.value}
             />
+          ) : previewResult.status === "valid" ? (
+            <Text size="sm" tone="muted">
+              {labels.tooComplex}
+            </Text>
           ) : (
             <Text size="sm" tone="muted">
               {labels.emptyPreview}
             </Text>
           )}
-        </div>
+        </Surface>
       </section>
     </div>
   );
