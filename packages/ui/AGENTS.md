@@ -23,3 +23,4 @@ These guidelines apply to `packages/ui` in addition to the root guidelines.
 - Keep `Text` polymorphic and preserve the native props and ref type of the selected element.
 - Give `Button` a first-class accessible loading state. Keep its original content in layout while loading so transitions never change its dimensions.
 - Loading buttons must disable interaction, expose busy state to assistive technology, provide a loading label when available, and respect reduced-motion preferences.
+- Use the shared `Image` component when an image needs user-visible loading and failure states. Preserve caller load/error handlers, show a reduced-motion-safe shimmer while loading, and use the shared broken-camera icon for failures.

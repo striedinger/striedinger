@@ -1,3 +1,4 @@
+import { Image } from "@workspace/ui/components/image";
 import { Text } from "@workspace/ui/components/text";
 import type { PageMetadata } from "../../lib/og/types";
 
@@ -31,8 +32,9 @@ export function SocialCardPreview({
         </Text>
         <article className="relative aspect-[1.91/1] overflow-hidden rounded-xl border border-border/70 bg-muted shadow-sm">
           {cardImage ? (
-            <img
-              className="size-full object-cover"
+            <Image
+              className="size-full"
+              imageClassName="object-cover"
               src={cardImage}
               alt=""
               loading="lazy"
@@ -81,8 +83,9 @@ export function SocialCardPreview({
       <article className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
         <div className="aspect-[1.91/1] overflow-hidden bg-muted">
           {cardImage ? (
-            <img
-              className="size-full object-cover"
+            <Image
+              className="size-full"
+              imageClassName="object-cover"
               src={cardImage}
               alt=""
               loading="lazy"
