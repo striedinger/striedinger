@@ -6,6 +6,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 
 import type { JsonToolLabels } from "./types";
 
+import { JsonLd } from "../../components/json-ld";
 import { getJsonTranslator } from "../../messages/json/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { JsonTool } from "./json-tool";
@@ -64,9 +65,21 @@ export default async function JsonPage() {
     tooLarge: translate("This JSON is too large to process safely in the browser."),
     tooComplex: translate("This JSON is valid but too complex to preview all at once."),
   };
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: labels.title,
+    description: labels.description,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Any",
+    browserRequirements: "Requires JavaScript",
+    url: "https://striedinger.co/json",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  };
 
   return (
     <PageShell>
+      <JsonLd value={structuredData} />
       <PageContainer>
         <div className="flex flex-col gap-12">
           <PageHeader title={labels.title} description={labels.description} />

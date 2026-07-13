@@ -48,4 +48,19 @@ describe("JsonTool", function () {
     expect(screen.getByText(labels.valid)).toBeInTheDocument();
     expect(screen.getByText('"value":')).toBeInTheDocument();
   });
+
+  it("does not process input beyond the local safety limit", async function () {
+    vi.useFakeTimers();
+    render(<JsonTool labels={labels} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: labels.inputLabel }), {
+      target: { value: "x".repeat(500_001) },
+    });
+    await act(async function finishDebounce() {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(screen.getByText(labels.tooLarge)).toBeInTheDocument();
+    expect(screen.queryByText(labels.valid)).not.toBeInTheDocument();
+  });
 });

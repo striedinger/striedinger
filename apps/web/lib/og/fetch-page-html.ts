@@ -1,5 +1,6 @@
 import type { IncomingMessage, RequestOptions } from "node:http";
 
+import "server-only";
 import { request as requestHttp } from "node:http";
 import { request as requestHttps } from "node:https";
 import { StringDecoder } from "node:string_decoder";

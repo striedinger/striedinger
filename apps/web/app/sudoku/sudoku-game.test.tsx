@@ -100,4 +100,64 @@ describe("SudokuGame", function () {
     expect(screen.getByText("00:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: labels.difficulty.medium })).toBeEnabled();
   });
+
+  it("disables a number after all of its solution positions are correct", function () {
+    const twoStepSolution = Array<number>(81).fill(2);
+    twoStepSolution[0] = 1;
+    const twoStepPuzzle = [...twoStepSolution];
+    twoStepPuzzle[0] = 0;
+    twoStepPuzzle[1] = 0;
+    const twoStepDailyPuzzle: SudokuPuzzle = {
+      date: "2026-07-12",
+      difficulty: "easy",
+      puzzle: twoStepPuzzle,
+      solution: twoStepSolution,
+    };
+
+    render(
+      <SudokuGame
+        labels={labels}
+        locale="en"
+        puzzles={{
+          easy: twoStepDailyPuzzle,
+          medium: { ...twoStepDailyPuzzle, difficulty: "medium" },
+          hard: { ...twoStepDailyPuzzle, difficulty: "hard" },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: labels.start }));
+    fireEvent.click(screen.getByRole("button", { name: "1" }));
+
+    expect(screen.getByRole("button", { name: "1" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "2" })).toBeEnabled();
+  });
+
+  it("uses roving focus when navigating the puzzle with arrow keys", function () {
+    render(
+      <SudokuGame
+        labels={labels}
+        locale="en"
+        puzzles={{
+          easy: createPuzzle("easy"),
+          medium: createPuzzle("medium"),
+          hard: createPuzzle("hard"),
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: labels.start }));
+
+    const firstCell = screen.getByRole("gridcell", { name: "Row 1, column 1, empty" });
+    const secondCell = screen.getByRole("gridcell", { name: "Row 1, column 2, 1" });
+    expect(firstCell).toHaveFocus();
+    expect(firstCell).toHaveAttribute("tabindex", "0");
+    expect(secondCell).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.keyDown(firstCell, { key: "ArrowRight" });
+
+    expect(secondCell).toHaveFocus();
+    expect(firstCell).toHaveAttribute("tabindex", "-1");
+    expect(secondCell).toHaveAttribute("tabindex", "0");
+  });
 });

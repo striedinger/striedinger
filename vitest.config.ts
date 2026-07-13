@@ -1,6 +1,14 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const serverOnlyAlias = fileURLToPath(new URL("./test/server-only.ts", import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      "server-only": serverOnlyAlias,
+    },
+  },
   test: {
     projects: [
       {
@@ -21,6 +29,9 @@ export default defineConfig({
         },
       },
       {
+        resolve: {
+          alias: { "server-only": serverOnlyAlias },
+        },
         test: {
           name: "web",
           root: "./apps/web",
@@ -29,6 +40,9 @@ export default defineConfig({
         },
       },
       {
+        resolve: {
+          alias: { "server-only": serverOnlyAlias },
+        },
         test: {
           name: "web-ui",
           root: "./apps/web",

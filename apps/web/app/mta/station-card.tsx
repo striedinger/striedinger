@@ -44,6 +44,7 @@ export function StationCard({
         {station.arrivals.map(function renderArrival(arrival, index) {
           const arrivalDate = new Date(arrival.arrivalAt);
           const fullArrivalTime = getArrivalFormatter(locale).format(arrivalDate);
+          const tooltipId = `arrival-time-${station.id}-${index}`;
           return (
             <div
               key={`${arrival.route}-${arrival.direction}-${arrival.arrivalAt}-${index}`}
@@ -61,14 +62,15 @@ export function StationCard({
               <span className="group relative shrink-0">
                 <button
                   type="button"
+                  aria-describedby={tooltipId}
                   className={`rounded-md px-1 py-0.5 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${arrival.minutes <= 2 ? "text-success" : "text-foreground"}`}
-                  aria-label={fullArrivalTime}
                 >
                   <time dateTime={arrival.arrivalAt}>
                     {arrival.minutes === 0 ? labels.now : `${arrival.minutes} ${labels.minutes}`}
                   </time>
                 </button>
                 <span
+                  id={tooltipId}
                   role="tooltip"
                   className="pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-lg bg-black px-3 py-2 text-center text-xs leading-4 font-medium text-white shadow-xl group-focus-within:block group-hover:block dark:bg-white dark:text-black"
                 >

@@ -90,6 +90,32 @@ export function countFilledPlayerCells(
   }, 0);
 }
 
+export function getCompletedNumbers(
+  values: readonly number[],
+  solution: readonly number[],
+): ReadonlySet<number> {
+  const completedNumbers = new Set<number>();
+
+  for (let number = 1; number <= BOARD_SIZE; number += 1) {
+    let hasSolutionCell = false;
+    let allSolutionCellsAreCorrect = true;
+
+    for (let cellIndex = 0; cellIndex < solution.length; cellIndex += 1) {
+      if (solution[cellIndex] !== number) continue;
+
+      hasSolutionCell = true;
+      if (values[cellIndex] !== number) {
+        allSolutionCellsAreCorrect = false;
+        break;
+      }
+    }
+
+    if (hasSolutionCell && allSolutionCellsAreCorrect) completedNumbers.add(number);
+  }
+
+  return completedNumbers;
+}
+
 function createSolution(random: () => number): number[] {
   const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], random);
   const rows = shuffleGroups(random);

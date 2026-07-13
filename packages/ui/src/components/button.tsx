@@ -66,7 +66,7 @@ function Button({
         data-slot="button-content"
         className={cn(
           "inline-flex items-center justify-center gap-[inherit]",
-          loading && "invisible",
+          loading && "opacity-0",
         )}
       >
         {children}

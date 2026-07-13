@@ -41,7 +41,6 @@ export function SocialCardPreview({
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
             />
           ) : (
             <div className="size-full bg-[radial-gradient(circle_at_top_left,var(--color-accent),var(--color-muted))]" />
@@ -89,7 +88,6 @@ export function SocialCardPreview({
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
             />
           ) : (
             <div className="size-full bg-[radial-gradient(circle_at_top_left,var(--color-accent),var(--color-muted))]" />

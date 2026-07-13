@@ -17,8 +17,9 @@ interface JsonToolProps {
   labels: JsonToolLabels;
 }
 
+const maximumInputCharacters = 500_000;
+
 export function JsonTool({ labels }: JsonToolProps) {
-  const maximumInputCharacters = 500_000;
   const [input, setInput] = useState("");
   const [validationResult, setValidationResult] = useState<JsonParseResult>({ status: "empty" });
   const [treeVersion, setTreeVersion] = useState(0);
@@ -28,7 +29,7 @@ export function JsonTool({ labels }: JsonToolProps) {
 
   useEffect(
     function validateAndFormatAfterIdle() {
-      if (!input.trim()) {
+      if (!input.trim() || input.length > maximumInputCharacters) {
         return;
       }
       if (processedInput.current === input) {
@@ -118,6 +119,7 @@ export function JsonTool({ labels }: JsonToolProps) {
           placeholder={labels.placeholder}
           aria-label={labels.inputLabel}
           aria-invalid={validationResult.status === "invalid"}
+          maxLength={maximumInputCharacters}
           spellCheck={false}
           autoCapitalize="none"
           autoCorrect="off"

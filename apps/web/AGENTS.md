@@ -42,6 +42,7 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 ## Live data tools
 
 - Stream slow initial live-data requests behind stable Suspense fallbacks instead of blocking the page shell and heading.
+- Keep read-only live-data operations behind validated, rate-limited Server Actions when avoiding a public API surface is an explicit product requirement. Debounce client requests and ignore stale results.
 - Render one responsive content tree; do not duplicate mobile and desktop trees and hide one with CSS.
 - Pause periodic refreshes while the document is hidden, validate and rate-limit action inputs, and cache upstream data where freshness permits.
 - Implement autocomplete inputs with complete combobox semantics and keyboard navigation.

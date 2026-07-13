@@ -14,6 +14,7 @@ import {
   calculateLiveInputScore,
   countFilledPlayerCells,
   formatElapsedTime,
+  getCompletedNumbers,
   isPuzzleComplete,
 } from "./sudoku";
 import { SudokuBoard } from "./sudoku-board";
@@ -47,6 +48,7 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
   }).length;
   const filledPlayerCells = countFilledPlayerCells(values, activePuzzle.puzzle);
   const liveScore = calculateLiveInputScore(minimumInputCount, filledPlayerCells, inputCount);
+  const completedNumbers = getCompletedNumbers(values, activePuzzle.solution);
   const localizedDate = useMemo(
     function formatPuzzleDate() {
       return new Intl.DateTimeFormat(locale, {
@@ -80,6 +82,8 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
     ) {
       return;
     }
+
+    if (value > 0 && completedNumbers.has(value)) return;
 
     const nextValues = [...values];
 
@@ -143,12 +147,10 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
       return;
     }
 
-    const movement = getKeyboardMovement(event.key);
-
-    if (movement !== 0) {
+    if (isMovementKey(event.key)) {
       event.preventDefault();
       setSelectedCell(function moveSelection(currentCell) {
-        return Math.min(80, Math.max(0, currentCell + movement));
+        return getNextCellIndex(currentCell, event.key);
       });
     }
   }
@@ -237,6 +239,7 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
         <div className="relative">
           <div inert={startedAt === undefined ? true : undefined}>
             <SudokuBoard
+              active={startedAt !== undefined}
               cellEmptyLabel={labels.cellEmpty}
               cellValueLabel={labels.cellValue}
               fixedValues={activePuzzle.puzzle}
@@ -272,6 +275,7 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
             selectedCell < 0 ||
             activePuzzle.puzzle[selectedCell] !== 0
           }
+          disabledValues={completedNumbers}
           eraseLabel={labels.erase}
           label={labels.numberPad}
           onSelect={handleNumberSelect}
@@ -294,17 +298,24 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
   );
 }
 
-function getKeyboardMovement(key: string): number {
+function isMovementKey(key: string): boolean {
+  return key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown";
+}
+
+function getNextCellIndex(currentCell: number, key: string): number {
+  const row = Math.floor(currentCell / 9);
+  const column = currentCell % 9;
+
   switch (key) {
     case "ArrowLeft":
-      return -1;
+      return row * 9 + Math.max(0, column - 1);
     case "ArrowRight":
-      return 1;
+      return row * 9 + Math.min(8, column + 1);
     case "ArrowUp":
-      return -9;
+      return Math.max(0, row - 1) * 9 + column;
     case "ArrowDown":
-      return 9;
+      return Math.min(8, row + 1) * 9 + column;
     default:
-      return 0;
+      return currentCell;
   }
 }

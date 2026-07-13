@@ -3,12 +3,19 @@ import { Text } from "@workspace/ui/components/text";
 
 interface NumberPadProps {
   disabled: boolean;
+  disabledValues: ReadonlySet<number>;
   eraseLabel: string;
   label: string;
   onSelect: (value: number) => void;
 }
 
-export function NumberPad({ disabled, eraseLabel, label, onSelect }: NumberPadProps) {
+export function NumberPad({
+  disabled,
+  disabledValues,
+  eraseLabel,
+  label,
+  onSelect,
+}: NumberPadProps) {
   return (
     <div className="flex flex-col gap-3" aria-label={label}>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
@@ -19,7 +26,7 @@ export function NumberPad({ disabled, eraseLabel, label, onSelect }: NumberPadPr
               type="button"
               variant="outline"
               size="lg"
-              disabled={disabled}
+              disabled={disabled || disabledValues.has(value)}
               onClick={function selectNumber() {
                 onSelect(value);
               }}

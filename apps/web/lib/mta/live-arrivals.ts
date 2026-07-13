@@ -1,3 +1,4 @@
+import "server-only";
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
 
 import stations from "../../app/mta/data/stations.json";

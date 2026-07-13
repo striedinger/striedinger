@@ -35,4 +35,10 @@ describe("Button", function () {
     fireEvent.click(readyButton);
     expect(handleClick).toHaveBeenCalledOnce();
   });
+
+  it("preserves its accessible name while loading without a replacement label", function () {
+    render(<Button loading>Save</Button>);
+
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  });
 });

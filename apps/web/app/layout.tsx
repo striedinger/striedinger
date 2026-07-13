@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { Suspense } from "react";
+
+import { AppLoadingFallback } from "../components/app-loading-fallback";
+import { RequestLocaleBoundary } from "../components/request-locale-boundary";
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
 import "@workspace/ui/globals.css";
@@ -15,8 +19,20 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL("https://striedinger.co"),
-    title,
+    title: {
+      default: title,
+      template: `%s | Hugo Striedinger`,
+    },
     description,
+    authors: [{ name: "Hugo Striedinger", url: "https://striedinger.co" }],
+    creator: "Hugo Striedinger",
+    publisher: "Hugo Striedinger",
+    category: "technology",
+    formatDetection: {
+      address: false,
+      email: false,
+      telephone: false,
+    },
     alternates: {
       canonical: "/",
     },
@@ -50,12 +66,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const locale = await getRequestLocale();
-
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang={locale}>
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <Suspense fallback={<AppLoadingFallback />}>
+          <RequestLocaleBoundary>{children}</RequestLocaleBoundary>
+        </Suspense>
+      </body>
     </html>
   );
 }

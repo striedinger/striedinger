@@ -5,9 +5,8 @@ import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { useState } from "react";
 
+import type { ShareOutcome } from "./share-result";
 import type { SudokuDifficulty, SudokuLabels } from "./types";
-
-import { shareSudokuResult, type ShareOutcome } from "./share-result";
 
 interface CompletionCardProps {
   date: string;
@@ -38,6 +37,7 @@ export function CompletionCard({
     setShareState("sharing");
 
     try {
+      const { shareSudokuResult } = await import("./share-result");
       const outcome = await shareSudokuResult({
         date,
         difficulty,

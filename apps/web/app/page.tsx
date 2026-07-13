@@ -3,6 +3,7 @@ import { InstagramIcon } from "@workspace/icons/instagram-icon";
 import { XIcon } from "@workspace/icons/x-icon";
 import { Text } from "@workspace/ui/components/text";
 
+import { JsonLd } from "../components/json-ld";
 import { LanguagePicker } from "../components/language-picker";
 import { SocialLink } from "../components/social-link";
 import { getTranslator } from "../messages/get-translator";
@@ -11,9 +12,31 @@ import { getRequestLocale } from "./get-request-locale";
 export default async function Page() {
   const locale = await getRequestLocale();
   const translate = await getTranslator(locale);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://striedinger.co/#website",
+        url: "https://striedinger.co",
+        name: "Hugo Striedinger",
+        publisher: { "@id": "https://striedinger.co/#person" },
+        inLanguage: locale,
+      },
+      {
+        "@type": "Person",
+        "@id": "https://striedinger.co/#person",
+        name: "Hugo Striedinger",
+        url: "https://striedinger.co",
+        jobTitle: translate("Senior Software Engineer"),
+        sameAs: ["https://x.com/striedinger", "https://instagram.com/striedingerh"],
+      },
+    ],
+  };
 
   return (
     <main className="flex min-h-svh flex-col items-center gap-10 font-serif">
+      <JsonLd value={structuredData} />
       <section
         className="flex flex-col items-center gap-8 px-8 pt-28 text-center sm:pt-40"
         aria-labelledby="introduction-heading"

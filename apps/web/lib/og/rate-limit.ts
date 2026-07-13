@@ -1,3 +1,4 @@
+import "server-only";
 import { isRateLimited } from "../rate-limit";
 import { PreviewError } from "./preview-error";
 

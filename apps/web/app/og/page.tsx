@@ -8,6 +8,7 @@ import { Text } from "@workspace/ui/components/text";
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
 
+import { JsonLd } from "../../components/json-ld";
 import { getOgTranslator } from "../../messages/og/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { OgPreviewForm } from "./og-preview-form";
@@ -56,12 +57,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPreviewPageProps) {
-  const resolvedSearchParams = await searchParams;
+  const [resolvedSearchParams, locale] = await Promise.all([searchParams, getRequestLocale()]);
   const requestedUrl = Array.isArray(resolvedSearchParams.url)
     ? resolvedSearchParams.url[0]
     : resolvedSearchParams.url;
   const initialUrl = requestedUrl?.slice(0, 2048) ?? "";
-  const locale = await getRequestLocale();
   const translate = await getOgTranslator(locale);
   const initialState: PreviewState = { status: "idle", url: initialUrl };
   const labels: OgPreviewLabels = {
@@ -118,12 +118,7 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
 
   return (
     <PageShell>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
-        }}
-      />
+      <JsonLd value={structuredData} />
       <PageContainer>
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-24">
           <div className="flex flex-col gap-12">

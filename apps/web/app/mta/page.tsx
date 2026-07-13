@@ -8,6 +8,7 @@ import { Suspense } from "react";
 
 import type { InitialMtaState, MtaLabels } from "./types";
 
+import { JsonLd } from "../../components/json-ld";
 import { getMtaTranslator } from "../../messages/mta/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { MtaDashboardLoader } from "./mta-dashboard-loader";
@@ -90,9 +91,21 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
       "Not affiliated with the Metropolitan Transportation Authority. Station and arrival data are provided by MTA GTFS feeds.",
     ),
   };
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: labels.title,
+    description: labels.description,
+    applicationCategory: "TravelApplication",
+    operatingSystem: "Any",
+    browserRequirements: "Requires JavaScript",
+    url: "https://striedinger.co/mta",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  };
 
   return (
     <PageShell>
+      <JsonLd value={structuredData} />
       <PageContainer>
         <PageHeader
           title={labels.title}

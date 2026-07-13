@@ -1,11 +1,11 @@
-import type { KeyboardEventHandler } from "react";
-
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
+import { useEffect, useRef, type KeyboardEventHandler } from "react";
 
 import { hasConflict } from "./sudoku";
 
 interface SudokuBoardProps {
+  active: boolean;
   cellEmptyLabel: string;
   cellValueLabel: string;
   fixedValues: readonly number[];
@@ -17,6 +17,7 @@ interface SudokuBoardProps {
 }
 
 export function SudokuBoard({
+  active,
   cellEmptyLabel,
   cellValueLabel,
   fixedValues,
@@ -26,8 +27,16 @@ export function SudokuBoard({
   selectedCell,
   values,
 }: SudokuBoardProps) {
+  const cellElements = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedRow = Math.floor(selectedCell / 9);
   const selectedColumn = selectedCell % 9;
+
+  useEffect(
+    function focusSelectedCell() {
+      if (active) cellElements.current[selectedCell]?.focus();
+    },
+    [active, selectedCell],
+  );
 
   return (
     <div
@@ -52,8 +61,12 @@ export function SudokuBoard({
         return (
           <button
             key={cellIndex}
+            ref={function storeCellElement(cellElement) {
+              cellElements.current[cellIndex] = cellElement;
+            }}
             type="button"
             role="gridcell"
+            tabIndex={active && isSelected ? 0 : -1}
             aria-label={cellLabel}
             aria-selected={isSelected}
             aria-invalid={isConflicting || undefined}

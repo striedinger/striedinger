@@ -6,6 +6,7 @@ import {
   countFilledPlayerCells,
   createDailyPuzzle,
   formatElapsedTime,
+  getCompletedNumbers,
   hasConflict,
   isPuzzleComplete,
 } from "./sudoku";
@@ -73,6 +74,14 @@ describe("Sudoku game helpers", function () {
 
     expect(countFilledPlayerCells([5, 2, 7], puzzle)).toBe(2);
     expect(countFilledPlayerCells([5, 2, 0], puzzle)).toBe(1);
+  });
+
+  it("marks a number complete only when every solution position is correct", function () {
+    const solution = [1, 2, 1, 3];
+
+    expect(getCompletedNumbers([1, 2, 0, 3], solution)).toEqual(new Set([2, 3]));
+    expect(getCompletedNumbers([1, 2, 1, 3], solution)).toEqual(new Set([1, 2, 3]));
+    expect(getCompletedNumbers([1, 1, 1, 3], solution)).toEqual(new Set([1, 3]));
   });
 });
 

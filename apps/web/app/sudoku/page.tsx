@@ -7,6 +7,7 @@ import { unstable_cache } from "next/cache";
 
 import type { SudokuLabels } from "./types";
 
+import { JsonLd } from "../../components/json-ld";
 import { getSudokuTranslator } from "../../messages/sudoku/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { createDailyPuzzle } from "./sudoku";
@@ -101,10 +102,7 @@ export default async function SudokuPage() {
 
   return (
     <PageShell className="py-6 sm:py-14">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-      />
+      <JsonLd value={structuredData} />
       <PageContainer>
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 sm:gap-14">
           <PageHeader title={labels.title} description={labels.description} variant="compact" />

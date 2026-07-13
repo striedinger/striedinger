@@ -1,3 +1,5 @@
+import "server-only";
+
 interface GeoSearchFeature {
   geometry?: { coordinates?: [number, number] };
   properties?: { label?: string; name?: string };
