@@ -7,10 +7,11 @@ type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghos
 type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
 
 const variantClasses: Readonly<Record<ButtonVariant, string>> = {
-  default: "bg-primary text-primary-foreground hover:bg-primary/90",
+  default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 hover:shadow-sm",
   destructive:
     "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20",
-  outline: "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+  outline:
+    "border border-border/90 bg-card shadow-xs hover:border-primary/25 hover:bg-accent hover:text-accent-foreground",
   secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
   ghost: "hover:bg-accent hover:text-accent-foreground",
   link: "text-primary underline-offset-4 hover:underline",
@@ -55,7 +56,7 @@ function Button({
       aria-label={loading && loadingLabel ? loadingLabel : ariaLabel}
       disabled={disabled || loading}
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 ease-out outline-none select-none hover:-translate-y-px focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 active:translate-y-0 active:scale-[0.985] disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 motion-reduce:transform-none motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         variantClasses[variant],
         sizeClasses[size],
         className,

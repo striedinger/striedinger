@@ -35,7 +35,7 @@ export default async function Page() {
   };
 
   return (
-    <main className="flex min-h-svh flex-col items-center gap-10 font-serif">
+    <main className="flex min-h-svh flex-col items-center gap-10 font-sans">
       <JsonLd value={structuredData} />
       <section
         className="flex flex-col items-center gap-8 px-8 pt-28 text-center sm:pt-40"

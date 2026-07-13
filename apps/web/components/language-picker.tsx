@@ -49,15 +49,11 @@ export function LanguagePicker({ label, locale }: LanguagePickerProps) {
   return (
     <Text as="div" size="sm" className="flex justify-center">
       <Select items={localeItems} value={locale} onValueChange={handleLanguageChange}>
-        <SelectTrigger
-          className="w-32 cursor-pointer rounded-xl border-border/60 bg-background/90 px-3 shadow-sm hover:bg-accent/60 focus-visible:border-ring/50 focus-visible:ring-2 focus-visible:ring-ring/30"
-          size="sm"
-          aria-label={label}
-        >
+        <SelectTrigger className="w-32 cursor-pointer rounded-xl px-3" size="sm" aria-label={label}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent
-          className="w-[var(--anchor-width)] min-w-[var(--anchor-width)] rounded-xl border-border/60 shadow-lg"
+          className="w-[var(--anchor-width)] min-w-[var(--anchor-width)]"
           alignItemWithTrigger={false}
           align="start"
           sideOffset={6}

@@ -10,6 +10,7 @@ export const messages = defineMessages({
   "Hugo Striedinger on X": "Hugo Striedinger on X",
   "Hugo Striedinger on Instagram": "Hugo Striedinger on Instagram",
   "Select language": "Select language",
+  "Accent color": "Accent color",
   Navigation: "Navigation",
   "Open navigation menu": "Open navigation menu",
   "Close navigation": "Close navigation",

@@ -16,9 +16,13 @@ import { Text } from "@workspace/ui/components/text";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import type { AccentColorId } from "../lib/accent-colors";
+
+import { AccentColorPicker } from "./accent-color-picker";
 import { LanguagePicker } from "./language-picker";
 
 interface AppNavigationLabels {
+  accentColor: string;
   close: string;
   json: string;
   menu: string;
@@ -30,6 +34,7 @@ interface AppNavigationLabels {
 }
 
 interface AppNavigationProps {
+  accentColor: AccentColorId;
   labels: AppNavigationLabels;
   locale: Locale;
 }
@@ -41,18 +46,18 @@ const navigationItems = [
   { href: "/mta", label: "subway" },
 ] as const;
 
-export function AppNavigation({ labels, locale }: AppNavigationProps) {
+export function AppNavigation({ accentColor, labels, locale }: AppNavigationProps) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 shadow-[0_1px_0_var(--surface-highlight)] backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Text
           as={Link}
           size="sm"
           weight="semibold"
           href="/"
-          className="hover:text-muted-foreground"
+          className="transition-colors duration-150 hover:text-primary motion-reduce:transition-none"
         >
           Hugo Striedinger
         </Text>
@@ -97,7 +102,7 @@ export function AppNavigation({ labels, locale }: AppNavigationProps) {
                           href={item.href}
                           weight={isCurrent ? "semibold" : "normal"}
                           aria-current={isCurrent ? "page" : undefined}
-                          className="block rounded-lg px-3 py-3 hover:bg-accent"
+                          className="block rounded-xl px-3 py-3 transition-[color,background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground motion-reduce:transform-none motion-reduce:transition-none"
                         >
                           {labels[item.label]}
                         </Text>
@@ -112,6 +117,10 @@ export function AppNavigation({ labels, locale }: AppNavigationProps) {
                   {labels.selectLanguage}
                 </Text>
                 <LanguagePicker locale={locale} label={labels.selectLanguage} />
+                <Text size="sm" tone="muted">
+                  {labels.accentColor}
+                </Text>
+                <AccentColorPicker accentColor={accentColor} label={labels.accentColor} />
               </div>
             </div>
           </SheetContent>

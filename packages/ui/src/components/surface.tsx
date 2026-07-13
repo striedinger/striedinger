@@ -19,7 +19,10 @@ function Surface<Element extends ElementType = "div">({
   return (
     <Component
       data-slot="surface"
-      className={cn("rounded-2xl border border-border/70 bg-card shadow-sm", className)}
+      className={cn(
+        "rounded-2xl border border-border/80 bg-card shadow-surface transition-[border-color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+        className,
+      )}
       {...props}
     />
   );

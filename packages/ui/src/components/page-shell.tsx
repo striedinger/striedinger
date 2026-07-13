@@ -9,7 +9,7 @@ function PageShell({ className, ...props }: PageShellProps) {
     <main
       data-slot="page-shell"
       className={cn(
-        "min-h-[calc(100svh-3.5rem)] bg-background px-4 py-10 font-serif text-foreground sm:px-6 sm:py-16",
+        "min-h-[calc(100svh-3.5rem)] bg-transparent px-4 py-10 font-sans text-foreground sm:px-6 sm:py-16",
         className,
       )}
       {...props}

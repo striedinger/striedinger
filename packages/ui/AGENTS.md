@@ -18,6 +18,15 @@ These guidelines apply to `packages/ui` in addition to the root guidelines.
 - Follow the operating system color scheme with `prefers-color-scheme`.
 - Do not require consumers to add or toggle a manual `dark` class.
 - Express reusable colors through theme tokens rather than page-specific hard-coded colors.
+- Keep the visual direction restrained and technical-editorial: warm neutral canvases, a customizable accent (including neutral), tactile controls, fine borders, compact shadows, and clean sans-serif typography.
+- Treat semantic surface, inset, highlight, shadow, control, and accent tokens as the source of truth. Route components should not recreate those treatments.
+- Derive primary, secondary, soft accent, focus, and ambient colors from the selected accent hue. Keep user-selectable presets contrast-safe in both system color schemes.
+
+## Motion
+
+- Use short, purposeful transitions to clarify hover, press, focus, opening, closing, and content arrival states. Avoid ambient or decorative motion in application tools.
+- Prefer opacity, transform, color, border, and shadow transitions. Keep ordinary control motion between 100 and 200 milliseconds.
+- Respect `prefers-reduced-motion` for every animation and transition, including view transitions.
 
 ## Typography and controls
 

@@ -15,6 +15,7 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Keep route identity in content, data visualization, and specialized controls; do not replace shared page backgrounds, typography, surface styling, or spacing with route-specific hard-coded values.
 - Request-cache locale and translation composition used by metadata, layouts, and pages.
 - Use `next/link` for internal application navigation.
+- Use native and React/Next view transitions as progressive enhancement. Keep navigation usable without them and disable or minimize their animation for reduced-motion users.
 
 ## URL state
 
