@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "next build --webpack",
+    "build": "next build",
     "dev": "next dev --experimental-https",
     "prebuild": "node scripts/sync-pdf-assets.mjs",
     "predev": "node scripts/sync-pdf-assets.mjs",

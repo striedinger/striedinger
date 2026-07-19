@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 interface MockRunner {
   runOne(options: unknown): Promise<Uint8Array>;
@@ -27,7 +27,12 @@ vi.mock("./rasterize-pdf", function mockRasterizer() {
 import { optimizePdf, unlockPdf } from "./process-pdf";
 
 describe("PDF processing", function () {
+  afterEach(function restoreGlobals() {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(function resetMocks() {
+    vi.stubGlobal("location", new URL("https://tools.example/pdf"));
     qpdfMocks.createRunner.mockResolvedValue({ runOne: qpdfMocks.runOne });
     qpdfMocks.runOne.mockResolvedValue(new Uint8Array([1, 2, 3]));
     qpdfMocks.rasterize.mockResolvedValue(
@@ -44,10 +49,10 @@ describe("PDF processing", function () {
 
     expect(output.type).toBe("application/pdf");
     expect(qpdfMocks.createRunner).toHaveBeenCalledWith({
-      qpdfJsUrl: "/vendor/qpdf-run/0.2.1/qpdf.js",
+      qpdfJsUrl: "https://tools.example/vendor/qpdf-run/0.2.1/qpdf.js",
       timeoutMs: 120_000,
-      wasmUrl: "/vendor/qpdf-run/0.2.1/qpdf.wasm",
-      workerUrl: "/vendor/qpdf-run/0.2.1/worker.js",
+      wasmUrl: "https://tools.example/vendor/qpdf-run/0.2.1/qpdf.wasm",
+      workerUrl: "https://tools.example/vendor/qpdf-run/0.2.1/worker.js",
     });
     expect(qpdfMocks.runOne).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -103,11 +103,13 @@ async function runQpdf(
 }
 
 function getQpdfRunner() {
+  const assetRootUrl = new URL(`${QPDF_ASSET_ROOT}/`, globalThis.location.origin);
+
   qpdfRunnerPromise ??= createQpdfRunner({
-    qpdfJsUrl: `${QPDF_ASSET_ROOT}/qpdf.js`,
+    qpdfJsUrl: new URL("qpdf.js", assetRootUrl).href,
     timeoutMs: 120_000,
-    wasmUrl: `${QPDF_ASSET_ROOT}/qpdf.wasm`,
-    workerUrl: `${QPDF_ASSET_ROOT}/worker.js`,
+    wasmUrl: new URL("qpdf.wasm", assetRootUrl).href,
+    workerUrl: new URL("worker.js", assetRootUrl).href,
   });
   return qpdfRunnerPromise.catch(function resetFailedRunner(error: unknown) {
     qpdfRunnerPromise = undefined;
