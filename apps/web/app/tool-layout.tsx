@@ -20,12 +20,18 @@ export async function ToolLayout({ children }: ToolLayoutProps) {
         locale={locale}
         labels={{
           accentColor: translate("Accent color"),
+          chat: translate("Nearby Chat"),
           close: translate("Close navigation"),
+          drop: translate("Drop - Private file sharing"),
           json: translate("JSON Validator and Formatter"),
+          image: translate("Image Optimizer"),
           menu: translate("Open navigation menu"),
           navigation: translate("Navigation"),
           og: translate("Open Graph Preview"),
+          podcasts: translate("Podcasts"),
+          pdf: translate("PDF Optimizer"),
           selectLanguage: translate("Select language"),
+          stocks: translate("Stock watchlist"),
           subway: translate("Trains near you"),
           sudoku: translate("Daily Sudoku"),
         }}

@@ -3,6 +3,7 @@ node_modules
 .turbo
 .next
 apps/web/certificates
+apps/web/public/vendor/qpdf-run
 dist
 *.tsbuildinfo
 .env*
