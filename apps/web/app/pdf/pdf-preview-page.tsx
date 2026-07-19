@@ -102,7 +102,7 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
           <div className="size-7 animate-spin rounded-full border-4 border-primary/15 border-t-primary motion-reduce:animate-pulse" />
         </div>
       ) : null}
-      <span className="absolute right-2 bottom-2 rounded-md bg-black/65 px-2 py-1 text-xs text-white tabular-nums">
+      <span className="absolute right-2 bottom-2 rounded-md border border-border bg-popover/90 px-2 py-1 text-xs text-popover-foreground tabular-nums shadow-xs backdrop-blur-sm">
         {pageNumber}
       </span>
     </div>

@@ -4,7 +4,7 @@ This pnpm/Turborepo workspace contains:
 
 - `apps/web`: a minimal Next.js app.
 - `packages/i18n`: framework-independent locale detection, catalog composition, and translation helpers.
-- `packages/ui`: shared shadcn components and Tailwind CSS 4 theme tokens.
+- `packages/ui`: shared shadcn components, Tailwind CSS 4 theme tokens, and tweakcn-compatible theme presets.
 
 The workspace targets Node.js 24.18.0, the latest LTS release.
 
@@ -33,6 +33,8 @@ pnpm --dir packages/ui dlx shadcn@latest add button
 ```
 
 Dark mode follows `prefers-color-scheme`; no `dark` class or theme provider is used.
+
+The web app exposes the full tweakcn preset catalog from the navigation drawer. The selected preset is stored in the `theme` cookie, applied before hydration, and shared by every route through the tokens in `packages/ui/src/styles/themes`.
 
 ## Production rate limiting
 

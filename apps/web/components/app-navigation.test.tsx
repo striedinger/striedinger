@@ -23,7 +23,6 @@ function createMockRouter() {
 function refreshMockRouter() {}
 
 const labels = {
-  accentColor: "Accent color",
   chat: "Nearby Chat",
   close: "Close navigation",
   drop: "Drop - Private file sharing",
@@ -38,12 +37,13 @@ const labels = {
   stocks: "Stock watchlist",
   subway: "Trains near you",
   sudoku: "Daily Sudoku",
+  theme: "Theme",
 };
 
 describe("AppNavigation", function () {
   it("opens route navigation and identifies the current page", function () {
     navigationState.pathname = "/sudoku";
-    render(<AppNavigation accentColor="blue" labels={labels} locale="en" />);
+    render(<AppNavigation labels={labels} locale="en" theme="default" />);
 
     fireEvent.click(screen.getByRole("button", { name: labels.menu }));
 
@@ -53,6 +53,6 @@ describe("AppNavigation", function () {
       "page",
     );
     expect(screen.getByRole("combobox", { name: labels.selectLanguage })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: labels.accentColor })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: labels.theme })).toBeInTheDocument();
   });
 });

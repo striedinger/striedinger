@@ -2,24 +2,23 @@ import type { ReactNode } from "react";
 
 import { AppNavigation } from "../components/app-navigation";
 import { getTranslator } from "../messages/get-translator";
-import { getRequestAccentColor } from "./get-request-accent-color";
 import { getRequestLocale } from "./get-request-locale";
+import { getRequestTheme } from "./get-request-theme";
 
 interface ToolLayoutProps {
   children: ReactNode;
 }
 
 export async function ToolLayout({ children }: ToolLayoutProps) {
-  const [locale, accentColor] = await Promise.all([getRequestLocale(), getRequestAccentColor()]);
+  const [locale, theme] = await Promise.all([getRequestLocale(), getRequestTheme()]);
   const translate = await getTranslator(locale);
 
   return (
     <>
       <AppNavigation
-        accentColor={accentColor.id}
         locale={locale}
+        theme={theme.id}
         labels={{
-          accentColor: translate("Accent color"),
           chat: translate("Nearby Chat"),
           close: translate("Close navigation"),
           drop: translate("Drop - Private file sharing"),
@@ -34,6 +33,7 @@ export async function ToolLayout({ children }: ToolLayoutProps) {
           stocks: translate("Stock watchlist"),
           subway: translate("Trains near you"),
           sudoku: translate("Daily Sudoku"),
+          theme: translate("Theme"),
         }}
       />
       {children}

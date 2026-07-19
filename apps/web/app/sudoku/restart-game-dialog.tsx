@@ -63,7 +63,7 @@ export function RestartGameDialog({
             <AlertDialogClose
               render={<Button type="button" variant="destructive" onClick={onConfirm} />}
             >
-              <Text as="span" size="sm" weight="medium" className="text-white">
+              <Text as="span" size="sm" weight="medium" className="text-destructive-foreground">
                 {confirmLabel}
               </Text>
             </AlertDialogClose>

@@ -1,0 +1,58 @@
+/* Presets are sourced from the tweakcn Theme Picker registry and adapted so
+ * their light and dark palettes follow the operating system color scheme. */
+@import "./amber-minimal.css";
+@import "./bold-tech.css";
+@import "./bubblegum.css";
+@import "./caffeine.css";
+@import "./candyland.css";
+@import "./catppuccin.css";
+@import "./claude.css";
+@import "./claymorphism.css";
+@import "./clean-slate.css";
+@import "./cosmic-night.css";
+@import "./cyberpunk.css";
+@import "./doom-64.css";
+@import "./elegant-luxury.css";
+@import "./github.css";
+@import "./graphite.css";
+@import "./kick.css";
+@import "./kodama-grove.css";
+@import "./midnight-bloom.css";
+@import "./mocha-mousse.css";
+@import "./modern-minimal.css";
+@import "./mono.css";
+@import "./nature.css";
+@import "./neo-brutalism.css";
+@import "./northern-lights.css";
+@import "./ocean-breeze.css";
+@import "./pastel-dreams.css";
+@import "./perpetuity.css";
+@import "./quantum-rose.css";
+@import "./retro-arcade.css";
+@import "./solar-dusk.css";
+@import "./spotify.css";
+@import "./starry-night.css";
+@import "./stripe.css";
+@import "./sunset-horizon.css";
+@import "./supabase.css";
+@import "./t3-chat.css";
+@import "./tangerine.css";
+@import "./twitch.css";
+@import "./twitter.css";
+@import "./vercel.css";
+@import "./vintage-paper.css";
+@import "./windows98.css";
+
+/*
+ * Application-specific semantic aliases. tweakcn presets provide the
+ * shadcn/ui palette, while the app also uses success and syntax tokens. Keep
+ * those aliases tied to the active preset so route components never fall back
+ * to the Editorial palette after a theme change.
+ */
+:root[data-theme]:not([data-theme="default"]) {
+  --success: var(--chart-2);
+  --success-foreground: var(--background);
+  --json-string: var(--chart-2);
+  --json-number: var(--chart-1);
+  --json-boolean: var(--chart-3);
+}

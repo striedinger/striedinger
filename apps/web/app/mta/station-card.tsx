@@ -72,12 +72,12 @@ export function StationCard({
                 <span
                   id={tooltipId}
                   role="tooltip"
-                  className="pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-lg bg-black px-3 py-2 text-center text-xs leading-4 font-medium text-white shadow-xl group-focus-within:block group-hover:block dark:bg-white dark:text-black"
+                  className="pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-lg border border-border bg-popover px-3 py-2 text-center text-xs leading-4 font-medium text-popover-foreground shadow-xl group-focus-within:block group-hover:block"
                 >
                   {fullArrivalTime}
                   <span
                     aria-hidden="true"
-                    className="absolute top-full right-4 border-4 border-transparent border-t-black dark:border-t-white"
+                    className="absolute top-full right-4 border-4 border-transparent border-t-popover"
                   />
                 </span>
               </span>

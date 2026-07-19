@@ -17,10 +17,10 @@ type MarketSession = "after-hours" | "closed" | "open" | "pre-market";
 
 const supportedUnitedStatesExchanges = ["NASDAQ", "NYSE", "AMEX", "ARCA", "CBOE", "OTC"];
 const sessionStyles: Record<MarketSession, string> = {
-  "after-hours": "bg-amber-500",
+  "after-hours": "bg-chart-3",
   closed: "bg-muted-foreground/55",
   open: "bg-success",
-  "pre-market": "bg-sky-500",
+  "pre-market": "bg-chart-5",
 };
 
 export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndicatorProps) {

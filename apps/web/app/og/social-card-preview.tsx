@@ -45,13 +45,13 @@ export function SocialCardPreview({
           ) : (
             <div className="size-full bg-[radial-gradient(circle_at_top_left,var(--color-accent),var(--color-muted))]" />
           )}
-          <div className="absolute inset-x-0 bottom-0 z-10 flex bg-gradient-to-t from-black/80 to-transparent px-3 pt-10 pb-3">
+          <div className="absolute inset-x-0 bottom-0 z-10 flex bg-gradient-to-t from-foreground/80 to-transparent px-3 pt-10 pb-3">
             <Text
               as="h3"
               numberOfLines={2}
               size="sm"
               weight="medium"
-              className="max-w-full rounded-lg bg-black/75 px-2.5 py-1.5 text-white!"
+              className="max-w-full rounded-lg bg-foreground/75 px-2.5 py-1.5 text-background!"
             >
               {cardDescription ? `${cardTitle} - ${cardDescription}` : cardTitle}
             </Text>

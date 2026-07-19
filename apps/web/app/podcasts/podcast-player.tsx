@@ -192,10 +192,9 @@ export function PodcastPlayer({
     const pictureInPictureAudio: HTMLAudioElement = activeAudio;
     pictureInPictureWindowRef.current = pictureInPictureWindow;
     const pictureInPictureDocument = pictureInPictureWindow.document;
+    const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     pictureInPictureDocument.title = episode.title;
     const style = pictureInPictureDocument.createElement("style");
-    style.textContent =
-      "*{box-sizing:border-box}body{margin:0;padding:20px;background:#171717;color:#fafafa;font:14px system-ui,sans-serif}main{display:grid;gap:12px}p{margin:0}.show{color:#aaa;font-size:12px}.title{font-size:16px;font-weight:650;line-height:1.3}.controls{display:flex;align-items:center;gap:10px}button{border:0;border-radius:999px;background:#fafafa;color:#171717;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}button.close{margin-left:auto;background:#333;color:#fafafa}input{width:100%;accent-color:#fafafa}.time{color:#aaa;font-variant-numeric:tabular-nums;font-size:12px}";
     pictureInPictureDocument.head.append(style);
     const player = pictureInPictureDocument.createElement("main");
     const show = pictureInPictureDocument.createElement("p");
@@ -232,6 +231,13 @@ export function PodcastPlayer({
       seek.value = String(pictureInPictureAudio.currentTime);
       time.textContent = `${formatTime(pictureInPictureAudio.currentTime)} / ${formatTime(duration)}`;
     }
+    function synchronizeTheme() {
+      const rootStyles = getComputedStyle(document.documentElement);
+      function readToken(token: string) {
+        return rootStyles.getPropertyValue(token).trim();
+      }
+      style.textContent = `*{box-sizing:border-box}body{margin:0;padding:20px;background:${readToken("--background")};color:${readToken("--foreground")};font:14px ${readToken("--font-sans") || "system-ui,sans-serif"}}main{display:grid;gap:12px}p{margin:0}.show,.time{color:${readToken("--muted-foreground")};font-size:12px}.title{font-size:16px;font-weight:650;line-height:1.3}.controls{display:flex;align-items:center;gap:10px}button{border:1px solid ${readToken("--border")};border-radius:${readToken("--radius")};background:${readToken("--primary")};color:${readToken("--primary-foreground")};padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}button.close{margin-left:auto;background:${readToken("--secondary")};color:${readToken("--secondary-foreground")}}input{width:100%;accent-color:${readToken("--primary")}}.time{font-variant-numeric:tabular-nums}`;
+    }
     function togglePlayback() {
       if (pictureInPictureAudio.paused) void pictureInPictureAudio.play();
       else pictureInPictureAudio.pause();
@@ -250,6 +256,8 @@ export function PodcastPlayer({
       playButton.removeEventListener("click", togglePlayback);
       seek.removeEventListener("input", seekPlayback);
       closeButton.removeEventListener("click", closeFromPictureInPicture);
+      window.removeEventListener("themechange", synchronizeTheme);
+      colorScheme.removeEventListener("change", synchronizeTheme);
       pictureInPictureWindowRef.current = null;
     }
     pictureInPictureAudio.addEventListener("play", synchronizeControls);
@@ -258,8 +266,11 @@ export function PodcastPlayer({
     playButton.addEventListener("click", togglePlayback);
     seek.addEventListener("input", seekPlayback);
     closeButton.addEventListener("click", closeFromPictureInPicture);
+    window.addEventListener("themechange", synchronizeTheme);
+    colorScheme.addEventListener("change", synchronizeTheme);
     pictureInPictureWindow.addEventListener("pagehide", cleanUpPictureInPicture, { once: true });
     pictureInPictureCleanupRef.current = cleanUpPictureInPicture;
+    synchronizeTheme();
     synchronizeControls();
   }
 

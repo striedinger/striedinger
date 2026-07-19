@@ -9,7 +9,7 @@ type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm
 const variantClasses: Readonly<Record<ButtonVariant, string>> = {
   default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 hover:shadow-sm",
   destructive:
-    "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20",
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20",
   outline:
     "border border-border/90 bg-card shadow-xs hover:border-primary/25 hover:bg-accent hover:text-accent-foreground",
   secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",

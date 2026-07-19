@@ -16,13 +16,12 @@ import { Text } from "@workspace/ui/components/text";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import type { AccentColorId } from "../lib/accent-colors";
+import type { ThemeId } from "../lib/themes";
 
-import { AccentColorPicker } from "./accent-color-picker";
 import { LanguagePicker } from "./language-picker";
+import { ThemePicker } from "./theme-picker";
 
 interface AppNavigationLabels {
-  accentColor: string;
   chat: string;
   close: string;
   drop: string;
@@ -37,12 +36,13 @@ interface AppNavigationLabels {
   stocks: string;
   subway: string;
   sudoku: string;
+  theme: string;
 }
 
 interface AppNavigationProps {
-  accentColor: AccentColorId;
   labels: AppNavigationLabels;
   locale: Locale;
+  theme: ThemeId;
 }
 
 const navigationItems = [
@@ -58,7 +58,7 @@ const navigationItems = [
   { href: "/podcasts", label: "podcasts" },
 ] as const;
 
-export function AppNavigation({ accentColor, labels, locale }: AppNavigationProps) {
+export function AppNavigation({ labels, locale, theme }: AppNavigationProps) {
   const pathname = usePathname();
 
   return (
@@ -130,9 +130,9 @@ export function AppNavigation({ accentColor, labels, locale }: AppNavigationProp
                 </Text>
                 <LanguagePicker locale={locale} label={labels.selectLanguage} />
                 <Text size="sm" tone="muted">
-                  {labels.accentColor}
+                  {labels.theme}
                 </Text>
-                <AccentColorPicker accentColor={accentColor} label={labels.accentColor} />
+                <ThemePicker theme={theme} label={labels.theme} />
               </div>
             </div>
           </SheetContent>

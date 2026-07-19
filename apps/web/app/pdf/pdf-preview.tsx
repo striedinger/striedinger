@@ -107,7 +107,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           </Text>
         ) : null}
       </div>
-      <div className="relative flex min-h-0 flex-1 overflow-auto bg-black/5 p-4 sm:p-6 dark:bg-white/5">
+      <div className="relative flex min-h-0 flex-1 overflow-auto bg-muted/45 p-4 sm:p-6">
         {status === "ready" && document ? (
           <div className="flex w-full flex-col items-center gap-5">
             {pageSizes.map(function renderPage(size) {

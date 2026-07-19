@@ -5,9 +5,16 @@ import { Suspense } from "react";
 
 import { AppLoadingFallback } from "../components/app-loading-fallback";
 import { RequestLocaleBoundary } from "../components/request-locale-boundary";
+import { themeCookieName, themes } from "../lib/themes";
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
 import "@workspace/ui/globals.css";
+
+const themeBootstrapScript = `(()=>{const prefix=${JSON.stringify(`${themeCookieName}=`)};const stored=document.cookie.split(";").map(value=>value.trim()).find(value=>value.startsWith(prefix))?.slice(prefix.length);const themes=${JSON.stringify(
+  themes.map(function selectThemeId(theme) {
+    return theme.id;
+  }),
+)};document.documentElement.dataset.theme=themes.includes(stored)?stored:"default"})()`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -68,7 +75,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-theme="default" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+      </head>
       <body>
         <Suspense fallback={<AppLoadingFallback />}>
           <RequestLocaleBoundary>{children}</RequestLocaleBoundary>
