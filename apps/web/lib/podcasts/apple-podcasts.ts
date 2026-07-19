@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+
 import type { Podcast, PodcastEpisode } from "../../app/podcasts/types";
 
 const appleSearchBaseUrl = "https://itunes.apple.com";
@@ -46,7 +48,13 @@ interface AppleSearchResult {
   wrapperType?: unknown;
 }
 
-export async function getPopularPodcasts(): Promise<Podcast[]> {
+const getPopularPodcastsCached = cache(loadPopularPodcasts);
+
+export function getPopularPodcasts(): Promise<Podcast[]> {
+  return getPopularPodcastsCached();
+}
+
+async function loadPopularPodcasts(): Promise<Podcast[]> {
   const response = await fetch(appleChartsUrl, {
     headers: { Accept: "application/json" },
     next: { revalidate: 3_600 },
@@ -65,7 +73,13 @@ export async function getPopularPodcasts(): Promise<Podcast[]> {
   });
 }
 
-export async function searchPodcastCatalog(query: string): Promise<Podcast[]> {
+const searchPodcastCatalogCached = cache(loadPodcastCatalog);
+
+export function searchPodcastCatalog(query: string): Promise<Podcast[]> {
+  return searchPodcastCatalogCached(query);
+}
+
+async function loadPodcastCatalog(query: string): Promise<Podcast[]> {
   const parameters = new URLSearchParams({
     country: "us",
     entity: "podcast",
@@ -84,7 +98,13 @@ export async function searchPodcastCatalog(query: string): Promise<Podcast[]> {
   return (payload.results ?? []).flatMap(mapSearchPodcast);
 }
 
-export async function getPodcast(podcastId: string): Promise<Podcast | null> {
+const getPodcastCached = cache(loadPodcast);
+
+export function getPodcast(podcastId: string): Promise<Podcast | null> {
+  return getPodcastCached(podcastId);
+}
+
+async function loadPodcast(podcastId: string): Promise<Podcast | null> {
   const parameters = new URLSearchParams({ id: podcastId });
   const response = await fetch(`${appleSearchBaseUrl}/lookup?${parameters}`, {
     headers: { Accept: "application/json" },
@@ -101,9 +121,13 @@ export async function getPodcastEpisodes(podcastId: string): Promise<PodcastEpis
   return episodes;
 }
 
-export async function getPodcastShow(
-  podcastId: string,
-): Promise<[Podcast | null, PodcastEpisode[]]> {
+const getPodcastShowCached = cache(loadPodcastShow);
+
+export function getPodcastShow(podcastId: string): Promise<[Podcast | null, PodcastEpisode[]]> {
+  return getPodcastShowCached(podcastId);
+}
+
+async function loadPodcastShow(podcastId: string): Promise<[Podcast | null, PodcastEpisode[]]> {
   const parameters = new URLSearchParams({
     entity: "podcastEpisode",
     id: podcastId,

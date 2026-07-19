@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+
 import type {
   StockIdentity,
   StockPoint,
@@ -58,7 +60,13 @@ interface TwelveDataSeriesResponse {
   }>;
 }
 
-export async function searchStockSymbols(query: string): Promise<StockIdentity[]> {
+const searchStockSymbolsCached = cache(loadStockSymbols);
+
+export function searchStockSymbols(query: string): Promise<StockIdentity[]> {
+  return searchStockSymbolsCached(query);
+}
+
+async function loadStockSymbols(query: string): Promise<StockIdentity[]> {
   const normalizedQuery = query.trim().toUpperCase().slice(0, 40);
   if (normalizedQuery.length < 1) return [];
 
@@ -100,7 +108,16 @@ export async function searchStockSymbols(query: string): Promise<StockIdentity[]
   }
 }
 
-export async function getStockSeries(
+const getStockSeriesCached = cache(loadStockSeries);
+
+export function getStockSeries(
+  identity: StockIdentity,
+  timeframe: StockTimeframe,
+): Promise<StockSeries> {
+  return getStockSeriesCached(identity, timeframe);
+}
+
+async function loadStockSeries(
   identity: StockIdentity,
   timeframe: StockTimeframe,
 ): Promise<StockSeries> {

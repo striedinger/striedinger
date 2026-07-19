@@ -77,6 +77,100 @@ export function PodcastPlayer({
   );
 
   useEffect(
+    function synchronizeMediaSession() {
+      if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") return;
+      const audio = audioRef.current;
+      if (!audio) return;
+      const activeAudio: HTMLAudioElement = audio;
+      const mediaSession = navigator.mediaSession;
+      mediaSession.metadata = new MediaMetadata({
+        album: podcast.title,
+        artist: podcast.author,
+        artwork: [{ src: podcast.artworkUrl, sizes: "600x600", type: "image/jpeg" }],
+        title: episode.title,
+      });
+
+      function syncPlaybackState() {
+        mediaSession.playbackState = activeAudio.paused ? "paused" : "playing";
+        const duration = activeAudio.duration;
+        if (
+          typeof mediaSession.setPositionState === "function" &&
+          Number.isFinite(duration) &&
+          duration > 0
+        ) {
+          mediaSession.setPositionState({
+            duration,
+            playbackRate: activeAudio.playbackRate,
+            position: Math.min(activeAudio.currentTime, duration),
+          });
+        }
+      }
+      function play() {
+        void activeAudio.play();
+      }
+      function pause() {
+        activeAudio.pause();
+      }
+      function seekBy(seconds: number) {
+        activeAudio.currentTime = Math.max(
+          0,
+          Math.min(
+            activeAudio.duration || Number.POSITIVE_INFINITY,
+            activeAudio.currentTime + seconds,
+          ),
+        );
+      }
+      function seekBackward() {
+        seekBy(-15);
+      }
+      function seekForward() {
+        seekBy(30);
+      }
+      function stop() {
+        activeAudio.pause();
+        activeAudio.currentTime = 0;
+      }
+
+      function setActionHandler(
+        action: MediaSessionAction,
+        handler: MediaSessionActionHandler | null,
+      ) {
+        try {
+          mediaSession.setActionHandler(action, handler);
+        } catch {
+          // Browsers may expose Media Session without supporting every action.
+        }
+      }
+
+      setActionHandler("play", play);
+      setActionHandler("pause", pause);
+      setActionHandler("seekbackward", seekBackward);
+      setActionHandler("seekforward", seekForward);
+      setActionHandler("stop", stop);
+      activeAudio.addEventListener("durationchange", syncPlaybackState);
+      activeAudio.addEventListener("play", syncPlaybackState);
+      activeAudio.addEventListener("pause", syncPlaybackState);
+      activeAudio.addEventListener("timeupdate", syncPlaybackState);
+      syncPlaybackState();
+
+      return function clearMediaSession() {
+        activeAudio.removeEventListener("durationchange", syncPlaybackState);
+        activeAudio.removeEventListener("play", syncPlaybackState);
+        activeAudio.removeEventListener("pause", syncPlaybackState);
+        activeAudio.removeEventListener("timeupdate", syncPlaybackState);
+        mediaSession.metadata = null;
+        mediaSession.playbackState = "none";
+        setActionHandler("play", null);
+        setActionHandler("pause", null);
+        setActionHandler("seekbackward", null);
+        setActionHandler("seekforward", null);
+        setActionHandler("stop", null);
+      };
+    },
+    [episode.id, episode.title, podcast.artworkUrl, podcast.author, podcast.title],
+  );
+
+  useEffect(
     function synchronizeMobileSeekControl() {
       const audio = audioRef.current;
       const playButton = mobilePlayButtonRef.current;

@@ -2,7 +2,7 @@
 
 import { Button } from "@workspace/ui/components/button";
 import { Text } from "@workspace/ui/components/text";
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { ChartRange } from "./chart-range";
 import type { StockPoint, StocksLabels, StockTimeframe } from "./types";
@@ -38,34 +38,58 @@ export function StockChart({
   const [dragSelection, setDragSelection] = useState<{ end: number; start: number } | null>(null);
   const dragSelectionRef = useRef<{ end: number; start: number } | null>(null);
   const activePointer = useRef<number | null>(null);
-  const visiblePoints = points.slice(visibleRange.start, visibleRange.end + 1);
+  const visiblePoints = useMemo(
+    function selectVisiblePoints() {
+      return points.slice(visibleRange.start, visibleRange.end + 1);
+    },
+    [points, visibleRange],
+  );
   const visibleIndex = Math.max(visibleRange.start, Math.min(activeIndex, visibleRange.end));
   const activePoint = points[visibleIndex] ?? points.at(-1)!;
-  const values = visiblePoints.map(function selectClose(point) {
-    return point.close;
-  });
-  const minimum = Math.min(...values);
-  const maximum = Math.max(...values);
-  const priceRange = maximum - minimum || 1;
-  const coordinates = visiblePoints.map(function createCoordinate(point, index) {
-    const x = (index / Math.max(visiblePoints.length - 1, 1)) * chartWidth;
-    const y = chartBottom - ((point.close - minimum) / priceRange) * (chartBottom - chartTop);
-    return { x, y };
-  });
-  const linePath = coordinates
-    .map(function createPathSegment(point, index) {
-      return `${index === 0 ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`;
-    })
-    .join(" ");
-  const areaPath = `${linePath} L${chartWidth},${chartHeight} L0,${chartHeight} Z`;
-  const isPositive = visiblePoints.at(-1)!.close >= visiblePoints[0]!.close;
+  const { areaPath, coordinates, isPositive, linePath } = useMemo(
+    function createChartModel() {
+      const values = visiblePoints.map(function selectClose(point) {
+        return point.close;
+      });
+      const minimum = Math.min(...values);
+      const maximum = Math.max(...values);
+      const priceRange = maximum - minimum || 1;
+      const nextCoordinates = visiblePoints.map(function createCoordinate(point, index) {
+        const x = (index / Math.max(visiblePoints.length - 1, 1)) * chartWidth;
+        const y = chartBottom - ((point.close - minimum) / priceRange) * (chartBottom - chartTop);
+        return { x, y };
+      });
+      const nextLinePath = nextCoordinates
+        .map(function createPathSegment(point, index) {
+          return `${index === 0 ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+        })
+        .join(" ");
+      return {
+        areaPath: `${nextLinePath} L${chartWidth},${chartHeight} L0,${chartHeight} Z`,
+        coordinates: nextCoordinates,
+        isPositive: visiblePoints.at(-1)!.close >= visiblePoints[0]!.close,
+        linePath: nextLinePath,
+      };
+    },
+    [visiblePoints],
+  );
   const activeCoordinate = coordinates[visibleIndex - visibleRange.start] ?? coordinates.at(-1)!;
-  const priceFormatter = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: activePoint.close < 10 ? 3 : 2,
-  });
-  const dateFormatter = new Intl.DateTimeFormat(locale, getDateFormat(timeframe));
+  const priceFormatter = useMemo(
+    function createPriceFormatter() {
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+        maximumFractionDigits: activePoint.close < 10 ? 3 : 2,
+      });
+    },
+    [activePoint.close, currency, locale],
+  );
+  const dateFormatter = useMemo(
+    function createDateFormatter() {
+      return new Intl.DateTimeFormat(locale, getDateFormat(timeframe));
+    },
+    [locale, timeframe],
+  );
 
   function selectPointFromPointer(event: PointerEvent<SVGSVGElement>) {
     const ratio = getPointerRatio(event);
@@ -188,7 +212,7 @@ export function StockChart({
           aria-valuenow={visibleIndex}
           aria-valuetext={`${priceFormatter.format(activePoint.close)}, ${dateFormatter.format(new Date(activePoint.date))}`}
           tabIndex={0}
-          className="block aspect-[2/1] w-full cursor-crosshair touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:aspect-[2.35/1]"
+          className="block aspect-[1.5/1] w-full cursor-crosshair touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:aspect-[2.35/1]"
           onPointerDown={startRangeSelection}
           onPointerMove={updateRangeSelection}
           onPointerUp={finishRangeSelection}
@@ -258,6 +282,16 @@ export function StockChart({
                 strokeDasharray="3 5"
                 vectorEffect="non-scaling-stroke"
               />
+              <line
+                x1="0"
+                x2={chartWidth}
+                y1={activeCoordinate.y}
+                y2={activeCoordinate.y}
+                stroke="var(--foreground)"
+                strokeOpacity="0.2"
+                strokeDasharray="3 5"
+                vectorEffect="non-scaling-stroke"
+              />
               <circle
                 cx={activeCoordinate.x}
                 cy={activeCoordinate.y}
@@ -270,6 +304,19 @@ export function StockChart({
             </>
           )}
         </svg>
+        <Text
+          as="span"
+          size="xs"
+          weight="semibold"
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-card/90 px-2 py-1 tabular-nums shadow-sm sm:hidden"
+          style={{
+            left: `${(activeCoordinate.x / chartWidth) * 100}%`,
+            top: `${(activeCoordinate.y / chartHeight) * 100}%`,
+          }}
+          aria-hidden="true"
+        >
+          {priceFormatter.format(activePoint.close)}
+        </Text>
         {visibleRange.start === 0 && visibleRange.end === points.length - 1 ? (
           <Text
             size="xs"

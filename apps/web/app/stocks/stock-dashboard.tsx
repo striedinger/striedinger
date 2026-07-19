@@ -5,17 +5,11 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import {
-  startTransition,
-  useDeferredValue,
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
+import { useTypeahead } from "../../components/use-typeahead";
 import { loadStockSeries, searchStocks } from "./actions";
 import { playStockHaptic } from "./haptics";
 import { MarketSessionIndicator } from "./market-session-indicator";
@@ -35,6 +29,10 @@ const storageKey = "stocks-watchlist:v1";
 const previousDefaultSymbols = new Set(["AAPL", "MSFT", "NVDA"]);
 const refocusRefreshIntervalMilliseconds = 60_000;
 
+function getStockSymbol(stock: StockIdentity) {
+  return stock.symbol;
+}
+
 export function StockDashboard({
   initialStock,
   initialTimeframe,
@@ -46,14 +44,31 @@ export function StockDashboard({
   const [selectedStock, setSelectedStock] = useState<StockIdentity>(initialStock);
   const [timeframe, setTimeframe] = useState<StockTimeframe>(initialTimeframe);
   const [series, setSeries] = useState<StockSeries | null>(null);
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<StockIdentity[]>([]);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
-  const deferredQuery = useDeferredValue(query.trim());
   const requestNumber = useRef(0);
   const lastSeriesRequestAt = useRef(0);
+  const typeahead = useTypeahead({
+    clearQueryOnSelect: true,
+    getItemLabel: getStockSymbol,
+    loadSuggestions: searchStocks,
+    maximumSuggestions: 8,
+    minimumQueryLength: 1,
+    onSelect: addStock,
+    suggestionDelayMilliseconds: 250,
+  });
+  const {
+    activeSuggestionIndex,
+    clear,
+    handleKeyDown,
+    open,
+    query,
+    selectSuggestion,
+    setOpen,
+    setQuery,
+    status: searchStatus,
+    suggestions,
+  } = typeahead;
 
   useEffect(
     function restoreWatchlist() {
@@ -161,33 +176,6 @@ export function StockDashboard({
     [selectedStock, timeframe],
   );
 
-  useEffect(
-    function loadSearchSuggestions() {
-      if (deferredQuery.length < 1) {
-        return;
-      }
-      let cancelled = false;
-      const timeoutId = window.setTimeout(function requestSuggestions() {
-        searchStocks(deferredQuery)
-          .then(function showSuggestions(results) {
-            if (!cancelled) {
-              setSuggestions(results);
-              setActiveSuggestionIndex(results.length > 0 ? 0 : -1);
-            }
-            return undefined;
-          })
-          .catch(function clearSuggestions() {
-            if (!cancelled) setSuggestions([]);
-          });
-      }, 250);
-      return function cancelSearch() {
-        cancelled = true;
-        window.clearTimeout(timeoutId);
-      };
-    },
-    [deferredQuery],
-  );
-
   function persistWatchlist(nextWatchlist: StockIdentity[]) {
     setWatchlist(nextWatchlist);
     window.localStorage.setItem(storageKey, JSON.stringify(nextWatchlist));
@@ -202,8 +190,6 @@ export function StockDashboard({
       setStatus("loading");
       setShareStatus("idle");
       setSelectedStock(stock);
-      setQuery("");
-      setSuggestions([]);
     });
     playStockHaptic(alreadyAdded ? "select" : "success");
   }
@@ -219,23 +205,6 @@ export function StockDashboard({
       setSelectedStock(nextWatchlist[0]);
     }
     playStockHaptic("remove");
-  }
-
-  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (suggestions.length === 0) return;
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const direction = event.key === "ArrowDown" ? 1 : -1;
-      setActiveSuggestionIndex(function moveActiveSuggestion(index) {
-        return (index + direction + suggestions.length) % suggestions.length;
-      });
-    } else if (event.key === "Enter" && activeSuggestionIndex >= 0) {
-      event.preventDefault();
-      addStock(suggestions[activeSuggestionIndex]!);
-    } else if (event.key === "Escape") {
-      setSuggestions([]);
-      setActiveSuggestionIndex(-1);
-    }
   }
 
   async function shareSelection() {
@@ -299,7 +268,7 @@ export function StockDashboard({
               role="combobox"
               aria-autocomplete="list"
               aria-controls="stock-suggestions"
-              aria-expanded={suggestions.length > 0}
+              aria-expanded={open}
               aria-activedescendant={
                 activeSuggestionIndex >= 0 ? `stock-suggestion-${activeSuggestionIndex}` : undefined
               }
@@ -308,31 +277,32 @@ export function StockDashboard({
               placeholder={labels.searchPlaceholder}
               className="h-11 rounded-xl pr-9 pl-9"
               onChange={function updateQuery(event) {
-                const nextQuery = event.target.value;
-                setQuery(nextQuery);
-                if (!nextQuery.trim()) {
-                  setSuggestions([]);
-                  setActiveSuggestionIndex(-1);
-                }
+                setQuery(event.currentTarget.value);
               }}
-              onKeyDown={handleSearchKeyDown}
+              onKeyDown={handleKeyDown}
+              onFocus={function reopenSuggestions() {
+                if (suggestions.length > 0) setOpen(true);
+              }}
             />
-            {query ? (
+            {searchStatus === "loading" ? (
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-muted-foreground border-r-transparent motion-reduce:animate-none"
+              />
+            ) : query ? (
               <button
                 type="button"
                 aria-label={labels.close}
                 className="absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 onClick={function clearSearch() {
-                  setQuery("");
-                  setSuggestions([]);
-                  setActiveSuggestionIndex(-1);
+                  clear();
                 }}
               >
                 <span aria-hidden="true">×</span>
               </button>
             ) : null}
           </div>
-          {suggestions.length > 0 ? (
+          {open ? (
             <Surface
               as="ul"
               id="stock-suggestions"
@@ -351,8 +321,8 @@ export function StockDashboard({
                       role="option"
                       aria-selected={index === activeSuggestionIndex}
                       className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none aria-selected:bg-accent"
-                      onClick={function selectSuggestion() {
-                        addStock(stock);
+                      onClick={function chooseSuggestion() {
+                        selectSuggestion(stock);
                       }}
                     >
                       <span className="min-w-0">

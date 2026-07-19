@@ -4,10 +4,11 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, type FormEvent } from "react";
 
 import type { InitialMtaState, LiveStation, LocationSuggestion, MtaLabels } from "./types";
 
+import { useTypeahead } from "../../components/use-typeahead";
 import { autocompleteLocations, loadNearbyStations, resolveLocation } from "./actions";
 import { StationGrid } from "./station-grid";
 import { TrainFilter } from "./train-filter";
@@ -39,6 +40,10 @@ const subwayRoutes = [
   "S",
 ] as const;
 
+function getLocationLabel(suggestion: LocationSuggestion) {
+  return suggestion.label;
+}
+
 interface MtaDashboardProps {
   initialState: InitialMtaState;
   initialStations: LiveStation[];
@@ -64,13 +69,40 @@ export function MtaDashboard({
     nearbyStations,
     query,
     refreshVersion,
-    searchState,
     selectedRoute,
-    suggestions,
     updatedAt,
   } = state;
   const isInitialArrivalRender = useRef(true);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const typeahead = useTypeahead({
+    getItemLabel: getLocationLabel,
+    loadResults: resolveLocation,
+    loadSuggestions: autocompleteLocations,
+    minimumQueryLength: 1,
+    minimumSuggestionLength: 3,
+    onQueryChange: function updateLocationQuery(nextQuery) {
+      dispatch({ type: "query-changed", query: nextQuery });
+    },
+    onResults: function selectFirstResult(results) {
+      const firstResult = results[0];
+      if (firstResult) selectSuggestion(firstResult);
+    },
+    onSelect: function selectLocation(suggestion) {
+      dispatch({ type: "location-selected", suggestion });
+    },
+    query,
+    suggestionDelayMilliseconds: 350,
+  });
+  const {
+    activateSuggestion,
+    activeSuggestionIndex,
+    handleKeyDown,
+    open,
+    selectSuggestion,
+    setQuery,
+    status: searchStatus,
+    submit,
+    suggestions,
+  } = typeahead;
 
   useEffect(
     function refreshArrivalsEveryMinute() {
@@ -125,34 +157,6 @@ export function MtaDashboard({
     [coordinates, dispatch, refreshVersion, selectedRoute],
   );
 
-  useEffect(
-    function loadAutocompleteSuggestions() {
-      const trimmedQuery = query.trim();
-      if (trimmedQuery.length < 3 || trimmedQuery === locationName) {
-        return;
-      }
-
-      let cancelled = false;
-      const timeoutId = window.setTimeout(async function requestSuggestions() {
-        try {
-          const result = await autocompleteLocations(trimmedQuery);
-          if (!cancelled) {
-            dispatch({ type: "suggestions-loaded", suggestions: result });
-            setActiveSuggestionIndex(result.length > 0 ? 0 : -1);
-          }
-        } catch {
-          if (!cancelled) dispatch({ type: "suggestions-loaded", suggestions: [] });
-        }
-      }, 400);
-
-      return function cancelAutocomplete() {
-        window.clearTimeout(timeoutId);
-        cancelled = true;
-      };
-    },
-    [dispatch, query, locationName],
-  );
-
   const displayedStations = useMemo(
     function filterStationsByRoute() {
       return nearbyStations.flatMap(function filterStation(station) {
@@ -170,53 +174,13 @@ export function MtaDashboard({
     [nearbyStations, loadedRoute],
   );
 
-  function selectSuggestion(suggestion: LocationSuggestion) {
-    dispatch({ type: "location-selected", suggestion });
-    setActiveSuggestionIndex(-1);
-  }
-
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) return;
-    const firstAutocompleteSuggestion = suggestions[0];
-    if (firstAutocompleteSuggestion) {
-      selectSuggestion(firstAutocompleteSuggestion);
+    if (open && suggestions[activeSuggestionIndex]) {
+      selectSuggestion(suggestions[activeSuggestionIndex]);
       return;
     }
-    dispatch({ type: "search-requested" });
-    try {
-      const result = await resolveLocation(trimmedQuery);
-      const firstSuggestion = result[0];
-      if (!firstSuggestion) throw new Error("No location found");
-      selectSuggestion(firstSuggestion);
-    } catch {
-      dispatch({ type: "search-failed" });
-    }
-  }
-
-  function handleLocationKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (suggestions.length === 0) return;
-
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const direction = event.key === "ArrowDown" ? 1 : -1;
-      setActiveSuggestionIndex(function moveActiveSuggestion(currentIndex) {
-        return (currentIndex + direction + suggestions.length) % suggestions.length;
-      });
-      return;
-    }
-
-    if (event.key === "Enter" && activeSuggestionIndex >= 0) {
-      event.preventDefault();
-      selectSuggestion(suggestions[activeSuggestionIndex]!);
-      return;
-    }
-
-    if (event.key === "Escape") {
-      dispatch({ type: "suggestions-loaded", suggestions: [] });
-      setActiveSuggestionIndex(-1);
-    }
+    await submit();
   }
 
   function detectLocation() {
@@ -266,17 +230,16 @@ export function MtaDashboard({
                 id="mta-location"
                 value={query}
                 onChange={function updateQuery(event) {
-                  setActiveSuggestionIndex(-1);
-                  dispatch({ type: "query-changed", query: event.currentTarget.value });
+                  setQuery(event.currentTarget.value);
                 }}
-                onKeyDown={handleLocationKeyDown}
+                onKeyDown={handleKeyDown}
                 placeholder={labels.locationPlaceholder}
                 aria-label={labels.locationLabel}
-                aria-busy={searchState === "loading"}
+                aria-busy={searchStatus === "loading"}
                 role="combobox"
                 tabIndex={0}
                 aria-autocomplete="list"
-                aria-expanded={suggestions.length > 0}
+                aria-expanded={open}
                 aria-controls="mta-location-suggestions"
                 aria-activedescendant={
                   activeSuggestionIndex >= 0 ? `mta-suggestion-${activeSuggestionIndex}` : undefined
@@ -284,7 +247,7 @@ export function MtaDashboard({
                 maxLength={160}
                 className="h-11 rounded-xl bg-background pl-12 shadow-none"
               />
-              {suggestions.length > 0 ? (
+              {open ? (
                 <div
                   id="mta-location-suggestions"
                   className="absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-xl border bg-popover py-1 text-popover-foreground shadow-xl"
@@ -300,8 +263,8 @@ export function MtaDashboard({
                         role="option"
                         aria-selected={activeSuggestionIndex === suggestionIndex}
                         className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none aria-selected:bg-accent"
-                        onMouseEnter={function activateSuggestion() {
-                          setActiveSuggestionIndex(suggestionIndex);
+                        onMouseEnter={function highlightSuggestion() {
+                          activateSuggestion(suggestionIndex);
                         }}
                         onClick={function chooseSuggestion() {
                           selectSuggestion(suggestion);
@@ -346,11 +309,11 @@ export function MtaDashboard({
           </form>
           <Text
             size="xs"
-            tone={locationState === "error" || searchState === "error" ? "destructive" : "muted"}
+            tone={locationState === "error" || searchStatus === "error" ? "destructive" : "muted"}
           >
             {locationState === "error"
               ? labels.locationError
-              : searchState === "error"
+              : searchStatus === "error"
                 ? labels.searchError
                 : labels.searchHint}
           </Text>

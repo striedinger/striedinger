@@ -6,18 +6,11 @@ import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useDeferredValue,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
+import { type FormEvent, type MouseEvent } from "react";
 
 import type { Podcast, PodcastMessages } from "./types";
 
+import { useTypeahead } from "../../components/use-typeahead";
 import { searchPodcasts } from "./actions";
 import { getPodcastHref } from "./podcast-links";
 
@@ -28,11 +21,12 @@ interface PodcastSearchProps {
   onShowResults: (podcasts: Podcast[], query: string) => void;
 }
 
-const maximumSuggestions = 6;
-const maximumCachedQueries = 20;
-
 function keepInputFocus(event: MouseEvent<HTMLAnchorElement>) {
   event.preventDefault();
+}
+
+function getPodcastTitle(podcast: Podcast) {
+  return podcast.title;
 }
 
 export function PodcastSearch({
@@ -41,115 +35,35 @@ export function PodcastSearch({
   onOpenPodcast,
   onShowResults,
 }: PodcastSearchProps) {
-  const [query, setQuery] = useState(initialQuery);
-  const [suggestions, setSuggestions] = useState<Podcast[]>([]);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
-  const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const deferredQuery = useDeferredValue(query.trim());
-  const requestNumber = useRef(0);
-  const resultCache = useRef(new Map<string, Podcast[]>());
-
-  useEffect(
-    function loadSuggestions() {
-      if (deferredQuery.length < 2) return;
-      let cancelled = false;
-      const normalizedQuery = deferredQuery.toLocaleLowerCase();
-      const timeoutId = window.setTimeout(function requestSuggestions() {
-        const cachedResults = readCachedResults(resultCache.current, normalizedQuery);
-        if (cachedResults) {
-          showSuggestions(cachedResults);
-          return;
-        }
-        const currentRequest = ++requestNumber.current;
-        setStatus("loading");
-        searchPodcasts(deferredQuery)
-          .then(function receiveSuggestions(results) {
-            if (cancelled || currentRequest !== requestNumber.current) return;
-            cacheResults(resultCache.current, normalizedQuery, results);
-            showSuggestions(results);
-            return undefined;
-          })
-          .catch(function showSuggestionError() {
-            if (cancelled || currentRequest !== requestNumber.current) return;
-            setSuggestions([]);
-            setActiveSuggestionIndex(-1);
-            setOpen(false);
-            setStatus("error");
-          });
-      }, 300);
-      return function cancelSuggestionRequest() {
-        cancelled = true;
-        window.clearTimeout(timeoutId);
-      };
-
-      function showSuggestions(results: Podcast[]) {
-        if (cancelled) return;
-        const nextSuggestions = results.slice(0, maximumSuggestions);
-        setSuggestions(nextSuggestions);
-        setActiveSuggestionIndex(nextSuggestions.length > 0 ? 0 : -1);
-        setOpen(nextSuggestions.length > 0);
-        setStatus("idle");
-      }
+  const typeahead = useTypeahead({
+    getItemLabel: getPodcastTitle,
+    initialQuery,
+    loadResults: searchPodcasts,
+    loadSuggestions: searchPodcasts,
+    maximumSuggestions: 6,
+    minimumQueryLength: 2,
+    onResults: function showResultPage(results, query) {
+      onShowResults([...results], query);
     },
-    [deferredQuery],
-  );
+    onSelect: onOpenPodcast,
+    suggestionDelayMilliseconds: 300,
+  });
+  const {
+    activeSuggestionIndex,
+    handleKeyDown,
+    open,
+    query,
+    selectSuggestion,
+    setOpen,
+    setQuery,
+    status,
+    submit,
+    suggestions,
+  } = typeahead;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const submittedQuery = query.trim();
-    if (submittedQuery.length < 2) return;
-    const normalizedQuery = submittedQuery.toLocaleLowerCase();
-    const cachedResults = readCachedResults(resultCache.current, normalizedQuery);
-    if (cachedResults) {
-      showResultPage(cachedResults);
-      return;
-    }
-    const currentRequest = ++requestNumber.current;
-    setStatus("loading");
-    searchPodcasts(submittedQuery)
-      .then(function receiveResults(results) {
-        if (currentRequest !== requestNumber.current) return;
-        cacheResults(resultCache.current, normalizedQuery, results);
-        showResultPage(results);
-        return undefined;
-      })
-      .catch(function showSearchError() {
-        if (currentRequest === requestNumber.current) setStatus("error");
-      });
-  }
-
-  function showResultPage(results: Podcast[]) {
-    setOpen(false);
-    setStatus("idle");
-    onShowResults(results, query.trim());
-  }
-
-  function selectSuggestion(podcast: Podcast) {
-    setQuery(podcast.title);
-    setOpen(false);
-    setActiveSuggestionIndex(-1);
-    onOpenPodcast(podcast);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (!open || suggestions.length === 0) {
-      if (event.key === "ArrowDown" && suggestions.length > 0) setOpen(true);
-      return;
-    }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      const direction = event.key === "ArrowDown" ? 1 : -1;
-      setActiveSuggestionIndex(function moveActiveSuggestion(index) {
-        return (index + direction + suggestions.length) % suggestions.length;
-      });
-    } else if (event.key === "Enter" && activeSuggestionIndex >= 0) {
-      event.preventDefault();
-      selectSuggestion(suggestions[activeSuggestionIndex]!);
-    } else if (event.key === "Escape") {
-      setOpen(false);
-      setActiveSuggestionIndex(-1);
-    }
+    void submit();
   }
 
   return (
@@ -195,16 +109,7 @@ export function PodcastSearch({
             placeholder={messages["Search shows, people, or topics"]}
             className="h-11 rounded-xl pr-9 pl-9"
             onChange={function updateQuery(event) {
-              const nextQuery = event.target.value;
-              requestNumber.current += 1;
-              setQuery(nextQuery);
-              setOpen(false);
-              if (nextQuery.trim().length < 2) {
-                setSuggestions([]);
-                setActiveSuggestionIndex(-1);
-                setOpen(false);
-                setStatus("idle");
-              }
+              setQuery(event.currentTarget.value);
             }}
             onFocus={function reopenSuggestions() {
               if (suggestions.length > 0) setOpen(true);
@@ -301,20 +206,4 @@ export function PodcastSearch({
       ) : null}
     </Surface>
   );
-}
-
-function readCachedResults(cache: Map<string, Podcast[]>, query: string) {
-  const results = cache.get(query);
-  if (!results) return undefined;
-  cache.delete(query);
-  cache.set(query, results);
-  return results;
-}
-
-function cacheResults(cache: Map<string, Podcast[]>, query: string, results: Podcast[]) {
-  cache.delete(query);
-  cache.set(query, results);
-  if (cache.size <= maximumCachedQueries) return;
-  const leastRecentlyUsedQuery = cache.keys().next().value;
-  if (leastRecentlyUsedQuery !== undefined) cache.delete(leastRecentlyUsedQuery);
 }

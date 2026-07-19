@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 interface GeoSearchFeature {
   geometry?: { coordinates?: [number, number] };
@@ -15,7 +16,16 @@ export interface LocationSuggestion {
   longitude: number;
 }
 
-export async function searchLocations(
+const searchLocationsCached = cache(loadLocations);
+
+export function searchLocations(
+  text: string,
+  mode: "autocomplete" | "search",
+): Promise<LocationSuggestion[]> {
+  return searchLocationsCached(text, mode);
+}
+
+async function loadLocations(
   text: string,
   mode: "autocomplete" | "search",
 ): Promise<LocationSuggestion[]> {

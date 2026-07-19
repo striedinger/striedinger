@@ -1,5 +1,6 @@
 import "server-only";
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
+import { cache } from "react";
 
 import stations from "../../app/mta/data/stations.json";
 
@@ -51,7 +52,17 @@ const feedByRoute: Readonly<Record<string, string>> = {
   SI: "gtfs-si",
 };
 
-export async function getNearbyStations(
+const getNearbyStationsCached = cache(loadNearbyStations);
+
+export function getNearbyStations(
+  latitude: number,
+  longitude: number,
+  selectedRoute?: string,
+): Promise<NearbyStation[]> {
+  return getNearbyStationsCached(latitude, longitude, selectedRoute);
+}
+
+async function loadNearbyStations(
   latitude: number,
   longitude: number,
   selectedRoute?: string,

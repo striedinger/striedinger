@@ -12,8 +12,6 @@ interface DashboardState {
   locationName: string;
   query: string;
   locationState: RequestState;
-  suggestions: readonly LocationSuggestion[];
-  searchState: RequestState;
   updatedAt: Date;
   nearbyStations: LiveStation[];
   arrivalState: ArrivalState;
@@ -32,10 +30,7 @@ type DashboardAction =
   | { type: "location-selected"; suggestion: LocationSuggestion }
   | { type: "query-changed"; query: string }
   | { type: "refresh-requested" }
-  | { type: "route-selected"; route: string | null }
-  | { type: "search-requested" }
-  | { type: "search-failed" }
-  | { type: "suggestions-loaded"; suggestions: readonly LocationSuggestion[] };
+  | { type: "route-selected"; route: string | null };
 
 interface DashboardInitialData {
   initialState: InitialMtaState;
@@ -57,8 +52,6 @@ function createInitialDashboardState({
     locationName: initialState.locationName,
     query: "",
     locationState: "idle",
-    suggestions: [],
-    searchState: "idle",
     updatedAt: new Date(initialUpdatedAt),
     nearbyStations: initialStations,
     arrivalState: initialStations.length > 0 ? "ready" : "error",
@@ -83,7 +76,7 @@ function reduceDashboard(state: DashboardState, action: DashboardAction): Dashbo
     case "arrival-failed":
       return { ...state, arrivalState: "error" };
     case "location-detection-requested":
-      return { ...state, locationState: "loading", searchState: "idle" };
+      return { ...state, locationState: "loading" };
     case "location-detection-failed":
       return { ...state, locationState: "error" };
     case "location-detected":
@@ -92,7 +85,6 @@ function reduceDashboard(state: DashboardState, action: DashboardAction): Dashbo
         coordinates: action.coordinates,
         locationName: action.locationName,
         query: "",
-        suggestions: [],
         selectedRoute: null,
         loadedRoute: null,
         locationState: "idle",
@@ -108,8 +100,6 @@ function reduceDashboard(state: DashboardState, action: DashboardAction): Dashbo
         },
         locationName: action.suggestion.label,
         query: action.suggestion.label,
-        suggestions: [],
-        searchState: "idle",
         locationState: "idle",
         selectedRoute: null,
         loadedRoute: null,
@@ -117,16 +107,10 @@ function reduceDashboard(state: DashboardState, action: DashboardAction): Dashbo
         updatedAt: new Date(),
       };
     case "query-changed":
-      return { ...state, query: action.query, searchState: "idle", suggestions: [] };
+      return { ...state, query: action.query };
     case "refresh-requested":
       return { ...state, refreshVersion: state.refreshVersion + 1, arrivalState: "loading" };
     case "route-selected":
       return { ...state, selectedRoute: action.route, arrivalState: "loading" };
-    case "search-requested":
-      return { ...state, searchState: "loading" };
-    case "search-failed":
-      return { ...state, searchState: "error" };
-    case "suggestions-loaded":
-      return { ...state, suggestions: action.suggestions };
   }
 }
