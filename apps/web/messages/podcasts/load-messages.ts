@@ -1,8 +1,18 @@
 import type { Locale, TranslationCatalog } from "@workspace/i18n";
 
+import { cache } from "react";
+
 import type { messages as englishMessages } from "./en";
 
-export async function loadPodcastMessages(
+const loadPodcastMessagesCached = cache(loadMessagesForLocale);
+
+export function loadPodcastMessages(
+  locale: Locale,
+): Promise<TranslationCatalog<typeof englishMessages>> {
+  return loadPodcastMessagesCached(locale);
+}
+
+async function loadMessagesForLocale(
   locale: Locale,
 ): Promise<TranslationCatalog<typeof englishMessages>> {
   switch (locale) {

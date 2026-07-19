@@ -8,6 +8,7 @@ import type { Podcast, PodcastEpisode, PodcastProgress, PodcastMessages } from "
 
 import { loadPodcastShow } from "./actions";
 import { EpisodeList } from "./episode-list";
+import { EpisodeListSkeleton } from "./episode-list-skeleton";
 import { InProgressList } from "./in-progress-list";
 import { PodcastCard } from "./podcast-card";
 import { getPodcastEpisodeHref, getPodcastHref, getPodcastSearchHref } from "./podcast-links";
@@ -282,9 +283,7 @@ export function PodcastsExplorer({
           />
 
           {episodeStatus === "loading" ? (
-            <div className="flex min-h-48 items-center justify-center" role="status">
-              <Text tone="muted">{messages["Loading the latest episodes…"]}</Text>
-            </div>
+            <EpisodeListSkeleton label={messages["Loading the latest episodes…"]} />
           ) : episodeStatus === "error" ? (
             <Text tone="destructive">
               {messages["Episodes are unavailable right now. Please try another show."]}

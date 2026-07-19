@@ -4,19 +4,14 @@ import { PageContainer } from "@workspace/ui/components/page-container";
 import { PageHeader } from "@workspace/ui/components/page-header";
 import { PageShell } from "@workspace/ui/components/page-shell";
 import { Text } from "@workspace/ui/components/text";
-
-import type { Podcast, PodcastEpisode } from "./types";
+import { Suspense } from "react";
 
 import { JsonLd } from "../../components/json-ld";
-import {
-  getPodcastShow,
-  getPopularPodcasts,
-  searchPodcastCatalog,
-} from "../../lib/podcasts/apple-podcasts";
 import { getPodcastTranslator } from "../../messages/podcasts/get-translator";
 import { loadPodcastMessages } from "../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../get-request-locale";
-import { PodcastsExplorer } from "./podcasts-explorer";
+import { PodcastsExplorerLoader } from "./podcasts-explorer-loader";
+import { PodcastsExplorerSkeleton } from "./podcasts-explorer-skeleton";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -58,20 +53,7 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
   const initialQuery = normalizeQuery(singleValue(resolvedSearchParams.q));
   const podcastId = normalizeId(singleValue(resolvedSearchParams.podcast));
   const initialEpisodeId = normalizeId(singleValue(resolvedSearchParams.episode));
-  const [initialPodcasts, initialShow, messages] = await Promise.all([
-    (initialQuery ? searchPodcastCatalog(initialQuery) : getPopularPodcasts()).catch(
-      function useEmptyPodcastResults() {
-        return [];
-      },
-    ),
-    podcastId
-      ? getPodcastShow(podcastId).catch(function useUnavailablePodcast() {
-          return [null, []] as [Podcast | null, PodcastEpisode[]];
-        })
-      : Promise.resolve([null, []] as [Podcast | null, PodcastEpisode[]]),
-    loadPodcastMessages(locale),
-  ]);
-  const [initialSelectedPodcast, initialEpisodes] = initialShow;
+  const messages = await loadPodcastMessages(locale);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -117,15 +99,15 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
             </div>
           }
         />
-        <PodcastsExplorer
-          initialEpisodeId={initialEpisodeId}
-          initialEpisodes={initialEpisodes}
-          initialPodcasts={initialPodcasts}
-          initialQuery={initialQuery}
-          initialSelectedPodcast={initialSelectedPodcast}
-          messages={messages}
-          locale={locale}
-        />
+        <Suspense fallback={<PodcastsExplorerSkeleton />}>
+          <PodcastsExplorerLoader
+            initialEpisodeId={initialEpisodeId}
+            initialQuery={initialQuery}
+            locale={locale}
+            messages={messages}
+            podcastId={podcastId}
+          />
+        </Suspense>
         <footer className="border-t py-8">
           <Text size="xs" tone="muted">
             {

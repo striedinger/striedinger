@@ -3,6 +3,7 @@
 import { ShareIcon } from "@workspace/icons/share-icon";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { startTransition, useEffect, useRef, useState } from "react";
@@ -508,14 +509,31 @@ export function StockDashboard({
 
           {!series && status === "loading" ? (
             <div
-              className="flex min-h-[calc(4.5rem+0.75rem)] flex-col justify-end gap-3"
+              className="flex min-h-[calc(4.5rem+0.75rem)] flex-col gap-3"
               role="status"
+              aria-label={labels.loading}
             >
-              <div className="h-[4.5rem] animate-pulse rounded-xl bg-muted/60 motion-reduce:animate-none sm:h-12" />
-              <div className="flex aspect-[2/1] items-center justify-center rounded-xl bg-muted/60 sm:aspect-[2.35/1]">
-                <Text size="sm" tone="muted">
-                  {labels.loading}
-                </Text>
+              <div className="grid h-[4.5rem] grid-cols-3 gap-3 sm:h-12 sm:grid-cols-4">
+                {[
+                  { id: "open", width: "w-16" },
+                  { id: "high", width: "w-20" },
+                  { id: "low", width: "w-14" },
+                  { id: "volume", width: "w-16" },
+                ].map(function renderMetric(metric, index) {
+                  return (
+                    <div key={metric.id} className={index === 3 ? "hidden sm:block" : undefined}>
+                      <Skeleton className="mb-2 h-3 w-12" />
+                      <Skeleton className={`h-5 ${metric.width}`} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="relative aspect-[1.5/1] overflow-hidden rounded-xl bg-muted/45 sm:aspect-[2.35/1]">
+                <div className="absolute inset-x-4 top-4 flex justify-between">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="absolute right-[8%] bottom-[18%] left-[6%] h-1/3 rounded-[50%] opacity-70" />
               </div>
             </div>
           ) : status === "error" || !series ? (
@@ -524,7 +542,7 @@ export function StockDashboard({
               role="alert"
             >
               <div className="h-[4.5rem] sm:h-12" />
-              <div className="flex aspect-[2/1] items-center justify-center rounded-xl border border-dashed p-6 text-center sm:aspect-[2.35/1]">
+              <div className="flex aspect-[1.5/1] items-center justify-center rounded-xl border border-dashed p-6 text-center sm:aspect-[2.35/1]">
                 <Text size="sm" tone="muted">
                   {labels.dataUnavailable}
                 </Text>

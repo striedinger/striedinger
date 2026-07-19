@@ -3,22 +3,18 @@ import type { Metadata } from "next";
 import { PageContainer } from "@workspace/ui/components/page-container";
 import { PageHeader } from "@workspace/ui/components/page-header";
 import { PageShell } from "@workspace/ui/components/page-shell";
-import { unstable_cache } from "next/cache";
+import { Suspense } from "react";
 
 import type { SudokuLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
 import { getSudokuTranslator } from "../../messages/sudoku/get-translator";
 import { getRequestLocale } from "../get-request-locale";
-import { createDailyPuzzle } from "./sudoku";
-import { SudokuGame } from "./sudoku-game";
+import { SudokuGameLoader } from "./sudoku-game-loader";
+import { SudokuGameSkeleton } from "./sudoku-game-skeleton";
 
 const descriptionKey =
   "Play a fresh daily Sudoku puzzle with easy, medium, and hard levels. Track your time and share your result as an image." as const;
-
-const getDailyPuzzles = unstable_cache(createPuzzlesForDate, ["daily-sudoku-puzzles"], {
-  revalidate: 86_400,
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -88,7 +84,6 @@ export default async function SudokuPage() {
     time: translate("Time"),
     title: translate("Daily Sudoku"),
   };
-  const puzzles = await getDailyPuzzles(date);
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
@@ -107,17 +102,11 @@ export default async function SudokuPage() {
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 sm:gap-14">
           <PageHeader title={labels.title} description={labels.description} variant="compact" />
 
-          <SudokuGame labels={labels} locale={locale} puzzles={puzzles} />
+          <Suspense fallback={<SudokuGameSkeleton />}>
+            <SudokuGameLoader date={date} labels={labels} locale={locale} />
+          </Suspense>
         </div>
       </PageContainer>
     </PageShell>
   );
-}
-
-async function createPuzzlesForDate(date: string) {
-  return {
-    easy: createDailyPuzzle(date, "easy"),
-    medium: createDailyPuzzle(date, "medium"),
-    hard: createDailyPuzzle(date, "hard"),
-  };
 }

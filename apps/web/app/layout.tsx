@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 
 import { Suspense } from "react";
 
-import { AppLoadingFallback } from "../components/app-loading-fallback";
 import { RequestLocaleBoundary } from "../components/request-locale-boundary";
 import { themeCookieName, themes } from "../lib/themes";
 import { getTranslator } from "../messages/get-translator";
@@ -80,9 +79,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>
       <body>
-        <Suspense fallback={<AppLoadingFallback />}>
-          <RequestLocaleBoundary>{children}</RequestLocaleBoundary>
+        <Suspense fallback={null}>
+          <RequestLocaleBoundary />
         </Suspense>
+        {children}
       </body>
     </html>
   );
