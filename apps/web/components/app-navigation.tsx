@@ -23,12 +23,18 @@ import { LanguagePicker } from "./language-picker";
 
 interface AppNavigationLabels {
   accentColor: string;
+  chat: string;
   close: string;
+  drop: string;
   json: string;
+  image: string;
+  pdf: string;
   menu: string;
   navigation: string;
   og: string;
+  podcasts: string;
   selectLanguage: string;
+  stocks: string;
   subway: string;
   sudoku: string;
 }
@@ -40,10 +46,16 @@ interface AppNavigationProps {
 }
 
 const navigationItems = [
+  { href: "/chat", label: "chat" },
+  { href: "/drop", label: "drop" },
   { href: "/og", label: "og" },
+  { href: "/image", label: "image" },
+  { href: "/pdf", label: "pdf" },
   { href: "/json", label: "json" },
   { href: "/sudoku", label: "sudoku" },
   { href: "/mta", label: "subway" },
+  { href: "/stocks", label: "stocks" },
+  { href: "/podcasts", label: "podcasts" },
 ] as const;
 
 export function AppNavigation({ accentColor, labels, locale }: AppNavigationProps) {

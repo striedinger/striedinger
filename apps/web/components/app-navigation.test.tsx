@@ -24,12 +24,18 @@ function refreshMockRouter() {}
 
 const labels = {
   accentColor: "Accent color",
+  chat: "Nearby Chat",
   close: "Close navigation",
+  drop: "Drop - Private file sharing",
   json: "JSON Validator and Formatter",
+  image: "Image Optimizer",
   menu: "Open navigation menu",
   navigation: "Navigation",
   og: "Open Graph Preview",
+  podcasts: "Podcasts",
+  pdf: "PDF Optimizer",
   selectLanguage: "Select language",
+  stocks: "Stock watchlist",
   subway: "Trains near you",
   sudoku: "Daily Sudoku",
 };

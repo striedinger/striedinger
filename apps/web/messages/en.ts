@@ -16,8 +16,20 @@ export const messages = defineMessages({
   "Close navigation": "Close navigation",
   "Open Graph Preview": "Open Graph Preview",
   "JSON Validator and Formatter": "JSON Validator and Formatter",
+  "Image & PDF Optimizer": "Image & PDF Optimizer",
+  "Image Optimizer": "Image Optimizer",
+  "PDF Optimizer": "PDF Optimizer",
+  "Drop - Private file sharing": "Drop - Private file sharing",
+  "Nearby Chat": "Nearby Chat",
+  "Nearby Chat - Private local messaging": "Nearby Chat - Private local messaging",
+  "Chat privately with nearby devices over a fast, encrypted, serverless peer-to-peer mesh.":
+    "Chat privately with nearby devices over a fast, encrypted, serverless peer-to-peer mesh.",
+  "Share files directly between devices with an encrypted peer-to-peer connection. Nothing is uploaded or stored on this server.":
+    "Share files directly between devices with an encrypted peer-to-peer connection. Nothing is uploaded or stored on this server.",
   "Daily Sudoku": "Daily Sudoku",
   "Trains near you": "Trains near you",
+  Podcasts: "Podcasts",
+  "Stock watchlist": "Stock watchlist",
   "Hugo Striedinger - Senior Software Engineer": "Hugo Striedinger - Senior Software Engineer",
   "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.":
     "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.",
