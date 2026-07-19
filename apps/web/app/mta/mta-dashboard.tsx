@@ -4,15 +4,13 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { useEffect, useMemo, useRef, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 
-import type { InitialMtaState, LiveStation, LocationSuggestion, MtaLabels } from "./types";
+import type { InitialMtaState, LiveStation, MtaLabels } from "./types";
 
-import { useTypeahead } from "../../components/use-typeahead";
-import { autocompleteLocations, loadNearbyStations, resolveLocation } from "./actions";
 import { StationGrid } from "./station-grid";
 import { TrainFilter } from "./train-filter";
-import { useMtaDashboard } from "./use-mta-dashboard";
 
 const subwayRoutes = [
   "1",
@@ -40,13 +38,10 @@ const subwayRoutes = [
   "S",
 ] as const;
 
-function getLocationLabel(suggestion: LocationSuggestion) {
-  return suggestion.label;
-}
-
 interface MtaDashboardProps {
   initialState: InitialMtaState;
   initialStations: LiveStation[];
+  initialSearchFailed: boolean;
   initialUpdatedAt: string;
   labels: MtaLabels;
   locale: string;
@@ -55,157 +50,85 @@ interface MtaDashboardProps {
 export function MtaDashboard({
   initialState,
   initialStations,
+  initialSearchFailed,
   initialUpdatedAt,
   labels,
   locale,
 }: MtaDashboardProps) {
-  const [state, dispatch] = useMtaDashboard({ initialState, initialStations, initialUpdatedAt });
-  const {
-    arrivalState,
-    coordinates,
-    loadedRoute,
-    locationName,
-    locationState,
-    nearbyStations,
-    query,
-    refreshVersion,
-    selectedRoute,
-    updatedAt,
-  } = state;
-  const isInitialArrivalRender = useRef(true);
-  const typeahead = useTypeahead({
-    getItemLabel: getLocationLabel,
-    loadResults: resolveLocation,
-    loadSuggestions: autocompleteLocations,
-    minimumQueryLength: 1,
-    minimumSuggestionLength: 3,
-    onQueryChange: function updateLocationQuery(nextQuery) {
-      dispatch({ type: "query-changed", query: nextQuery });
-    },
-    onResults: function selectFirstResult(results) {
-      const firstResult = results[0];
-      if (firstResult) selectSuggestion(firstResult);
-    },
-    onSelect: function selectLocation(suggestion) {
-      dispatch({ type: "location-selected", suggestion });
-    },
-    query,
-    suggestionDelayMilliseconds: 350,
+  const router = useRouter();
+  const [locationState, setLocationState] = useState<"idle" | "loading" | "error">("idle");
+  const [isNavigating, startNavigation] = useTransition();
+  const { coordinates, locationName, selectedRoute } = initialState;
+  const updatedAt = new Date(initialUpdatedAt);
+  const displayedStations = initialStations.flatMap(function filterStation(station) {
+    if (selectedRoute && !station.routes.includes(selectedRoute)) return [];
+    const arrivals = selectedRoute
+      ? station.arrivals
+          .filter(function matchesSelectedRoute(arrival) {
+            return arrival.route === selectedRoute;
+          })
+          .slice(0, 16)
+      : station.arrivals.slice(0, 8);
+    return [{ ...station, arrivals }];
   });
-  const {
-    activateSuggestion,
-    activeSuggestionIndex,
-    handleKeyDown,
-    open,
-    selectSuggestion,
-    setQuery,
-    status: searchStatus,
-    submit,
-    suggestions,
-  } = typeahead;
 
   useEffect(
     function refreshArrivalsEveryMinute() {
       const intervalId = window.setInterval(function refreshArrivals() {
-        if (document.visibilityState === "visible") dispatch({ type: "refresh-requested" });
+        if (document.visibilityState !== "visible") return;
+        startNavigation(function refreshServerData() {
+          router.refresh();
+        });
       }, 60_000);
       return function stopRefreshing() {
         window.clearInterval(intervalId);
       };
     },
-    [dispatch],
+    [router],
   );
 
-  useEffect(
-    function keepLocationStateInUrl() {
-      const url = new URL(window.location.href);
-      url.searchParams.set("latitude", coordinates.latitude.toFixed(6));
-      url.searchParams.set("longitude", coordinates.longitude.toFixed(6));
-      url.searchParams.set("location", locationName);
-      if (selectedRoute) url.searchParams.set("train", selectedRoute);
-      else url.searchParams.delete("train");
-      window.history.replaceState(window.history.state, "", url);
-    },
-    [coordinates, locationName, selectedRoute],
-  );
-
-  useEffect(
-    function loadLiveArrivals() {
-      if (isInitialArrivalRender.current) {
-        isInitialArrivalRender.current = false;
-        return;
-      }
-      let cancelled = false;
-      loadNearbyStations(coordinates.latitude, coordinates.longitude, selectedRoute)
-        .then(function showLiveArrivals(result) {
-          if (!cancelled)
-            dispatch({
-              type: "arrival-loaded",
-              stations: result.stations,
-              updatedAt: result.updatedAt,
-              route: selectedRoute,
-            });
-          return undefined;
-        })
-        .catch(function showArrivalError() {
-          if (!cancelled) dispatch({ type: "arrival-failed" });
-        });
-      return function ignoreStaleArrivals() {
-        cancelled = true;
-      };
-    },
-    [coordinates, dispatch, refreshVersion, selectedRoute],
-  );
-
-  const displayedStations = useMemo(
-    function filterStationsByRoute() {
-      return nearbyStations.flatMap(function filterStation(station) {
-        if (loadedRoute && !station.routes.includes(loadedRoute)) return [];
-        const arrivals = loadedRoute
-          ? station.arrivals
-              .filter(function matchesSelectedRoute(arrival) {
-                return arrival.route === loadedRoute;
-              })
-              .slice(0, 16)
-          : station.arrivals.slice(0, 8);
-        return [{ ...station, arrivals }];
-      });
-    },
-    [nearbyStations, loadedRoute],
-  );
-
-  async function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (open && suggestions[activeSuggestionIndex]) {
-      selectSuggestion(suggestions[activeSuggestionIndex]);
-      return;
-    }
-    await submit();
+  function navigateToLocation(
+    latitude: number,
+    longitude: number,
+    nextLocationName: string,
+    route: string | null,
+  ) {
+    const parameters = new URLSearchParams({
+      latitude: latitude.toFixed(6),
+      location: nextLocationName,
+      longitude: longitude.toFixed(6),
+    });
+    if (route) parameters.set("train", route);
+    startNavigation(function loadServerArrivals() {
+      router.push(`/mta?${parameters}`);
+    });
   }
 
   function detectLocation() {
-    dispatch({ type: "location-detection-requested" });
+    setLocationState("loading");
     if (!("geolocation" in navigator)) {
-      dispatch({ type: "location-detection-failed" });
+      setLocationState("error");
       return;
     }
     navigator.geolocation.getCurrentPosition(
       function useDetectedLocation(position) {
-        dispatch({
-          type: "location-detected",
-          coordinates: { latitude: position.coords.latitude, longitude: position.coords.longitude },
-          locationName: labels.currentLocation,
-        });
+        setLocationState("idle");
+        navigateToLocation(
+          position.coords.latitude,
+          position.coords.longitude,
+          labels.currentLocation,
+          null,
+        );
       },
       function showLocationError() {
-        dispatch({ type: "location-detection-failed" });
+        setLocationState("error");
       },
       { enableHighAccuracy: true, timeout: 10_000 },
     );
   }
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-10" aria-busy={isNavigating}>
       <Surface as="section" className="p-5 sm:p-6" aria-labelledby="location-heading">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
@@ -214,7 +137,7 @@ export function MtaDashboard({
               {labels.locationLabel}
             </Text>
           </div>
-          <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleSearch}>
+          <form action="/mta" className="flex flex-col gap-3 sm:flex-row" role="search">
             <div className="relative flex-1">
               <svg
                 aria-hidden="true"
@@ -228,72 +151,20 @@ export function MtaDashboard({
               </svg>
               <Input
                 id="mta-location"
-                value={query}
-                onChange={function updateQuery(event) {
-                  setQuery(event.currentTarget.value);
-                }}
-                onKeyDown={handleKeyDown}
+                name="q"
+                type="search"
                 placeholder={labels.locationPlaceholder}
                 aria-label={labels.locationLabel}
-                aria-busy={searchStatus === "loading"}
-                role="combobox"
-                tabIndex={0}
-                aria-autocomplete="list"
-                aria-expanded={open}
-                aria-controls="mta-location-suggestions"
-                aria-activedescendant={
-                  activeSuggestionIndex >= 0 ? `mta-suggestion-${activeSuggestionIndex}` : undefined
-                }
                 maxLength={160}
                 className="h-11 rounded-xl bg-background pl-12 shadow-none"
               />
-              {open ? (
-                <div
-                  id="mta-location-suggestions"
-                  className="absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-xl border bg-popover py-1 text-popover-foreground shadow-xl"
-                  role="listbox"
-                  aria-label={labels.locationLabel}
-                >
-                  {suggestions.map(function renderSuggestion(suggestion, suggestionIndex) {
-                    return (
-                      <button
-                        id={`mta-suggestion-${suggestionIndex}`}
-                        key={`${suggestion.latitude}-${suggestion.longitude}-${suggestion.label}`}
-                        type="button"
-                        role="option"
-                        aria-selected={activeSuggestionIndex === suggestionIndex}
-                        className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none aria-selected:bg-accent"
-                        onMouseEnter={function highlightSuggestion() {
-                          activateSuggestion(suggestionIndex);
-                        }}
-                        onClick={function chooseSuggestion() {
-                          selectSuggestion(suggestion);
-                        }}
-                      >
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                        >
-                          <path
-                            d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"
-                            strokeWidth="2"
-                          />
-                          <circle cx="12" cy="10" r="2.5" strokeWidth="2" />
-                        </svg>
-                        <Text as="span" size="sm">
-                          {suggestion.label}
-                        </Text>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
             </div>
+            <Button type="submit" className="h-11 rounded-xl px-5">
+              {labels.search}
+            </Button>
             <Button
               type="button"
+              variant="outline"
               className="h-11 rounded-xl px-5"
               onClick={detectLocation}
               loading={locationState === "loading"}
@@ -309,11 +180,11 @@ export function MtaDashboard({
           </form>
           <Text
             size="xs"
-            tone={locationState === "error" || searchStatus === "error" ? "destructive" : "muted"}
+            tone={locationState === "error" || initialSearchFailed ? "destructive" : "muted"}
           >
             {locationState === "error"
               ? labels.locationError
-              : searchStatus === "error"
+              : initialSearchFailed
                 ? labels.searchError
                 : labels.searchHint}
           </Text>
@@ -334,17 +205,23 @@ export function MtaDashboard({
             <span className="size-2 animate-pulse rounded-full bg-success motion-reduce:animate-none" />
             <Text size="xs" tone="muted">
               {labels.updated}{" "}
-              {updatedAt.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })} ·{" "}
-              {labels.refreshes}
+              {updatedAt.toLocaleTimeString(locale, {
+                hour: "numeric",
+                minute: "2-digit",
+                timeZone: "America/New_York",
+              })}{" "}
+              · {labels.refreshes}
             </Text>
             <Button
               type="button"
               size="icon-sm"
               variant="ghost"
               aria-label={labels.refresh}
-              loading={arrivalState === "loading"}
+              loading={isNavigating}
               onClick={function refreshNow() {
-                dispatch({ type: "refresh-requested" });
+                startNavigation(function refreshServerData() {
+                  router.refresh();
+                });
               }}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -364,10 +241,12 @@ export function MtaDashboard({
           routes={subwayRoutes}
           selectedRoute={selectedRoute}
           onSelectRoute={function selectRoute(route) {
-            dispatch({ type: "route-selected", route });
+            navigateToLocation(coordinates.latitude, coordinates.longitude, locationName, route);
           }}
         />
-        {arrivalState === "error" ? <Text tone="destructive">{labels.arrivalError}</Text> : null}
+        {initialStations.length === 0 ? (
+          <Text tone="destructive">{labels.arrivalError}</Text>
+        ) : null}
         <StationGrid labels={labels} locale={locale} stations={displayedStations} />
       </section>
     </div>

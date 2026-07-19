@@ -1,5 +1,5 @@
 import "server-only";
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 import type { Podcast, PodcastEpisode } from "../../app/podcasts/types";
 
@@ -48,13 +48,15 @@ interface AppleSearchResult {
   wrapperType?: unknown;
 }
 
-const getPopularPodcastsCached = cache(loadPopularPodcasts);
-
 export function getPopularPodcasts(): Promise<Podcast[]> {
-  return getPopularPodcastsCached();
+  return loadPopularPodcasts();
 }
 
 async function loadPopularPodcasts(): Promise<Podcast[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 3_600, expire: 86_400 });
+  cacheTag("podcast-charts");
+
   const response = await fetch(appleChartsUrl, {
     headers: { Accept: "application/json" },
     next: { revalidate: 3_600 },
@@ -73,13 +75,17 @@ async function loadPopularPodcasts(): Promise<Podcast[]> {
   });
 }
 
-const searchPodcastCatalogCached = cache(loadPodcastCatalog);
-
 export function searchPodcastCatalog(query: string): Promise<Podcast[]> {
-  return searchPodcastCatalogCached(query);
+  const normalizedQuery = query.trim().replace(/\s+/g, " ").toLocaleLowerCase().slice(0, 80);
+  if (normalizedQuery.length < 2) return Promise.resolve([]);
+  return loadPodcastCatalog({ query: normalizedQuery });
 }
 
-async function loadPodcastCatalog(query: string): Promise<Podcast[]> {
+async function loadPodcastCatalog({ query }: { query: string }): Promise<Podcast[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 3_600, expire: 86_400 });
+  cacheTag("podcast-search", `podcast-search:${query}`);
+
   const parameters = new URLSearchParams({
     country: "us",
     entity: "podcast",
@@ -98,13 +104,15 @@ async function loadPodcastCatalog(query: string): Promise<Podcast[]> {
   return (payload.results ?? []).flatMap(mapSearchPodcast);
 }
 
-const getPodcastCached = cache(loadPodcast);
-
 export function getPodcast(podcastId: string): Promise<Podcast | null> {
-  return getPodcastCached(podcastId);
+  return loadPodcast({ podcastId });
 }
 
-async function loadPodcast(podcastId: string): Promise<Podcast | null> {
+async function loadPodcast({ podcastId }: { podcastId: string }): Promise<Podcast | null> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 3_600, expire: 86_400 });
+  cacheTag("podcast-details", `podcast:${podcastId}`);
+
   const parameters = new URLSearchParams({ id: podcastId });
   const response = await fetch(`${appleSearchBaseUrl}/lookup?${parameters}`, {
     headers: { Accept: "application/json" },
@@ -121,13 +129,19 @@ export async function getPodcastEpisodes(podcastId: string): Promise<PodcastEpis
   return episodes;
 }
 
-const getPodcastShowCached = cache(loadPodcastShow);
-
 export function getPodcastShow(podcastId: string): Promise<[Podcast | null, PodcastEpisode[]]> {
-  return getPodcastShowCached(podcastId);
+  return loadPodcastShow({ podcastId });
 }
 
-async function loadPodcastShow(podcastId: string): Promise<[Podcast | null, PodcastEpisode[]]> {
+async function loadPodcastShow({
+  podcastId,
+}: {
+  podcastId: string;
+}): Promise<[Podcast | null, PodcastEpisode[]]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 900, expire: 3_600 });
+  cacheTag("podcast-shows", `podcast-show:${podcastId}`);
+
   const parameters = new URLSearchParams({
     entity: "podcastEpisode",
     id: podcastId,

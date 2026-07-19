@@ -4,6 +4,7 @@ node_modules
 .next
 apps/web/certificates
 apps/web/public/vendor/qpdf-run
+apps/web/public/vendor/jsquash-avif
 dist
 *.tsbuildinfo
 .env*

@@ -67,11 +67,20 @@ export function PodcastPlayer({
     function restorePlaybackPosition() {
       const audio = audioRef.current;
       if (!audio || initialPositionSeconds < 1) return;
-      if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
-        audio.currentTime = initialPositionSeconds;
-      } else {
-        audio.load();
+
+      function applyInitialPosition() {
+        if (audio) audio.currentTime = initialPositionSeconds;
       }
+
+      if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        applyInitialPosition();
+        return;
+      }
+
+      audio.addEventListener("loadedmetadata", applyInitialPosition, { once: true });
+      return function stopWaitingForMetadata() {
+        audio.removeEventListener("loadedmetadata", applyInitialPosition);
+      };
     },
     [initialPositionSeconds],
   );

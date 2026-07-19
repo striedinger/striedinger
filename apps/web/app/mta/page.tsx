@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MtaPage({ searchParams }: MtaPageProps) {
   const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
-  const initialState = getInitialState(resolvedSearchParams);
+  const { initialState, locationQuery } = getInitialState(resolvedSearchParams);
   const translate = await getMtaTranslator(locale);
   const labels: MtaLabels = {
     title: translate("Trains near you"),
@@ -133,7 +133,12 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
           }
         />
         <Suspense fallback={<MtaDashboardSkeleton />}>
-          <MtaDashboardLoader initialState={initialState} labels={labels} locale={locale} />
+          <MtaDashboardLoader
+            initialState={initialState}
+            labels={labels}
+            locale={locale}
+            locationQuery={locationQuery}
+          />
         </Suspense>
         <footer className="border-t py-8">
           <Text size="xs" tone="muted">
@@ -145,9 +150,10 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
   );
 }
 
-function getInitialState(
-  searchParams: Record<string, string | string[] | undefined>,
-): InitialMtaState {
+function getInitialState(searchParams: Record<string, string | string[] | undefined>): {
+  initialState: InitialMtaState;
+  locationQuery: string;
+} {
   const latitude = Number(singleValue(searchParams.latitude));
   const longitude = Number(singleValue(searchParams.longitude));
   const hasValidCoordinates =
@@ -161,10 +167,13 @@ function getInitialState(
     singleValue(searchParams.location)?.trim().slice(0, 160) || "Lower Manhattan";
   const requestedRoute = singleValue(searchParams.train)?.trim().toUpperCase();
   return {
-    coordinates: hasValidCoordinates ? { latitude, longitude } : defaultLocation,
-    locationName,
-    selectedRoute:
-      requestedRoute && /^[1-7ACEBDFMGJZLNQRWS]$/.test(requestedRoute) ? requestedRoute : null,
+    initialState: {
+      coordinates: hasValidCoordinates ? { latitude, longitude } : defaultLocation,
+      locationName,
+      selectedRoute:
+        requestedRoute && /^[1-7ACEBDFMGJZLNQRWS]$/.test(requestedRoute) ? requestedRoute : null,
+    },
+    locationQuery: singleValue(searchParams.q)?.trim().replace(/\s+/g, " ").slice(0, 160) ?? "",
   };
 }
 

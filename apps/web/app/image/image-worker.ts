@@ -19,20 +19,13 @@ interface EncodedCandidate {
   type: string;
 }
 
-interface PngQuantizer {
-  quantizeImageData(
-    imageData: ImageData,
-    options: {
-      dithering: number;
-      maxColors: number;
-      quality: { min: number; target: number };
-      speed: number;
-    },
-  ): Promise<{ pngBytes: Uint8Array }>;
-}
-
 const worker = self as unknown as DedicatedWorkerGlobalScope;
-let pngQuantizerPromise: Promise<PngQuantizer> | undefined;
+let avifWorker: Worker | undefined;
+let avifRequestNumber = 0;
+const pendingAvifRequests = new Map<
+  number,
+  { reject: (error: Error) => void; resolve: (buffer: ArrayBuffer) => void }
+>();
 
 worker.addEventListener(
   "message",
@@ -105,12 +98,7 @@ async function encodeSmallestCandidate(
 ): Promise<EncodedCandidate> {
   if (outputFormat === "image/png") {
     onProgress(52, "compressing");
-    if (quality >= 94) return encodePng(imageData);
-    try {
-      return await encodeQuantizedPng(imageData, quality);
-    } catch {
-      return encodePng(imageData);
-    }
+    return encodePng(imageData);
   }
 
   if (outputFormat === "image/avif") {
@@ -133,7 +121,7 @@ async function encodeSmallestCandidate(
   }
   if (!content.transparent && content.photographic) encoders.push(encodeJpeg(imageData, quality));
   if (!content.photographic || content.transparent) {
-    encoders.push(encodeQuantizedPng(imageData, quality), encodePng(imageData));
+    encoders.push(encodePng(imageData));
   }
 
   onProgress(46, "compressing");
@@ -160,7 +148,7 @@ async function encodeSmallestCandidate(
           if (!content.transparent && content.photographic) {
             searchEncoders.push(encodeJpeg(imageData, searchQuality));
           } else {
-            searchEncoders.push(encodeQuantizedPng(imageData, searchQuality));
+            searchEncoders.push(encodePng(imageData));
           }
 
           const searchCandidates = await collectSuccessfulCandidates(searchEncoders);
@@ -283,8 +271,7 @@ function mapWebpQuality(quality: number) {
 }
 
 async function encodeAvif(imageData: ImageData, quality: number): Promise<EncodedCandidate> {
-  const { encode } = await import("@jsquash/avif");
-  const buffer = await encode(imageData, {
+  const buffer = await encodeAvifImage(imageData, {
     enableSharpYUV: true,
     quality,
     qualityAlpha: quality,
@@ -294,8 +281,7 @@ async function encodeAvif(imageData: ImageData, quality: number): Promise<Encode
 }
 
 async function encodeLosslessAvif(imageData: ImageData): Promise<EncodedCandidate> {
-  const { encode } = await import("@jsquash/avif");
-  const buffer = await encode(imageData, {
+  const buffer = await encodeAvifImage(imageData, {
     bitDepth: 8,
     lossless: true,
     quality: 100,
@@ -307,81 +293,70 @@ async function encodeLosslessAvif(imageData: ImageData): Promise<EncodedCandidat
 }
 
 async function encodeJpeg(imageData: ImageData, quality: number): Promise<EncodedCandidate> {
-  const { encode } = await import("@jsquash/jpeg");
-  const buffer = await encode(imageData, {
-    chroma_quality: quality,
-    optimize_coding: true,
-    progressive: true,
-    quality,
-    trellis_multipass: true,
-    trellis_opt_table: true,
-  });
-  return { blob: new Blob([buffer], { type: "image/jpeg" }), type: "image/jpeg" };
+  return encodeWithCanvas(imageData, "image/jpeg", quality / 100);
 }
 
 async function encodeWebp(imageData: ImageData, quality: number): Promise<EncodedCandidate> {
-  const { encode } = await import("@jsquash/webp");
-  const buffer = await encode(imageData, {
-    alpha_quality: quality,
-    autofilter: 1,
-    method: 6,
-    pass: 6,
-    quality,
-    use_sharp_yuv: 1,
-  });
-  return { blob: new Blob([buffer], { type: "image/webp" }), type: "image/webp" };
+  return encodeWithCanvas(imageData, "image/webp", quality / 100);
 }
 
 async function encodeLosslessWebp(imageData: ImageData): Promise<EncodedCandidate> {
-  const { encode } = await import("@jsquash/webp");
-  const buffer = await encode(imageData, {
-    alpha_quality: 100,
-    exact: 1,
-    lossless: 1,
-    method: 6,
-    near_lossless: 100,
-    pass: 10,
-    quality: 100,
-  });
-  return { blob: new Blob([buffer], { type: "image/webp" }), type: "image/webp" };
+  return encodeWithCanvas(imageData, "image/webp", 1);
 }
 
 async function encodePng(imageData: ImageData): Promise<EncodedCandidate> {
-  const { optimise } = await import("@jsquash/oxipng");
-  const buffer = await optimise(imageData, { level: 4, optimiseAlpha: true });
-  return { blob: new Blob([buffer], { type: "image/png" }), type: "image/png" };
+  return encodeWithCanvas(imageData, "image/png");
 }
 
-async function encodeQuantizedPng(
+async function encodeWithCanvas(
   imageData: ImageData,
-  quality: number,
+  type: "image/jpeg" | "image/png" | "image/webp",
+  quality?: number,
 ): Promise<EncodedCandidate> {
-  const quantizer = await getPngQuantizer();
-  const colorRange = Math.max(0, Math.min(1, (quality - 40) / 55));
-  const result = await quantizer.quantizeImageData(imageData, {
-    dithering: 0.75,
-    maxColors: Math.round(48 + colorRange * 208),
-    quality: { min: Math.max(30, quality - 12), target: quality },
-    speed: 4,
-  });
-  const quantizedBytes = new Uint8Array(result.pngBytes);
-  const { optimise } = await import("@jsquash/oxipng");
-  const optimized = await optimise(quantizedBytes.buffer, { level: 4, optimiseAlpha: true });
-  const bytes = optimized.byteLength < quantizedBytes.byteLength ? optimized : quantizedBytes;
-  return {
-    blob: new Blob([bytes], { type: "image/png" }),
-    type: "image/png",
-  };
+  const canvas = new OffscreenCanvas(imageData.width, imageData.height);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is unavailable in this browser.");
+  context.putImageData(imageData, 0, 0);
+  const blob = await canvas.convertToBlob({ type, quality });
+  if (blob.type !== type) throw new Error(`${type} encoding is unavailable in this browser.`);
+  return { blob, type };
 }
 
-function getPngQuantizer() {
-  pngQuantizerPromise ??= Promise.all([
-    import("@fe-daily/libimagequant-wasm"),
-    import("@fe-daily/libimagequant-wasm/wasm/libimagequant_wasm.js"),
-  ]).then(function createQuantizer([module, wasm]) {
-    return new module.default({ wasmModule: wasm });
+function encodeAvifImage(imageData: ImageData, options: Record<string, boolean | number>) {
+  const codecWorker = getAvifWorker();
+  const id = ++avifRequestNumber;
+  const pixels = imageData.data.slice().buffer;
+  const result = new Promise<ArrayBuffer>(function waitForAvif(resolve, reject) {
+    pendingAvifRequests.set(id, { reject, resolve });
   });
-  return pngQuantizerPromise;
+  codecWorker.postMessage(
+    { data: pixels, height: imageData.height, id, options, width: imageData.width },
+    [pixels],
+  );
+  return result;
+}
+
+function getAvifWorker() {
+  if (avifWorker) return avifWorker;
+  avifWorker = new Worker("/vendor/jsquash-avif/2.1.1/worker.js", { type: "module" });
+  avifWorker.addEventListener("message", function receiveAvifResult(event) {
+    const result = event.data as { buffer?: ArrayBuffer; error?: string; id: number };
+    const pending = pendingAvifRequests.get(result.id);
+    if (!pending) return;
+    pendingAvifRequests.delete(result.id);
+    if (result.error) pending.reject(new Error(result.error));
+    else if (result.buffer) pending.resolve(result.buffer);
+    else pending.reject(new Error("AVIF encoding failed."));
+  });
+  avifWorker.addEventListener("error", function rejectAvifRequests() {
+    for (const pending of pendingAvifRequests.values()) {
+      pending.reject(new Error("AVIF encoding is unavailable in this browser."));
+    }
+    pendingAvifRequests.clear();
+    avifWorker?.terminate();
+    avifWorker = undefined;
+  });
+  return avifWorker;
 }
 
 async function filterByPerceptualQuality(

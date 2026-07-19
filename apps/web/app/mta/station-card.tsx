@@ -106,7 +106,11 @@ function getArrivalFormatter(locale: string): Intl.DateTimeFormat {
   const existingFormatter = arrivalFormatterByLocale.get(locale);
   if (existingFormatter) return existingFormatter;
 
-  const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "full", timeStyle: "short" });
+  const formatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "full",
+    timeStyle: "short",
+    timeZone: "America/New_York",
+  });
   arrivalFormatterByLocale.set(locale, formatter);
   return formatter;
 }

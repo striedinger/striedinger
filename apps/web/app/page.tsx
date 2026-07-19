@@ -50,7 +50,7 @@ export default async function Page() {
         >
           <span className="inline-block whitespace-pre-wrap">
             {translate("Hi there!")}{" "}
-            <span className="inline-block origin-[70%_70%] animate-wave motion-reduce:animate-none">
+            <span className="inline-block origin-[70%_70%] hover:animate-wave motion-reduce:animate-none">
               👋
             </span>{" "}
           </span>

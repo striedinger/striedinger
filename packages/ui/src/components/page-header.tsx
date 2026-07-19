@@ -21,13 +21,7 @@ function PageHeader({
   variant = "default",
 }: PageHeaderProps) {
   return (
-    <header
-      data-slot="page-header"
-      className={cn(
-        "flex max-w-3xl animate-in flex-col gap-4 duration-500 ease-out fade-in slide-in-from-bottom-2 motion-reduce:animate-none",
-        className,
-      )}
-    >
+    <header data-slot="page-header" className={cn("flex max-w-3xl flex-col gap-4", className)}>
       {eyebrow}
       <Text
         as="h1"

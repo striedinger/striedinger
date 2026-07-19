@@ -2,6 +2,16 @@ export const stockTimeframes = ["1D", "1W", "1M", "3M", "1Y", "5Y", "MAX"] as co
 
 export type StockTimeframe = (typeof stockTimeframes)[number];
 
+export const stockTimeframeFreshnessSeconds: Record<StockTimeframe, number> = {
+  "1D": 30,
+  "1W": 60,
+  "1M": 300,
+  "3M": 900,
+  "1Y": 1_800,
+  "5Y": 21_600,
+  MAX: 86_400,
+};
+
 export interface StockIdentity {
   currency: string;
   exchange: string;

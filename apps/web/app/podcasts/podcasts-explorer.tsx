@@ -2,13 +2,12 @@
 
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 
 import type { Podcast, PodcastEpisode, PodcastProgress, PodcastMessages } from "./types";
 
-import { loadPodcastShow } from "./actions";
 import { EpisodeList } from "./episode-list";
-import { EpisodeListSkeleton } from "./episode-list-skeleton";
 import { InProgressList } from "./in-progress-list";
 import { PodcastCard } from "./podcast-card";
 import { getPodcastEpisodeHref, getPodcastHref, getPodcastSearchHref } from "./podcast-links";
@@ -49,16 +48,10 @@ export function PodcastsExplorer({
   messages,
   locale,
 }: PodcastsExplorerProps) {
+  const router = useRouter();
   const [view, setView] = useState<View>("explore");
-  const [results, setResults] = useState(initialPodcasts);
-  const [resultHeading, setResultHeading] = useState(
-    initialQuery ? messages["Search results"] : messages["Popular right now"],
-  );
-  const [resultQuery, setResultQuery] = useState(initialQuery);
   const [savedPodcasts, setSavedPodcasts] = useState<Podcast[]>([]);
   const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(initialSelectedPodcast);
-  const [episodes, setEpisodes] = useState<PodcastEpisode[]>(initialEpisodes);
-  const [episodeStatus, setEpisodeStatus] = useState<"idle" | "loading" | "error">("idle");
   const [activeEpisode, setActiveEpisode] = useState<PodcastEpisode | null>(function findEpisode() {
     return (
       initialEpisodes.find(function matchesEpisode(episode) {
@@ -69,7 +62,7 @@ export function PodcastsExplorer({
   const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
   const [progressItems, setProgressItems] = useState<PodcastProgress[]>([]);
-  const episodeRequestNumber = useRef(0);
+  const [isNavigating, startNavigation] = useTransition();
 
   useEffect(
     function restoreLibrary() {
@@ -134,41 +127,10 @@ export function PodcastsExplorer({
     persistLibrary(nextPodcasts);
   }
 
-  function showSearchResults(nextResults: Podcast[], query: string) {
-    window.history.pushState(null, "", getPodcastSearchHref(query));
-    startTransition(function updateResults() {
-      setResults(nextResults);
-      setResultHeading(messages["Search results"]);
-      setResultQuery(query);
-      setSelectedPodcast(null);
-      setActiveEpisode(null);
-      setShouldAutoPlay(false);
-      setResumePositionSeconds(0);
-      setView("explore");
+  function navigateToPodcasts(href: string) {
+    startNavigation(function navigate() {
+      router.push(href);
     });
-  }
-
-  function openPodcast(podcast: Podcast) {
-    if (selectedPodcast?.id === podcast.id && episodeStatus !== "error") return;
-    window.history.pushState(null, "", getPodcastHref(podcast.id));
-    const currentRequest = ++episodeRequestNumber.current;
-    setSelectedPodcast(podcast);
-    setEpisodes([]);
-    setActiveEpisode(null);
-    setShouldAutoPlay(false);
-    setResumePositionSeconds(0);
-    setEpisodeStatus("loading");
-    loadPodcastShow(podcast.id)
-      .then(function showPodcast({ podcast: detailedPodcast, episodes: nextEpisodes }) {
-        if (currentRequest !== episodeRequestNumber.current) return;
-        setSelectedPodcast(detailedPodcast ?? podcast);
-        setEpisodes(nextEpisodes);
-        setEpisodeStatus("idle");
-        return undefined;
-      })
-      .catch(function showEpisodeError() {
-        if (currentRequest === episodeRequestNumber.current) setEpisodeStatus("error");
-      });
   }
 
   function updateListeningProgress(
@@ -194,23 +156,18 @@ export function PodcastsExplorer({
     setProgressItems(
       savePodcastProgress(item.podcast, item.episode, item.positionSeconds, item.durationSeconds),
     );
-    openPodcast(item.podcast);
-    window.history.replaceState(null, "", getPodcastEpisodeHref(item.podcast.id, item.episode.id));
+    setSelectedPodcast(item.podcast);
+    router.push(getPodcastEpisodeHref(item.podcast.id, item.episode.id));
     setActiveEpisode(item.episode);
     setResumePositionSeconds(item.positionSeconds);
     setShouldAutoPlay(true);
   }
 
-  const visiblePodcasts = view === "explore" ? results : savedPodcasts;
+  const visiblePodcasts = view === "explore" ? initialPodcasts : savedPodcasts;
 
   return (
-    <div className="flex flex-col gap-8">
-      <PodcastSearch
-        initialQuery={initialQuery}
-        messages={messages}
-        onOpenPodcast={openPodcast}
-        onShowResults={showSearchResults}
-      />
+    <div className="flex flex-col gap-8" aria-busy={isNavigating}>
+      <PodcastSearch initialQuery={initialQuery} messages={messages} />
 
       <div
         className="flex gap-1 overflow-x-auto border-b border-border"
@@ -267,11 +224,7 @@ export function PodcastsExplorer({
               return item.id === selectedPodcast.id;
             })}
             onBack={function closePodcast() {
-              window.history.pushState(
-                null,
-                "",
-                resultQuery ? getPodcastSearchHref(resultQuery) : "/podcasts",
-              );
+              navigateToPodcasts(initialQuery ? getPodcastSearchHref(initialQuery) : "/podcasts");
               setSelectedPodcast(null);
               setActiveEpisode(null);
               setShouldAutoPlay(false);
@@ -282,16 +235,10 @@ export function PodcastsExplorer({
             }}
           />
 
-          {episodeStatus === "loading" ? (
-            <EpisodeListSkeleton label={messages["Loading the latest episodes…"]} />
-          ) : episodeStatus === "error" ? (
-            <Text tone="destructive">
-              {messages["Episodes are unavailable right now. Please try another show."]}
-            </Text>
-          ) : episodes.length > 0 ? (
+          {initialEpisodes.length > 0 ? (
             <EpisodeList
               activeEpisodeId={activeEpisode?.id ?? null}
-              episodes={episodes}
+              episodes={initialEpisodes}
               messages={messages}
               locale={locale}
               podcastId={selectedPodcast.id}
@@ -342,7 +289,11 @@ export function PodcastsExplorer({
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <Text as="h2" id="podcast-list-heading" size="2xl" weight="semibold">
-                {view === "explore" ? resultHeading : messages["Your library"]}
+                {view === "explore"
+                  ? initialQuery
+                    ? messages["Search results"]
+                    : messages["Popular right now"]
+                  : messages["Your library"]}
               </Text>
               <Text size="sm" tone="muted" className="mt-1">
                 {messages["Your library stays on this device."]}
@@ -359,13 +310,12 @@ export function PodcastsExplorer({
                   <PodcastCard
                     key={podcast.id}
                     podcast={podcast}
-                    eagerArtwork={index < 5}
+                    eagerArtwork={index === 0}
                     messages={messages}
                     saved={savedPodcasts.some(function matchesPodcast(item) {
                       return item.id === podcast.id;
                     })}
                     selected={false}
-                    onOpen={openPodcast}
                     onToggleSaved={toggleSaved}
                   />
                 );

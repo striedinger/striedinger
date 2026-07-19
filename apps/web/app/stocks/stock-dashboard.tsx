@@ -3,73 +3,51 @@
 import { ShareIcon } from "@workspace/icons/share-icon";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
-import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
-import { useTypeahead } from "../../components/use-typeahead";
-import { loadStockSeries, searchStocks } from "./actions";
 import { playStockHaptic } from "./haptics";
 import { MarketSessionIndicator } from "./market-session-indicator";
 import { StockChart } from "./stock-chart";
 import { defaultStocks, spaceXStock } from "./stock-defaults";
-import { stockTimeframes } from "./types";
+import { stockTimeframeFreshnessSeconds, stockTimeframes } from "./types";
 
 interface StockDashboardProps {
+  initialSeries: StockSeries | null;
   initialStock: StockIdentity;
   initialTimeframe: StockTimeframe;
   isSharedSelection: boolean;
   labels: StocksLabels;
   locale: string;
+  searchQuery: string;
+  searchResults: StockIdentity[];
 }
 
 const storageKey = "stocks-watchlist:v1";
 const previousDefaultSymbols = new Set(["AAPL", "MSFT", "NVDA"]);
-const refocusRefreshIntervalMilliseconds = 60_000;
-
-function getStockSymbol(stock: StockIdentity) {
-  return stock.symbol;
-}
-
 export function StockDashboard({
+  initialSeries,
   initialStock,
   initialTimeframe,
   isSharedSelection,
   labels,
   locale,
+  searchQuery,
+  searchResults,
 }: StockDashboardProps) {
+  const router = useRouter();
   const [watchlist, setWatchlist] = useState<StockIdentity[]>(defaultStocks);
-  const [selectedStock, setSelectedStock] = useState<StockIdentity>(initialStock);
-  const [timeframe, setTimeframe] = useState<StockTimeframe>(initialTimeframe);
-  const [series, setSeries] = useState<StockSeries | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
+  const [query, setQuery] = useState(searchQuery);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
-  const requestNumber = useRef(0);
-  const lastSeriesRequestAt = useRef(0);
-  const typeahead = useTypeahead({
-    clearQueryOnSelect: true,
-    getItemLabel: getStockSymbol,
-    loadSuggestions: searchStocks,
-    maximumSuggestions: 8,
-    minimumQueryLength: 1,
-    onSelect: addStock,
-    suggestionDelayMilliseconds: 250,
-  });
-  const {
-    activeSuggestionIndex,
-    clear,
-    handleKeyDown,
-    open,
-    query,
-    selectSuggestion,
-    setOpen,
-    setQuery,
-    status: searchStatus,
-    suggestions,
-  } = typeahead;
+  const [isNavigating, startNavigation] = useTransition();
+  const lastRefreshAt = useRef(0);
+  const selectedStock = initialStock;
+  const timeframe = initialTimeframe;
+  const displayedSeries = initialSeries;
 
   useEffect(
     function restoreWatchlist() {
@@ -85,9 +63,15 @@ export function StockDashboard({
               ? [...validStocks, spaceXStock]
               : validStocks;
             setWatchlist(restoredStocks);
-            if (!isSharedSelection) {
-              setSelectedStock(restoredStocks[0]!);
-              setStatus("loading");
+            if (!isSharedSelection && restoredStocks[0]?.symbol !== selectedStock.symbol) {
+              const restoredStock = restoredStocks[0]!;
+              const parameters = new URLSearchParams({
+                symbol: restoredStock.symbol,
+                timeframe,
+              });
+              startNavigation(function restoreServerSelection() {
+                router.replace(`/stocks?${parameters}`);
+              });
             }
             if (restoredStocks !== validStocks) {
               window.localStorage.setItem(storageKey, JSON.stringify(restoredStocks));
@@ -101,65 +85,20 @@ export function StockDashboard({
         window.clearTimeout(timeoutId);
       };
     },
-    [isSharedSelection],
+    [isSharedSelection, router, selectedStock.symbol, timeframe],
   );
 
   useEffect(
-    function keepSelectionInUrl() {
-      const url = new URL(window.location.href);
-      url.searchParams.set("symbol", selectedStock.symbol);
-      url.searchParams.set("timeframe", timeframe);
-      window.history.replaceState(window.history.state, "", url);
-    },
-    [selectedStock.symbol, timeframe],
-  );
-
-  useEffect(
-    function loadSelectedStock() {
-      let cancelled = false;
-      const currentRequest = ++requestNumber.current;
-      lastSeriesRequestAt.current = Date.now();
-      loadStockSeries(selectedStock, timeframe)
-        .then(function showSeries(nextSeries) {
-          if (!cancelled && currentRequest === requestNumber.current) {
-            setSeries(nextSeries);
-            setStatus("idle");
-          }
-          return undefined;
-        })
-        .catch(function showSeriesError() {
-          if (!cancelled && currentRequest === requestNumber.current) setStatus("error");
-        });
-      return function ignoreStaleSeries() {
-        cancelled = true;
-      };
-    },
-    [selectedStock, timeframe],
-  );
-
-  useEffect(
-    function refreshSelectedStockOnRefocus() {
-      let cancelled = false;
-
+    function refreshServerComponentOnRefocus() {
+      lastRefreshAt.current = Date.now();
       function refreshIfStale() {
         if (document.visibilityState !== "visible") return;
-
         const now = Date.now();
-        if (now - lastSeriesRequestAt.current < refocusRefreshIntervalMilliseconds) return;
-
-        lastSeriesRequestAt.current = now;
-        const currentRequest = ++requestNumber.current;
-        loadStockSeries(selectedStock, timeframe)
-          .then(function showRefreshedSeries(nextSeries) {
-            if (!cancelled && currentRequest === requestNumber.current) {
-              setSeries(nextSeries);
-              setStatus("idle");
-            }
-            return undefined;
-          })
-          .catch(function keepExistingSeries() {
-            return undefined;
-          });
+        if (now - lastRefreshAt.current < stockTimeframeFreshnessSeconds[timeframe] * 1_000) return;
+        lastRefreshAt.current = now;
+        startNavigation(function refreshSelection() {
+          router.refresh();
+        });
       }
 
       function refreshWhenVisible() {
@@ -169,13 +108,20 @@ export function StockDashboard({
       window.addEventListener("focus", refreshIfStale);
       document.addEventListener("visibilitychange", refreshWhenVisible);
       return function removeRefocusListeners() {
-        cancelled = true;
         window.removeEventListener("focus", refreshIfStale);
         document.removeEventListener("visibilitychange", refreshWhenVisible);
       };
     },
-    [selectedStock, timeframe],
+    [router, timeframe],
   );
+
+  function navigateToSelection(symbol: string, nextTimeframe: StockTimeframe, replace = false) {
+    const parameters = new URLSearchParams({ symbol, timeframe: nextTimeframe });
+    startNavigation(function navigate() {
+      if (replace) router.replace(`/stocks?${parameters}`);
+      else router.push(`/stocks?${parameters}`);
+    });
+  }
 
   function persistWatchlist(nextWatchlist: StockIdentity[]) {
     setWatchlist(nextWatchlist);
@@ -187,11 +133,8 @@ export function StockDashboard({
       return item.symbol === stock.symbol;
     });
     if (!alreadyAdded) persistWatchlist([...watchlist, stock]);
-    startTransition(function selectAddedStock() {
-      setStatus("loading");
-      setShareStatus("idle");
-      setSelectedStock(stock);
-    });
+    setShareStatus("idle");
+    if (stock.symbol !== selectedStock.symbol) navigateToSelection(stock.symbol, timeframe);
     playStockHaptic(alreadyAdded ? "select" : "success");
   }
 
@@ -201,11 +144,24 @@ export function StockDashboard({
     });
     persistWatchlist(nextWatchlist);
     if (selectedStock.symbol === stock.symbol && nextWatchlist[0]) {
-      setStatus("loading");
       setShareStatus("idle");
-      setSelectedStock(nextWatchlist[0]);
+      navigateToSelection(nextWatchlist[0].symbol, timeframe);
     }
     playStockHaptic("remove");
+  }
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) return;
+    const parameters = new URLSearchParams({
+      q: normalizedQuery,
+      symbol: selectedStock.symbol,
+      timeframe,
+    });
+    startNavigation(function showServerSearchResults() {
+      router.push(`/stocks?${parameters}`);
+    });
   }
 
   async function shareSelection() {
@@ -234,13 +190,13 @@ export function StockDashboard({
     }
   }
 
-  const latestPoint = series?.points.at(-1);
-  const firstPoint = series?.points[0];
+  const latestPoint = displayedSeries?.points.at(-1);
+  const firstPoint = displayedSeries?.points[0];
   const change = latestPoint && firstPoint ? latestPoint.close - firstPoint.close : 0;
   const changePercent = firstPoint ? (change / firstPoint.close) * 100 : 0;
   const priceFormatter = new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: series?.identity.currency ?? selectedStock.currency,
+    currency: displayedSeries?.identity.currency ?? selectedStock.currency,
     maximumFractionDigits: 2,
   });
 
@@ -248,82 +204,63 @@ export function StockDashboard({
     <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="flex min-w-0 flex-col gap-5" aria-label={labels.watchlist}>
         <div className="relative z-20">
-          <label htmlFor="stock-search" className="sr-only">
-            {labels.search}
-          </label>
-          <div className="relative">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.8-3.8" />
-            </svg>
-            <Input
-              id="stock-search"
-              value={query}
-              role="combobox"
-              aria-autocomplete="list"
-              aria-controls="stock-suggestions"
-              aria-expanded={open}
-              aria-activedescendant={
-                activeSuggestionIndex >= 0 ? `stock-suggestion-${activeSuggestionIndex}` : undefined
-              }
-              tabIndex={0}
-              autoComplete="off"
-              placeholder={labels.searchPlaceholder}
-              className="h-11 rounded-xl pr-9 pl-9"
-              onChange={function updateQuery(event) {
-                setQuery(event.currentTarget.value);
-              }}
-              onKeyDown={handleKeyDown}
-              onFocus={function reopenSuggestions() {
-                if (suggestions.length > 0) setOpen(true);
-              }}
-            />
-            {searchStatus === "loading" ? (
-              <span
+          <form role="search" onSubmit={submitSearch}>
+            <label htmlFor="stock-search" className="sr-only">
+              {labels.search}
+            </label>
+            <div className="relative">
+              <svg
                 aria-hidden="true"
-                className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-muted-foreground border-r-transparent motion-reduce:animate-none"
-              />
-            ) : query ? (
-              <button
-                type="button"
-                aria-label={labels.close}
-                className="absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                onClick={function clearSearch() {
-                  clear();
-                }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
               >
-                <span aria-hidden="true">×</span>
-              </button>
-            ) : null}
-          </div>
-          {open ? (
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.8-3.8" />
+              </svg>
+              <Input
+                id="stock-search"
+                name="q"
+                type="search"
+                value={query}
+                autoComplete="off"
+                placeholder={labels.searchPlaceholder}
+                className="h-11 rounded-xl pr-20 pl-9"
+                onChange={function updateQuery(event) {
+                  setQuery(event.currentTarget.value);
+                }}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                variant="ghost"
+                className="absolute top-1/2 right-1 -translate-y-1/2"
+                loading={isNavigating}
+                loadingLabel={labels.loading}
+              >
+                {labels.search}
+              </Button>
+            </div>
+          </form>
+          {searchQuery && searchResults.length > 0 ? (
             <Surface
               as="ul"
               id="stock-suggestions"
-              role="listbox"
               className="absolute top-[calc(100%+0.5rem)] right-0 left-0 max-h-80 list-none overflow-y-auto p-1 shadow-raised"
             >
-              {suggestions.map(function renderSuggestion(stock, index) {
+              {searchResults.map(function renderSuggestion(stock) {
                 const isAdded = watchlist.some(function hasSymbol(item) {
                   return item.symbol === stock.symbol;
                 });
                 return (
                   <li key={`${stock.symbol}-${stock.exchange}`}>
                     <button
-                      id={`stock-suggestion-${index}`}
                       type="button"
-                      role="option"
-                      aria-selected={index === activeSuggestionIndex}
                       className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none aria-selected:bg-accent"
                       onClick={function chooseSuggestion() {
-                        selectSuggestion(stock);
+                        addStock(stock);
                       }}
                     >
                       <span className="min-w-0">
@@ -368,9 +305,8 @@ export function StockDashboard({
                       aria-pressed={isSelected}
                       className="flex w-full flex-col rounded-xl px-3 py-3 text-left transition-[background-color,transform] hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring active:scale-[0.98] aria-pressed:bg-primary aria-pressed:text-primary-foreground motion-reduce:transform-none"
                       onClick={function selectWatchlistStock() {
-                        setStatus("loading");
                         setShareStatus("idle");
-                        setSelectedStock(stock);
+                        if (!isSelected) navigateToSelection(stock.symbol, timeframe);
                         playStockHaptic("select");
                       }}
                     >
@@ -382,7 +318,7 @@ export function StockDashboard({
                         size="xs"
                         numberOfLines={1}
                         className={
-                          isSelected ? "text-primary-foreground/70" : "text-muted-foreground"
+                          isSelected ? "text-primary-foreground/90" : "text-muted-foreground"
                         }
                       >
                         {stock.name}
@@ -432,7 +368,7 @@ export function StockDashboard({
                     preMarket: labels.preMarket,
                   }}
                 />
-                {series?.isDemo ? (
+                {displayedSeries?.isDemo ? (
                   <Text
                     as="span"
                     size="xs"
@@ -495,9 +431,9 @@ export function StockDashboard({
                   aria-pressed={timeframe === option}
                   className="min-w-11 flex-1 rounded-lg"
                   onClick={function selectTimeframe() {
-                    setStatus("loading");
+                    if (timeframe === option) return;
                     setShareStatus("idle");
-                    setTimeframe(option);
+                    navigateToSelection(selectedStock.symbol, option);
                     playStockHaptic("select");
                   }}
                 >
@@ -507,36 +443,7 @@ export function StockDashboard({
             })}
           </div>
 
-          {!series && status === "loading" ? (
-            <div
-              className="flex min-h-[calc(4.5rem+0.75rem)] flex-col gap-3"
-              role="status"
-              aria-label={labels.loading}
-            >
-              <div className="grid h-[4.5rem] grid-cols-3 gap-3 sm:h-12 sm:grid-cols-4">
-                {[
-                  { id: "open", width: "w-16" },
-                  { id: "high", width: "w-20" },
-                  { id: "low", width: "w-14" },
-                  { id: "volume", width: "w-16" },
-                ].map(function renderMetric(metric, index) {
-                  return (
-                    <div key={metric.id} className={index === 3 ? "hidden sm:block" : undefined}>
-                      <Skeleton className="mb-2 h-3 w-12" />
-                      <Skeleton className={`h-5 ${metric.width}`} />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="relative aspect-[1.5/1] overflow-hidden rounded-xl bg-muted/45 sm:aspect-[2.35/1]">
-                <div className="absolute inset-x-4 top-4 flex justify-between">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-                <Skeleton className="absolute right-[8%] bottom-[18%] left-[6%] h-1/3 rounded-[50%] opacity-70" />
-              </div>
-            </div>
-          ) : status === "error" || !series ? (
+          {!displayedSeries ? (
             <div
               className="flex min-h-[calc(4.5rem+0.75rem)] flex-col justify-end gap-3"
               role="alert"
@@ -549,25 +456,26 @@ export function StockDashboard({
               </div>
             </div>
           ) : (
-            <div className="relative" aria-busy={status === "loading"}>
+            <div className="relative" aria-busy={isNavigating}>
               <StockChart
-                key={`${selectedStock.symbol}-${series.timeframe}`}
-                currency={series.identity.currency}
+                key={`${selectedStock.symbol}-${displayedSeries.timeframe}`}
+                currency={displayedSeries.identity.currency}
                 labels={labels}
                 locale={locale}
-                points={series.points}
+                points={displayedSeries.points}
                 symbol={selectedStock.symbol}
-                timeframe={series.timeframe}
+                timeframe={displayedSeries.timeframe}
               />
-              {status === "loading" ? (
+              {isNavigating ? (
                 <div
-                  className="absolute inset-0 flex items-center justify-center rounded-xl bg-card/55 backdrop-blur-[2px]"
+                  className="pointer-events-none absolute inset-0 rounded-xl bg-card/15"
                   role="status"
                 >
+                  <span className="absolute inset-x-0 top-0 h-1 animate-pulse bg-primary/70 motion-reduce:animate-none" />
                   <Text
                     size="sm"
                     tone="muted"
-                    className="rounded-full bg-card px-3 py-1.5 shadow-sm"
+                    className="absolute top-3 right-3 rounded-full bg-card/90 px-3 py-1.5 shadow-sm backdrop-blur-sm"
                   >
                     {labels.loading}
                   </Text>

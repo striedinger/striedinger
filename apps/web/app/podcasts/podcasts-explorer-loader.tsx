@@ -38,6 +38,7 @@ export async function PodcastsExplorerLoader({
 
   return (
     <PodcastsExplorer
+      key={`${podcastId}:${initialQuery}`}
       initialEpisodeId={initialEpisodeId}
       initialEpisodes={initialEpisodes}
       initialPodcasts={initialPodcasts}

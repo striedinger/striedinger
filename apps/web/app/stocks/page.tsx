@@ -133,6 +133,7 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
           <StockDashboardLoader
             initialSymbol={initialState.symbol}
             initialTimeframe={initialState.timeframe}
+            query={initialState.query}
             labels={labels}
             locale={locale}
           />

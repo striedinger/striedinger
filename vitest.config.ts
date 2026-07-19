@@ -53,6 +53,7 @@ export default defineConfig({
             "app/chat/**/*.test.tsx",
             "app/drop/**/*.test.tsx",
             "app/podcasts/**/*.test.tsx",
+            "app/stocks/**/*.test.tsx",
             "app/sudoku/**/*.test.tsx",
           ],
         },

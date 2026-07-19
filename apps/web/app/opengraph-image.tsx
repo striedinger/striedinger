@@ -1,4 +1,3 @@
-import { Text } from "@workspace/ui/components/text";
 import { ImageResponse } from "next/og";
 
 import { getTranslator } from "../messages/get-translator";
@@ -30,18 +29,10 @@ export default async function OpenGraphImage() {
         width: "100%",
       }}
     >
-      <Text as="div" weight="bold" style={{ fontSize: 72, fontWeight: 700 }}>
-        {translate("Hi there!")} 👋
-      </Text>
-      <Text as="div" weight="bold" style={{ fontSize: 72, fontWeight: 700 }}>
-        {translate("I'm Hugo Striedinger")}
-      </Text>
-      <Text as="div" style={{ fontSize: 38, marginTop: 36 }}>
-        {translate("Senior Software Engineer")}
-      </Text>
-      <Text as="div" style={{ fontSize: 28, marginTop: 20 }}>
-        SpaceX · Twitter Inc. · X Corp.
-      </Text>
+      <div style={{ fontSize: 72, fontWeight: 700 }}>{`${translate("Hi there!")} 👋`}</div>
+      <div style={{ fontSize: 72, fontWeight: 700 }}>{translate("I'm Hugo Striedinger")}</div>
+      <div style={{ fontSize: 38, marginTop: 36 }}>{translate("Senior Software Engineer")}</div>
+      <div style={{ fontSize: 28, marginTop: 20 }}>SpaceX · Twitter Inc. · X Corp.</div>
     </div>,
     size,
   );

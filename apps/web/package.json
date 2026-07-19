@@ -5,17 +5,13 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --experimental-https",
-    "prebuild": "node scripts/sync-pdf-assets.mjs",
-    "predev": "node scripts/sync-pdf-assets.mjs",
+    "prebuild": "node scripts/sync-runtime-assets.mjs",
+    "predev": "node scripts/sync-runtime-assets.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fe-daily/libimagequant-wasm": "^0.1.1",
     "@jsquash/avif": "^2.1.1",
-    "@jsquash/jpeg": "^1.6.0",
-    "@jsquash/oxipng": "^2.3.0",
-    "@jsquash/webp": "^1.5.0",
     "@workspace/i18n": "workspace:*",
     "@workspace/icons": "workspace:*",
     "@workspace/ui": "workspace:*",

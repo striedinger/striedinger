@@ -41,21 +41,9 @@ importers:
 
   apps/web:
     dependencies:
-      '@fe-daily/libimagequant-wasm':
-        specifier: ^0.1.1
-        version: 0.1.1
       '@jsquash/avif':
         specifier: ^2.1.1
         version: 2.1.1
-      '@jsquash/jpeg':
-        specifier: ^1.6.0
-        version: 1.6.0
-      '@jsquash/oxipng':
-        specifier: ^2.3.0
-        version: 2.3.0
-      '@jsquash/webp':
-        specifier: ^1.5.0
-        version: 1.5.0
       '@workspace/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -316,10 +304,6 @@ packages:
       '@noble/hashes':
         optional: true
 
-  '@fe-daily/libimagequant-wasm@0.1.1':
-    resolution: {integrity: sha512-w8ruTNVHKCoGqIDVnyxETx9bBdmvIa9pVzshNQDGHku0vPjTJ3dF8Q9OLiNj81+IWV0uivr6cZ0czLlpPKASWw==}
-    engines: {node: '>=16.0.0'}
-
   '@floating-ui/core@1.7.5':
     resolution: {integrity: sha512-1Ih4WTWyw0+lKyFMcBHGbb5U5FtuHJuujoyyr5zTaWS5EYMeT6Jb2AuDeftsCsEuchO+mM2ij5+q9crhydzLhQ==}
 
@@ -510,15 +494,6 @@ packages:
 
   '@jsquash/avif@2.1.1':
     resolution: {integrity: sha512-LMRxd0fMgfCLtobDh0/sFYJMMiRJTNYSEEWvRDKXlAeZ08t3gI5V+1thIT0XjXJ+SVG7Zug9B0XPyx0Ti5VRNA==}
-
-  '@jsquash/jpeg@1.6.0':
-    resolution: {integrity: sha512-zwN46Awh1VM6gXlIcALwb5WzqK5H2e6+Awcs1QP8AvS8ohsK/sbE4esvmH4jhlhW7+CgiUUww66vg0aTnlSIMA==}
-
-  '@jsquash/oxipng@2.3.0':
-    resolution: {integrity: sha512-aQ8wiEp6ztlTMXc+RMt/CG8crU3mEHDU+h+JYkIi6ctMhlh8+Ltj5XwQFfBuyzKYrp8NxaFW80Dp824bqjr+zA==}
-
-  '@jsquash/webp@1.5.0':
-    resolution: {integrity: sha512-KggLoj2MnRSfIqTeKe1EmbljTX2vuV7mh79k89PCL1pyqiDULcPM1L47twxXt0hkb68F70bXiL31MxsuoZtKFw==}
 
   '@napi-rs/canvas-android-arm64@1.0.2':
     resolution: {integrity: sha512-IMXKVQod0ol4vt3gmClUfXz4JAgHYESGPCUqmH3lQxBoL0K/2greJaQE1HVBVxWWFKfLc4OLZVdxg7kXVyXv+g==}
@@ -2292,8 +2267,6 @@ snapshots:
 
   '@exodus/bytes@1.15.1': {}
 
-  '@fe-daily/libimagequant-wasm@0.1.1': {}
-
   '@floating-ui/core@1.7.5':
     dependencies:
       '@floating-ui/utils': 0.2.11
@@ -2432,16 +2405,6 @@ snapshots:
       lodash: 4.18.1
 
   '@jsquash/avif@2.1.1':
-    dependencies:
-      wasm-feature-detect: 1.8.0
-
-  '@jsquash/jpeg@1.6.0': {}
-
-  '@jsquash/oxipng@2.3.0':
-    dependencies:
-      wasm-feature-detect: 1.8.0
-
-  '@jsquash/webp@1.5.0':
     dependencies:
       wasm-feature-detect: 1.8.0
 

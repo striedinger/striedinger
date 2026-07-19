@@ -1,7 +1,5 @@
 "use client";
 
-import type { MouseEvent } from "react";
-
 import { CheckIcon } from "@workspace/icons/check-icon";
 import { Button } from "@workspace/ui/components/button";
 import { Surface } from "@workspace/ui/components/surface";
@@ -16,7 +14,6 @@ import { getPodcastHref } from "./podcast-links";
 interface PodcastCardProps {
   eagerArtwork?: boolean;
   messages: PodcastMessages;
-  onOpen: (podcast: Podcast) => void;
   onToggleSaved: (podcast: Podcast) => void;
   podcast: Podcast;
   saved: boolean;
@@ -26,7 +23,6 @@ interface PodcastCardProps {
 export function PodcastCard({
   eagerArtwork = false,
   messages,
-  onOpen,
   onToggleSaved,
   podcast,
   saved,
@@ -41,20 +37,6 @@ export function PodcastCard({
       <Link
         href={getPodcastHref(podcast.id)}
         className="group flex min-w-0 flex-1 flex-col text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:ring-inset"
-        aria-label={`${messages["Show episodes"]}: ${podcast.title}`}
-        onClick={function openPodcast(event: MouseEvent<HTMLAnchorElement>) {
-          if (
-            event.button !== 0 ||
-            event.metaKey ||
-            event.ctrlKey ||
-            event.shiftKey ||
-            event.altKey
-          ) {
-            return;
-          }
-          event.preventDefault();
-          onOpen(podcast);
-        }}
       >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           <Image
@@ -62,7 +44,9 @@ export function PodcastCard({
             alt=""
             fill
             sizes="(min-width: 1024px) 220px, (min-width: 640px) 30vw, 44vw"
+            quality={60}
             loading={eagerArtwork ? "eager" : "lazy"}
+            fetchPriority={eagerArtwork ? "high" : "auto"}
             className="object-cover transition-transform duration-300 group-hover:scale-[1.025] motion-reduce:transition-none"
           />
         </div>
@@ -87,13 +71,13 @@ export function PodcastCard({
           size="sm"
           variant={saved ? "secondary" : "default"}
           className="min-w-0 flex-1"
-          aria-label={`${saved ? messages["Remove"] : messages["Add"]}: ${podcast.title}`}
           onClick={function toggleSaved() {
             onToggleSaved(podcast);
           }}
         >
           {saved ? <CheckIcon /> : <span aria-hidden="true">＋</span>}
-          {saved ? messages["Added"] : messages["Add"]}
+          {saved ? messages["Remove"] : messages["Add"]}
+          <span className="sr-only">: {podcast.title}</span>
         </Button>
       </div>
     </Surface>

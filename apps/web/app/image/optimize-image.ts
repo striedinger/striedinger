@@ -72,7 +72,7 @@ function isHeicFile(file: File) {
 function getWorker() {
   if (sharedWorker) return sharedWorker;
 
-  sharedWorker = new Worker(new URL("./image-worker.ts", import.meta.url));
+  sharedWorker = new Worker(new URL("./image-worker.ts", import.meta.url), { type: "module" });
   sharedWorker.addEventListener("message", function receiveResult(event) {
     const pending = pendingOptimizations.get(event.data.id);
     if (!pending) return;

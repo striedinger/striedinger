@@ -1,6 +1,6 @@
 import "server-only";
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 import stations from "../../app/mta/data/stations.json";
 
@@ -52,21 +52,31 @@ const feedByRoute: Readonly<Record<string, string>> = {
   SI: "gtfs-si",
 };
 
-const getNearbyStationsCached = cache(loadNearbyStations);
-
 export function getNearbyStations(
   latitude: number,
   longitude: number,
   selectedRoute?: string,
 ): Promise<NearbyStation[]> {
-  return getNearbyStationsCached(latitude, longitude, selectedRoute);
+  return loadNearbyStations({
+    latitude: roundCoordinate(latitude),
+    longitude: roundCoordinate(longitude),
+    selectedRoute: selectedRoute ?? "",
+  });
 }
 
-async function loadNearbyStations(
-  latitude: number,
-  longitude: number,
-  selectedRoute?: string,
-): Promise<NearbyStation[]> {
+async function loadNearbyStations({
+  latitude,
+  longitude,
+  selectedRoute,
+}: {
+  latitude: number;
+  longitude: number;
+  selectedRoute: string;
+}): Promise<NearbyStation[]> {
+  "use cache";
+  cacheLife({ stale: 15, revalidate: 30, expire: 120 });
+  cacheTag("mta-arrivals", `mta-arrivals:${latitude}:${longitude}:${selectedRoute || "all"}`);
+
   const nearbyStations = (stations as StaticStation[])
     .filter(function servesSelectedRoute(station) {
       return (
@@ -174,6 +184,10 @@ async function loadNearbyStations(
       .slice(0, 24);
   }
   return nearbyStations;
+}
+
+function roundCoordinate(coordinate: number) {
+  return Math.round(coordinate * 10_000) / 10_000;
 }
 
 function normalizeRoute(route: string) {

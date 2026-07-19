@@ -7,11 +7,9 @@ import { messages as englishMessages } from "../../messages/podcasts/en";
 import { savePodcastProgress } from "./podcast-progress";
 import { PodcastsExplorer } from "./podcasts-explorer";
 
-const podcastActionMocks = vi.hoisted(function createPodcastActionMocks() {
+const navigationMocks = vi.hoisted(function createNavigationMocks() {
   return {
-    loadPodcastShow:
-      vi.fn<(podcastId: string) => Promise<{ episodes: never[]; podcast: Podcast | null }>>(),
-    searchPodcasts: vi.fn<(query: string) => Promise<Podcast[]>>(),
+    push: vi.fn<(href: string) => void>(),
   };
 });
 
@@ -23,8 +21,8 @@ vi.mock("next/image", function mockNextImage() {
   return { default: MockImage };
 });
 
-vi.mock("./actions", function mockPodcastActions() {
-  return podcastActionMocks;
+vi.mock("next/navigation", function mockNavigation() {
+  return { useRouter: () => navigationMocks };
 });
 
 const podcast: Podcast = {
@@ -44,10 +42,7 @@ describe("PodcastsExplorer", function () {
   beforeEach(function clearLibrary() {
     window.localStorage.clear();
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function loadMetadata() {});
-    podcastActionMocks.loadPodcastShow
-      .mockReset()
-      .mockResolvedValue({ episodes: [], podcast: null });
-    podcastActionMocks.searchPodcasts.mockReset().mockResolvedValue([]);
+    navigationMocks.push.mockClear();
   });
 
   afterEach(function restoreMediaMethods() {
@@ -107,9 +102,8 @@ describe("PodcastsExplorer", function () {
     });
   });
 
-  it("suggests podcasts while typing and opens the active suggestion with Enter", async function () {
+  it("submits podcast searches through the server-rendered GET form", function () {
     const messages = getEnglishPodcastMessages();
-    podcastActionMocks.searchPodcasts.mockResolvedValue([podcast]);
     render(
       <PodcastsExplorer
         initialEpisodeId=""
@@ -122,18 +116,11 @@ describe("PodcastsExplorer", function () {
       />,
     );
 
-    const searchInput = screen.getByRole("combobox", { name: messages["Search"] });
+    const searchInput = screen.getByRole("searchbox", { name: messages["Search"] });
     fireEvent.change(searchInput, { target: { value: "thoughtful" } });
 
-    expect(
-      await screen.findByRole("option", {
-        name: `${messages["Show episodes"]}: ${podcast.title}`,
-      }),
-    ).toHaveAttribute("aria-selected", "true");
-    fireEvent.keyDown(searchInput, { key: "Enter" });
-
-    expect(podcastActionMocks.loadPodcastShow).toHaveBeenCalledWith(podcast.id);
-    expect(screen.getByRole("heading", { name: podcast.title })).toBeInTheDocument();
+    expect(searchInput).toHaveAttribute("name", "q");
+    expect(screen.getByRole("search")).toHaveAttribute("action", "/podcasts");
   });
 
   it("exposes real links for shows, searches, and episodes", function () {
@@ -158,10 +145,11 @@ describe("PodcastsExplorer", function () {
       />,
     );
 
-    expect(
-      screen.getByRole("link", { name: `${messages["Show episodes"]}: ${podcast.title}` }),
-    ).toHaveAttribute("href", `/podcasts?podcast=${podcast.id}`);
-    expect(screen.getByRole("combobox", { name: messages["Search"] })).toHaveValue("science");
+    expect(screen.getByRole("link", { name: new RegExp(podcast.title) })).toHaveAttribute(
+      "href",
+      `/podcasts?podcast=${podcast.id}`,
+    );
+    expect(screen.getByRole("searchbox", { name: messages["Search"] })).toHaveValue("science");
     firstRender.unmount();
 
     render(
@@ -212,7 +200,9 @@ describe("PodcastsExplorer", function () {
     const seekControl = screen.getByRole("slider", {
       name: `${messages["Playback position"]}: ${episode.title}`,
     });
-    expect(seekControl).toHaveValue("25");
+    await waitFor(function waitForRestoredPosition() {
+      expect(seekControl).toHaveValue("25");
+    });
     expect(seekControl).toHaveAttribute("max", "60");
     expect(screen.getByText("0:25 / 1:00")).toBeInTheDocument();
     fireEvent.loadedMetadata(audio as HTMLAudioElement);

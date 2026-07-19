@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import type { StocksLabels, StockTimeframe } from "./types";
 
 import { isRateLimited } from "../../lib/rate-limit";
-import { searchStockSymbols } from "../../lib/stocks/market-data";
+import { getStockSeries, searchStockSymbols } from "../../lib/stocks/market-data";
 import { StockDashboard } from "./stock-dashboard";
 import { defaultStocks, featuredStocks } from "./stock-defaults";
 
@@ -14,6 +14,7 @@ interface StockDashboardLoaderProps {
   initialTimeframe: StockTimeframe;
   labels: StocksLabels;
   locale: Locale;
+  query: string;
 }
 
 export async function StockDashboardLoader({
@@ -21,15 +22,33 @@ export async function StockDashboardLoader({
   initialTimeframe,
   labels,
   locale,
+  query,
 }: StockDashboardLoaderProps) {
-  const initialStock = initialSymbol ? await resolveInitialStock(initialSymbol) : defaultStocks[0]!;
+  const stockPromise = initialSymbol
+    ? resolveInitialStock(initialSymbol)
+    : Promise.resolve(defaultStocks[0]!);
+  const searchResultsPromise = query
+    ? searchStockSymbols(query).catch(function useEmptySearchResults() {
+        return [];
+      })
+    : Promise.resolve([]);
+  const [initialStock, searchResults] = await Promise.all([stockPromise, searchResultsPromise]);
+  const initialSeries = await getStockSeries(initialStock, initialTimeframe).catch(
+    function useUnavailableInitialSeries() {
+      return null;
+    },
+  );
   return (
     <StockDashboard
+      initialSeries={initialSeries}
       initialStock={initialStock}
       initialTimeframe={initialTimeframe}
       isSharedSelection={initialSymbol !== null}
+      key={`${initialStock.symbol}:${initialTimeframe}:${query}`}
       labels={labels}
       locale={locale}
+      searchQuery={query}
+      searchResults={searchResults}
     />
   );
 }

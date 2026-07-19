@@ -1,5 +1,5 @@
 import "server-only";
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 interface GeoSearchFeature {
   geometry?: { coordinates?: [number, number] };
@@ -16,21 +16,25 @@ export interface LocationSuggestion {
   longitude: number;
 }
 
-const searchLocationsCached = cache(loadLocations);
-
 export function searchLocations(
   text: string,
   mode: "autocomplete" | "search",
 ): Promise<LocationSuggestion[]> {
-  return searchLocationsCached(text, mode);
+  const normalizedText = text.trim().replace(/\s+/g, " ").slice(0, 160);
+  if (normalizedText.length < 2) return Promise.resolve([]);
+  return loadLocations({ mode, text: normalizedText });
 }
 
-async function loadLocations(
-  text: string,
-  mode: "autocomplete" | "search",
-): Promise<LocationSuggestion[]> {
-  const normalizedText = text.trim();
-  if (normalizedText.length < 2 || normalizedText.length > 160) return [];
+async function loadLocations({
+  mode,
+  text: normalizedText,
+}: {
+  mode: "autocomplete" | "search";
+  text: string;
+}): Promise<LocationSuggestion[]> {
+  "use cache";
+  cacheLife({ stale: 86_400, revalidate: 86_400, expire: 604_800 });
+  cacheTag("mta-location-search", `mta-location:${mode}:${normalizedText.toLowerCase()}`);
 
   const endpoint = new URL(`https://geosearch.planninglabs.nyc/v2/${mode}`);
   endpoint.searchParams.set("text", normalizedText);

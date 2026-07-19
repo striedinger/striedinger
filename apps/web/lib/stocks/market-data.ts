@@ -1,5 +1,5 @@
 import "server-only";
-import { cache } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 
 import type {
   StockIdentity,
@@ -9,6 +9,7 @@ import type {
 } from "../../app/stocks/types";
 
 import { featuredStocks } from "../../app/stocks/stock-defaults";
+import { stockTimeframeFreshnessSeconds } from "../../app/stocks/types";
 import { getLatestTradingDayPoints } from "./stock-series";
 
 const twelveDataBaseUrl = "https://api.twelvedata.com";
@@ -16,24 +17,22 @@ const supportedSymbolPattern = /^[A-Z0-9.:-]{1,20}$/;
 
 const timeframeRequests: Record<
   StockTimeframe,
-  { interval: string; outputsize: number; demoPoints: number; freshnessSeconds: number }
+  { interval: string; outputsize: number; demoPoints: number }
 > = {
-  "1D": { interval: "5min", outputsize: 78, demoPoints: 78, freshnessSeconds: 30 },
-  "1W": { interval: "30min", outputsize: 70, demoPoints: 70, freshnessSeconds: 60 },
-  "1M": { interval: "2h", outputsize: 90, demoPoints: 90, freshnessSeconds: 300 },
-  "3M": { interval: "1day", outputsize: 90, demoPoints: 90, freshnessSeconds: 900 },
-  "1Y": { interval: "1day", outputsize: 260, demoPoints: 260, freshnessSeconds: 1_800 },
+  "1D": { interval: "5min", outputsize: 78, demoPoints: 78 },
+  "1W": { interval: "30min", outputsize: 70, demoPoints: 70 },
+  "1M": { interval: "2h", outputsize: 90, demoPoints: 90 },
+  "3M": { interval: "1day", outputsize: 90, demoPoints: 90 },
+  "1Y": { interval: "1day", outputsize: 260, demoPoints: 260 },
   "5Y": {
     interval: "1week",
     outputsize: 260,
     demoPoints: 260,
-    freshnessSeconds: 21_600,
   },
   MAX: {
     interval: "1month",
     outputsize: 600,
     demoPoints: 360,
-    freshnessSeconds: 86_400,
   },
 };
 
@@ -60,15 +59,20 @@ interface TwelveDataSeriesResponse {
   }>;
 }
 
-const searchStockSymbolsCached = cache(loadStockSymbols);
-
 export function searchStockSymbols(query: string): Promise<StockIdentity[]> {
-  return searchStockSymbolsCached(query);
+  const normalizedQuery = query.trim().toUpperCase().slice(0, 40);
+  if (normalizedQuery.length < 1) return Promise.resolve([]);
+  return loadStockSymbols({ query: normalizedQuery });
 }
 
-async function loadStockSymbols(query: string): Promise<StockIdentity[]> {
-  const normalizedQuery = query.trim().toUpperCase().slice(0, 40);
-  if (normalizedQuery.length < 1) return [];
+async function loadStockSymbols({
+  query: normalizedQuery,
+}: {
+  query: string;
+}): Promise<StockIdentity[]> {
+  "use cache";
+  cacheLife({ stale: 3_600, revalidate: 86_400, expire: 604_800 });
+  cacheTag("stock-search", `stock-search:${normalizedQuery}`);
 
   const localMatches = featuredStocks.filter(function matchesFeaturedStock(stock) {
     return (
@@ -108,20 +112,28 @@ async function loadStockSymbols(query: string): Promise<StockIdentity[]> {
   }
 }
 
-const getStockSeriesCached = cache(loadStockSeries);
-
 export function getStockSeries(
   identity: StockIdentity,
   timeframe: StockTimeframe,
 ): Promise<StockSeries> {
-  return getStockSeriesCached(identity, timeframe);
+  const normalizedIdentity = validateIdentity(identity);
+  return loadStockSeries(normalizedIdentity, timeframe);
 }
 
 async function loadStockSeries(
-  identity: StockIdentity,
+  normalizedIdentity: StockIdentity,
   timeframe: StockTimeframe,
 ): Promise<StockSeries> {
-  const normalizedIdentity = validateIdentity(identity);
+  "use cache";
+  const { symbol } = normalizedIdentity;
+  const freshnessSeconds = stockTimeframeFreshnessSeconds[timeframe];
+  cacheLife({
+    stale: Math.min(freshnessSeconds, 300),
+    revalidate: freshnessSeconds,
+    expire: Math.max(freshnessSeconds * 4, 300),
+  });
+  cacheTag("stock-series", `stock-series:${symbol}:${timeframe}`);
+
   const apiKey = process.env.TWELVE_DATA_API_KEY;
   if (!apiKey) return createDemoSeries(normalizedIdentity, timeframe);
 
@@ -134,7 +146,7 @@ async function loadStockSeries(
   url.searchParams.set("apikey", apiKey);
 
   const response = await fetch(url, {
-    next: { revalidate: request.freshnessSeconds },
+    next: { revalidate: freshnessSeconds },
     signal: AbortSignal.timeout(6_000),
   });
   if (!response.ok) throw new Error("Market data request failed");
