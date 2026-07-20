@@ -52,6 +52,7 @@ export default defineConfig({
             "components/**/*.test.tsx",
             "app/chat/**/*.test.tsx",
             "app/drop/**/*.test.tsx",
+            "app/mta/**/*.test.tsx",
             "app/podcasts/**/*.test.tsx",
             "app/stocks/**/*.test.tsx",
             "app/sudoku/**/*.test.tsx",

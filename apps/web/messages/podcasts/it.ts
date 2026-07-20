@@ -47,6 +47,7 @@ export const messages = {
     "La posizione di ascolto salvata per questo episodio verrà eliminata.",
   "Remove saved progress?": "Rimuovere i progressi salvati?",
   Resume: "Riprendi",
+  "Clear search": "Cancella ricerca",
   Search: "Cerca",
   "Search is unavailable right now. Please try again.":
     "La ricerca non è disponibile al momento. Riprova.",

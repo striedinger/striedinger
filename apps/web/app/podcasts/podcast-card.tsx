@@ -36,6 +36,7 @@ export function PodcastCard({
     >
       <Link
         href={getPodcastHref(podcast.id)}
+        scroll={false}
         className="group flex min-w-0 flex-1 flex-col text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:ring-inset"
       >
         <div className="relative aspect-square w-full overflow-hidden bg-muted">

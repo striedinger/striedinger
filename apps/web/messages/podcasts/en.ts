@@ -45,6 +45,7 @@ export const messages = defineMessages({
     "Your saved listening position for this episode will be deleted.",
   "Remove saved progress?": "Remove saved progress?",
   Resume: "Resume",
+  "Clear search": "Clear search",
   Search: "Search",
   "Search is unavailable right now. Please try again.":
     "Search is unavailable right now. Please try again.",

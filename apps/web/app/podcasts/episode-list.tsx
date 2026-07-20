@@ -46,6 +46,7 @@ export function EpisodeList({
                 <Text
                   as={Link}
                   href={getPodcastEpisodeHref(podcastId, episode.id)}
+                  scroll={false}
                   size="base"
                   weight="semibold"
                   numberOfLines={2}

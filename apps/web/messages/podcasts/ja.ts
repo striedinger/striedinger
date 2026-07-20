@@ -47,6 +47,7 @@ export const messages = {
     "このエピソードの保存済み再生位置が削除されます。",
   "Remove saved progress?": "保存した進捗を削除しますか？",
   Resume: "続きから再生",
+  "Clear search": "検索をクリア",
   Search: "検索",
   "Search is unavailable right now. Please try again.":
     "現在検索を利用できません。もう一度お試しください。",

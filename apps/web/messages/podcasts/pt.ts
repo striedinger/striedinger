@@ -47,6 +47,7 @@ export const messages = {
     "A posição de reprodução salva para este episódio será excluída.",
   "Remove saved progress?": "Remover o progresso salvo?",
   Resume: "Continuar",
+  "Clear search": "Limpar pesquisa",
   Search: "Buscar",
   "Search is unavailable right now. Please try again.":
     "A busca não está disponível agora. Tente novamente.",

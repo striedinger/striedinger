@@ -47,6 +47,7 @@ export const messages = {
     "Se eliminará la posición de escucha guardada para este episodio.",
   "Remove saved progress?": "¿Eliminar el progreso guardado?",
   Resume: "Reanudar",
+  "Clear search": "Borrar búsqueda",
   Search: "Buscar",
   "Search is unavailable right now. Please try again.":
     "La búsqueda no está disponible ahora. Inténtalo de nuevo.",

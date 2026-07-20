@@ -47,6 +47,7 @@ export const messages = {
     "Die gespeicherte Hörposition für diese Folge wird gelöscht.",
   "Remove saved progress?": "Gespeicherten Fortschritt entfernen?",
   Resume: "Fortsetzen",
+  "Clear search": "Suche löschen",
   Search: "Suchen",
   "Search is unavailable right now. Please try again.":
     "Die Suche ist derzeit nicht verfügbar. Versuche es erneut.",

@@ -1,12 +1,12 @@
 "use client";
 
+import { CloseIcon } from "@workspace/icons/close-icon";
 import { ShareIcon } from "@workspace/icons/share-icon";
 import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
@@ -14,6 +14,7 @@ import { playStockHaptic } from "./haptics";
 import { MarketSessionIndicator } from "./market-session-indicator";
 import { StockChart } from "./stock-chart";
 import { defaultStocks, spaceXStock } from "./stock-defaults";
+import { StockSearch } from "./stock-search";
 import { stockTimeframeFreshnessSeconds, stockTimeframes } from "./types";
 
 interface StockDashboardProps {
@@ -41,7 +42,6 @@ export function StockDashboard({
 }: StockDashboardProps) {
   const router = useRouter();
   const [watchlist, setWatchlist] = useState<StockIdentity[]>(defaultStocks);
-  const [query, setQuery] = useState(searchQuery);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const [isNavigating, startNavigation] = useTransition();
   const lastRefreshAt = useRef(0);
@@ -70,7 +70,7 @@ export function StockDashboard({
                 timeframe,
               });
               startNavigation(function restoreServerSelection() {
-                router.replace(`/stocks?${parameters}`);
+                router.replace(`/stocks?${parameters}`, { scroll: false });
               });
             }
             if (restoredStocks !== validStocks) {
@@ -118,8 +118,8 @@ export function StockDashboard({
   function navigateToSelection(symbol: string, nextTimeframe: StockTimeframe, replace = false) {
     const parameters = new URLSearchParams({ symbol, timeframe: nextTimeframe });
     startNavigation(function navigate() {
-      if (replace) router.replace(`/stocks?${parameters}`);
-      else router.push(`/stocks?${parameters}`);
+      if (replace) router.replace(`/stocks?${parameters}`, { scroll: false });
+      else router.push(`/stocks?${parameters}`, { scroll: false });
     });
   }
 
@@ -134,7 +134,9 @@ export function StockDashboard({
     });
     if (!alreadyAdded) persistWatchlist([...watchlist, stock]);
     setShareStatus("idle");
-    if (stock.symbol !== selectedStock.symbol) navigateToSelection(stock.symbol, timeframe);
+    if (stock.symbol !== selectedStock.symbol || searchQuery) {
+      navigateToSelection(stock.symbol, timeframe);
+    }
     playStockHaptic(alreadyAdded ? "select" : "success");
   }
 
@@ -148,20 +150,6 @@ export function StockDashboard({
       navigateToSelection(nextWatchlist[0].symbol, timeframe);
     }
     playStockHaptic("remove");
-  }
-
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedQuery = query.trim();
-    if (!normalizedQuery) return;
-    const parameters = new URLSearchParams({
-      q: normalizedQuery,
-      symbol: selectedStock.symbol,
-      timeframe,
-    });
-    startNavigation(function showServerSearchResults() {
-      router.push(`/stocks?${parameters}`);
-    });
   }
 
   async function shareSelection() {
@@ -203,87 +191,15 @@ export function StockDashboard({
   return (
     <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="flex min-w-0 flex-col gap-5" aria-label={labels.watchlist}>
-        <div className="relative z-20">
-          <form role="search" onSubmit={submitSearch}>
-            <label htmlFor="stock-search" className="sr-only">
-              {labels.search}
-            </label>
-            <div className="relative">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.8-3.8" />
-              </svg>
-              <Input
-                id="stock-search"
-                name="q"
-                type="search"
-                value={query}
-                autoComplete="off"
-                placeholder={labels.searchPlaceholder}
-                className="h-11 rounded-xl pr-20 pl-9"
-                onChange={function updateQuery(event) {
-                  setQuery(event.currentTarget.value);
-                }}
-              />
-              <Button
-                type="submit"
-                size="sm"
-                variant="ghost"
-                className="absolute top-1/2 right-1 -translate-y-1/2"
-                loading={isNavigating}
-                loadingLabel={labels.loading}
-              >
-                {labels.search}
-              </Button>
-            </div>
-          </form>
-          {searchQuery && searchResults.length > 0 ? (
-            <Surface
-              as="ul"
-              id="stock-suggestions"
-              className="absolute top-[calc(100%+0.5rem)] right-0 left-0 max-h-80 list-none overflow-y-auto p-1 shadow-raised"
-            >
-              {searchResults.map(function renderSuggestion(stock) {
-                const isAdded = watchlist.some(function hasSymbol(item) {
-                  return item.symbol === stock.symbol;
-                });
-                return (
-                  <li key={`${stock.symbol}-${stock.exchange}`}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none aria-selected:bg-accent"
-                      onClick={function chooseSuggestion() {
-                        addStock(stock);
-                      }}
-                    >
-                      <span className="min-w-0">
-                        <Text as="span" size="sm" weight="semibold">
-                          {stock.symbol}
-                        </Text>
-                        <Text as="span" size="xs" tone="muted" numberOfLines={1} className="block">
-                          {stock.name} · {stock.exchange}
-                        </Text>
-                      </span>
-                      <Text as="span" size="xs" tone="muted">
-                        {isAdded ? labels.added : labels.add}
-                      </Text>
-                    </button>
-                  </li>
-                );
-              })}
-            </Surface>
-          ) : null}
-          <Text size="xs" tone="muted" className="px-1 pt-2">
-            {labels.searchHelp}
-          </Text>
-        </div>
+        <StockSearch
+          initialQuery={searchQuery}
+          labels={labels}
+          searchResults={searchResults}
+          selectedSymbol={selectedStock.symbol}
+          timeframe={timeframe}
+          watchlist={watchlist}
+          onSelectStock={addStock}
+        />
 
         <Surface className="overflow-hidden p-2">
           <div className="flex items-center justify-between px-2 py-2">
@@ -299,11 +215,11 @@ export function StockDashboard({
               {watchlist.map(function renderWatchlistStock(stock) {
                 const isSelected = stock.symbol === selectedStock.symbol;
                 return (
-                  <li key={stock.symbol} className="group relative min-w-36 lg:min-w-0">
+                  <li key={stock.symbol} className="relative min-w-36 lg:min-w-0">
                     <button
                       type="button"
                       aria-pressed={isSelected}
-                      className="flex w-full flex-col rounded-xl px-3 py-3 text-left transition-[background-color,transform] hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring active:scale-[0.98] aria-pressed:bg-primary aria-pressed:text-primary-foreground motion-reduce:transform-none"
+                      className="flex w-full flex-col rounded-xl py-3 pr-10 pl-3 text-left transition-[background-color,transform] hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring active:scale-[0.98] aria-pressed:bg-primary aria-pressed:text-primary-foreground motion-reduce:transform-none"
                       onClick={function selectWatchlistStock() {
                         setShareStatus("idle");
                         if (!isSelected) navigateToSelection(stock.symbol, timeframe);
@@ -327,13 +243,13 @@ export function StockDashboard({
                     <button
                       type="button"
                       aria-label={`${labels.remove} ${stock.symbol}`}
-                      className="absolute top-1.5 right-1.5 hidden size-6 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:flex hover:bg-background hover:text-foreground focus-visible:flex focus-visible:outline-2 focus-visible:outline-ring"
+                      className={`absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-ring ${isSelected ? "text-primary-foreground/80 hover:bg-primary-foreground/15 hover:text-primary-foreground" : "text-muted-foreground hover:bg-background hover:text-foreground"}`}
                       onClick={function removeWatchlistStock(event) {
                         event.stopPropagation();
                         removeStock(stock);
                       }}
                     >
-                      <span aria-hidden="true">×</span>
+                      <CloseIcon className="size-3.5" />
                     </button>
                   </li>
                 );

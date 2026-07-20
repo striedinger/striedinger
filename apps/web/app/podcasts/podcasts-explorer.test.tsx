@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Podcast } from "./types";
@@ -9,7 +9,8 @@ import { PodcastsExplorer } from "./podcasts-explorer";
 
 const navigationMocks = vi.hoisted(function createNavigationMocks() {
   return {
-    push: vi.fn<(href: string) => void>(),
+    push: vi.fn<(href: string, options?: { scroll?: boolean }) => void>(),
+    replace: vi.fn<(href: string, options?: { scroll?: boolean }) => void>(),
   };
 });
 
@@ -43,9 +44,11 @@ describe("PodcastsExplorer", function () {
     window.localStorage.clear();
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function loadMetadata() {});
     navigationMocks.push.mockClear();
+    navigationMocks.replace.mockClear();
   });
 
   afterEach(function restoreMediaMethods() {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -102,7 +105,8 @@ describe("PodcastsExplorer", function () {
     });
   });
 
-  it("submits podcast searches through the server-rendered GET form", function () {
+  it("requests server-rendered typeahead results without a form submission", function () {
+    vi.useFakeTimers();
     const messages = getEnglishPodcastMessages();
     render(
       <PodcastsExplorer
@@ -116,11 +120,82 @@ describe("PodcastsExplorer", function () {
       />,
     );
 
-    const searchInput = screen.getByRole("searchbox", { name: messages["Search"] });
+    const searchInput = screen.getByRole("combobox", { name: messages["Search"] });
     fireEvent.change(searchInput, { target: { value: "thoughtful" } });
+    expect(searchInput).toHaveValue("thoughtful");
+    expect(navigationMocks.replace).not.toHaveBeenCalled();
+
+    act(function finishSearchDebounce() {
+      vi.advanceTimersByTime(180);
+    });
 
     expect(searchInput).toHaveAttribute("name", "q");
-    expect(screen.getByRole("search")).toHaveAttribute("action", "/podcasts");
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/podcasts?q=thoughtful", {
+      scroll: false,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: messages["Clear search"] }));
+    expect(searchInput).toHaveValue("");
+    expect(navigationMocks.replace).toHaveBeenLastCalledWith("/podcasts", { scroll: false });
+  });
+
+  it("shows server-rendered suggestions and supports keyboard selection", function () {
+    const messages = getEnglishPodcastMessages();
+    render(
+      <PodcastsExplorer
+        initialEpisodeId=""
+        initialEpisodes={[]}
+        initialPodcasts={[podcast]}
+        initialQuery="thoughtful"
+        initialSelectedPodcast={null}
+        messages={messages}
+        locale="en"
+      />,
+    );
+
+    const searchInput = screen.getByRole("combobox", { name: messages["Search"] });
+    const suggestion = screen.getByRole("option", { name: new RegExp(podcast.title) });
+    expect(suggestion).toHaveAttribute("href", `/podcasts?podcast=${podcast.id}`);
+
+    fireEvent.keyDown(searchInput, { key: "ArrowDown" });
+    expect(suggestion).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+
+    expect(navigationMocks.push).toHaveBeenCalledWith(`/podcasts?podcast=${podcast.id}`, {
+      scroll: false,
+    });
+    expect(searchInput).toHaveValue("");
+  });
+
+  it("keeps the Base UI search field controlled when server props change", function () {
+    const messages = getEnglishPodcastMessages();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(function ignoreError() {});
+    const view = render(
+      <PodcastsExplorer
+        initialEpisodeId=""
+        initialEpisodes={[]}
+        initialPodcasts={[]}
+        initialQuery=""
+        initialSelectedPodcast={null}
+        messages={messages}
+        locale="en"
+      />,
+    );
+
+    view.rerender(
+      <PodcastsExplorer
+        initialEpisodeId=""
+        initialEpisodes={[]}
+        initialPodcasts={[podcast]}
+        initialQuery="thoughtful"
+        initialSelectedPodcast={null}
+        messages={messages}
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole("combobox", { name: messages["Search"] })).toHaveValue("thoughtful");
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("exposes real links for shows, searches, and episodes", function () {
@@ -149,7 +224,7 @@ describe("PodcastsExplorer", function () {
       "href",
       `/podcasts?podcast=${podcast.id}`,
     );
-    expect(screen.getByRole("searchbox", { name: messages["Search"] })).toHaveValue("science");
+    expect(screen.getByRole("combobox", { name: messages["Search"] })).toHaveValue("science");
     firstRender.unmount();
 
     render(
@@ -167,6 +242,43 @@ describe("PodcastsExplorer", function () {
       "href",
       `/podcasts?podcast=${podcast.id}&episode=${episode.id}`,
     );
+  });
+
+  it("keeps client state while server-rendered podcast routes change", async function () {
+    const messages = getEnglishPodcastMessages();
+    const view = render(
+      <PodcastsExplorer
+        initialEpisodeId=""
+        initialEpisodes={[]}
+        initialPodcasts={[podcast]}
+        initialQuery=""
+        initialSelectedPodcast={null}
+        messages={messages}
+        locale="en"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: `${messages["Add"]}: ${podcast.title}` }));
+    view.rerender(
+      <PodcastsExplorer
+        initialEpisodeId=""
+        initialEpisodes={[]}
+        initialPodcasts={[podcast]}
+        initialQuery=""
+        initialSelectedPodcast={podcast}
+        messages={messages}
+        locale="en"
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: podcast.title })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: `${messages["Your library"]} (1)` }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: messages["Added"] })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: messages["Back to shows"] }));
+    expect(navigationMocks.push).toHaveBeenCalledWith("/podcasts", { scroll: false });
   });
 
   it("loads metadata and restores the saved playback time after refresh", async function () {

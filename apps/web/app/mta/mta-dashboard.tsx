@@ -4,6 +4,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
+import Form from "next/form";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
@@ -100,7 +101,7 @@ export function MtaDashboard({
     });
     if (route) parameters.set("train", route);
     startNavigation(function loadServerArrivals() {
-      router.push(`/mta?${parameters}`);
+      router.push(`/mta?${parameters}`, { scroll: false });
     });
   }
 
@@ -137,7 +138,12 @@ export function MtaDashboard({
               {labels.locationLabel}
             </Text>
           </div>
-          <form action="/mta" className="flex flex-col gap-3 sm:flex-row" role="search">
+          <Form
+            action="/mta"
+            className="flex flex-col gap-3 sm:flex-row"
+            role="search"
+            scroll={false}
+          >
             <div className="relative flex-1">
               <svg
                 aria-hidden="true"
@@ -177,7 +183,7 @@ export function MtaDashboard({
               </svg>
               {labels.useLocation}
             </Button>
-          </form>
+          </Form>
           <Text
             size="xs"
             tone={locationState === "error" || initialSearchFailed ? "destructive" : "muted"}

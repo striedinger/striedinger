@@ -32,6 +32,22 @@ interface PodcastsExplorerProps {
 
 type View = "explore" | "library" | "progress";
 
+interface LocalViewState {
+  hideServerSelection: boolean;
+  routeKey: string;
+  view: View;
+}
+
+interface PlaybackOverride {
+  episode: PodcastEpisode | null;
+  routeKey: string;
+}
+
+interface PendingPodcastRoute {
+  episode: PodcastEpisode;
+  podcast: Podcast;
+}
+
 interface StoredLibrary {
   podcasts: Podcast[];
   version: 2;
@@ -49,20 +65,34 @@ export function PodcastsExplorer({
   locale,
 }: PodcastsExplorerProps) {
   const router = useRouter();
-  const [view, setView] = useState<View>("explore");
   const [savedPodcasts, setSavedPodcasts] = useState<Podcast[]>([]);
-  const [selectedPodcast, setSelectedPodcast] = useState<Podcast | null>(initialSelectedPodcast);
-  const [activeEpisode, setActiveEpisode] = useState<PodcastEpisode | null>(function findEpisode() {
-    return (
-      initialEpisodes.find(function matchesEpisode(episode) {
-        return episode.id === initialEpisodeId;
-      }) ?? null
-    );
-  });
-  const [shouldAutoPlay, setShouldAutoPlay] = useState(false);
+  const [localViewState, setLocalViewState] = useState<LocalViewState | null>(null);
+  const [playbackOverride, setPlaybackOverride] = useState<PlaybackOverride | null>(null);
+  const [pendingPodcastRoute, setPendingPodcastRoute] = useState<PendingPodcastRoute | null>(null);
+  const [autoPlayEpisodeId, setAutoPlayEpisodeId] = useState<string | null>(null);
   const [resumePositionSeconds, setResumePositionSeconds] = useState(0);
   const [progressItems, setProgressItems] = useState<PodcastProgress[]>([]);
   const [isNavigating, startNavigation] = useTransition();
+  const routeKey = `${initialQuery}:${initialSelectedPodcast?.id ?? ""}:${initialEpisodeId}`;
+  const localViewApplies = localViewState?.routeKey === routeKey;
+  const view = localViewApplies ? localViewState.view : "explore";
+  const initialActiveEpisode =
+    initialEpisodes.find(function matchesEpisode(episode) {
+      return episode.id === initialEpisodeId;
+    }) ?? null;
+  const selectedPodcast =
+    isNavigating && pendingPodcastRoute
+      ? pendingPodcastRoute.podcast
+      : view === "explore" && !(localViewApplies && localViewState.hideServerSelection)
+        ? initialSelectedPodcast
+        : null;
+  const activeEpisode =
+    isNavigating && pendingPodcastRoute
+      ? pendingPodcastRoute.episode
+      : playbackOverride?.routeKey === routeKey
+        ? playbackOverride.episode
+        : initialActiveEpisode;
+  const shouldAutoPlay = activeEpisode?.id === autoPlayEpisodeId;
 
   useEffect(
     function restoreLibrary() {
@@ -90,7 +120,7 @@ export function PodcastsExplorer({
         const activeProgress = storedProgress.find(function matchesActiveEpisode(item) {
           return item.episode.id === initialEpisodeId;
         });
-        if (activeProgress) setResumePositionSeconds(activeProgress.positionSeconds);
+        setResumePositionSeconds(activeProgress?.positionSeconds ?? 0);
       });
       return function cancelLibraryRestore() {
         cancelled = true;
@@ -98,16 +128,6 @@ export function PodcastsExplorer({
     },
     [initialEpisodeId],
   );
-
-  useEffect(function reloadSharedStateOnBrowserNavigation() {
-    function reloadCurrentAddress() {
-      window.location.reload();
-    }
-    window.addEventListener("popstate", reloadCurrentAddress);
-    return function removeBrowserNavigationListener() {
-      window.removeEventListener("popstate", reloadCurrentAddress);
-    };
-  }, []);
 
   function persistLibrary(podcasts: Podcast[]) {
     setSavedPodcasts(podcasts);
@@ -128,8 +148,9 @@ export function PodcastsExplorer({
   }
 
   function navigateToPodcasts(href: string) {
+    setPendingPodcastRoute(null);
     startNavigation(function navigate() {
-      router.push(href);
+      router.push(href, { scroll: false });
     });
   }
 
@@ -144,8 +165,8 @@ export function PodcastsExplorer({
 
   function finishEpisode(episodeId: string) {
     setProgressItems(removePodcastProgress(episodeId));
-    setActiveEpisode(null);
-    setShouldAutoPlay(false);
+    setPlaybackOverride({ episode: null, routeKey });
+    setAutoPlayEpisodeId(null);
     setResumePositionSeconds(0);
     if (selectedPodcast) {
       window.history.replaceState(null, "", getPodcastHref(selectedPodcast.id));
@@ -156,18 +177,23 @@ export function PodcastsExplorer({
     setProgressItems(
       savePodcastProgress(item.podcast, item.episode, item.positionSeconds, item.durationSeconds),
     );
-    setSelectedPodcast(item.podcast);
-    router.push(getPodcastEpisodeHref(item.podcast.id, item.episode.id));
-    setActiveEpisode(item.episode);
+    setPendingPodcastRoute({ episode: item.episode, podcast: item.podcast });
+    startNavigation(function navigateToEpisode() {
+      router.push(getPodcastEpisodeHref(item.podcast.id, item.episode.id), { scroll: false });
+    });
     setResumePositionSeconds(item.positionSeconds);
-    setShouldAutoPlay(true);
+    setAutoPlayEpisodeId(item.episode.id);
   }
 
   const visiblePodcasts = view === "explore" ? initialPodcasts : savedPodcasts;
 
   return (
     <div className="flex flex-col gap-8" aria-busy={isNavigating}>
-      <PodcastSearch initialQuery={initialQuery} messages={messages} />
+      <PodcastSearch
+        initialQuery={initialQuery}
+        messages={messages}
+        searchResults={initialPodcasts}
+      />
 
       <div
         className="flex gap-1 overflow-x-auto border-b border-border"
@@ -192,10 +218,9 @@ export function PodcastsExplorer({
               className="min-h-11 shrink-0 border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring aria-selected:border-primary aria-selected:text-foreground motion-reduce:transition-none"
               onClick={function selectView() {
                 window.history.pushState(null, "", "/podcasts");
-                setView(tab);
-                setSelectedPodcast(null);
-                setActiveEpisode(null);
-                setShouldAutoPlay(false);
+                setLocalViewState({ hideServerSelection: true, routeKey, view: tab });
+                setPlaybackOverride({ episode: null, routeKey });
+                setAutoPlayEpisodeId(null);
                 setResumePositionSeconds(0);
               }}
             >
@@ -224,10 +249,10 @@ export function PodcastsExplorer({
               return item.id === selectedPodcast.id;
             })}
             onBack={function closePodcast() {
+              setLocalViewState({ hideServerSelection: true, routeKey, view: "explore" });
               navigateToPodcasts(initialQuery ? getPodcastSearchHref(initialQuery) : "/podcasts");
-              setSelectedPodcast(null);
-              setActiveEpisode(null);
-              setShouldAutoPlay(false);
+              setPlaybackOverride({ episode: null, routeKey });
+              setAutoPlayEpisodeId(null);
               setResumePositionSeconds(0);
             }}
             onToggleSaved={function saveSelectedPodcast() {
@@ -251,12 +276,12 @@ export function PodcastsExplorer({
                     ? getPodcastHref(selectedPodcast.id)
                     : getPodcastEpisodeHref(selectedPodcast.id, episode.id),
                 );
-                setActiveEpisode(isStopping ? null : episode);
+                setPlaybackOverride({ episode: isStopping ? null : episode, routeKey });
                 const savedProgress = progressItems.find(function matchesEpisode(item) {
                   return item.episode.id === episode.id;
                 });
                 setResumePositionSeconds(isStopping ? 0 : (savedProgress?.positionSeconds ?? 0));
-                setShouldAutoPlay(!isStopping);
+                setAutoPlayEpisodeId(isStopping ? null : episode.id);
               }}
             />
           ) : (
@@ -345,8 +370,8 @@ export function PodcastsExplorer({
           onFinished={finishEpisode}
           onClose={function closePlayer() {
             window.history.replaceState(null, "", getPodcastHref(selectedPodcast.id));
-            setActiveEpisode(null);
-            setShouldAutoPlay(false);
+            setPlaybackOverride({ episode: null, routeKey });
+            setAutoPlayEpisodeId(null);
             setResumePositionSeconds(0);
           }}
         />

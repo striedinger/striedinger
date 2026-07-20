@@ -46,6 +46,7 @@ export const messages = {
     "将删除此单集已保存的收听位置。",
   "Remove saved progress?": "移除已保存的进度？",
   Resume: "继续",
+  "Clear search": "清除搜索",
   Search: "搜索",
   "Search is unavailable right now. Please try again.": "暂时无法搜索。请稍后重试。",
   "Search shows, people, or topics": "搜索节目、人物或主题",
