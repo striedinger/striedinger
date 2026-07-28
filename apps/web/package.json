@@ -18,7 +18,7 @@
     "gifsicle-wasm-browser": "^1.5.19",
     "gtfs-realtime-bindings": "^2.1.0",
     "heic-to": "^1.5.2",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.1.200",
     "qpdf-run": "0.2.1",
