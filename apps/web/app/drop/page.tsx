@@ -9,6 +9,7 @@ import { Text } from "@workspace/ui/components/text";
 import type { DropLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getDropTranslator } from "../../messages/drop/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { DropTool } from "./drop-tool";
@@ -21,28 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Share files directly between devices with an encrypted peer-to-peer connection. Nothing is uploaded or stored on this server.",
   );
 
-  return {
-    title,
-    description,
-    alternates: { canonical: "/drop" },
-    openGraph: {
-      type: "website",
-      url: "/drop",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/drop" });
 }
 
 export default async function DropPage() {
@@ -90,17 +70,20 @@ export default async function DropPage() {
     transferFailed: translate("Transfer failed"),
     waiting: translate("Ready to send"),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description,
     applicationCategory: "UtilitiesApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript and WebRTC",
-    url: "https://striedinger.co/drop",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "End-to-end encrypted file transfers",
+      "Direct peer-to-peer sharing",
+      "No server uploads",
+      "No account required",
+    ],
+    locale,
+    path: "/drop",
+  });
 
   return (
     <PageShell>

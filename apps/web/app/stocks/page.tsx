@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import type { StocksLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getStocksTranslator } from "../../messages/stocks/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
@@ -26,28 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = translate(
     "Search, save, and explore market trends across multiple timeframes.",
   );
-  return {
-    title,
-    description,
-    alternates: { canonical: "/stocks" },
-    openGraph: {
-      type: "website",
-      url: "/stocks",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/stocks" });
 }
 
 export default async function StocksPage({ searchParams }: StocksPageProps) {
@@ -92,17 +72,20 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
     volume: translate("Volume"),
     watchlist: translate("Watchlist"),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description: labels.description,
     applicationCategory: "FinanceApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript and local storage",
-    url: "https://striedinger.co/stocks",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "Stock search",
+      "Local watchlist",
+      "Interactive price charts",
+      "Multiple market timeframes",
+    ],
+    locale,
+    path: "/stocks",
+  });
 
   return (
     <PageShell>

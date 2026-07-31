@@ -6,6 +6,7 @@ import { Text } from "@workspace/ui/components/text";
 import { JsonLd } from "../components/json-ld";
 import { LanguagePicker } from "../components/language-picker";
 import { SocialLink } from "../components/social-link";
+import { personId, siteUrl, websiteId } from "../lib/seo";
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
 
@@ -17,19 +18,41 @@ export default async function Page() {
     "@graph": [
       {
         "@type": "WebSite",
-        "@id": "https://striedinger.co/#website",
-        url: "https://striedinger.co",
+        "@id": websiteId,
+        url: siteUrl,
         name: "Hugo Striedinger",
-        publisher: { "@id": "https://striedinger.co/#person" },
+        description: translate(
+          "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.",
+        ),
+        publisher: { "@id": personId },
         inLanguage: locale,
       },
       {
         "@type": "Person",
-        "@id": "https://striedinger.co/#person",
+        "@id": personId,
         name: "Hugo Striedinger",
-        url: "https://striedinger.co",
+        givenName: "Hugo",
+        familyName: "Striedinger",
+        url: siteUrl,
         jobTitle: translate("Senior Software Engineer"),
-        sameAs: ["https://x.com/striedinger", "https://instagram.com/striedingerh"],
+        homeLocation: {
+          "@type": "Place",
+          name: translate("New York, NY"),
+        },
+        sameAs: [
+          "https://github.com/striedinger",
+          "https://x.com/striedinger",
+          "https://instagram.com/striedingerh",
+        ],
+      },
+      {
+        "@type": "ProfilePage",
+        "@id": `${siteUrl}/#profile`,
+        url: siteUrl,
+        name: translate("Hugo Striedinger - Senior Software Engineer"),
+        isPartOf: { "@id": websiteId },
+        mainEntity: { "@id": personId },
+        inLanguage: locale,
       },
     ],
   };

@@ -9,6 +9,7 @@ import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getOgTranslator } from "../../messages/og/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { OgPreviewForm } from "./og-preview-form";
@@ -27,33 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.",
   );
 
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: "/og",
-    },
-    openGraph: {
-      type: "website",
-      url: "/og",
-      locale,
-      title,
-      description,
-      siteName: "Hugo Striedinger",
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      creator: "@striedinger",
-      images: ["/opengraph-image"],
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  };
+  return createPageMetadata({ title, description, locale, path: "/og" });
 }
 
 export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPreviewPageProps) {
@@ -99,22 +74,21 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
     urlLabel: translate("URL to preview"),
     urlPlaceholder: translate("https://example.com"),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: translate("Open Graph Preview"),
     description: translate(
       "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.",
     ),
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "Any",
-    url: "https://striedinger.co/og",
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-    },
-  };
+    featureList: [
+      "Open Graph metadata inspection",
+      "X and Twitter card preview",
+      "Social image preview",
+      "Raw metadata viewer",
+    ],
+    locale,
+    path: "/og",
+  });
 
   return (
     <PageShell>
