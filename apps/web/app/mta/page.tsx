@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import type { InitialMtaState, MtaLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getMtaTranslator } from "../../messages/mta/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { MtaDashboardLoader } from "./mta-dashboard-loader";
@@ -26,28 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = translate(
     "Find nearby subway stops and see when your next train is arriving.",
   );
-  return {
-    title,
-    description,
-    alternates: { canonical: "/mta" },
-    openGraph: {
-      type: "website",
-      url: "/mta",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/mta" });
 }
 
 export default async function MtaPage({ searchParams }: MtaPageProps) {
@@ -91,17 +71,20 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
       "Not affiliated with the Metropolitan Transportation Authority. Station and arrival data are provided by MTA GTFS feeds.",
     ),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description: labels.description,
     applicationCategory: "TravelApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript",
-    url: "https://striedinger.co/mta",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "Live NYC subway arrival times",
+      "Nearby station search",
+      "Location-based train lookup",
+      "MTA route filtering",
+    ],
+    locale,
+    path: "/mta",
+  });
 
   return (
     <PageShell>

@@ -7,6 +7,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 import type { PdfToolLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getPdfTranslator } from "../../messages/pdf/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { PdfTool } from "./pdf-tool";
@@ -19,28 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Compress, preview, and remove PDF restrictions entirely in your browser.",
   );
 
-  return {
-    title,
-    description,
-    alternates: { canonical: "/pdf" },
-    openGraph: {
-      type: "website",
-      url: "/pdf",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/pdf" });
 }
 
 export default async function PdfPage() {
@@ -79,17 +59,20 @@ export default async function PdfPage() {
     unlockComplete: translate("Restrictions removed"),
     unsupported: translate("This PDF could not be opened in your browser."),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description: labels.description,
     applicationCategory: "UtilitiesApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript and WebAssembly",
-    url: "https://striedinger.co/pdf",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "Private client-side PDF compression",
+      "PDF preview",
+      "Authorized restriction removal",
+      "No uploads",
+    ],
+    locale,
+    path: "/pdf",
+  });
 
   return (
     <PageShell>

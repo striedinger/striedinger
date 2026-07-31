@@ -7,6 +7,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 import type { ImageOptimizerLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getImageTranslator } from "../../messages/image/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { ImageOptimizer } from "./image-optimizer";
@@ -17,28 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = translate("Image Optimizer");
   const description = translate("Compress images privately in your browser. Nothing is uploaded.");
 
-  return {
-    title,
-    description,
-    alternates: { canonical: "/image" },
-    openGraph: {
-      type: "website",
-      url: "/image",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/image" });
 }
 
 export default async function ImageOptimizerPage() {
@@ -84,17 +64,20 @@ export default async function ImageOptimizerPage() {
     unsupported: translate("One or more files use a format this browser cannot process."),
     webp: "WebP",
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description: labels.description,
     applicationCategory: "MultimediaApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript",
-    url: "https://striedinger.co/image",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "Private client-side image compression",
+      "JPEG, PNG, WebP, AVIF, GIF, SVG, HEIC, HEIF, and BMP support",
+      "Batch image optimization",
+      "No uploads",
+    ],
+    locale,
+    path: "/image",
+  });
 
   return (
     <PageShell>

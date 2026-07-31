@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import type { SudokuLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getSudokuTranslator } from "../../messages/sudoku/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { SudokuGameLoader } from "./sudoku-game-loader";
@@ -22,28 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = translate("Daily Sudoku");
   const description = translate(descriptionKey);
 
-  return {
-    title,
-    description,
-    alternates: { canonical: "/sudoku" },
-    openGraph: {
-      type: "website",
-      url: "/sudoku",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/sudoku" });
 }
 
 export default async function SudokuPage() {
@@ -84,16 +64,20 @@ export default async function SudokuPage() {
     time: translate("Time"),
     title: translate("Daily Sudoku"),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description: labels.description,
     applicationCategory: "GameApplication",
-    operatingSystem: "Any",
-    url: "https://striedinger.co/sudoku",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    browserRequirements: "Requires JavaScript",
+    featureList: [
+      "A new puzzle every day",
+      "Easy, medium, and hard difficulty levels",
+      "Local timer and progress",
+      "Shareable result images",
+    ],
+    locale,
+    path: "/sudoku",
+  });
 
   return (
     <PageShell className="py-6 sm:py-14">

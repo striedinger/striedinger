@@ -7,6 +7,7 @@ import { Text } from "@workspace/ui/components/text";
 import { Suspense } from "react";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getPodcastTranslator } from "../../messages/podcasts/get-translator";
 import { loadPodcastMessages } from "../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../get-request-locale";
@@ -20,28 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = translate(
     "Find a show, save it for later, and listen without creating an account.",
   );
-  return {
-    title,
-    description,
-    alternates: { canonical: "/podcasts" },
-    openGraph: {
-      type: "website",
-      url: "/podcasts",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/podcasts" });
 }
 
 interface PodcastsPageProps {
@@ -54,18 +34,21 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
   const podcastId = normalizeId(singleValue(resolvedSearchParams.podcast));
   const initialEpisodeId = normalizeId(singleValue(resolvedSearchParams.episode));
   const messages = await loadPodcastMessages(locale);
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: messages["Podcasts"],
     description:
       messages["Find a show, save it for later, and listen without creating an account."],
     applicationCategory: "MultimediaApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript",
-    url: "https://striedinger.co/podcasts",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "Podcast search",
+      "Local podcast library",
+      "Episode playback",
+      "Saved listening progress",
+    ],
+    locale,
+    path: "/podcasts",
+  });
 
   return (
     <PageShell>

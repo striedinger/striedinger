@@ -7,6 +7,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 import { Text } from "@workspace/ui/components/text";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getTranslator } from "../../messages/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { ChatTool } from "./chat-tool";
@@ -20,28 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = translate("Nearby Chat - Private local messaging");
   const description = translate(descriptionKey);
 
-  return {
-    title,
-    description,
-    alternates: { canonical: "/chat" },
-    openGraph: {
-      type: "website",
-      url: "/chat",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/chat" });
 }
 
 export default async function ChatPage() {
@@ -49,17 +29,20 @@ export default async function ChatPage() {
   const translate = await getTranslator(locale);
   const title = translate("Nearby Chat - Private local messaging");
   const description = translate(descriptionKey);
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: title,
     description,
     applicationCategory: "CommunicationApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript, WebRTC, and Web Crypto",
-    url: "https://striedinger.co/chat",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "End-to-end encrypted messaging",
+      "Peer-to-peer WebRTC connections",
+      "No account required",
+      "Temporary local sessions",
+    ],
+    locale,
+    path: "/chat",
+  });
 
   return (
     <PageShell className="py-4 sm:py-8">

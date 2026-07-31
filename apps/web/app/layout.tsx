@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 
 import { RequestLocaleBoundary } from "../components/request-locale-boundary";
+import { createPageMetadata, getOpenGraphLocale, siteName, siteUrl } from "../lib/seo";
 import { themeCookieName, themes } from "../lib/themes";
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
@@ -24,12 +25,13 @@ export async function generateMetadata(): Promise<Metadata> {
   );
 
   return {
-    metadataBase: new URL("https://striedinger.co"),
+    ...createPageMetadata({ title, description, locale, path: "/" }),
+    metadataBase: new URL(siteUrl),
     title: {
       default: title,
       template: `%s | Hugo Striedinger`,
     },
-    description,
+    applicationName: "Hugo Striedinger",
     authors: [{ name: "Hugo Striedinger", url: "https://striedinger.co" }],
     creator: "Hugo Striedinger",
     publisher: "Hugo Striedinger",
@@ -39,16 +41,16 @@ export async function generateMetadata(): Promise<Metadata> {
       email: false,
       telephone: false,
     },
-    alternates: {
-      canonical: "/",
-    },
     openGraph: {
-      type: "website",
+      type: "profile",
       url: "/",
-      locale,
-      siteName: "Hugo Striedinger",
+      locale: getOpenGraphLocale(locale),
+      siteName,
       title,
       description,
+      firstName: "Hugo",
+      lastName: "Striedinger",
+      username: "striedinger",
       images: [
         {
           url: "/opengraph-image",
@@ -57,17 +59,6 @@ export async function generateMetadata(): Promise<Metadata> {
           alt: title,
         },
       ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: {
-      index: true,
-      follow: true,
     },
   };
 }

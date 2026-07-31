@@ -7,6 +7,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 import type { JsonToolLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getJsonTranslator } from "../../messages/json/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { JsonTool } from "./json-tool";
@@ -19,28 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Validate, format, and explore JSON entirely in your browser. Your data never leaves this device.",
   );
 
-  return {
-    title,
-    description,
-    alternates: { canonical: "/json" },
-    openGraph: {
-      type: "website",
-      url: "/json",
-      locale,
-      siteName: "Hugo Striedinger",
-      title,
-      description,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      creator: "@striedinger",
-      title,
-      description,
-      images: ["/opengraph-image"],
-    },
-    robots: { index: true, follow: true },
-  };
+  return createPageMetadata({ title, description, locale, path: "/json" });
 }
 
 export default async function JsonPage() {
@@ -65,17 +45,20 @@ export default async function JsonPage() {
     tooLarge: translate("This JSON is too large to process safely in the browser."),
     tooComplex: translate("This JSON is valid but too complex to preview all at once."),
   };
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
+  const structuredData = createWebApplicationStructuredData({
     name: labels.title,
     description: labels.description,
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "Any",
     browserRequirements: "Requires JavaScript",
-    url: "https://striedinger.co/json",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-  };
+    featureList: [
+      "JSON validation",
+      "JSON formatting",
+      "Expandable JSON tree viewer",
+      "Private client-side processing",
+    ],
+    locale,
+    path: "/json",
+  });
 
   return (
     <PageShell>
