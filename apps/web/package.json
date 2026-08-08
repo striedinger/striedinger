@@ -20,7 +20,7 @@
     "heic-to": "^1.5.2",
     "next": "16.2.10",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.1.200",
+    "pdfjs-dist": "^6.2.108",
     "qpdf-run": "0.2.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
