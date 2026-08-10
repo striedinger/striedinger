@@ -9,6 +9,7 @@ import { Text } from "@workspace/ui/components/text";
 import type { DropLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getDropTranslator } from "../../messages/drop/get-translator";
 import { getRequestLocale } from "../get-request-locale";
@@ -17,7 +18,7 @@ import { DropTool } from "./drop-tool";
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getDropTranslator(locale);
-  const title = translate("Drop - Private file sharing");
+  const title = translate("Private Peer-to-Peer File Sharing");
   const description = translate(
     "Share files directly between devices with an encrypted peer-to-peer connection. Nothing is uploaded or stored on this server.",
   );
@@ -75,12 +76,7 @@ export default async function DropPage() {
     description,
     applicationCategory: "UtilitiesApplication",
     browserRequirements: "Requires JavaScript and WebRTC",
-    featureList: [
-      "End-to-end encrypted file transfers",
-      "Direct peer-to-peer sharing",
-      "No server uploads",
-      "No account required",
-    ],
+    featureList: [labels.encrypted, labels.directConnection, labels.privacy, labels.shareHint],
     locale,
     path: "/drop",
   });
@@ -106,6 +102,27 @@ export default async function DropPage() {
             }
           />
           <DropTool labels={labels} />
+          <ToolDetails
+            title={translate("About this tool")}
+            description={description}
+            sections={[
+              {
+                title: translate("How it works"),
+                description: labels.shareHint,
+                items: [labels.selectFiles, labels.share, labels.join],
+              },
+              {
+                title: translate("Privacy and security"),
+                description: labels.privacy,
+                items: [labels.encrypted, labels.directConnection],
+              },
+              {
+                title: translate("Features"),
+                description: labels.description,
+                items: [labels.fileTooLarge, labels.roomCode, labels.copyLink],
+              },
+            ]}
+          />
         </div>
       </PageContainer>
     </PageShell>

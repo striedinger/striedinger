@@ -1,6 +1,7 @@
 import { defineMessages } from "@workspace/i18n";
 export const messages = defineMessages({
   "Trains near you": "附近的列车",
+  "NYC Subway Arrival Times": "纽约地铁到站时间",
   "Find nearby subway stops and see when your next train is arriving.":
     "查找附近的地铁站，并查看下一班列车的到达时间。",
   "Where are you?": "你在哪里？",

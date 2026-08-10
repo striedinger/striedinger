@@ -5,6 +5,7 @@ import { messages as englishMessages } from "./en";
 export const messages: TranslationCatalog<typeof englishMessages> = {
   ...englishMessages,
   "Image Optimizer": "Optimiseur d’images",
+  "Image Compressor and Optimizer": "Compresseur et optimiseur d’images",
   "Compress images privately in your browser. Nothing is uploaded.":
     "Compressez les images en privé dans votre navigateur. Aucun fichier n’est envoyé.",
 };

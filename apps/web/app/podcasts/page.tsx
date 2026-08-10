@@ -7,7 +7,9 @@ import { Text } from "@workspace/ui/components/text";
 import { Suspense } from "react";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
+import { getTranslator } from "../../messages/get-translator";
 import { getPodcastTranslator } from "../../messages/podcasts/get-translator";
 import { loadPodcastMessages } from "../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../get-request-locale";
@@ -17,7 +19,7 @@ import { PodcastsExplorerSkeleton } from "./podcasts-explorer-skeleton";
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getPodcastTranslator(locale);
-  const title = translate("Podcasts");
+  const title = translate("Podcast Search and Player");
   const description = translate(
     "Find a show, save it for later, and listen without creating an account.",
   );
@@ -33,7 +35,10 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
   const initialQuery = normalizeQuery(singleValue(resolvedSearchParams.q));
   const podcastId = normalizeId(singleValue(resolvedSearchParams.podcast));
   const initialEpisodeId = normalizeId(singleValue(resolvedSearchParams.episode));
-  const messages = await loadPodcastMessages(locale);
+  const [messages, translate] = await Promise.all([
+    loadPodcastMessages(locale),
+    getTranslator(locale),
+  ]);
   const structuredData = createWebApplicationStructuredData({
     name: messages["Podcasts"],
     description:
@@ -41,10 +46,10 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
     applicationCategory: "MultimediaApplication",
     browserRequirements: "Requires JavaScript",
     featureList: [
-      "Podcast search",
-      "Local podcast library",
-      "Episode playback",
-      "Saved listening progress",
+      messages["Search shows, people, or topics"],
+      messages["Local library"],
+      messages["Now playing"],
+      messages["In progress"],
     ],
     locale,
     path: "/podcasts",
@@ -91,6 +96,36 @@ export default async function PodcastsPage({ searchParams }: PodcastsPageProps) 
             podcastId={podcastId}
           />
         </Suspense>
+        <ToolDetails
+          title={translate("About this tool")}
+          description={
+            messages["Find a show, save it for later, and listen without creating an account."]
+          }
+          sections={[
+            {
+              title: translate("How it works"),
+              description: messages["Search shows, people, or topics"],
+              items: [messages.Search, messages.Explore, messages["Show episodes"]],
+            },
+            {
+              title: translate("Local storage"),
+              description: messages["Your library stays on this device."],
+              items: [messages["Your library"], messages["In progress"], messages.Resume],
+            },
+            {
+              title: translate("Live data"),
+              description:
+                messages[
+                  "Podcast discovery data is provided by Apple. Audio is streamed directly from each podcast publisher. Downloads depend on the publisher and your browser."
+                ],
+              items: [
+                messages["Popular right now"],
+                messages["Latest episodes"],
+                messages["Download episode"],
+              ],
+            },
+          ]}
+        />
         <footer className="border-t py-8">
           <Text size="xs" tone="muted">
             {

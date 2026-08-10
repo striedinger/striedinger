@@ -4,6 +4,7 @@ import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = {
   "Open Graph Preview": "Open Graph 预览",
+  "Open Graph Checker and Social Card Preview": "Open Graph 检查与社交卡片预览",
   "Enter any public URL to inspect its Open Graph and X metadata, preview its social cards, and review the tags found in the page.":
     "输入任意公开网址，检查其 Open Graph 和 X 元数据、预览社交卡片并查看页面中的标签。",
   "URL to preview": "要预览的网址",

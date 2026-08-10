@@ -2,6 +2,9 @@ import { defineMessages } from "@workspace/i18n";
 
 export const messages = defineMessages({
   "Stock watchlist": "Stock watchlist",
+  "Stock Charts and Watchlist": "Stock Charts and Watchlist",
+  "Your watchlist is stored only in this browser and works without creating an account.":
+    "Your watchlist is stored only in this browser and works without creating an account.",
   "Search, save, and explore market trends across multiple timeframes.":
     "Search, save, and explore market trends across multiple timeframes.",
   "Search stocks": "Search stocks",

@@ -54,4 +54,5 @@ export const messages = {
   "Searching podcasts": "正在搜索播客",
   "Show episodes": "查看单集",
   Podcasts: "播客",
+  "Podcast Search and Player": "播客搜索与播放器",
 } satisfies TranslationCatalog<typeof englishMessages>;

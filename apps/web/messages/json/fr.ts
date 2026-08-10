@@ -4,6 +4,7 @@ import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = defineMessages({
   "JSON Validator and Formatter": "Validateur et formateur JSON",
+  "JSON Formatter, Validator, and Tree Viewer": "Formateur, validateur et vue arborescente JSON",
   "Validate, format, and explore JSON entirely in your browser. Your data never leaves this device.":
     "Validez, formatez et explorez du JSON entièrement dans votre navigateur. Vos données ne quittent jamais cet appareil.",
   "JSON input": "Entrée JSON",

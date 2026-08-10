@@ -11,6 +11,7 @@ export const messages = defineMessages({
   "We couldn't find that location. Try a full NYC address or neighborhood.":
     "We couldn't find that location. Try a full NYC address or neighborhood.",
   "Trains near you": "Trains near you",
+  "NYC Subway Arrival Times": "NYC Subway Arrival Times",
   "Find nearby subway stops and see when your next train is arriving.":
     "Find nearby subway stops and see when your next train is arriving.",
   "Where are you?": "Where are you?",

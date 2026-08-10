@@ -55,4 +55,19 @@ describe("AppNavigation", function () {
     expect(screen.getByRole("combobox", { name: labels.selectLanguage })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: labels.theme })).toBeInTheDocument();
   });
+
+  it("keeps localized navigation on the active locale", function () {
+    navigationState.pathname = "/es/sudoku";
+    render(<AppNavigation labels={labels} locale="es" theme="default" />);
+
+    expect(screen.getByRole("link", { name: "Hugo Striedinger" })).toHaveAttribute("href", "/es");
+
+    fireEvent.click(screen.getByRole("button", { name: labels.menu }));
+
+    expect(screen.getByRole("link", { name: labels.sudoku })).toHaveAttribute("href", "/es/sudoku");
+    expect(screen.getByRole("link", { name: labels.sudoku })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
 });

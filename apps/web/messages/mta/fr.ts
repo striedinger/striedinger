@@ -1,6 +1,7 @@
 import { defineMessages } from "@workspace/i18n";
 export const messages = defineMessages({
   "Trains near you": "Métros près de vous",
+  "NYC Subway Arrival Times": "Horaires d’arrivée du métro de New York",
   "Find nearby subway stops and see when your next train is arriving.":
     "Trouvez les stations proches et consultez l’arrivée de votre prochain métro.",
   "Where are you?": "Où êtes-vous ?",

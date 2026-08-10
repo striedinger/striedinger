@@ -2,6 +2,8 @@ import { isLocale, localeCookieName, resolveLocale, type Locale } from "@workspa
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
+import { routeLocaleHeaderName } from "../lib/locale-path";
+
 const getCachedRequestLocale = cache(resolveRequestLocale);
 
 export function getRequestLocale(): Promise<Locale> {
@@ -9,6 +11,13 @@ export function getRequestLocale(): Promise<Locale> {
 }
 
 async function resolveRequestLocale(): Promise<Locale> {
+  const requestHeaders = await headers();
+  const routeLocale = requestHeaders.get(routeLocaleHeaderName);
+
+  if (routeLocale && isLocale(routeLocale)) {
+    return routeLocale;
+  }
+
   const cookieStore = await cookies();
   const savedLocale = cookieStore.get(localeCookieName)?.value;
 
@@ -16,7 +25,6 @@ async function resolveRequestLocale(): Promise<Locale> {
     return savedLocale;
   }
 
-  const requestHeaders = await headers();
   const acceptedLanguages = requestHeaders
     .get("accept-language")
     ?.split(",")

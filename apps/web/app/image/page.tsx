@@ -7,6 +7,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 import type { ImageOptimizerLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getImageTranslator } from "../../messages/image/get-translator";
 import { getRequestLocale } from "../get-request-locale";
@@ -15,7 +16,7 @@ import { ImageOptimizer } from "./image-optimizer";
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getImageTranslator(locale);
-  const title = translate("Image Optimizer");
+  const title = translate("Image Compressor and Optimizer");
   const description = translate("Compress images privately in your browser. Nothing is uploaded.");
 
   return createPageMetadata({ title, description, locale, path: "/image" });
@@ -69,12 +70,7 @@ export default async function ImageOptimizerPage() {
     description: labels.description,
     applicationCategory: "MultimediaApplication",
     browserRequirements: "Requires JavaScript",
-    featureList: [
-      "Private client-side image compression",
-      "JPEG, PNG, WebP, AVIF, GIF, SVG, HEIC, HEIF, and BMP support",
-      "Batch image optimization",
-      "No uploads",
-    ],
+    featureList: [labels.privacy, labels.supported, labels.tooManyFiles, labels.qualityHint],
     locale,
     path: "/image",
   });
@@ -86,6 +82,27 @@ export default async function ImageOptimizerPage() {
         <div className="flex flex-col gap-12">
           <PageHeader title={labels.title} description={labels.description} />
           <ImageOptimizer labels={labels} />
+          <ToolDetails
+            title={translate("About this tool")}
+            description={labels.description}
+            sections={[
+              {
+                title: translate("How it works"),
+                description: labels.qualityHint,
+                items: [labels.supported, labels.autoTarget, labels.comparing],
+              },
+              {
+                title: translate("Privacy and security"),
+                description: labels.privacy,
+                items: [labels.tooManyFiles, labels.unsupported],
+              },
+              {
+                title: translate("Features"),
+                description: labels.compressionMode,
+                items: [labels.balancedMode, labels.smallestMode, labels.losslessMode],
+              },
+            ]}
+          />
         </div>
       </PageContainer>
     </PageShell>

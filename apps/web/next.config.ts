@@ -5,8 +5,6 @@ const publicMetadataCacheControl =
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
-  htmlLimitedBots:
-    /bot|crawler|spider|facebookexternalhit|linkedinbot|slackbot|twitterbot|whatsapp|discordbot/i,
   images: {
     imageSizes: [16, 32, 48, 64, 96, 128, 160, 192, 256, 320, 384],
     qualities: [60, 75],

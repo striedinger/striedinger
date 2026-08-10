@@ -4,4 +4,5 @@ import { messages as englishMessages } from "./en";
 export const messages: TranslationCatalog<typeof englishMessages> = {
   ...englishMessages,
   "PDF Optimizer": "Otimizador de PDF",
+  "PDF Compressor and Optimizer": "Compressor e otimizador de PDF",
 };

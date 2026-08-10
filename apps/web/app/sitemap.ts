@@ -1,38 +1,57 @@
 import type { MetadataRoute } from "next";
 
+import { supportedLocales, type Locale } from "@workspace/i18n";
+
+import type { SitePath } from "../lib/locale-path";
+
+import { createLanguageAlternates, localizePath } from "../lib/locale-path";
 import { siteUrl } from "../lib/seo";
 
-const lastModified = new Date("2026-07-30");
+const publicPaths = [
+  "/",
+  "/chat",
+  "/drop",
+  "/og",
+  "/image",
+  "/pdf",
+  "/json",
+  "/sudoku",
+  "/mta",
+  "/stocks",
+  "/podcasts",
+] as const satisfies readonly SitePath[];
 
-function createSitemapEntry(
-  path: `/${string}` | "/",
-  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"],
-  priority: number,
-): MetadataRoute.Sitemap[number] {
-  const url = path === "/" ? siteUrl : `${siteUrl}${path}`;
-  const imageUrl = path === "/" ? `${siteUrl}/opengraph-image` : `${url}/opengraph-image`;
+const lastModified = new Date("2026-08-10");
+
+function createSitemapEntry(path: SitePath, locale: Locale): MetadataRoute.Sitemap[number] {
+  const localizedPath = localizePath(path, locale);
+  const url = createAbsoluteUrl(localizedPath);
+  const imageUrl = localizedPath === "/" ? `${siteUrl}/opengraph-image` : `${url}/opengraph-image`;
+  const languages = Object.fromEntries(
+    Object.entries(createLanguageAlternates(path)).map(function createAbsoluteAlternate([
+      language,
+      alternatePath,
+    ]) {
+      return [language, createAbsoluteUrl(alternatePath)];
+    }),
+  );
 
   return {
     url,
     lastModified,
-    changeFrequency,
-    priority,
     images: [imageUrl],
+    alternates: { languages },
   };
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    createSitemapEntry("/", "monthly", 1),
-    createSitemapEntry("/chat", "monthly", 0.8),
-    createSitemapEntry("/drop", "monthly", 0.8),
-    createSitemapEntry("/og", "monthly", 0.8),
-    createSitemapEntry("/image", "monthly", 0.8),
-    createSitemapEntry("/pdf", "monthly", 0.8),
-    createSitemapEntry("/json", "monthly", 0.8),
-    createSitemapEntry("/sudoku", "daily", 0.8),
-    createSitemapEntry("/mta", "daily", 0.8),
-    createSitemapEntry("/stocks", "daily", 0.8),
-    createSitemapEntry("/podcasts", "daily", 0.8),
-  ];
+  return publicPaths.flatMap(function createLocalizedEntries(path) {
+    return supportedLocales.map(function createLocaleEntry(locale) {
+      return createSitemapEntry(path, locale);
+    });
+  });
+}
+
+function createAbsoluteUrl(path: SitePath) {
+  return path === "/" ? siteUrl : `${siteUrl}${path}`;
 }

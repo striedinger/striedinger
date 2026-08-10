@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 
 import { RequestLocaleBoundary } from "../components/request-locale-boundary";
+import { localizePath } from "../lib/locale-path";
 import { createPageMetadata, getOpenGraphLocale, siteName, siteUrl } from "../lib/seo";
 import { themeCookieName, themes } from "../lib/themes";
 import { getTranslator } from "../messages/get-translator";
@@ -23,6 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = translate(
     "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.",
   );
+  const localizedHomePath = localizePath("/", locale);
+  const socialImagePath =
+    localizedHomePath === "/" ? "/opengraph-image" : `${localizedHomePath}/opengraph-image`;
+  const verification = createVerificationMetadata();
 
   return {
     ...createPageMetadata({ title, description, locale, path: "/" }),
@@ -36,6 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: "Hugo Striedinger",
     publisher: "Hugo Striedinger",
     category: "technology",
+    ...(verification ? { verification } : {}),
     formatDetection: {
       address: false,
       email: false,
@@ -43,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     openGraph: {
       type: "profile",
-      url: "/",
+      url: localizedHomePath,
       locale: getOpenGraphLocale(locale),
       siteName,
       title,
@@ -53,13 +59,27 @@ export async function generateMetadata(): Promise<Metadata> {
       username: "striedinger",
       images: [
         {
-          url: "/opengraph-image",
+          url: socialImagePath,
           width: 1200,
           height: 630,
           alt: title,
         },
       ],
     },
+  };
+}
+
+function createVerificationMetadata(): Metadata["verification"] | undefined {
+  const google = process.env.GOOGLE_SITE_VERIFICATION;
+  const bing = process.env.BING_SITE_VERIFICATION;
+
+  if (!google && !bing) {
+    return undefined;
+  }
+
+  return {
+    ...(google ? { google } : {}),
+    ...(bing ? { other: { "msvalidate.01": bing } } : {}),
   };
 }
 

@@ -7,6 +7,7 @@ import { PageShell } from "@workspace/ui/components/page-shell";
 import type { PdfToolLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getPdfTranslator } from "../../messages/pdf/get-translator";
 import { getRequestLocale } from "../get-request-locale";
@@ -15,7 +16,7 @@ import { PdfTool } from "./pdf-tool";
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getPdfTranslator(locale);
-  const title = translate("PDF Optimizer");
+  const title = translate("PDF Compressor and Optimizer");
   const description = translate(
     "Compress, preview, and remove PDF restrictions entirely in your browser.",
   );
@@ -64,12 +65,7 @@ export default async function PdfPage() {
     description: labels.description,
     applicationCategory: "UtilitiesApplication",
     browserRequirements: "Requires JavaScript and WebAssembly",
-    featureList: [
-      "Private client-side PDF compression",
-      "PDF preview",
-      "Authorized restriction removal",
-      "No uploads",
-    ],
+    featureList: [labels.fileStaysLocal, labels.preview, labels.removeLock, labels.supported],
     locale,
     path: "/pdf",
   });
@@ -81,6 +77,27 @@ export default async function PdfPage() {
         <div className="flex flex-col gap-12">
           <PageHeader title={labels.title} description={labels.description} />
           <PdfTool labels={labels} />
+          <ToolDetails
+            title={translate("About this tool")}
+            description={labels.description}
+            sections={[
+              {
+                title: translate("How it works"),
+                description: labels.description,
+                items: [labels.balanced, labels.lossless, labels.smallest],
+              },
+              {
+                title: translate("Privacy and security"),
+                description: labels.fileStaysLocal,
+                items: [labels.supported, labels.passwordHelp],
+              },
+              {
+                title: translate("Features"),
+                description: labels.result,
+                items: [labels.preview, labels.removeLock, labels.download],
+              },
+            ]}
+          />
         </div>
       </PageContainer>
     </PageShell>

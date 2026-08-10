@@ -2,6 +2,7 @@ import { defineMessages } from "@workspace/i18n";
 
 export const messages = defineMessages({
   "JSON Validator and Formatter": "JSON Validator and Formatter",
+  "JSON Formatter, Validator, and Tree Viewer": "JSON Formatter, Validator, and Tree Viewer",
   "Validate, format, and explore JSON entirely in your browser. Your data never leaves this device.":
     "Validate, format, and explore JSON entirely in your browser. Your data never leaves this device.",
   "JSON input": "JSON input",

@@ -11,7 +11,14 @@ describe("SEO helpers", function () {
       path: "/json",
     });
 
-    expect(metadata.alternates).toEqual({ canonical: "/json" });
+    expect(metadata.alternates).toMatchObject({
+      canonical: "/json",
+      languages: {
+        "x-default": "/json",
+        en: "/json",
+        es: "/es/json",
+      },
+    });
     expect(metadata.openGraph).toMatchObject({
       locale: "en_US",
       url: "/json",
@@ -29,6 +36,31 @@ describe("SEO helpers", function () {
         "max-video-preview": -1,
       },
     });
+  });
+
+  it("localizes canonical, social, and structured-data URLs", function () {
+    const metadata = createPageMetadata({
+      title: "Validador JSON",
+      description: "Valida JSON de forma privada.",
+      locale: "es",
+      path: "/json",
+    });
+    const structuredData = createWebApplicationStructuredData({
+      name: "Validador JSON",
+      description: "Valida JSON de forma privada.",
+      applicationCategory: "DeveloperApplication",
+      locale: "es",
+      path: "/json",
+    });
+
+    expect(metadata.alternates).toMatchObject({ canonical: "/es/json" });
+    expect(metadata.openGraph).toMatchObject({
+      url: "/es/json",
+      images: [{ url: "/es/json/opengraph-image" }],
+    });
+    expect(structuredData["@graph"]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ url: "https://striedinger.co/es/json" })]),
+    );
   });
 
   it("connects web applications to the site, creator, and breadcrumb trail", function () {

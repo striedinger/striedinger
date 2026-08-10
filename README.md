@@ -40,6 +40,16 @@ The web app exposes the full tweakcn preset catalog from the navigation drawer. 
 
 Remote metadata previews and MTA actions use a bounded in-process fallback during local development. For deployment-wide limits across Vercel instances, configure an Upstash-compatible Redis integration with `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (or the equivalent `KV_REST_API_URL` and `KV_REST_API_TOKEN`). Client identifiers are hashed before they are included in rate-limit keys.
 
+## Search indexing
+
+The web app publishes canonical and localized sitemap entries, reciprocal language alternatives,
+and crawler-friendly metadata. Set `GOOGLE_SITE_VERIFICATION` and `BING_SITE_VERIFICATION` in the
+production environment to emit the respective ownership verification tags.
+
+Successful production deployment events submit the current sitemap URLs to IndexNow through
+`.github/workflows/indexnow.yml`. The public IndexNow key is intentionally committed under
+`apps/web/public` as required by the protocol.
+
 ## Translations
 
 Translation catalogs live with the app or package that owns their strings. English source text is used as the key, and locale files are loaded individually. Apps explicitly compose only the catalogs they consume through `@workspace/i18n`, allowing unused package catalogs and locale chunks to stay out of the relevant bundle.

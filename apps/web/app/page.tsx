@@ -2,10 +2,12 @@ import { EmailIcon } from "@workspace/icons/email-icon";
 import { InstagramIcon } from "@workspace/icons/instagram-icon";
 import { XIcon } from "@workspace/icons/x-icon";
 import { Text } from "@workspace/ui/components/text";
+import Link from "next/link";
 
 import { JsonLd } from "../components/json-ld";
 import { LanguagePicker } from "../components/language-picker";
 import { SocialLink } from "../components/social-link";
+import { localizePath } from "../lib/locale-path";
 import { personId, siteUrl, websiteId } from "../lib/seo";
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
@@ -13,6 +15,20 @@ import { getRequestLocale } from "./get-request-locale";
 export default async function Page() {
   const locale = await getRequestLocale();
   const translate = await getTranslator(locale);
+  const localizedHomePath = localizePath("/", locale);
+  const profileUrl = localizedHomePath === "/" ? siteUrl : `${siteUrl}${localizedHomePath}`;
+  const toolLinks = [
+    { href: "/image", label: translate("Image Optimizer") },
+    { href: "/pdf", label: translate("PDF Optimizer") },
+    { href: "/json", label: translate("JSON Validator and Formatter") },
+    { href: "/og", label: translate("Open Graph Preview") },
+    { href: "/drop", label: translate("Drop - Private file sharing") },
+    { href: "/chat", label: translate("Nearby Chat") },
+    { href: "/sudoku", label: translate("Daily Sudoku") },
+    { href: "/mta", label: translate("Trains near you") },
+    { href: "/stocks", label: translate("Stock watchlist") },
+    { href: "/podcasts", label: translate("Podcasts") },
+  ] as const;
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -41,14 +57,15 @@ export default async function Page() {
         },
         sameAs: [
           "https://github.com/striedinger",
+          "https://www.linkedin.com/in/striedinger",
           "https://x.com/striedinger",
           "https://instagram.com/striedingerh",
         ],
       },
       {
         "@type": "ProfilePage",
-        "@id": `${siteUrl}/#profile`,
-        url: siteUrl,
+        "@id": `${profileUrl}#profile`,
+        url: profileUrl,
         name: translate("Hugo Striedinger - Senior Software Engineer"),
         isPartOf: { "@id": websiteId },
         mainEntity: { "@id": personId },
@@ -58,10 +75,10 @@ export default async function Page() {
   };
 
   return (
-    <main className="flex min-h-svh flex-col items-center gap-10 font-sans">
+    <main className="flex min-h-svh flex-col items-center gap-12 px-6 pb-20 font-sans">
       <JsonLd value={structuredData} />
       <section
-        className="flex flex-col items-center gap-8 px-8 pt-28 text-center sm:pt-40"
+        className="flex flex-col items-center gap-8 pt-28 text-center sm:pt-40"
         aria-labelledby="introduction-heading"
       >
         <Text
@@ -141,7 +158,87 @@ export default async function Page() {
         </li>
       </ul>
 
+      <nav aria-label={translate("Social links")}>
+        <ul className="flex list-none flex-wrap justify-center gap-5 p-0">
+          <li>
+            <Text
+              as="a"
+              href="https://github.com/striedinger"
+              target="_blank"
+              rel="noreferrer"
+              size="sm"
+              weight="semibold"
+              className="underline underline-offset-4"
+            >
+              {translate("Hugo Striedinger on GitHub")}
+            </Text>
+          </li>
+          <li>
+            <Text
+              as="a"
+              href="https://www.linkedin.com/in/striedinger"
+              target="_blank"
+              rel="noreferrer"
+              size="sm"
+              weight="semibold"
+              className="underline underline-offset-4"
+            >
+              {translate("Hugo Striedinger on LinkedIn")}
+            </Text>
+          </li>
+        </ul>
+      </nav>
+
       <LanguagePicker locale={locale} label={translate("Select language")} />
+
+      <section
+        className="flex w-full max-w-4xl flex-col gap-5 border-t border-border/70 pt-12"
+        aria-labelledby="about-heading"
+      >
+        <Text as="h2" id="about-heading" size="2xl" weight="semibold">
+          {translate("About Hugo")}
+        </Text>
+        <Text tone="muted" className="max-w-3xl leading-relaxed">
+          {translate(
+            "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.",
+          )}
+        </Text>
+        <Text tone="muted" className="max-w-3xl leading-relaxed">
+          {translate(
+            "I build fast, accessible web products and developer tools with a focus on privacy, reliability, and thoughtful user experience.",
+          )}
+        </Text>
+      </section>
+
+      <section
+        className="flex w-full max-w-4xl flex-col gap-6 border-t border-border/70 pt-12"
+        aria-labelledby="tools-heading"
+      >
+        <div className="flex flex-col gap-3">
+          <Text as="h2" id="tools-heading" size="2xl" weight="semibold">
+            {translate("Browser tools")}
+          </Text>
+          <Text tone="muted">
+            {translate("Free, privacy-focused browser tools and live utilities.")}
+          </Text>
+        </div>
+        <ul className="grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
+          {toolLinks.map(function renderToolLink(tool) {
+            return (
+              <li key={tool.href}>
+                <Text
+                  as={Link}
+                  href={localizePath(tool.href, locale)}
+                  weight="semibold"
+                  className="block h-full rounded-2xl border border-border/70 bg-card/60 p-5 transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-accent motion-reduce:transform-none motion-reduce:transition-none"
+                >
+                  {tool.label}
+                </Text>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </main>
   );
 }

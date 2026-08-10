@@ -4,6 +4,9 @@ import type { messages as englishMessages } from "./en";
 
 export const messages = {
   "Daily Sudoku": "Tägliches Sudoku",
+  "Daily Sudoku Puzzles": "Tägliche Sudoku-Rätsel",
+  "Puzzle progress and the timer stay in this browser. No account or server save is required.":
+    "Rätselstand und Timer bleiben in diesem Browser. Ein Konto oder Speichern auf einem Server ist nicht erforderlich.",
   "Play a fresh daily Sudoku puzzle with easy, medium, and hard levels. Track your time and share your result as an image.":
     "Spiele täglich ein neues Sudoku in drei Schwierigkeitsstufen. Stoppe deine Zeit und teile dein Ergebnis als Bild.",
   "Choose a level": "Schwierigkeitsgrad wählen",

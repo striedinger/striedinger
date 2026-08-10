@@ -54,4 +54,5 @@ export const messages = defineMessages({
   "Searching podcasts": "Searching podcasts",
   "Show episodes": "Show episodes",
   Podcasts: "Podcasts",
+  "Podcast Search and Player": "Podcast Search and Player",
 });

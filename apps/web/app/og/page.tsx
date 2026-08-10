@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import { PageContainer } from "@workspace/ui/components/page-container";
 import { PageHeader } from "@workspace/ui/components/page-header";
 import { PageShell } from "@workspace/ui/components/page-shell";
-import { Text } from "@workspace/ui/components/text";
 
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getOgTranslator } from "../../messages/og/get-translator";
 import { getRequestLocale } from "../get-request-locale";
@@ -23,7 +23,7 @@ interface OpenGraphPreviewPageProps {
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getOgTranslator(locale);
-  const title = translate("Open Graph Preview");
+  const title = translate("Open Graph Checker and Social Card Preview");
   const description = translate(
     "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.",
   );
@@ -80,12 +80,7 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
       "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.",
     ),
     applicationCategory: "DeveloperApplication",
-    featureList: [
-      "Open Graph metadata inspection",
-      "X and Twitter card preview",
-      "Social image preview",
-      "Raw metadata viewer",
-    ],
+    featureList: [labels.openGraph, labels.twitter, labels.previewRegion, labels.metadata],
     locale,
     path: "/og",
   });
@@ -101,16 +96,29 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
             <OgPreviewForm key={initialUrl} initialState={initialState} labels={labels} />
           </div>
 
-          <section className="flex flex-col gap-6 border-t border-border/70 pt-12">
-            <Text as="h2" size="2xl" weight="semibold">
-              {translate("Test Open Graph and X metadata")}
-            </Text>
-            <Text tone="muted" className="max-w-2xl leading-relaxed">
-              {translate(
-                "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.",
-              )}
-            </Text>
-          </section>
+          <ToolDetails
+            title={translate("Test Open Graph and X metadata")}
+            description={translate(
+              "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.",
+            )}
+            sections={[
+              {
+                title: translate("How it works"),
+                description: labels.description,
+                items: [labels.openGraph, labels.twitter, labels.metadata],
+              },
+              {
+                title: translate("Privacy and security"),
+                description: labels.security,
+                items: [labels.errors["not-html"], labels.errors["too-large"]],
+              },
+              {
+                title: translate("Features"),
+                description: labels.metadataDescription,
+                items: [labels.previewRegion, labels.openGraph, labels.twitter],
+              },
+            ]}
+          />
         </div>
       </PageContainer>
     </PageShell>

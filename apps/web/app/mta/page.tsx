@@ -9,7 +9,9 @@ import { Suspense } from "react";
 import type { InitialMtaState, MtaLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
+import { getTranslator } from "../../messages/get-translator";
 import { getMtaTranslator } from "../../messages/mta/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { MtaDashboardLoader } from "./mta-dashboard-loader";
@@ -23,7 +25,7 @@ interface MtaPageProps {
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getMtaTranslator(locale);
-  const title = translate("Trains near you");
+  const title = translate("NYC Subway Arrival Times");
   const description = translate(
     "Find nearby subway stops and see when your next train is arriving.",
   );
@@ -33,7 +35,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MtaPage({ searchParams }: MtaPageProps) {
   const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
   const { initialState, locationQuery } = getInitialState(resolvedSearchParams);
-  const translate = await getMtaTranslator(locale);
+  const [translate, translateCommon] = await Promise.all([
+    getMtaTranslator(locale),
+    getTranslator(locale),
+  ]);
   const labels: MtaLabels = {
     title: translate("Trains near you"),
     description: translate("Find nearby subway stops and see when your next train is arriving."),
@@ -76,12 +81,7 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
     description: labels.description,
     applicationCategory: "TravelApplication",
     browserRequirements: "Requires JavaScript",
-    featureList: [
-      "Live NYC subway arrival times",
-      "Nearby station search",
-      "Location-based train lookup",
-      "MTA route filtering",
-    ],
+    featureList: [labels.nearbyStops, labels.useLocation, labels.filterByTrain, labels.refreshes],
     locale,
     path: "/mta",
   });
@@ -123,6 +123,27 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
             locationQuery={locationQuery}
           />
         </Suspense>
+        <ToolDetails
+          title={translateCommon("About this tool")}
+          description={labels.description}
+          sections={[
+            {
+              title: translateCommon("How it works"),
+              description: labels.searchHint,
+              items: [labels.useLocation, labels.search, labels.nearbyStops],
+            },
+            {
+              title: translateCommon("Live data"),
+              description: labels.refreshes,
+              items: [labels.updated, labels.refresh, labels.arrivalError],
+            },
+            {
+              title: translateCommon("Features"),
+              description: labels.description,
+              items: [labels.filterByTrain, labels.walk, labels.attribution],
+            },
+          ]}
+        />
         <footer className="border-t py-8">
           <Text size="xs" tone="muted">
             {labels.attribution}

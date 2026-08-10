@@ -18,6 +18,7 @@ import { usePathname } from "next/navigation";
 
 import type { ThemeId } from "../lib/themes";
 
+import { localizePath, stripLocaleFromPath } from "../lib/locale-path";
 import { LanguagePicker } from "./language-picker";
 import { ThemePicker } from "./theme-picker";
 
@@ -60,6 +61,8 @@ const navigationItems = [
 
 export function AppNavigation({ labels, locale, theme }: AppNavigationProps) {
   const pathname = usePathname();
+  const basePathname = stripLocaleFromPath(pathname);
+  const homePath = localizePath("/", locale);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 shadow-[0_1px_0_var(--surface-highlight)] backdrop-blur-md">
@@ -68,7 +71,7 @@ export function AppNavigation({ labels, locale, theme }: AppNavigationProps) {
           as={Link}
           size="sm"
           weight="semibold"
-          href="/"
+          href={homePath}
           className="transition-colors duration-150 hover:text-primary motion-reduce:transition-none"
         >
           Hugo Striedinger
@@ -105,13 +108,14 @@ export function AppNavigation({ labels, locale, theme }: AppNavigationProps) {
               <nav aria-label={labels.navigation}>
                 <ul className="flex list-none flex-col gap-1 p-0">
                   {navigationItems.map(function renderNavigationItem(item) {
-                    const isCurrent = pathname === item.href;
+                    const isCurrent = basePathname === item.href;
+                    const href = localizePath(item.href, locale);
 
                     return (
                       <li key={item.href}>
                         <Text
                           as={Link}
-                          href={item.href}
+                          href={href}
                           weight={isCurrent ? "semibold" : "normal"}
                           aria-current={isCurrent ? "page" : undefined}
                           className="block rounded-xl px-3 py-3 transition-[color,background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-accent hover:text-accent-foreground motion-reduce:transform-none motion-reduce:transition-none"

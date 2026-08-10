@@ -2,6 +2,7 @@ import { defineMessages } from "@workspace/i18n";
 
 export const messages = defineMessages({
   "Image Optimizer": "Image Optimizer",
+  "Image Compressor and Optimizer": "Image Compressor and Optimizer",
   "Compress images privately in your browser. Nothing is uploaded.":
     "Compress images privately in your browser. Nothing is uploaded.",
   "Add more": "Add more",

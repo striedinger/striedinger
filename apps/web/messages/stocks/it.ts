@@ -3,6 +3,9 @@ import type { TranslationCatalog } from "@workspace/i18n";
 import type { messages as englishMessages } from "./en";
 export const messages: TranslationCatalog<typeof englishMessages> = {
   "Stock watchlist": "Lista titoli",
+  "Stock Charts and Watchlist": "Grafici e lista titoli",
+  "Your watchlist is stored only in this browser and works without creating an account.":
+    "La tua lista titoli viene salvata solo in questo browser e funziona senza creare un account.",
   "Search, save, and explore market trends across multiple timeframes.":
     "Cerca, salva ed esplora le tendenze di mercato su più intervalli.",
   "Search stocks": "Cerca titoli",

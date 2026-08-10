@@ -1,6 +1,10 @@
 import type { Locale } from "@workspace/i18n";
 import type { Metadata } from "next";
 
+import type { SitePath } from "./locale-path";
+
+import { createLanguageAlternates, localizePath } from "./locale-path";
+
 export const siteName = "Hugo Striedinger";
 export const siteUrl = "https://striedinger.co";
 export const personId = `${siteUrl}/#person`;
@@ -21,7 +25,7 @@ interface PageMetadataOptions {
   description: string;
   imagePath?: string;
   locale: Locale;
-  path: `/${string}` | "/";
+  path: SitePath;
   title: string;
 }
 
@@ -32,7 +36,7 @@ interface WebApplicationStructuredDataOptions {
   featureList?: readonly string[];
   locale: Locale;
   name: string;
-  path: `/${string}`;
+  path: Exclude<SitePath, "/">;
 }
 
 export function createPageMetadata({
@@ -42,16 +46,20 @@ export function createPageMetadata({
   path,
   title,
 }: PageMetadataOptions): Metadata {
+  const localizedPath = localizePath(path, locale);
   const socialImagePath =
-    imagePath ?? (path === "/" ? "/opengraph-image" : `${path}/opengraph-image`);
+    imagePath ?? (localizedPath === "/" ? "/opengraph-image" : `${localizedPath}/opengraph-image`);
 
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: {
+      canonical: localizedPath,
+      languages: createLanguageAlternates(path),
+    },
     openGraph: {
       type: "website",
-      url: path,
+      url: localizedPath,
       locale: openGraphLocales[locale],
       siteName,
       title,
@@ -92,7 +100,10 @@ export function createWebApplicationStructuredData({
   name,
   path,
 }: WebApplicationStructuredDataOptions) {
-  const url = `${siteUrl}${path}`;
+  const localizedPath = localizePath(path, locale);
+  const localizedHomePath = localizePath("/", locale);
+  const url = `${siteUrl}${localizedPath}`;
+  const homeUrl = localizedHomePath === "/" ? siteUrl : `${siteUrl}${localizedHomePath}`;
 
   return {
     "@context": "https://schema.org",
@@ -125,7 +136,7 @@ export function createWebApplicationStructuredData({
             "@type": "ListItem",
             position: 1,
             name: siteName,
-            item: siteUrl,
+            item: homeUrl,
           },
           {
             "@type": "ListItem",

@@ -56,4 +56,5 @@ export const messages = {
   "Searching podcasts": "Recherche de podcasts",
   "Show episodes": "Afficher les épisodes",
   Podcasts: "Podcasts",
+  "Podcast Search and Player": "Recherche et lecteur de podcasts",
 } satisfies TranslationCatalog<typeof englishMessages>;

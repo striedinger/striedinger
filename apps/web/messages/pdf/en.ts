@@ -2,6 +2,7 @@ import { defineMessages } from "@workspace/i18n";
 
 export const messages = defineMessages({
   "PDF Optimizer": "PDF Optimizer",
+  "PDF Compressor and Optimizer": "PDF Compressor and Optimizer",
   "Compress, preview, and remove PDF restrictions entirely in your browser.":
     "Compress, preview, and remove PDF restrictions entirely in your browser.",
   Balanced: "Balanced",

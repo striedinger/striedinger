@@ -2,6 +2,9 @@ import { defineMessages } from "@workspace/i18n";
 
 export const messages = defineMessages({
   "Daily Sudoku": "Daily Sudoku",
+  "Daily Sudoku Puzzles": "Daily Sudoku Puzzles",
+  "Puzzle progress and the timer stay in this browser. No account or server save is required.":
+    "Puzzle progress and the timer stay in this browser. No account or server save is required.",
   "Play a fresh daily Sudoku puzzle with easy, medium, and hard levels. Track your time and share your result as an image.":
     "Play a fresh daily Sudoku puzzle with easy, medium, and hard levels. Track your time and share your result as an image.",
   "Choose a level": "Choose a level",

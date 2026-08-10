@@ -11,6 +11,8 @@ import {
 import { Text } from "@workspace/ui/components/text";
 import { useRouter } from "next/navigation";
 
+import { localizePath, stripLocaleFromPath } from "../lib/locale-path";
+
 interface LanguagePickerProps {
   label: string;
   locale: Locale;
@@ -43,7 +45,10 @@ export function LanguagePicker({ label, locale }: LanguagePickerProps) {
 
     document.cookie = `${localeCookieName}=${selectedLocale}; path=/; max-age=${oneYearInSeconds}; samesite=lax`;
     document.documentElement.lang = selectedLocale;
-    router.refresh();
+
+    const currentUrl = new URL(window.location.href);
+    currentUrl.pathname = localizePath(stripLocaleFromPath(currentUrl.pathname), selectedLocale);
+    router.push(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
   }
 
   return (

@@ -2,6 +2,7 @@ import { defineMessages } from "@workspace/i18n";
 
 export const messages = defineMessages({
   "Open Graph Preview": "Open Graph Preview",
+  "Open Graph Checker and Social Card Preview": "Open Graph Checker and Social Card Preview",
   "Enter any public URL to inspect its Open Graph and X metadata, preview its social cards, and review the tags found in the page.":
     "Enter any public URL to inspect its Open Graph and X metadata, preview its social cards, and review the tags found in the page.",
   "URL to preview": "URL to preview",

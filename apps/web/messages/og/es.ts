@@ -4,6 +4,8 @@ import type { messages as englishMessages } from "./en";
 
 export const messages: TranslationCatalog<typeof englishMessages> = {
   "Open Graph Preview": "Vista previa de Open Graph",
+  "Open Graph Checker and Social Card Preview":
+    "Verificador Open Graph y vista previa de tarjetas sociales",
   "Enter any public URL to inspect its Open Graph and X metadata, preview its social cards, and review the tags found in the page.":
     "Introduce una URL pública para inspeccionar sus metadatos de Open Graph y X, previsualizar sus tarjetas sociales y revisar las etiquetas encontradas.",
   "URL to preview": "URL para previsualizar",

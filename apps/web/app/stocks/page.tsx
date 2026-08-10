@@ -9,7 +9,9 @@ import { Suspense } from "react";
 import type { StocksLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
+import { getTranslator } from "../../messages/get-translator";
 import { getStocksTranslator } from "../../messages/stocks/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
@@ -23,7 +25,7 @@ interface StocksPageProps {
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getStocksTranslator(locale);
-  const title = translate("Stock watchlist");
+  const title = translate("Stock Charts and Watchlist");
   const description = translate(
     "Search, save, and explore market trends across multiple timeframes.",
   );
@@ -33,7 +35,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function StocksPage({ searchParams }: StocksPageProps) {
   const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
   const initialState = getStockPageState(resolvedSearchParams);
-  const translate = await getStocksTranslator(locale);
+  const [translate, translateCommon] = await Promise.all([
+    getStocksTranslator(locale),
+    getTranslator(locale),
+  ]);
+  const localStorageDescription = translate(
+    "Your watchlist is stored only in this browser and works without creating an account.",
+  );
   const labels: StocksLabels = {
     add: translate("Add"),
     added: translate("Added"),
@@ -77,12 +85,7 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
     description: labels.description,
     applicationCategory: "FinanceApplication",
     browserRequirements: "Requires JavaScript and local storage",
-    featureList: [
-      "Stock search",
-      "Local watchlist",
-      "Interactive price charts",
-      "Multiple market timeframes",
-    ],
+    featureList: [labels.search, labels.watchlist, labels.chart, localStorageDescription],
     locale,
     path: "/stocks",
   });
@@ -121,6 +124,27 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
             locale={locale}
           />
         </Suspense>
+        <ToolDetails
+          title={translateCommon("About this tool")}
+          description={labels.description}
+          sections={[
+            {
+              title: translateCommon("How it works"),
+              description: labels.searchHelp,
+              items: [labels.search, labels.add, labels.share],
+            },
+            {
+              title: translateCommon("Live data"),
+              description: labels.attribution,
+              items: [labels.marketOpen, labels.preMarket, labels.afterHours],
+            },
+            {
+              title: translateCommon("Local storage"),
+              description: localStorageDescription,
+              items: [labels.watchlist, labels.remove, labels.emptyWatchlist],
+            },
+          ]}
+        />
         <footer className="border-t py-8">
           <Text size="xs" tone="muted">
             {labels.attribution}

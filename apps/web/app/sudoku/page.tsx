@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import type { SudokuLabels } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
+import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getSudokuTranslator } from "../../messages/sudoku/get-translator";
 import { getRequestLocale } from "../get-request-locale";
@@ -20,7 +21,7 @@ const descriptionKey =
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const translate = await getSudokuTranslator(locale);
-  const title = translate("Daily Sudoku");
+  const title = translate("Daily Sudoku Puzzles");
   const description = translate(descriptionKey);
 
   return createPageMetadata({ title, description, locale, path: "/sudoku" });
@@ -30,6 +31,9 @@ export default async function SudokuPage() {
   const locale = await getRequestLocale();
   const translate = await getSudokuTranslator(locale);
   const date = new Date().toISOString().slice(0, 10);
+  const privacyDescription = translate(
+    "Puzzle progress and the timer stay in this browser. No account or server save is required.",
+  );
   const labels: SudokuLabels = {
     cancel: translate("Cancel"),
     cellEmpty: translate("Row {row}, column {column}, empty"),
@@ -69,12 +73,7 @@ export default async function SudokuPage() {
     description: labels.description,
     applicationCategory: "GameApplication",
     browserRequirements: "Requires JavaScript",
-    featureList: [
-      "A new puzzle every day",
-      "Easy, medium, and hard difficulty levels",
-      "Local timer and progress",
-      "Shareable result images",
-    ],
+    featureList: [labels.description, labels.chooseDifficulty, privacyDescription, labels.share],
     locale,
     path: "/sudoku",
   });
@@ -89,6 +88,26 @@ export default async function SudokuPage() {
           <Suspense fallback={<SudokuGameSkeleton />}>
             <SudokuGameLoader date={date} labels={labels} locale={locale} />
           </Suspense>
+          <ToolDetails
+            title={translate("About this tool")}
+            description={labels.description}
+            sections={[
+              {
+                title: translate("How it works"),
+                description: labels.startPrompt,
+                items: [labels.chooseDifficulty, labels.restart, labels.time],
+              },
+              {
+                title: translate("Local storage"),
+                description: privacyDescription,
+              },
+              {
+                title: translate("Features"),
+                description: labels.completed,
+                items: [labels.score, labels.share, labels.date],
+              },
+            ]}
+          />
         </div>
       </PageContainer>
     </PageShell>
