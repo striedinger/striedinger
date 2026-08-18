@@ -13,6 +13,8 @@ describe("SEO discovery routes", function () {
       "https://striedinger.co/chat",
       "https://striedinger.co/drop",
       "https://striedinger.co/og",
+      "https://striedinger.co/ip",
+      "https://striedinger.co/javascript",
       "https://striedinger.co/image",
       "https://striedinger.co/pdf",
       "https://striedinger.co/json",

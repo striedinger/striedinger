@@ -22,6 +22,8 @@ export default async function Page() {
     { href: "/pdf", label: translate("PDF Optimizer") },
     { href: "/json", label: translate("JSON Validator and Formatter") },
     { href: "/og", label: translate("Open Graph Preview") },
+    { href: "/ip", label: translate("IP Address Information") },
+    { href: "/javascript", label: translate("JavaScript Browser Information") },
     { href: "/drop", label: translate("Drop - Private file sharing") },
     { href: "/chat", label: translate("Nearby Chat") },
     { href: "/sudoku", label: translate("Daily Sudoku") },

@@ -12,6 +12,8 @@ const publicPaths = [
   "/chat",
   "/drop",
   "/og",
+  "/ip",
+  "/javascript",
   "/image",
   "/pdf",
   "/json",
@@ -21,7 +23,7 @@ const publicPaths = [
   "/podcasts",
 ] as const satisfies readonly SitePath[];
 
-const lastModified = new Date("2026-08-10");
+const lastModified = new Date("2026-08-18");
 
 function createSitemapEntry(path: SitePath, locale: Locale): MetadataRoute.Sitemap[number] {
   const localizedPath = localizePath(path, locale);

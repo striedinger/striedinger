@@ -29,6 +29,8 @@ export const messages = defineMessages({
   "Live data": "Live data",
   "Local storage": "Local storage",
   "Open Graph Preview": "Open Graph Preview",
+  "IP Address Information": "IP Address Information",
+  "JavaScript Browser Information": "JavaScript Browser Information",
   "JSON Validator and Formatter": "JSON Validator and Formatter",
   "Image & PDF Optimizer": "Image & PDF Optimizer",
   "Image Optimizer": "Image Optimizer",

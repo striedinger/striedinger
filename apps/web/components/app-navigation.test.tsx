@@ -26,6 +26,8 @@ const labels = {
   chat: "Nearby Chat",
   close: "Close navigation",
   drop: "Drop - Private file sharing",
+  ip: "IP Address Information",
+  javascript: "JavaScript Browser Information",
   json: "JSON Validator and Formatter",
   image: "Image Optimizer",
   menu: "Open navigation menu",

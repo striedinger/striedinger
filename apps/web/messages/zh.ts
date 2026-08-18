@@ -31,6 +31,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Live data": "实时数据",
   "Local storage": "本地存储",
   "Open Graph Preview": "Open Graph 预览",
+  "IP Address Information": "IP 地址信息",
+  "JavaScript Browser Information": "浏览器 JavaScript 信息",
   "JSON Validator and Formatter": "JSON 验证与格式化工具",
   "Image & PDF Optimizer": "图像和 PDF 优化器",
   "Image Optimizer": "图像优化器",

@@ -26,6 +26,8 @@ interface AppNavigationLabels {
   chat: string;
   close: string;
   drop: string;
+  ip: string;
+  javascript: string;
   json: string;
   image: string;
   pdf: string;
@@ -50,6 +52,8 @@ const navigationItems = [
   { href: "/chat", label: "chat" },
   { href: "/drop", label: "drop" },
   { href: "/og", label: "og" },
+  { href: "/ip", label: "ip" },
+  { href: "/javascript", label: "javascript" },
   { href: "/image", label: "image" },
   { href: "/pdf", label: "pdf" },
   { href: "/json", label: "json" },

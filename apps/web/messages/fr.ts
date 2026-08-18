@@ -31,6 +31,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Live data": "Données en direct",
   "Local storage": "Stockage local",
   "Open Graph Preview": "Aperçu Open Graph",
+  "IP Address Information": "Informations sur l’adresse IP",
+  "JavaScript Browser Information": "Informations JavaScript du navigateur",
   "JSON Validator and Formatter": "Validateur et formateur JSON",
   "Image & PDF Optimizer": "Optimiseur d’images et de PDF",
   "Image Optimizer": "Optimiseur d’images",

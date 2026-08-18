@@ -35,6 +35,8 @@ async function LocalizedAppNavigation() {
         chat: translate("Nearby Chat"),
         close: translate("Close navigation"),
         drop: translate("Drop - Private file sharing"),
+        ip: translate("IP Address Information"),
+        javascript: translate("JavaScript Browser Information"),
         json: translate("JSON Validator and Formatter"),
         image: translate("Image Optimizer"),
         menu: translate("Open navigation menu"),
