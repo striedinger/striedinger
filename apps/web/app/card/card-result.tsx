@@ -1,4 +1,5 @@
 import { Text } from "@workspace/ui/components/text";
+import { headers } from "next/headers";
 
 import type { PageMetadata, PreviewErrorCode } from "../../lib/og/types";
 import type { CardPreview } from "./card-preview";
@@ -33,13 +34,19 @@ export async function CardResult({ image, targetUrl, title }: CardResultProps) {
     return <Text tone="destructive">{errorMessages[preview.error]}</Text>;
   }
 
+  const trackedUrl = await getTrackedUrl(preview);
+
   return (
     <section className="flex flex-col gap-6">
-      <SocialCardPreview
-        metadata={getCardMetadata(preview)}
-        platform="twitter"
-        title="What the preview will show"
-      />
+      <SocialCardPreview metadata={getCardMetadata(preview)} platform="twitter" title="Preview" />
+      <div className="flex flex-col gap-1">
+        <Text size="sm" weight="medium" tone="muted">
+          Share this link
+        </Text>
+        <Text family="mono" size="sm">
+          {trackedUrl}
+        </Text>
+      </div>
       <dl className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <Text as="dt" size="sm" weight="medium" tone="muted">
@@ -78,15 +85,33 @@ export async function CardResult({ image, targetUrl, title }: CardResultProps) {
       </dl>
       {preview.imageOverrideRejected ? (
         <Text size="sm" tone="destructive">
-          That image URL did not look right, so the website's own image is used.
+          That image URL was not valid, so the site's own image is used.
         </Text>
       ) : null}
       <Text size="sm" tone="muted">
-        Share the URL from your address bar. Apps remember a link's preview once they have seen it,
-        so set everything up before sharing.
+        Anyone who opens it goes straight to that site. Apps remember a preview once they have seen
+        it, so set everything up first.
       </Text>
     </section>
   );
+}
+
+async function getTrackedUrl(preview: Extract<CardPreview, { status: "ready" }>) {
+  const query = new URLSearchParams({ url: preview.targetUrl });
+
+  if (preview.titleOverridden) {
+    query.set("title", preview.title);
+  }
+
+  if (preview.imageOverridden) {
+    query.set("image", preview.image);
+  }
+
+  const headerList = await headers();
+  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  const path = `/r?${query.toString()}`;
+
+  return host ? `https://${host}${path}` : path;
 }
 
 function getCardMetadata(preview: Extract<CardPreview, { status: "ready" }>): PageMetadata {

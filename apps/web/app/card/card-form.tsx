@@ -40,7 +40,7 @@ export function CardForm({ defaultImage, defaultTitle, defaultUrl }: CardFormPro
     <form method="get" onSubmit={handleSubmit} className="flex flex-col gap-4">
       <label htmlFor="card-url" className="flex flex-col gap-2">
         <Text as="span" size="sm" weight="medium">
-          Website to show in the preview
+          Website to show
         </Text>
         <Input
           id="card-url"
@@ -60,7 +60,7 @@ export function CardForm({ defaultImage, defaultTitle, defaultUrl }: CardFormPro
           name="title"
           type="text"
           defaultValue={defaultTitle}
-          placeholder="Leave empty to use the website's own title"
+          placeholder="The site's own title if empty"
         />
       </label>
       <label htmlFor="card-image" className="flex flex-col gap-2">
@@ -72,7 +72,7 @@ export function CardForm({ defaultImage, defaultTitle, defaultUrl }: CardFormPro
           name="image"
           type="url"
           defaultValue={defaultImage}
-          placeholder="Leave empty to use the website's own image"
+          placeholder="The site's own image if empty"
         />
       </label>
       <Button type="submit" className="self-start">

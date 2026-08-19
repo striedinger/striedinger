@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { cacheLife } from "next/cache";
 import { cache } from "react";
 import "server-only";
@@ -75,6 +77,34 @@ export const resolveCardPreview = cache(async function resolveCardPreview(
     imageOverrideRejected: Boolean(imageValue) && !imageOverride,
   };
 });
+
+export function createCardMetadata(preview: CardPreview): Metadata {
+  if (preview.status !== "ready") {
+    return {
+      title: "Link Card Maker",
+      robots: { follow: false, index: false },
+    };
+  }
+
+  return {
+    title: preview.title,
+    description: preview.description || undefined,
+    robots: { follow: false, index: false },
+    openGraph: {
+      title: preview.title,
+      description: preview.description || undefined,
+      url: preview.targetUrl,
+      images: preview.image ? [preview.image] : undefined,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: preview.title,
+      description: preview.description || undefined,
+      images: preview.image ? [preview.image] : undefined,
+    },
+  };
+}
 
 interface TargetCard {
   description: string;
