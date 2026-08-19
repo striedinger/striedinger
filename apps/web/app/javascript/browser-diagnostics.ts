@@ -179,6 +179,12 @@ export function serializeDiagnosticValue(value: unknown, unavailable: string): s
     : serialized;
 }
 
+export function normalizeNavigatorPropertyValue(value: unknown): unknown {
+  return typeof value === "function" || (typeof value === "object" && value !== null)
+    ? true
+    : value;
+}
+
 function collectScreenAndWindow(labels: BrowserDiagnosticsLabels): ReadonlyArray<DiagnosticRow> {
   const extendedScreen = screen as ScreenExtensions;
 
@@ -516,7 +522,11 @@ function collectAdditionalNavigatorProperties(
         value = labels.unavailable;
       }
 
-      return row(`navigator.${propertyName}`, value, labels.unavailable);
+      return row(
+        `navigator.${propertyName}`,
+        normalizeNavigatorPropertyValue(value),
+        labels.unavailable,
+      );
     });
 }
 
