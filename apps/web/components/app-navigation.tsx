@@ -149,5 +149,3 @@ export function AppNavigation({ labels, locale, theme }: AppNavigationProps) {
     </header>
   );
 }
-
-export type { AppNavigationLabels };

@@ -59,4 +59,4 @@ export function ToolDetails({ description, sections, title }: ToolDetailsProps) 
   );
 }
 
-export type { ToolDetailSection, ToolDetailsProps };
+export type { ToolDetailsProps };

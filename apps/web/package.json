@@ -16,14 +16,14 @@
     "@workspace/icons": "workspace:*",
     "@workspace/ui": "workspace:*",
     "gifsicle-wasm-browser": "^1.5.19",
-    "gtfs-realtime-bindings": "^2.1.0",
+    "gtfs-realtime-bindings": "^2.2.0",
     "heic-to": "^1.5.2",
-    "next": "16.2.10",
+    "next": "16.3.1",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^6.1.200",
+    "pdfjs-dist": "^6.2.108",
     "qpdf-run": "0.2.1",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "server-only": "^0.0.1",
     "ssim.js": "^3.5.0",
     "svgo": "^4.0.2",
@@ -34,6 +34,6 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   }
 }

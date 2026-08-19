@@ -1,5 +1,3 @@
-export type PairingRole = "initiator" | "responder";
-
 export interface ChatMessage {
   author: string;
   id: string;

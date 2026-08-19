@@ -104,31 +104,6 @@ async function loadPodcastCatalog({ query }: { query: string }): Promise<Podcast
   return (payload.results ?? []).flatMap(mapSearchPodcast);
 }
 
-export function getPodcast(podcastId: string): Promise<Podcast | null> {
-  return loadPodcast({ podcastId });
-}
-
-async function loadPodcast({ podcastId }: { podcastId: string }): Promise<Podcast | null> {
-  "use cache";
-  cacheLife({ stale: 300, revalidate: 3_600, expire: 86_400 });
-  cacheTag("podcast-details", `podcast:${podcastId}`);
-
-  const parameters = new URLSearchParams({ id: podcastId });
-  const response = await fetch(`${appleSearchBaseUrl}/lookup?${parameters}`, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 3_600 },
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!response.ok) throw new Error("Podcast lookup request failed");
-  const payload = (await response.json()) as AppleSearchResponse;
-  return (payload.results ?? []).flatMap(mapSearchPodcast)[0] ?? null;
-}
-
-export async function getPodcastEpisodes(podcastId: string): Promise<PodcastEpisode[]> {
-  const [, episodes] = await getPodcastShow(podcastId);
-  return episodes;
-}
-
 export function getPodcastShow(podcastId: string): Promise<[Podcast | null, PodcastEpisode[]]> {
   return loadPodcastShow({ podcastId });
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "ignoreDependencies": ["babel-plugin-react-compiler"],
+      "ignoreUnresolved": [
+        "^\\./vitest\\.setup\\.ts$",
+        "^\\.\\./\\.\\./packages/ui/vitest\\.setup\\.ts$"
+      ]
+    },
+    "apps/web": {
+      "entry": ["scripts/generate-mta-stations.mjs"],
+      "ignoreUnresolved": ["^\\./(avif_enc|meta|utils)\\.js$"]
+    }
+  }
+}

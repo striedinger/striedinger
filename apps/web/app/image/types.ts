@@ -2,7 +2,7 @@ export type OutputFormat = "auto" | "image/avif" | "image/jpeg" | "image/png" | 
 
 export type CompressionMode = "balanced" | "lossless" | "smallest";
 
-export type OptimizationStatus = "queued" | "optimizing" | "done" | "error";
+type OptimizationStatus = "queued" | "optimizing" | "done" | "error";
 
 export type OptimizationStage = "preparing" | "decoding" | "compressing" | "comparing";
 

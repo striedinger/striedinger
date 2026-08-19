@@ -3,10 +3,12 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm knip",
     "dev": "turbo dev",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
+    "knip": "knip",
+    "knip:fix": "knip --fix --allow-remove-files --format",
     "lint": "oxlint . --deny-warnings --report-unused-disable-directives",
     "lint:fix": "oxlint . --fix --deny-warnings --report-unused-disable-directives",
     "test": "vitest run",
@@ -14,15 +16,16 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "babel-plugin-react-compiler": "^1.0.0",
-    "jsdom": "^29.1.1",
-    "oxfmt": "^0.58.0",
-    "oxlint": "^1.73.0",
-    "oxlint-tsgolint": "^0.24.0",
+    "jsdom": "^30.0.1",
+    "knip": "^6.32.2",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "turbo": "latest",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "^4.1.10"
   },
   "engines": {

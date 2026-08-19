@@ -41,9 +41,9 @@ export interface SharedFile {
   id: string;
 }
 
-export type TransferDirection = "incoming" | "outgoing";
-export type TransferStatus = "complete" | "error" | "sending" | "waiting";
-export type TransferErrorReason = "file-too-large" | "invalid-payload" | "send-failed";
+type TransferDirection = "incoming" | "outgoing";
+type TransferStatus = "complete" | "error" | "sending" | "waiting";
+type TransferErrorReason = "file-too-large" | "invalid-payload" | "send-failed";
 
 export interface TransferItem {
   direction: TransferDirection;

@@ -41,10 +41,6 @@ export interface InitialMtaState {
   selectedRoute: string | null;
 }
 
-export interface LocationSuggestion extends Coordinates {
-  label: string;
-}
-
 export interface LiveStation {
   id: string;
   name: string;

@@ -45,7 +45,6 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ["@workspace/icons", "@workspace/i18n", "@workspace/ui"],
   experimental: {
-    viewTransition: true,
     serverActions: {
       bodySizeLimit: "16kb",
     },
