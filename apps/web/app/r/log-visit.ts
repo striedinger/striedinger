@@ -5,7 +5,7 @@ const visitKeyPrefix = "card:visit:";
 const maximumStoredVisits = 10_000;
 const visitExpirySeconds = 2_592_000; // 30 days
 const crawlerPattern =
-  /bot|crawler|spider|facebookexternalhit|slack|discord|whatsapp|telegram|linkedin|pinterest|embedly|cardyb|vkshare|tumblr/i;
+  /bot|crawler|spider|facebookexternalhit|slack|discord|whatsapp|telegram|linkedin|pinterest|embedly|cardyb|vkshare|tumblr|dataminr/i;
 
 export interface VisitServerData {
   at: string;
