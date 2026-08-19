@@ -6,11 +6,10 @@ import type { CardPreview } from "./card-preview";
 
 import { SocialCardPreview } from "../../components/social-card-preview";
 import { resolveCardPreview } from "./card-preview";
+import { CopyLinkButton } from "./copy-link-button";
 
 interface CardResultProps {
-  image: string;
   targetUrl: string;
-  title: string;
 }
 
 const errorMessages: Readonly<Record<PreviewErrorCode, string>> = {
@@ -23,8 +22,8 @@ const errorMessages: Readonly<Record<PreviewErrorCode, string>> = {
   "rate-limited": "Too many tries. Wait a minute and try again.",
 };
 
-export async function CardResult({ image, targetUrl, title }: CardResultProps) {
-  const preview = await resolveCardPreview(targetUrl, title, image);
+export async function CardResult({ targetUrl }: CardResultProps) {
+  const preview = await resolveCardPreview(targetUrl);
 
   if (preview.status === "idle") {
     return null;
@@ -39,13 +38,16 @@ export async function CardResult({ image, targetUrl, title }: CardResultProps) {
   return (
     <section className="flex flex-col gap-6">
       <SocialCardPreview metadata={getCardMetadata(preview)} platform="twitter" title="Preview" />
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
         <Text size="sm" weight="medium" tone="muted">
           Share this link
         </Text>
-        <Text family="mono" size="sm">
-          {trackedUrl}
-        </Text>
+        <div className="flex flex-wrap items-center gap-3">
+          <Text family="mono" size="sm" className="break-all">
+            {trackedUrl}
+          </Text>
+          <CopyLinkButton url={trackedUrl} />
+        </div>
       </div>
       <dl className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -58,7 +60,7 @@ export async function CardResult({ image, targetUrl, title }: CardResultProps) {
         </div>
         <div className="flex flex-col gap-1">
           <Text as="dt" size="sm" weight="medium" tone="muted">
-            Title{preview.titleOverridden ? " (custom)" : ""}
+            Title
           </Text>
           <Text as="dd" size="sm">
             {preview.title}
@@ -76,18 +78,13 @@ export async function CardResult({ image, targetUrl, title }: CardResultProps) {
         ) : null}
         <div className="flex flex-col gap-1">
           <Text as="dt" size="sm" weight="medium" tone="muted">
-            Image{preview.imageOverridden ? " (custom)" : ""}
+            Image
           </Text>
           <Text as="dd" family="mono" size="sm">
             {preview.image || "None found"}
           </Text>
         </div>
       </dl>
-      {preview.imageOverrideRejected ? (
-        <Text size="sm" tone="destructive">
-          That image URL was not valid, so the site's own image is used.
-        </Text>
-      ) : null}
       <Text size="sm" tone="muted">
         Anyone who opens it goes straight to that site. Apps remember a preview once they have seen
         it, so set everything up first.
@@ -98,15 +95,6 @@ export async function CardResult({ image, targetUrl, title }: CardResultProps) {
 
 async function getTrackedUrl(preview: Extract<CardPreview, { status: "ready" }>) {
   const query = new URLSearchParams({ url: preview.targetUrl });
-
-  if (preview.titleOverridden) {
-    query.set("title", preview.title);
-  }
-
-  if (preview.imageOverridden) {
-    query.set("image", preview.image);
-  }
-
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
   const path = `/r?${query.toString()}`;

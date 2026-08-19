@@ -11,18 +11,27 @@ export interface VisitServerData {
   at: string;
   city: string;
   clientHints: {
+    brands: string;
     mobile: string;
     platform: string;
     platformVersion: string;
   };
   country: string;
+  doNotTrack: string;
+  fetchSite: string;
   ip: string;
   isCrawler: boolean;
   language: string;
+  latitude: string;
+  longitude: string;
   path: string;
+  postalCode: string;
+  purpose: string;
   referrer: string;
   region: string;
+  requestId: string;
   targetUrl: string;
+  timezone: string;
   userAgent: string;
 }
 
@@ -31,60 +40,29 @@ export function isCrawler(userAgent: string): boolean {
 }
 
 export async function recordVisit(visitId: string, data: VisitServerData) {
-  await store(visitId, "server", data, true);
-}
-
-export async function recordClientData(visitId: string, components: Record<string, string>) {
-  await store(visitId, "client", components, false);
-}
-
-async function store(visitId: string, field: string, value: unknown, isNewVisit: boolean) {
   const restUrl = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
   const restToken = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!restUrl || !restToken) {
-    console.log(`[card-visit] ${field} ${visitId}`, JSON.stringify(value));
+    console.log(`[card-visit] ${visitId}`, JSON.stringify(data));
     return;
   }
 
   const visitKey = `${visitKeyPrefix}${visitId}`;
 
   try {
-    // Client-submitted data is only accepted for visits the server created,
-    // so the action cannot be used to mint arbitrary keys. The server write
-    // runs in after() and can lose the race against a fast client post, so
-    // allow one short retry before giving up.
-    if (!isNewVisit) {
-      const exists =
-        (await visitExists(restUrl, restToken, visitKey)) ||
-        (await sleep(700).then(function recheck() {
-          return visitExists(restUrl, restToken, visitKey);
-        }));
-
-      if (!exists) {
-        return;
-      }
-    }
-
-    const commands: (number | string)[][] = [
-      ["HSET", visitKey, field, JSON.stringify(value)],
-      ["EXPIRE", visitKey, visitExpirySeconds],
-    ];
-
-    if (isNewVisit) {
-      commands.push(
-        ["LPUSH", visitsListKey, visitId],
-        ["LTRIM", visitsListKey, 0, maximumStoredVisits - 1],
-      );
-    }
-
     const response = await fetch(`${restUrl}/pipeline`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${restToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(commands),
+      body: JSON.stringify([
+        ["HSET", visitKey, "server", JSON.stringify(data)],
+        ["EXPIRE", visitKey, visitExpirySeconds],
+        ["LPUSH", visitsListKey, visitId],
+        ["LTRIM", visitsListKey, 0, maximumStoredVisits - 1],
+      ]),
     });
 
     if (!response.ok) {
@@ -93,28 +71,4 @@ async function store(visitId: string, field: string, value: unknown, isNewVisit:
   } catch (error) {
     console.error("[card-visit] KV write failed", error);
   }
-}
-
-async function visitExists(restUrl: string, restToken: string, visitKey: string) {
-  const response = await fetch(`${restUrl}/pipeline`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${restToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify([["EXISTS", visitKey]]),
-  });
-
-  if (!response.ok) {
-    return false;
-  }
-
-  const results = (await response.json()) as Array<{ result?: number }>;
-  return results[0]?.result === 1;
-}
-
-function sleep(milliseconds: number) {
-  return new Promise(function wait(resolve) {
-    setTimeout(resolve, milliseconds);
-  });
 }
