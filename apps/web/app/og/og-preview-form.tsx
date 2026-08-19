@@ -7,11 +7,11 @@ import { useActionState, useState, type ChangeEvent, type FormEvent } from "reac
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
 
+import { SocialCardPreview } from "../../components/social-card-preview";
 import { previewMetadata } from "./actions";
 import { MetadataTable } from "./metadata-table";
 import { normalizePreviewUrl } from "./normalize-preview-url";
 import { OgSubmitButton } from "./og-submit-button";
-import { SocialCardPreview } from "./social-card-preview";
 
 interface OgPreviewFormProps {
   initialState: PreviewState;
@@ -105,13 +105,11 @@ export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
               metadata={state.metadata}
               platform="twitter"
               title={labels.twitter}
-              fromLabel={labels.from}
             />
             <SocialCardPreview
               metadata={state.metadata}
               platform="open-graph"
               title={labels.openGraph}
-              fromLabel={labels.from}
             />
             <MetadataTable
               heading={labels.metadata}
