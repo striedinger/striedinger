@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { serializeDiagnosticValue } from "./browser-diagnostics";
+import { normalizeNavigatorPropertyValue, serializeDiagnosticValue } from "./browser-diagnostics";
 
 describe("serializeDiagnosticValue", function describeSerializeDiagnosticValue() {
   it("uses the unavailable label for missing values", function testMissingValues() {
@@ -19,5 +19,19 @@ describe("serializeDiagnosticValue", function describeSerializeDiagnosticValue()
     value.self = value;
 
     expect(serializeDiagnosticValue(value, "Unavailable")).toBe("[object Object]");
+  });
+});
+
+describe("normalizeNavigatorPropertyValue", function describeNormalizeNavigatorPropertyValue() {
+  it("reports callable and object APIs as available", function testAvailableApis() {
+    expect(normalizeNavigatorPropertyValue(function exampleApi() {})).toBe(true);
+    expect(normalizeNavigatorPropertyValue({ request: Object })).toBe(true);
+  });
+
+  it("preserves scalar values and missing APIs", function testScalarValues() {
+    expect(normalizeNavigatorPropertyValue(false)).toBe(false);
+    expect(normalizeNavigatorPropertyValue("standalone")).toBe("standalone");
+    expect(normalizeNavigatorPropertyValue(undefined)).toBeUndefined();
+    expect(normalizeNavigatorPropertyValue(null)).toBeNull();
   });
 });
