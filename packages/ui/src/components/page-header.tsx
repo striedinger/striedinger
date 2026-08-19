@@ -7,7 +7,7 @@ type PageHeaderVariant = "default" | "compact";
 
 interface PageHeaderProps {
   className?: string;
-  description: ReactNode;
+  description?: ReactNode;
   eyebrow?: ReactNode;
   title: ReactNode;
   variant?: PageHeaderVariant;
@@ -31,16 +31,18 @@ function PageHeader({
       >
         {title}
       </Text>
-      <Text
-        size="lg"
-        tone="muted"
-        className={cn(
-          "max-w-2xl leading-relaxed",
-          variant === "compact" ? "sr-only sm:not-sr-only" : undefined,
-        )}
-      >
-        {description}
-      </Text>
+      {description ? (
+        <Text
+          size="lg"
+          tone="muted"
+          className={cn(
+            "max-w-2xl leading-relaxed",
+            variant === "compact" ? "sr-only sm:not-sr-only" : undefined,
+          )}
+        >
+          {description}
+        </Text>
+      ) : null}
     </header>
   );
 }

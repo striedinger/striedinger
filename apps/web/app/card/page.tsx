@@ -28,15 +28,12 @@ export default async function CardPage({ searchParams }: CardPageProps) {
     <PageShell>
       <PageContainer>
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-12">
-          <PageHeader
-            title="Link Card Maker"
-            description="Share a link that looks like a different website. The card shows that site's own title and image."
-          />
+          <PageHeader title="Link Card Maker" />
 
           <form method="get" className="flex flex-col gap-4">
             <label htmlFor="card-url" className="flex flex-col gap-2">
               <Text as="span" size="sm" weight="medium">
-                Website to show
+                Website
               </Text>
               <Input
                 id="card-url"

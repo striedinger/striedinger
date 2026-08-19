@@ -85,10 +85,6 @@ export async function CardResult({ targetUrl }: CardResultProps) {
           </Text>
         </div>
       </dl>
-      <Text size="sm" tone="muted">
-        Anyone who opens it goes straight to that site. Apps remember a preview once they have seen
-        it, so set everything up first.
-      </Text>
     </section>
   );
 }
