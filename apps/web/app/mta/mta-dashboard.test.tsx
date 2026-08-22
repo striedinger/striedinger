@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MtaLabels } from "./types";
+import type { Coordinates, MtaLabels } from "./types";
 
 import { MtaDashboard } from "./mta-dashboard";
+import { useMtaNavigation } from "./mta-navigation-provider";
 
 const navigationMocks = vi.hoisted(function createNavigationMocks() {
   return {
@@ -16,19 +17,33 @@ vi.mock("next/navigation", function mockNavigation() {
   return { useRouter: () => navigationMocks };
 });
 
-vi.mock("./train-filter", function mockTrainFilter() {
-  return {
-    TrainFilter: MockTrainFilter,
-  };
+vi.mock("./mta-location-controls", function mockLocationControls() {
+  return { MtaLocationControls: () => null };
 });
 
-function MockTrainFilter({ onSelectRoute }: { onSelectRoute: (route: string | null) => void }) {
+vi.mock("./mta-refresh-controls", function mockRefreshControls() {
+  return { MtaRefreshControls: () => null };
+});
+
+vi.mock("./train-filter", function mockTrainFilter() {
+  return { TrainFilter: MockTrainFilter };
+});
+
+function MockTrainFilter({
+  coordinates,
+  locationName,
+}: {
+  coordinates: Coordinates;
+  locationName: string;
+}) {
+  const { actions } = useMtaNavigation();
+
   return (
     <button
       type="button"
       aria-label="Filter by train: A"
       onClick={function selectTrain() {
-        onSelectRoute("A");
+        actions.navigateToLocation(coordinates.latitude, coordinates.longitude, locationName, "A");
       }}
     >
       A

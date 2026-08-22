@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@workspace/ui/components/button";
 import {
   Carousel,
@@ -8,21 +10,35 @@ import {
 } from "@workspace/ui/components/carousel";
 import { Text } from "@workspace/ui/components/text";
 
-import type { MtaLabels } from "./types";
+import type { Coordinates, MtaLabels } from "./types";
 
+import { useMtaNavigation } from "./mta-navigation-provider";
 import { TrainIcon } from "./train-icon";
 
 interface TrainFilterProps {
+  coordinates: Coordinates;
   labels: MtaLabels;
+  locationName: string;
   routes: readonly string[];
   selectedRoute: string | null;
-  onSelectRoute: (route: string | null) => void;
 }
 
 const carouselOptions = { align: "start", dragFree: true } as const;
 
-export function TrainFilter({ labels, onSelectRoute, routes, selectedRoute }: TrainFilterProps) {
+export function TrainFilter({
+  coordinates,
+  labels,
+  locationName,
+  routes,
+  selectedRoute,
+}: TrainFilterProps) {
+  const { actions } = useMtaNavigation();
   const availableRoutes = new Set(routes);
+
+  function selectRoute(route: string | null) {
+    actions.navigateToLocation(coordinates.latitude, coordinates.longitude, locationName, route);
+  }
+
   return (
     <div className="flex flex-col gap-3" aria-label={labels.filterByTrain}>
       <div className="flex items-center justify-between gap-3">
@@ -42,7 +58,7 @@ export function TrainFilter({ labels, onSelectRoute, routes, selectedRoute }: Tr
               variant={selectedRoute === null ? "default" : "outline"}
               aria-pressed={selectedRoute === null}
               onClick={function selectAllTrains() {
-                onSelectRoute(null);
+                selectRoute(null);
               }}
               className="h-10 rounded-full px-4 shadow-none"
             >
@@ -79,8 +95,8 @@ export function TrainFilter({ labels, onSelectRoute, routes, selectedRoute }: Tr
                         variant="ghost"
                         aria-label={`${labels.filterByTrain}: ${route}`}
                         aria-pressed={isSelected}
-                        onClick={function selectRoute() {
-                          onSelectRoute(isSelected ? null : route);
+                        onClick={function selectTrainRoute() {
+                          selectRoute(isSelected ? null : route);
                         }}
                         className={`relative z-10 rounded-full p-0 hover:bg-transparent ${isSelected ? "scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-card" : "opacity-75 hover:scale-105 hover:opacity-100"}`}
                       >

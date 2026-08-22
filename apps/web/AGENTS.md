@@ -21,8 +21,8 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 
 - Keep shareable, prefillable tool inputs in query parameters when the state belongs in the URL.
 - Update lightweight query state without unnecessary route renders or browser-history entries.
-- Do not trigger remote side effects merely by opening a shared URL; require an explicit user action.
-- Normalize URLs when comparing them and prevent duplicate submission of a URL whose successful result is already displayed. Enforce duplicate guards in both the client interaction and the server action.
+- Treat submitted read-only query parameters as load intent and resolve them through Server Components. Never trigger mutations or other write side effects merely by opening a shared URL.
+- Normalize remote URL inputs at the validation and fetch boundary, and avoid redundant navigation when the requested URL is already current.
 
 ## Local-only tools
 
@@ -43,7 +43,8 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 ## Live data tools
 
 - Stream slow initial live-data requests behind stable Suspense fallbacks instead of blocking the page shell and heading.
-- Keep read-only live-data operations behind validated, rate-limited Server Actions when avoiding a public API surface is an explicit product requirement. Debounce client requests and ignore stale results.
+- Drive internal read-only data through Server Components keyed by route params or search params. Use string-action `next/form` submissions or client navigation to update URL state, and debounce live-search navigation where appropriate.
+- Do not use Server Actions or Route Handlers for internal reads. Reserve Server Actions for mutations and Route Handlers for external HTTP contracts such as webhooks, public APIs, redirects, or non-page responses.
 - Render one responsive content tree; do not duplicate mobile and desktop trees and hide one with CSS.
 - Pause periodic refreshes while the document is hidden, validate and rate-limit action inputs, and cache upstream data where freshness permits.
 - Implement autocomplete inputs with complete combobox semantics and keyboard navigation.
@@ -64,4 +65,4 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Support established legacy aliases such as `twitter:image:src` and secure Open Graph image URLs when primary image tags are absent.
 - Render previews at realistic social-feed card dimensions and adapt the image treatment to the declared card type.
 - Measure remote preview work on the server and surface the completed duration alongside the normalized preview URL.
-- Preserve all usable document-head metadata for raw inspection, including duplicate meta names, the document title, and canonical URL. Bound tag counts and value lengths before returning Server Action state.
+- Preserve all usable document-head metadata for raw inspection, including duplicate meta names, the document title, and canonical URL. Bound tag counts and value lengths before returning data from the server loader.

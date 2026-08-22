@@ -1,7 +1,7 @@
 import type { LiveStation, MtaLabels } from "./types";
 
+import { MasonryGrid } from "./masonry-grid";
 import { StationCard } from "./station-card";
-import { useMasonryGrid } from "./use-masonry-grid";
 
 interface StationGridProps {
   labels: MtaLabels;
@@ -15,10 +15,9 @@ export function StationGrid({ labels, locale, stations }: StationGridProps) {
       return `${station.id}:${station.arrivals.length}`;
     })
     .join("|");
-  const gridElement = useMasonryGrid(layoutKey);
 
   return (
-    <div ref={gridElement} className="grid grid-flow-row-dense items-start gap-4 lg:grid-cols-2">
+    <MasonryGrid layoutKey={layoutKey}>
       {stations.map(function renderStation(station) {
         return (
           <div key={station.id} data-masonry-item>
@@ -26,6 +25,6 @@ export function StationGrid({ labels, locale, stations }: StationGridProps) {
           </div>
         );
       })}
-    </div>
+    </MasonryGrid>
   );
 }

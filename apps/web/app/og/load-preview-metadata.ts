@@ -1,5 +1,4 @@
-"use server";
-
+import "server-only";
 import { headers } from "next/headers";
 
 import type { PreviewState } from "../../lib/og/types";
@@ -9,26 +8,8 @@ import { parsePageMetadata } from "../../lib/og/parse-page-metadata";
 import { PreviewError } from "../../lib/og/preview-error";
 import { enforcePreviewRateLimit } from "../../lib/og/rate-limit";
 import { sanitizePageMetadata } from "../../lib/og/sanitize-page-metadata";
-import { normalizePreviewUrl } from "./normalize-preview-url";
 
-export async function previewMetadata(
-  previousState: PreviewState,
-  formData: FormData,
-): Promise<PreviewState> {
-  const submittedUrl = formData.get("url");
-  const url = typeof submittedUrl === "string" ? submittedUrl.trim() : "";
-
-  if (!url) {
-    return { status: "error", url, error: "invalid-url" };
-  }
-
-  if (
-    previousState.status === "success" &&
-    normalizePreviewUrl(previousState.url) === normalizePreviewUrl(url)
-  ) {
-    return previousState;
-  }
-
+export async function loadPreviewMetadata(url: string): Promise<PreviewState> {
   const requestStartedAt = performance.now();
 
   try {
@@ -41,6 +22,7 @@ export async function previewMetadata(
     const page = await fetchPageHtml(url);
     const parsedMetadata = parsePageMetadata(page.html, page.url);
     const metadata = await sanitizePageMetadata(parsedMetadata);
+
     return {
       status: "success",
       url,

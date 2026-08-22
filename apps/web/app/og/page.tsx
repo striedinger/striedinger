@@ -3,16 +3,17 @@ import type { Metadata } from "next";
 import { PageContainer } from "@workspace/ui/components/page-container";
 import { PageHeader } from "@workspace/ui/components/page-header";
 import { PageShell } from "@workspace/ui/components/page-shell";
+import { Suspense } from "react";
 
 import type { OgPreviewLabels } from "../../lib/og/labels";
-import type { PreviewState } from "../../lib/og/types";
 
 import { JsonLd } from "../../components/json-ld";
 import { ToolDetails } from "../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getOgTranslator } from "../../messages/og/get-translator";
 import { getRequestLocale } from "../get-request-locale";
-import { OgPreviewForm } from "./og-preview-form";
+import { OgPreviewFormLoader } from "./og-preview-form-loader";
+import { OgPreviewFormSkeleton } from "./og-preview-form-skeleton";
 
 interface OpenGraphPreviewPageProps {
   searchParams: Promise<{
@@ -36,9 +37,9 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
   const requestedUrl = Array.isArray(resolvedSearchParams.url)
     ? resolvedSearchParams.url[0]
     : resolvedSearchParams.url;
-  const initialUrl = requestedUrl?.slice(0, 2048) ?? "";
+  const initialUrl = requestedUrl?.slice(0, 2048).trim() ?? "";
   const translate = await getOgTranslator(locale);
-  const initialState: PreviewState = { status: "idle", url: initialUrl };
+
   const labels: OgPreviewLabels = {
     button: translate("Preview cards"),
     checking: translate("Checking…"),
@@ -93,7 +94,9 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
           <div className="flex flex-col gap-12">
             <PageHeader title={labels.heading} description={labels.description} />
 
-            <OgPreviewForm key={initialUrl} initialState={initialState} labels={labels} />
+            <Suspense key={initialUrl} fallback={<OgPreviewFormSkeleton />}>
+              <OgPreviewFormLoader initialUrl={initialUrl} labels={labels} />
+            </Suspense>
           </div>
 
           <ToolDetails

@@ -1,16 +1,12 @@
-"use client";
-
 import { Input } from "@workspace/ui/components/input";
 import { Text } from "@workspace/ui/components/text";
-import { useActionState, useState, type ChangeEvent, type FormEvent } from "react";
+import Form from "next/form";
 
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
 
 import { SocialCardPreview } from "../../components/social-card-preview";
-import { previewMetadata } from "./actions";
 import { MetadataTable } from "./metadata-table";
-import { normalizePreviewUrl } from "./normalize-preview-url";
 import { OgSubmitButton } from "./og-submit-button";
 
 interface OgPreviewFormProps {
@@ -19,39 +15,9 @@ interface OgPreviewFormProps {
 }
 
 export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
-  const [state, formAction, pending] = useActionState(previewMetadata, initialState, "/og");
-  const [url, setUrl] = useState(initialState.url);
-  const isAlreadyPreviewed =
-    state.status === "success" && normalizePreviewUrl(state.url) === normalizePreviewUrl(url);
-
-  function handleUrlChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextUrl = event.currentTarget.value;
-    const browserUrl = new URL(window.location.href);
-
-    setUrl(nextUrl);
-
-    if (nextUrl) {
-      browserUrl.searchParams.set("url", nextUrl);
-    } else {
-      browserUrl.searchParams.delete("url");
-    }
-
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${browserUrl.pathname}${browserUrl.search}${browserUrl.hash}`,
-    );
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (isAlreadyPreviewed) {
-      event.preventDefault();
-    }
-  }
-
   return (
     <div className="flex flex-col gap-16">
-      <form action={formAction} className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <Form action="/og" className="flex flex-col gap-4" replace scroll={false}>
         <Text as="label" className="sr-only" htmlFor="preview-url">
           {labels.urlLabel}
         </Text>
@@ -64,57 +30,48 @@ export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
             inputMode="url"
             autoCapitalize="none"
             autoCorrect="off"
-            value={url}
-            onChange={handleUrlChange}
+            defaultValue={initialState.url}
             placeholder={labels.urlPlaceholder}
             required
             maxLength={2048}
             aria-describedby="preview-security preview-error"
           />
-          <OgSubmitButton
-            label={labels.button}
-            checkingLabel={labels.checking}
-            disabled={isAlreadyPreviewed}
-          />
+          <OgSubmitButton label={labels.button} checkingLabel={labels.checking} />
         </div>
         <Text id="preview-security" size="xs" tone="muted" className="leading-relaxed">
           {labels.security}
         </Text>
         <div id="preview-error" aria-live="polite">
-          {state.status === "error" ? (
+          {initialState.status === "error" ? (
             <Text size="sm" tone="destructive">
-              {labels.errors[state.error]}
+              {labels.errors[initialState.error]}
             </Text>
           ) : null}
         </div>
-      </form>
+      </Form>
 
-      <div
-        className="flex flex-col gap-12 transition-opacity duration-200"
-        aria-busy={pending}
-        aria-label={labels.previewRegion}
-      >
-        {state.status === "success" ? (
+      <div className="flex flex-col gap-12" aria-label={labels.previewRegion}>
+        {initialState.status === "success" ? (
           <>
             <Text size="sm" tone="muted">
               {labels.previewing
-                .replace("{url}", state.url)
-                .replace("{duration}", String(state.durationMilliseconds))}
+                .replace("{url}", initialState.url)
+                .replace("{duration}", String(initialState.durationMilliseconds))}
             </Text>
             <SocialCardPreview
-              metadata={state.metadata}
+              metadata={initialState.metadata}
               platform="twitter"
               title={labels.twitter}
             />
             <SocialCardPreview
-              metadata={state.metadata}
+              metadata={initialState.metadata}
               platform="open-graph"
               title={labels.openGraph}
             />
             <MetadataTable
               heading={labels.metadata}
               description={labels.metadataDescription}
-              tags={state.metadata.tags}
+              tags={initialState.metadata.tags}
             />
           </>
         ) : null}
