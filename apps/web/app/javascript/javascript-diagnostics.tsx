@@ -33,6 +33,7 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
         cancelled = true;
       };
     },
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Refresh clicks intentionally repeat collection.
     [labels, refreshCount],
   );
 

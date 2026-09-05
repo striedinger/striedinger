@@ -49,6 +49,7 @@ export function useMasonryGrid(layoutKey: string): RefObject<HTMLDivElement | nu
         }
       };
     },
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- New station DOM requires reconnecting the observers.
     [layoutKey],
   );
 

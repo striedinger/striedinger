@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
+import { readStoredValue, removeStoredValue, writeStoredValue } from "../../lib/browser-storage";
 import { playStockHaptic } from "./haptics";
 import { MarketSessionIndicator } from "./market-session-indicator";
 import { StockChart } from "./stock-chart";
@@ -53,17 +54,21 @@ export function StockDashboard({
     function restoreWatchlist() {
       const timeoutId = window.setTimeout(function readStoredWatchlist() {
         try {
-          const storedValue = window.localStorage.getItem(storageKey);
+          const storedValue = readStoredValue(storageKey);
           if (!storedValue) return;
           const parsedValue = JSON.parse(storedValue) as unknown;
           if (!Array.isArray(parsedValue)) return;
           const validStocks = parsedValue.filter(isStockIdentity).slice(0, 30);
-          if (validStocks.length > 0) {
+          if (validStocks.length > 0 || parsedValue.length === 0) {
             const restoredStocks = isPreviousDefaultWatchlist(validStocks)
               ? [...validStocks, spaceXStock]
               : validStocks;
             setWatchlist(restoredStocks);
-            if (!isSharedSelection && restoredStocks[0]?.symbol !== selectedStock.symbol) {
+            if (
+              !isSharedSelection &&
+              restoredStocks[0] &&
+              restoredStocks[0].symbol !== selectedStock.symbol
+            ) {
               const restoredStock = restoredStocks[0]!;
               const parameters = new URLSearchParams({
                 symbol: restoredStock.symbol,
@@ -74,11 +79,11 @@ export function StockDashboard({
               });
             }
             if (restoredStocks !== validStocks) {
-              window.localStorage.setItem(storageKey, JSON.stringify(restoredStocks));
+              writeStoredValue(storageKey, JSON.stringify(restoredStocks));
             }
           }
         } catch {
-          window.localStorage.removeItem(storageKey);
+          removeStoredValue(storageKey);
         }
       }, 0);
       return function cancelStoredWatchlistRead() {
@@ -125,7 +130,7 @@ export function StockDashboard({
 
   function persistWatchlist(nextWatchlist: StockIdentity[]) {
     setWatchlist(nextWatchlist);
-    window.localStorage.setItem(storageKey, JSON.stringify(nextWatchlist));
+    writeStoredValue(storageKey, JSON.stringify(nextWatchlist));
   }
 
   function addStock(stock: StockIdentity) {
@@ -438,7 +443,8 @@ function isStockIdentity(value: unknown): value is StockIdentity {
     /^[A-Z0-9.:-]{1,20}$/.test(stock.symbol) &&
     typeof stock.name === "string" &&
     typeof stock.exchange === "string" &&
-    typeof stock.currency === "string"
+    typeof stock.currency === "string" &&
+    /^[A-Z]{3}$/.test(stock.currency)
   );
 }
 

@@ -1,0 +1,1905 @@
+{
+  "tooling": [
+    {
+      "kind": "cold-build",
+      "variant": "after",
+      "iteration": 0,
+      "seconds": 12.254341357000158,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-cold-build-after-0.log"
+    },
+    {
+      "kind": "cold-build",
+      "variant": "before",
+      "iteration": 0,
+      "seconds": 12.561239638000188,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-cold-build-before-0.log"
+    },
+    {
+      "kind": "cold-build",
+      "variant": "before",
+      "iteration": 1,
+      "seconds": 12.265965426000548,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-cold-build-before-1.log"
+    },
+    {
+      "kind": "cold-build",
+      "variant": "after",
+      "iteration": 1,
+      "seconds": 12.290016679000473,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-cold-build-after-1.log"
+    },
+    {
+      "kind": "cold-build",
+      "variant": "after",
+      "iteration": 2,
+      "seconds": 12.566459278001275,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-cold-build-after-2.log"
+    },
+    {
+      "kind": "cold-build",
+      "variant": "before",
+      "iteration": 2,
+      "seconds": 13.071292668999376,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-cold-build-before-2.log"
+    },
+    {
+      "kind": "full-tests",
+      "variant": "after",
+      "iteration": 0,
+      "seconds": 6.107891121000648,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-full-tests-after-0.log"
+    },
+    {
+      "kind": "full-tests",
+      "variant": "before",
+      "iteration": 0,
+      "seconds": 5.077630133999264,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-full-tests-before-0.log"
+    },
+    {
+      "kind": "full-tests",
+      "variant": "before",
+      "iteration": 1,
+      "seconds": 5.285758636999162,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-full-tests-before-1.log"
+    },
+    {
+      "kind": "full-tests",
+      "variant": "after",
+      "iteration": 1,
+      "seconds": 5.875201938999453,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-full-tests-after-1.log"
+    },
+    {
+      "kind": "full-tests",
+      "variant": "after",
+      "iteration": 2,
+      "seconds": 5.8418773129997135,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-full-tests-after-2.log"
+    },
+    {
+      "kind": "full-tests",
+      "variant": "before",
+      "iteration": 2,
+      "seconds": 5.326632733000224,
+      "exit_code": 0,
+      "log": "/tmp/bench-direct-full-tests-before-2.log"
+    }
+  ],
+  "json": [
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 0,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.003183212800000001,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 0,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0018399051999999983,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 1,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0014697872000000074,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 1,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0012047841999999946,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 2,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011175443999999971,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 2,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0012264409999999998,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 3,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011281822000000035,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 3,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011701678000000015,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 4,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.001166784800000005,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 4,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011137606000000005,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 5,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.001078515200000004,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 5,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0018110451999999895,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 6,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0012802966000000082,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 6,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0013284994000000098,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 7,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011743701999999984,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 7,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011450638000000026,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 8,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011844014000000015,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 8,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0010949621999999976,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 9,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0012097497999999972,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 9,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011331620000000044,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 10,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011065135999999939,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 10,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.001539452600000004,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 11,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0010955010000000015,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 11,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0010991126000000008,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 12,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0010900447999999984,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 12,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011437459999999987,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 13,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011598041999999963,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 13,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.001152901799999995,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "before",
+      "round": 14,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0011264799999999922,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "small",
+      "variant": "after",
+      "round": 14,
+      "inputBytes": 52,
+      "batch": 5000,
+      "msPerOperation": 0.0010851773999999979,
+      "formattedCharacters": 93,
+      "resultTransferBytes": 240
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 0,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.10984834999999976,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 0,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08783926000000065,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 1,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08570954000000029,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 1,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.13178293000000052,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 2,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.19660648000000036,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 2,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08430321000000049,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 3,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08404943000000004,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 3,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08604473999999981,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 4,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08416090000000054,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 4,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08931009000000018,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 5,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09077519999999936,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 5,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08565004999999928,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 6,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09102028000000019,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 6,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09493498999999929,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 7,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.0874127199999998,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 7,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09083799999999996,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 8,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09047834999999964,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 8,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08515160000000037,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 9,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.10275116000000026,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 9,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09341480000000046,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 10,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.12368212999999968,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 10,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08757565999999997,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 11,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09742135000000075,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 11,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.11324238000000036,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 12,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09741744999999924,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 12,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09082758000000013,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 13,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.0892293600000005,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 13,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.09036689000000024,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "before",
+      "round": 14,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.0947223699999995,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "typical",
+      "variant": "after",
+      "round": 14,
+      "inputBytes": 7031,
+      "batch": 100,
+      "msPerOperation": 0.08893712000000051,
+      "formattedCharacters": 12632,
+      "resultTransferBytes": 22341
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 0,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 4.793634700000007,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 0,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9945112000000108,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 1,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9802046000000019,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 1,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.807058400000005,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 2,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.9485404000000015,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 2,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.0057712000000039,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 3,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.022038899999984,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 3,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.7164933999999903,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 4,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.7701456000000007,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 4,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.0002500000000054,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 5,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9472588000000087,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 5,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.767572700000005,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 6,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.9852317999999967,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 6,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.2136297000000014,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 7,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.0242713000000094,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 7,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 4.3155125,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 8,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 4.347233400000005,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 8,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9503263999999945,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 9,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9705691000000115,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 9,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.6575972999999977,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 10,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.7926123000000187,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 10,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9856087000000116,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 11,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.0342803999999888,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 11,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.5066507999999885,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 12,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.6427007000000002,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 12,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 1.0905665,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 13,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.962378600000011,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 13,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.5847890000000007,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "before",
+      "round": 14,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 3.5960571000000074,
+      "formattedCharacters": 500002,
+      "resultTransferBytes": 800082
+    },
+    {
+      "name": "large_flat",
+      "variant": "after",
+      "round": 14,
+      "inputBytes": 200001,
+      "batch": 10,
+      "msPerOperation": 0.9494440000000168,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 0,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5483450000000176,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 0,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.07898949999998876,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 1,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.0703424000000041,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 1,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.6022924000000103,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 2,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5594927999999983,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 2,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.06725569999998697,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 3,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.059884599999986673,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 3,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5513102999999773,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 4,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5474946000000274,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 4,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.0643543000000136,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 5,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.0658647000000201,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 5,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5954841000000215,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 6,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.570403299999998,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 6,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.06663079999998445,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 7,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.07014810000000579,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 7,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.576537499999995,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 8,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5757662999999864,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 8,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.059892599999966475,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 9,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.0626437000000351,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 9,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5385571000000255,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 10,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.9769700999999715,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 10,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.06753420000000006,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 11,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.06142289999997956,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 11,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.564462299999968,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 12,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5732996000000186,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 12,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.0589621999999963,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 13,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.063742400000001,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 13,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.5675679999999828,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "before",
+      "round": 14,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 3.8194449000000077,
+      "formattedCharacters": 2004001,
+      "resultTransferBytes": 2008080
+    },
+    {
+      "name": "nested_1000",
+      "variant": "after",
+      "round": 14,
+      "inputBytes": 2001,
+      "batch": 10,
+      "msPerOperation": 0.06502929999996923,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 0,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 0,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1402235000000018,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 1,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1580826000000344,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 1,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 2,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 2,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1578020999999807,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 3,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.118448699999999,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 3,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 4,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 4,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.189843699999983,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 5,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1514695999999731,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 5,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 6,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 6,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1494485000000167,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 7,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.2040751999999884,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 7,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 8,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 8,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.2178239000000304,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 9,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1578020999999807,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 9,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 10,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 10,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.2096947,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 11,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1443999000000076,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 11,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 12,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 12,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.161229400000002,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 13,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.1628207000000201,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 13,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "before",
+      "round": 14,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": null,
+      "error": "RangeError: Maximum call stack size exceeded",
+      "formattedCharacters": 0,
+      "resultTransferBytes": null
+    },
+    {
+      "name": "nested_20000",
+      "variant": "after",
+      "round": 14,
+      "inputBytes": 40001,
+      "batch": 10,
+      "msPerOperation": 1.2695521999999984,
+      "formattedCharacters": 0,
+      "resultTransferBytes": 62
+    }
+  ],
+  "bundles": [
+    {
+      "variant": "before",
+      "page": "index",
+      "scriptCount": 13,
+      "rawBytes": 794810,
+      "gzipBytes": 253472
+    },
+    {
+      "variant": "before",
+      "page": "json",
+      "scriptCount": 15,
+      "rawBytes": 838229,
+      "gzipBytes": 268728
+    },
+    {
+      "variant": "before",
+      "page": "stocks",
+      "scriptCount": 15,
+      "rawBytes": 871681,
+      "gzipBytes": 280021
+    },
+    {
+      "variant": "before",
+      "page": "pdf",
+      "scriptCount": 16,
+      "rawBytes": 855437,
+      "gzipBytes": 274553
+    },
+    {
+      "variant": "before",
+      "page": "image",
+      "scriptCount": 15,
+      "rawBytes": 844630,
+      "gzipBytes": 270765
+    },
+    {
+      "variant": "after",
+      "page": "index",
+      "scriptCount": 13,
+      "rawBytes": 804612,
+      "gzipBytes": 257315
+    },
+    {
+      "variant": "after",
+      "page": "json",
+      "scriptCount": 15,
+      "rawBytes": 848062,
+      "gzipBytes": 272579
+    },
+    {
+      "variant": "after",
+      "page": "stocks",
+      "scriptCount": 15,
+      "rawBytes": 881820,
+      "gzipBytes": 283965
+    },
+    {
+      "variant": "after",
+      "page": "pdf",
+      "scriptCount": 16,
+      "rawBytes": 865311,
+      "gzipBytes": 278419
+    },
+    {
+      "variant": "after",
+      "page": "image",
+      "scriptCount": 15,
+      "rawBytes": 854442,
+      "gzipBytes": 274606
+    }
+  ],
+  "stock": {
+    "before": [
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 0,
+        "ms": 100.23247500000002
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 1,
+        "ms": 100.16326500000014
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 2,
+        "ms": 100.52663500000017
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 3,
+        "ms": 100.58130200000005
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 4,
+        "ms": 100.52737200000001
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 0,
+        "ms": 501.38580100000013
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 1,
+        "ms": 501.2262230000001
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 2,
+        "ms": 501.10143800000014
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 3,
+        "ms": 501.1509580000002
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 4,
+        "ms": 501.3332660000001
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 0,
+        "ms": 601.3272969999994
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 1,
+        "ms": 601.1347679999999
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 2,
+        "ms": 628.8022970000002
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 3,
+        "ms": 603.8857260000004
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 4,
+        "ms": 601.5340910000004
+      }
+    ],
+    "after": [
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 0,
+        "ms": 101.19705299999998
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 1,
+        "ms": 100.54815000000008
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 2,
+        "ms": 100.51054399999998
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 3,
+        "ms": 100.52397899999983
+      },
+      {
+        "search": 0,
+        "series": 100,
+        "query": "",
+        "iteration": 4,
+        "ms": 100.5349389999999
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 0,
+        "ms": 313.9479000000001
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 1,
+        "ms": 303.91943400000014
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 2,
+        "ms": 301.14906999999994
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 3,
+        "ms": 301.24007200000005
+      },
+      {
+        "search": 200,
+        "series": 300,
+        "query": "Tesla",
+        "iteration": 4,
+        "ms": 302.26168099999995
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 0,
+        "ms": 501.29492600000003
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 1,
+        "ms": 501.0427319999999
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 2,
+        "ms": 501.3380239999997
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 3,
+        "ms": 501.0866070000002
+      },
+      {
+        "search": 500,
+        "series": 100,
+        "query": "Tesla",
+        "iteration": 4,
+        "ms": 500.15067
+      }
+    ]
+  }
+}

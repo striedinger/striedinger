@@ -56,7 +56,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
   }
 
   async function runOperation(operation: "compress" | "unlock") {
-    if (!file) return;
+    if (!file || isProcessing) return;
     setIsProcessing(true);
     setResult(undefined);
     setError("");
@@ -122,6 +122,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
             type="button"
             size="sm"
             variant="outline"
+            disabled={isProcessing}
             onClick={function replaceFile() {
               setFile(undefined);
               setResult(undefined);

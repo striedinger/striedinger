@@ -22,7 +22,6 @@
     "maxWarnings": 0
   },
   "rules": {
-    "react/react-compiler": "error",
     "react/react-in-jsx-scope": "off",
     "react/no-array-index-key": "error",
     "react/rules-of-hooks": "error",
@@ -39,14 +38,33 @@
     "typescript/no-unsafe-type-assertion": "off",
     "typescript/no-unnecessary-type-assertion": "off",
     "unicorn/require-post-message-target-origin": "off",
-    "nextjs/no-img-element": "error"
+    "nextjs/no-img-element": "error",
+    "react-hooks-js/static-components": "error",
+    "react-hooks-js/use-memo": "error",
+    "react-hooks-js/preserve-manual-memoization": "error",
+    "react-hooks-js/incompatible-library": "error",
+    "react-hooks-js/immutability": "error",
+    "react-hooks-js/globals": "error",
+    "react-hooks-js/refs": "error",
+    "react-hooks-js/set-state-in-effect": "error",
+    "react-hooks-js/error-boundaries": "error",
+    "react-hooks-js/purity": "error",
+    "react-hooks-js/set-state-in-render": "error",
+    "react-hooks-js/unsupported-syntax": "error",
+    "react-hooks-js/config": "error",
+    "react-hooks-js/gating": "error"
   },
   "settings": {
     "next": {
       "rootDir": "apps/web/"
     },
     "react": {
-      "linkComponents": [{ "name": "Link", "linkAttribute": "href" }]
+      "linkComponents": [
+        {
+          "name": "Link",
+          "linkAttribute": "href"
+        }
+      ]
     },
     "jsx-a11y": {
       "components": {
@@ -77,6 +95,12 @@
       "rules": {
         "nextjs/no-img-element": "off"
       }
+    }
+  ],
+  "jsPlugins": [
+    {
+      "name": "react-hooks-js",
+      "specifier": "eslint-plugin-react-hooks"
     }
   ]
 }

@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/react": "latest",
+    "@types/react": "^19.2.18",
     "react": "^19.2.8",
     "typescript": "7.0.2"
   },

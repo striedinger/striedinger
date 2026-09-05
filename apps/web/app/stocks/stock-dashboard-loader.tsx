@@ -32,12 +32,18 @@ export async function StockDashboardLoader({
         return [];
       })
     : Promise.resolve([]);
-  const [initialStock, searchResults] = await Promise.all([stockPromise, searchResultsPromise]);
-  const initialSeries = await getStockSeries(initialStock, initialTimeframe).catch(
-    function useUnavailableInitialSeries() {
+  const seriesPromise = stockPromise
+    .then(function loadInitialSeries(initialStock) {
+      return getStockSeries(initialStock, initialTimeframe);
+    })
+    .catch(function useUnavailableInitialSeries() {
       return null;
-    },
-  );
+    });
+  const [initialStock, searchResults, initialSeries] = await Promise.all([
+    stockPromise,
+    searchResultsPromise,
+    seriesPromise,
+  ]);
   return (
     <StockDashboard
       initialSeries={initialSeries}

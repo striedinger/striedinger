@@ -1,6 +1,6 @@
 "use client";
 
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy } from "pdfjs-dist";
 
 import { Text } from "@workspace/ui/components/text";
 import { useEffect, useState } from "react";
@@ -31,25 +31,26 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
   useEffect(
     function loadPreview() {
       let cancelled = false;
-      let destroyDocument: (() => Promise<void>) | undefined;
+      let loadingTask: PDFDocumentLoadingTask | undefined;
 
       async function load() {
         setStatus("loading");
         setError("");
+        setDocument(undefined);
+        setPageSizes([]);
         try {
-          const pdfjs = await import("pdfjs-dist");
+          const [pdfjs, buffer] = await Promise.all([import("pdfjs-dist"), file.arrayBuffer()]);
+          if (cancelled) return;
           pdfjs.GlobalWorkerOptions.workerSrc = new URL(
             "pdfjs-dist/build/pdf.worker.min.mjs",
             import.meta.url,
           ).toString();
-          const loadingTask = pdfjs.getDocument({
-            data: new Uint8Array(await file.arrayBuffer()),
+          loadingTask = pdfjs.getDocument({
+            data: new Uint8Array(buffer),
             password: password || undefined,
           });
           const loadedDocument = await loadingTask.promise;
-          destroyDocument = function destroyLoadedDocument() {
-            return loadingTask.destroy();
-          };
+          if (cancelled) return;
 
           const sizes = await Promise.all(
             Array.from({ length: loadedDocument.numPages }, async function measurePage(_, index) {
@@ -66,6 +67,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           setPageSizes(sizes);
           setStatus("ready");
         } catch (cause) {
+          await loadingTask?.destroy();
           if (cancelled) return;
           const name = cause instanceof Error ? cause.name : "";
           const passwordError = name === "PasswordException";
@@ -82,7 +84,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
       void load();
       return function cleanUpPreview() {
         cancelled = true;
-        void destroyDocument?.();
+        void loadingTask?.destroy();
       };
     },
     [

@@ -1,5 +1,7 @@
 import type { Podcast, PodcastEpisode, PodcastProgress } from "./types";
 
+import { readStoredValue, removeStoredValue, writeStoredValue } from "../../lib/browser-storage";
+
 const progressStorageKey = "podcast-progress:v1";
 const maximumProgressItems = 30;
 
@@ -10,13 +12,13 @@ interface StoredProgress {
 
 export function readPodcastProgress(): PodcastProgress[] {
   try {
-    const storedValue = window.localStorage.getItem(progressStorageKey);
+    const storedValue = readStoredValue(progressStorageKey);
     if (!storedValue) return [];
     const parsedValue = JSON.parse(storedValue) as unknown;
     if (!isStoredProgress(parsedValue)) throw new Error("Invalid podcast progress");
     return parsedValue.items.slice(0, maximumProgressItems);
   } catch {
-    window.localStorage.removeItem(progressStorageKey);
+    removeStoredValue(progressStorageKey);
     return [];
   }
 }
@@ -64,7 +66,7 @@ export function removePodcastProgress(episodeId: string): PodcastProgress[] {
 
 function writeProgress(items: PodcastProgress[]) {
   const storedProgress: StoredProgress = { version: 1, items };
-  window.localStorage.setItem(progressStorageKey, JSON.stringify(storedProgress));
+  writeStoredValue(progressStorageKey, JSON.stringify(storedProgress));
 }
 
 function isStoredProgress(value: unknown): value is StoredProgress {

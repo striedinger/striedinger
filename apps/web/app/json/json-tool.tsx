@@ -60,9 +60,10 @@ export function JsonTool({ labels }: JsonToolProps) {
           },
         );
         jsonWorker.addEventListener("error", function handleWorkerError() {
-          setValidationResult({ status: "invalid", error: labels.tooComplex });
+          if (!cancelled) setValidationResult({ status: "invalid", error: labels.tooComplex });
           jsonWorker.terminate();
         });
+        jsonWorker.postMessage(input);
       }, 1_000);
 
       function applyValidationResult(response: JsonWorkerResponse) {

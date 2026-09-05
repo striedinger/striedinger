@@ -112,78 +112,99 @@ async function loadNearbyStations({
   );
 
   const feedResults = await Promise.all(
-    [...feeds].map(async function loadFeed(feed) {
-      try {
-        const response = await fetch(
-          `https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2F${feed}`,
-          {
-            headers: { Accept: "application/x-protobuf", "User-Agent": "Mozilla/5.0" },
-            signal: AbortSignal.timeout(8_000),
-            next: { revalidate: 30 },
-          },
-        );
-        if (!response.ok) return false;
-        const message = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
-          new Uint8Array(await response.arrayBuffer()),
-        );
-        const currentTime = Date.now() / 1_000;
-
-        for (const entity of message.entity) {
-          const route = normalizeRoute(entity.tripUpdate?.trip?.routeId?.replace(/X$/, "") ?? "");
-          if (!route) continue;
-          for (const update of entity.tripUpdate?.stopTimeUpdate ?? []) {
-            const directionalStopId = update.stopId;
-            const arrivalTime = Number(update.arrival?.time ?? update.departure?.time ?? 0);
-            if (
-              !directionalStopId ||
-              !arrivalTime ||
-              arrivalTime < currentTime - 30 ||
-              arrivalTime > currentTime + 7_200
-            )
-              continue;
-            const directionCode = directionalStopId.slice(-1);
-            const station = nearbyStationById.get(directionalStopId.replace(/[NS]$/, ""));
-            if (!station) continue;
-            station.arrivals.push({
-              route,
-              direction:
-                directionCode === "N"
-                  ? "Northbound"
-                  : directionCode === "S"
-                    ? "Southbound"
-                    : "Service",
-              destination: destinationForRoute(route, directionCode),
-              minutes: Math.max(0, Math.round((arrivalTime - currentTime) / 60)),
-              arrivalAt: new Date(arrivalTime * 1_000).toISOString(),
-            });
-          }
-        }
-        return true;
-      } catch {
-        return false;
-      }
+    [...feeds].map(function loadFeed(feed) {
+      return loadFeedArrivals(feed).catch(function markUnavailableFeed() {
+        return null;
+      });
     }),
   );
-
-  if (feeds.size > 0 && !feedResults.some(Boolean))
+  if (
+    feeds.size > 0 &&
+    !feedResults.some(function succeeded(result) {
+      return result !== null;
+    })
+  )
     throw new Error("Every MTA realtime feed failed");
 
+  const currentTime = Date.now() / 1_000;
+  for (const feed of feedResults) {
+    if (!feed) continue;
+    for (const arrival of feed) {
+      if (arrival.time < currentTime - 30 || arrival.time > currentTime + 7_200) continue;
+      const station = nearbyStationById.get(arrival.stationId);
+      if (!station) continue;
+      station.arrivals.push({
+        route: arrival.route,
+        direction:
+          arrival.direction === "N"
+            ? "Northbound"
+            : arrival.direction === "S"
+              ? "Southbound"
+              : "Service",
+        destination: destinationForRoute(arrival.route, arrival.direction),
+        minutes: Math.max(0, Math.round((arrival.time - currentTime) / 60)),
+        arrivalAt: new Date(arrival.time * 1_000).toISOString(),
+      });
+    }
+  }
+
   for (const station of nearbyStations) {
+    const seenArrivals = new Set<string>();
     station.arrivals = station.arrivals
       .toSorted(function sortByArrival(first, second) {
-        return first.minutes - second.minutes;
+        return first.arrivalAt.localeCompare(second.arrivalAt);
       })
-      .filter(function removeDuplicates(arrival, index, arrivals) {
-        return (
-          index === 0 ||
-          arrival.route !== arrivals[index - 1]?.route ||
-          arrival.direction !== arrivals[index - 1]?.direction ||
-          arrival.minutes !== arrivals[index - 1]?.minutes
-        );
+      .filter(function removeDuplicates(arrival) {
+        const key = `${arrival.route}:${arrival.direction}:${arrival.arrivalAt}`;
+        if (seenArrivals.has(key)) return false;
+        seenArrivals.add(key);
+        return true;
       })
       .slice(0, 24);
   }
   return nearbyStations;
+}
+
+interface FeedArrival {
+  stationId: string;
+  route: string;
+  direction: string;
+  time: number;
+}
+
+async function loadFeedArrivals(feed: string): Promise<FeedArrival[]> {
+  "use cache";
+  cacheLife({ stale: 15, revalidate: 30, expire: 120 });
+  cacheTag("mta-arrivals", `mta-feed:${feed}`);
+  const response = await fetch(
+    `https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2F${feed}`,
+    {
+      headers: { Accept: "application/x-protobuf", "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(8_000),
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) throw new Error("MTA realtime feed failed");
+  const message = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
+    new Uint8Array(await response.arrayBuffer()),
+  );
+  const arrivals: FeedArrival[] = [];
+  for (const entity of message.entity) {
+    const route = normalizeRoute(entity.tripUpdate?.trip?.routeId?.replace(/X$/, "") ?? "");
+    if (!route) continue;
+    for (const update of entity.tripUpdate?.stopTimeUpdate ?? []) {
+      const stopId = update.stopId;
+      const time = Number(update.arrival?.time ?? update.departure?.time ?? 0);
+      if (!stopId || !Number.isFinite(time) || time <= 0 || time > 8_640_000_000_000) continue;
+      arrivals.push({
+        stationId: stopId.replace(/[NS]$/, ""),
+        direction: stopId.slice(-1),
+        route,
+        time,
+      });
+    }
+  }
+  return arrivals;
 }
 
 function roundCoordinate(coordinate: number) {

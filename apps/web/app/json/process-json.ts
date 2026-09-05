@@ -15,9 +15,15 @@ export function processJson(input: string): JsonWorkerResponse {
 
   if (result.status !== "valid") return { result };
 
+  const previewable = canPreviewJson(result.value);
+  // Bound traversal before stringify: deeply nested valid JSON can overflow its stack.
+  // Do not structured-clone an unrenderable tree back to the main thread either.
+  if (!previewable) return { result: { status: "valid", value: null, previewable } };
+  const formattedInput = JSON.stringify(result.value, null, 2);
+
   return {
-    formattedInput: JSON.stringify(result.value, null, 2),
-    result: { ...result, previewable: canPreviewJson(result.value) },
+    formattedInput: formattedInput.length <= 500_000 ? formattedInput : undefined,
+    result: { ...result, previewable },
   };
 }
 
@@ -37,6 +43,8 @@ function canPreviewJson(value: JsonValue): boolean {
       : typeof currentNode.value === "object" && currentNode.value !== null
         ? Object.values(currentNode.value)
         : [];
+
+    if (nodeCount + pendingValues.length + childValues.length > maximumPreviewNodes) return false;
 
     for (const childValue of childValues) {
       pendingValues.push({ depth: childDepth, value: childValue });

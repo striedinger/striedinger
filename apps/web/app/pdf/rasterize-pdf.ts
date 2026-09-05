@@ -1,5 +1,7 @@
 import type { PdfOperationStage } from "./types";
 
+/* oxlint-disable no-await-in-loop -- Rasterize one page at a time to bound canvas and decoded-image memory. */
+
 interface RasterizePdfOptions {
   password?: string;
   quality: number;
@@ -23,54 +25,48 @@ export async function rasterizePdf(
     data: new Uint8Array(await file.arrayBuffer()),
     password: options.password || undefined,
   });
-  const input = await loadingTask.promise;
-  const output = await PDFDocument.create();
-  const targetDpi = Math.round(84 + options.quality * 72);
-  onProgress?.(20, "decoding");
+  try {
+    const input = await loadingTask.promise;
+    const output = await PDFDocument.create();
+    const targetDpi = Math.round(84 + options.quality * 72);
+    onProgress?.(20, "decoding");
 
-  async function appendPage(pageNumber: number): Promise<void> {
-    if (pageNumber > input.numPages) return;
+    for (let pageNumber = 1; pageNumber <= input.numPages; pageNumber += 1) {
+      const page = await input.getPage(pageNumber);
+      const naturalViewport = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: targetDpi / 72 });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      const context = canvas.getContext("2d", { alpha: false });
+      if (!context) throw new Error("Canvas is unavailable in this browser.");
 
-    const page = await input.getPage(pageNumber);
-    const naturalViewport = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: targetDpi / 72 });
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(viewport.width);
-    canvas.height = Math.ceil(viewport.height);
-    const context = canvas.getContext("2d", { alpha: false });
-    if (!context) throw new Error("Canvas is unavailable in this browser.");
-
-    try {
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      await page.render({ canvas, canvasContext: context, viewport }).promise;
-      const jpeg = await canvasToBlob(canvas, options.quality);
-      const embeddedPage = await output.embedJpg(await jpeg.arrayBuffer());
-      const outputPage = output.addPage([naturalViewport.width, naturalViewport.height]);
-      outputPage.drawImage(embeddedPage, {
-        height: naturalViewport.height,
-        width: naturalViewport.width,
-        x: 0,
-        y: 0,
-      });
-      onProgress?.(20 + Math.round((pageNumber / input.numPages) * 70), "compressing");
-    } finally {
-      page.cleanup();
-      canvas.width = 1;
-      canvas.height = 1;
+      try {
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvas, canvasContext: context, viewport }).promise;
+        const jpeg = await canvasToBlob(canvas, options.quality);
+        const embeddedPage = await output.embedJpg(await jpeg.arrayBuffer());
+        const outputPage = output.addPage([naturalViewport.width, naturalViewport.height]);
+        outputPage.drawImage(embeddedPage, {
+          height: naturalViewport.height,
+          width: naturalViewport.width,
+          x: 0,
+          y: 0,
+        });
+        onProgress?.(20 + Math.round((pageNumber / input.numPages) * 70), "compressing");
+      } finally {
+        page.cleanup();
+        canvas.width = 1;
+        canvas.height = 1;
+      }
     }
 
-    await appendPage(pageNumber + 1);
-  }
-
-  try {
-    await appendPage(1);
+    const bytes = await output.save({ useObjectStreams: true });
+    return new Blob([new Uint8Array(bytes).buffer], { type: "application/pdf" });
   } finally {
     await loadingTask.destroy();
   }
-
-  const bytes = await output.save({ useObjectStreams: true });
-  return new Blob([new Uint8Array(bytes).buffer], { type: "application/pdf" });
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {

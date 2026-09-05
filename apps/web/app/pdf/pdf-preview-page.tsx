@@ -1,6 +1,6 @@
 "use client";
 
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -48,8 +48,9 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
 
       async function render() {
         setStatus("loading");
-        const page = await document.getPage(pageNumber);
+        let page: PDFPageProxy | undefined;
         try {
+          page = await document.getPage(pageNumber);
           const container = containerRef.current;
           const canvas = canvasRef.current;
           const context = canvas?.getContext("2d", { alpha: false });
@@ -74,7 +75,7 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
         } catch {
           if (!cancelled) setStatus("idle");
         } finally {
-          page.cleanup();
+          page?.cleanup();
         }
       }
 

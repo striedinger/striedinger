@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { JsonToolLabels } from "./types";
 
 import { JsonTool } from "./json-tool";
+import { processJson } from "./process-json";
 
 const labels: JsonToolLabels = {
   collapseAll: "Collapse all",
@@ -25,9 +26,33 @@ const labels: JsonToolLabels = {
 
 afterEach(function restoreTimers() {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("JsonTool", function () {
+  it("sends debounced input to a worker and displays its result", async function () {
+    vi.useFakeTimers();
+    class JsonWorker extends EventTarget {
+      terminate = vi.fn<() => void>();
+      postMessage(input: string) {
+        this.dispatchEvent(new MessageEvent("message", { data: processJson(input) }));
+      }
+    }
+    vi.stubGlobal("Worker", JsonWorker);
+    render(<JsonTool labels={labels} />);
+    fireEvent.change(screen.getByRole("textbox", { name: labels.inputLabel }), {
+      target: { value: '{"worker":true}' },
+    });
+    await act(async function finishDebounce() {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(screen.getByText(labels.valid)).toBeInTheDocument();
+    expect(screen.getByText('"worker":')).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: labels.inputLabel })).toHaveValue(
+      '{\n  "worker": true\n}',
+    );
+  });
+
   it("formats and previews JSON when Web Workers are unavailable", async function () {
     vi.useFakeTimers();
     render(<JsonTool labels={labels} />);

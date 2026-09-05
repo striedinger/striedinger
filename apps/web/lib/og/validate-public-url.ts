@@ -1,6 +1,6 @@
 import "server-only";
 import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { BlockList, isIP } from "node:net";
 
 import { PreviewError } from "./preview-error";
 
@@ -11,8 +11,20 @@ export interface ValidatedPublicUrl {
 }
 
 const blockedHostnameSuffixes = [".internal", ".local", ".localhost", ".home.arpa"];
+const globalIpv6Addresses = new BlockList();
+globalIpv6Addresses.addSubnet("2000::", 3, "ipv6");
+const specialIpv6Addresses = new BlockList();
+// IANA special-purpose ranges, including tunneling and documentation networks.
+specialIpv6Addresses.addSubnet("2001::", 23, "ipv6");
+specialIpv6Addresses.addSubnet("2001:db8::", 32, "ipv6");
+specialIpv6Addresses.addSubnet("2002::", 16, "ipv6");
+specialIpv6Addresses.addSubnet("3fff::", 20, "ipv6");
 
-export async function validatePublicUrl(value: string): Promise<ValidatedPublicUrl> {
+export async function validatePublicUrl(
+  value: string,
+  signal: AbortSignal = AbortSignal.timeout(8_000),
+): Promise<ValidatedPublicUrl> {
+  if (signal.aborted) throw new PreviewError("unreachable");
   if (!value || value.length > 2048) {
     throw new PreviewError("invalid-url");
   }
@@ -39,7 +51,10 @@ export async function validatePublicUrl(value: string): Promise<ValidatedPublicU
     throw new PreviewError("unsafe-url");
   }
 
-  const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const hostname = url.hostname
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.$/, "")
+    .toLowerCase();
 
   if (
     hostname === "localhost" ||
@@ -61,10 +76,24 @@ export async function validatePublicUrl(value: string): Promise<ValidatedPublicU
   let addresses: Array<{ address: string; family: 4 | 6 }>;
 
   try {
-    addresses = (await lookup(hostname, {
-      all: true,
-      verbatim: true,
-    })) as Array<{ address: string; family: 4 | 6 }>;
+    addresses = await new Promise(function resolveWithinDeadline(resolve, reject) {
+      function abortLookup() {
+        reject(new PreviewError("unreachable"));
+      }
+      signal.addEventListener("abort", abortLookup, { once: true });
+      void lookup(hostname, { all: true, verbatim: true }).then(
+        function resolved(result) {
+          signal.removeEventListener("abort", abortLookup);
+          resolve(result as Array<{ address: string; family: 4 | 6 }>);
+          return undefined;
+        },
+        function failed(error: unknown) {
+          signal.removeEventListener("abort", abortLookup);
+          reject(error);
+          return undefined;
+        },
+      );
+    });
   } catch {
     throw new PreviewError("unreachable");
   }
@@ -103,19 +132,9 @@ function isBlockedAddress(address: string): boolean {
     return true;
   }
 
-  if (normalizedAddress.startsWith("::ffff:")) {
-    return isBlockedIpv4(normalizedAddress.slice(7));
-  }
-
   return (
-    normalizedAddress === "::" ||
-    normalizedAddress === "::1" ||
-    normalizedAddress.startsWith("fc") ||
-    normalizedAddress.startsWith("fd") ||
-    /^fe[89ab]/.test(normalizedAddress) ||
-    normalizedAddress.startsWith("ff") ||
-    normalizedAddress.startsWith("2001:db8:") ||
-    normalizedAddress.startsWith("64:ff9b:")
+    !globalIpv6Addresses.check(normalizedAddress, "ipv6") ||
+    specialIpv6Addresses.check(normalizedAddress, "ipv6")
   );
 }
 

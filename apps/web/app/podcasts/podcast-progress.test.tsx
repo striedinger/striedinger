@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Podcast, PodcastEpisode } from "./types";
 
@@ -25,6 +25,29 @@ function createEpisode(index: number): PodcastEpisode {
 }
 
 describe("podcast progress storage", function () {
+  afterEach(function restoreStorage() {
+    vi.restoreAllMocks();
+  });
+
+  it("keeps playback usable when browser storage is blocked", function () {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(function denyRead() {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function denyWrite() {
+      throw new DOMException("Full", "QuotaExceededError");
+    });
+    expect(readPodcastProgress()).toEqual([]);
+    expect(savePodcastProgress(podcast, createEpisode(1), 20, 60)).toHaveLength(1);
+  });
+
+  it("ignores malformed progress even if removing it fails", function () {
+    window.localStorage.setItem("podcast-progress:v1", "{");
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(function denyRemove() {
+      throw new DOMException("Blocked", "SecurityError");
+    });
+    expect(readPodcastProgress()).toEqual([]);
+  });
+
   beforeEach(function clearProgress() {
     window.localStorage.clear();
   });

@@ -6,7 +6,7 @@ This pnpm/Turborepo workspace contains:
 - `packages/i18n`: framework-independent locale detection, catalog composition, and translation helpers.
 - `packages/ui`: shared shadcn components, Tailwind CSS 4 theme tokens, and tweakcn-compatible theme presets.
 
-The workspace targets Node.js 24.18.0, the latest LTS release.
+The workspace targets Node.js 24.20.0 LTS and pnpm 11.25.0.
 
 ## Development
 

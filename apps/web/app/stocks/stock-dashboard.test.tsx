@@ -73,6 +73,29 @@ describe("StockDashboard", function () {
 
   afterEach(function restoreTimers() {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("restores an intentionally empty watchlist", function () {
+    vi.useFakeTimers();
+    window.localStorage.setItem("stocks-watchlist:v1", "[]");
+    renderDashboard();
+    act(function restoreWatchlist() {
+      vi.advanceTimersByTime(0);
+    });
+    expect(screen.getByText(labels.emptyWatchlist)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove AAPL" })).not.toBeInTheDocument();
+  });
+
+  it("still navigates after removing a stock when persistence fails", function () {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function denyWrite() {
+      throw new DOMException("Full", "QuotaExceededError");
+    });
+    renderDashboard();
+    fireEvent.click(screen.getByRole("button", { name: "Remove AAPL" }));
+    expect(navigationMocks.push).toHaveBeenCalledWith("/stocks?symbol=MSFT&timeframe=1M", {
+      scroll: false,
+    });
   });
 
   it("does not enter a loading state when the selected timeframe is pressed again", function () {

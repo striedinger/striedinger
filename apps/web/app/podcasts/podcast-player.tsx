@@ -176,6 +176,7 @@ export function PodcastPlayer({
         setActionHandler("stop", null);
       };
     },
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- A new episode replaces the audio element even when its display metadata matches.
     [episode.id, episode.title, podcast.artworkUrl, podcast.author, podcast.title],
   );
 
@@ -231,6 +232,7 @@ export function PodcastPlayer({
         activeAudio.removeEventListener("timeupdate", synchronizeSeekPosition);
       };
     },
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Bind controls to the new episode audio element.
     [episode.durationMilliseconds, episode.id, initialPositionSeconds, pauseMessage, playMessage],
   );
 
@@ -264,6 +266,7 @@ export function PodcastPlayer({
         pictureInPictureWindowRef.current = null;
       };
     },
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Close the old picture-in-picture window when the episode changes.
     [episode.id],
   );
 

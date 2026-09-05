@@ -3,14 +3,32 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "env": ["GOOGLE_SITE_VERIFICATION", "BING_SITE_VERIFICATION", "TWELVE_DATA_API_KEY"],
+      "passThroughEnv": [
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "KV_REST_API_URL",
+        "KV_REST_API_TOKEN"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "public/vendor/**"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": [
+        "GOOGLE_SITE_VERIFICATION",
+        "BING_SITE_VERIFICATION",
+        "TWELVE_DATA_API_KEY",
+        "UPSTASH_REDIS_REST_URL",
+        "UPSTASH_REDIS_REST_TOKEN",
+        "KV_REST_API_URL",
+        "KV_REST_API_TOKEN"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.json", "$TURBO_ROOT$/test/**"],
       "outputs": []
     }
   }

@@ -18,11 +18,23 @@ export interface PageHtmlResponse {
 }
 
 export async function fetchPageHtml(value: string): Promise<PageHtmlResponse> {
-  return requestPage(value, 0);
+  const controller = new AbortController();
+  const timeout = setTimeout(function abortPreview() {
+    controller.abort();
+  }, requestTimeoutMilliseconds);
+  try {
+    return await requestPage(value, 0, controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
-async function requestPage(value: string, redirectCount: number): Promise<PageHtmlResponse> {
-  const validatedUrl = await validatePublicUrl(value);
+async function requestPage(
+  value: string,
+  redirectCount: number,
+  signal: AbortSignal,
+): Promise<PageHtmlResponse> {
+  const validatedUrl = await validatePublicUrl(value, signal);
   const requestFunction = validatedUrl.url.protocol === "https:" ? requestHttps : requestHttp;
 
   return new Promise(function executeRequest(resolve, reject) {
@@ -46,10 +58,11 @@ async function requestPage(value: string, redirectCount: number): Promise<PageHt
         callback(null, validatedUrl.address, validatedUrl.family);
       },
       method: "GET",
+      signal,
     };
 
     const request = requestFunction(validatedUrl.url, options, function handleResponse(response) {
-      void processResponse(response, validatedUrl.url, redirectCount).then(resolve, reject);
+      void processResponse(response, validatedUrl.url, redirectCount, signal).then(resolve, reject);
     });
 
     request.setTimeout(requestTimeoutMilliseconds, function handleTimeout() {
@@ -66,30 +79,31 @@ async function processResponse(
   response: IncomingMessage,
   requestedUrl: URL,
   redirectCount: number,
+  signal: AbortSignal,
 ): Promise<PageHtmlResponse> {
   const statusCode = response.statusCode ?? 0;
   const location = response.headers.location;
 
   if (statusCode >= 300 && statusCode < 400 && location) {
-    response.resume();
+    response.destroy();
 
     if (redirectCount >= maximumRedirects) {
       throw new PreviewError("unreachable");
     }
 
     const redirectUrl = new URL(location, requestedUrl);
-    return requestPage(redirectUrl.toString(), redirectCount + 1);
+    return requestPage(redirectUrl.toString(), redirectCount + 1, signal);
   }
 
   if (statusCode < 200 || statusCode >= 300) {
-    response.resume();
+    response.destroy();
     throw new PreviewError("unreachable");
   }
 
   const contentType = response.headers["content-type"]?.toLowerCase() ?? "";
 
   if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
-    response.resume();
+    response.destroy();
     throw new PreviewError("not-html");
   }
 

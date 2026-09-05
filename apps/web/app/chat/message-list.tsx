@@ -18,6 +18,7 @@ export function MessageList({ messages }: MessageListProps) {
       const list = listRef.current;
       if (list && shouldFollowMessages.current) list.scrollTo({ top: list.scrollHeight });
     },
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Scroll after new message DOM has committed.
     [messages],
   );
 
