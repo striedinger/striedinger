@@ -50,7 +50,10 @@ export function IosNavigationBar({
     if (!sentinel || !bar || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       function updateScrollEdge([entry]) {
-        if (entry) setIsScrolledUnder(!entry.isIntersecting);
+        // A hidden screen reports nothing intersecting; keep the state it had while visible
+        // so the bar does not flash its scrolled appearance when the screen returns.
+        if (!entry || !entry.rootBounds || entry.rootBounds.height === 0) return;
+        setIsScrolledUnder(!entry.isIntersecting);
       },
       {
         root: sentinel.closest("[data-ios-scroll]"),

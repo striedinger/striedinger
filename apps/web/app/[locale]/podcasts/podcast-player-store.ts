@@ -53,6 +53,12 @@ let playerState: PodcastPlayerState | null = null;
 let audioElement: HTMLAudioElement | null = null;
 let loadedEpisodeId: string | null = null;
 let pendingStartPosition = 0;
+/**
+ * The playhead as of the last time event. The audio element's own `currentTime` advances
+ * between reads while audio plays, and `useSyncExternalStore` requires a snapshot that only
+ * changes when listeners are told, or React throws.
+ */
+let playbackTimeSnapshot = 0;
 let lastProgressSave = 0;
 let sleepTimeout: number | null = null;
 const stateListeners = new Set<() => void>();
@@ -74,6 +80,7 @@ function readInitialPlayerState(): PodcastPlayerState {
   const storedRate = Number(readStoredValue(playbackRateStorageKey));
   const current = isQueueItem(storedCurrent) ? storedCurrent : null;
   pendingStartPosition = current ? (getSavedProgress(current.episode.id)?.positionSeconds ?? 0) : 0;
+  playbackTimeSnapshot = pendingStartPosition;
   return {
     ...initialPlayerState,
     current,
@@ -122,6 +129,8 @@ function getServerPlayerItemsSnapshot() {
 function setPlayerState(update: Partial<PodcastPlayerState>) {
   playerState = { ...getPlayerSnapshot(), ...update };
   for (const listener of stateListeners) listener();
+  // A new episode or a closed player moves the playhead too.
+  if (readLivePlaybackTime() !== playbackTimeSnapshot) notifyTimeListeners();
 }
 
 function subscribeToPlayer(listener: () => void) {
@@ -138,12 +147,16 @@ function subscribeToPlaybackTime(listener: () => void) {
   };
 }
 
-function getPlaybackTime() {
+function readLivePlaybackTime() {
   const current = getPlayerSnapshot().current;
   if (!current) return 0;
   return audioElement && loadedEpisodeId === current.episode.id
     ? audioElement.currentTime
     : pendingStartPosition;
+}
+
+function getPlaybackTimeSnapshot() {
+  return playbackTimeSnapshot;
 }
 
 function getServerPlaybackTime() {
@@ -168,10 +181,15 @@ export function usePodcastPlayerItems() {
 
 /** Subscribes to the playhead separately so only time-based UI re-renders while audio plays. */
 export function usePlaybackTime() {
-  return useSyncExternalStore(subscribeToPlaybackTime, getPlaybackTime, getServerPlaybackTime);
+  return useSyncExternalStore(
+    subscribeToPlaybackTime,
+    getPlaybackTimeSnapshot,
+    getServerPlaybackTime,
+  );
 }
 
 function notifyTimeListeners() {
+  playbackTimeSnapshot = readLivePlaybackTime();
   for (const listener of timeListeners) listener();
 }
 
@@ -327,7 +345,7 @@ export function seekTo(seconds: number) {
 }
 
 function skipBy(seconds: number) {
-  seekTo(getPlaybackTime() + seconds);
+  seekTo(readLivePlaybackTime() + seconds);
 }
 
 export function skipBackward() {

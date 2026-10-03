@@ -2,11 +2,15 @@
 
 import type { DataPayload, MessageAction, Room } from "trystero";
 
+import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { useEffect, useRef, useState } from "react";
 
 import type { DropLabels, SharedFile, TransferItem, TransferMetadata } from "./types";
 
+import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { copyText } from "../../../lib/copy-text";
+import { DropRadar } from "./drop-radar";
 import { FileDropZone } from "./file-drop-zone";
 import { createRoomCode, deriveRoomId, formatRoomCode, parseRoomCode } from "./room-code";
 import { RoomPanel } from "./room-panel";
@@ -308,31 +312,39 @@ export function DropTool({ labels }: DropToolProps) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="flex min-w-0 flex-col gap-8">
-        <FileDropZone labels={labels} onFiles={handleFiles} />
-        <TransferList
-          canRetry={peerCount > 0}
-          items={transfers}
-          labels={labels}
-          onRetry={handleRetry}
+    <FileDropZone labels={labels} onFiles={handleFiles}>
+      <div
+        data-ios-scroll
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+7rem)] [--ios-bar-edge:var(--ios-grouped-background)]"
+      >
+        <IosNavigationBar
+          title={labels.title}
+          trailing={
+            <IosBarButton aria-label={labels.share} disabled={!roomCode} onClick={handleShare}>
+              <ShareUpIcon />
+            </IosBarButton>
+          }
         />
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pb-4">
+          <DropRadar connectionError={connectionError} labels={labels} peerCount={peerCount} />
+          <RoomPanel
+            key={roomCode}
+            copied={copied}
+            copyFailed={copyFailed}
+            labels={labels}
+            onCopy={handleCopy}
+            onJoin={handleJoin}
+            roomCode={roomCode}
+          />
+          <TransferList
+            canRetry={peerCount > 0}
+            items={transfers}
+            labels={labels}
+            onRetry={handleRetry}
+          />
+        </div>
       </div>
-      <aside className="min-w-0 lg:sticky lg:top-20">
-        <RoomPanel
-          key={roomCode}
-          connectionError={connectionError}
-          copied={copied}
-          copyFailed={copyFailed}
-          labels={labels}
-          onCopy={handleCopy}
-          onJoin={handleJoin}
-          onShare={handleShare}
-          peerCount={peerCount}
-          roomCode={roomCode}
-        />
-      </aside>
-    </div>
+    </FileDropZone>
   );
 }
 

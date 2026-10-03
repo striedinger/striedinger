@@ -20,7 +20,7 @@ export function IosContentUnavailable({
   return (
     <div
       className={cn(
-        "flex animate-in flex-col items-center gap-1.5 px-10 pt-[14vh] pb-10 text-center duration-300 fade-in motion-reduce:animate-none",
+        "flex flex-col items-center gap-1.5 px-10 pt-[14vh] pb-10 text-center",
         className,
       )}
     >

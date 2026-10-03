@@ -1,19 +1,23 @@
 "use client";
 
-import { FileUpIcon } from "@workspace/icons/file-up-icon";
-import { Button } from "@workspace/ui/components/button";
+import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 
 import type { DropLabels } from "./types";
 
 interface FileDropZoneProps {
+  children: ReactNode;
   labels: DropLabels;
   onFiles: (files: File[]) => void;
 }
 
-export function FileDropZone({ labels, onFiles }: FileDropZoneProps) {
+/**
+ * The whole screen accepts dropped files, and a floating glass toolbar picks them, like the
+ * share sheets and file pickers of iOS 26.
+ */
+export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const dragDepth = useRef(0);
 
@@ -26,7 +30,6 @@ export function FileDropZone({ labels, onFiles }: FileDropZoneProps) {
   function handleDragLeave(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     dragDepth.current -= 1;
-
     if (dragDepth.current === 0) setIsDragging(false);
   }
 
@@ -35,62 +38,63 @@ export function FileDropZone({ labels, onFiles }: FileDropZoneProps) {
     dragDepth.current = 0;
     setIsDragging(false);
     const files = Array.from(event.dataTransfer.files);
-
     if (files.length > 0) onFiles(files);
   }
 
   function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.currentTarget.files ?? []);
-
     if (files.length > 0) onFiles(files);
     event.currentTarget.value = "";
   }
 
   return (
-    <section className="flex min-w-0 flex-col gap-5" aria-labelledby="drop-zone-heading">
+    <div
+      className="relative flex size-full flex-col bg-(--ios-grouped-background)"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {children}
       <div
+        aria-hidden={!isDragging}
         className={cn(
-          "group flex min-h-56 flex-col items-center justify-center gap-5 rounded-3xl border-2 border-dashed border-border bg-card/70 px-6 py-8 text-center shadow-surface transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out focus-within:border-primary/60 focus-within:bg-card focus-within:shadow-raised motion-reduce:transform-none motion-reduce:transition-none sm:min-h-48 sm:flex-row sm:justify-start sm:px-8 sm:text-left",
-          isDragging
-            ? "scale-[1.01] border-primary bg-accent/70 shadow-raised"
-            : "hover:border-primary/45 hover:bg-card",
+          "pointer-events-none absolute inset-3 z-30 flex flex-col items-center justify-center gap-3 rounded-[38px] border-2 border-dashed border-(--ios-tint) bg-(--ios-tint)/10 backdrop-blur-[6px] transition-opacity duration-200 motion-reduce:transition-none",
+          isDragging ? "opacity-100" : "opacity-0",
         )}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
       >
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-raised transition-transform duration-200 ease-out group-hover:-translate-y-1 motion-reduce:transform-none motion-reduce:transition-none">
-          <FileUpIcon className="size-7" />
-        </div>
-
-        <div className="flex max-w-md flex-1 flex-col gap-1.5">
-          <Text as="h2" id="drop-zone-heading" size="xl" weight="semibold">
-            {isDragging ? labels.dropFiles : labels.dropHint}
-          </Text>
-          <Text id="drop-zone-description" tone="muted">
-            {labels.privacy}
-          </Text>
-        </div>
-
-        <Button
-          render={<label htmlFor="drop-file-input" aria-label={labels.selectFiles} />}
-          nativeButton={false}
-          size="lg"
-          className="h-11 shrink-0 px-7 sm:ml-auto"
-        >
-          {labels.selectFiles}
-        </Button>
-        <input
-          id="drop-file-input"
-          type="file"
-          className="sr-only"
-          multiple
-          aria-describedby="drop-zone-description"
-          onChange={handleFileSelection}
-        />
+        <span className="flex size-16 items-center justify-center rounded-full bg-(--ios-tint) text-white [&_svg]:size-8">
+          <PlusIcon strokeWidth={2.6} />
+        </span>
+        <Text className="text-[20px] leading-[25px] font-semibold text-(--ios-label)">
+          {labels.dropFiles}
+        </Text>
       </div>
-    </section>
+      <div
+        role="toolbar"
+        aria-label={labels.addFiles}
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-t before:from-(--ios-grouped-background) before:from-30% before:to-transparent"
+      >
+        <label
+          htmlFor="drop-file-input"
+          className="pointer-events-auto flex h-[52px] w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-transform duration-150 select-none focus-within:ring-2 focus-within:ring-(--ios-tint)/50 active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-5"
+        >
+          <PlusIcon strokeWidth={2.8} />
+          {labels.selectFiles}
+          <input
+            id="drop-file-input"
+            type="file"
+            className="sr-only"
+            multiple
+            aria-describedby="drop-file-limits"
+            onChange={handleFileSelection}
+          />
+        </label>
+        <span id="drop-file-limits" className="sr-only">
+          {labels.privacy}
+        </span>
+      </div>
+    </div>
   );
 }
 

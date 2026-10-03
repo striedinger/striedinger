@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 
-import { LockIcon } from "@workspace/icons/lock-icon";
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Text } from "@workspace/ui/components/text";
-
 import type { DropLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getDropTranslator } from "../../../messages/drop/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -82,49 +75,9 @@ export default async function DropPage() {
   });
 
   return (
-    <PageShell>
+    <>
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="flex flex-col gap-10">
-          <PageHeader
-            title={labels.title}
-            description={description}
-            eyebrow={
-              <Text
-                as="span"
-                size="sm"
-                weight="medium"
-                className="inline-flex w-fit items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-secondary-foreground"
-              >
-                <LockIcon className="size-3.5" />
-                {labels.encrypted}
-              </Text>
-            }
-          />
-          <DropTool labels={labels} />
-          <ToolDetails
-            title={translate("About this tool")}
-            description={description}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: labels.shareHint,
-                items: [labels.selectFiles, labels.share, labels.join],
-              },
-              {
-                title: translate("Privacy and security"),
-                description: labels.privacy,
-                items: [labels.encrypted, labels.directConnection],
-              },
-              {
-                title: translate("Features"),
-                description: labels.description,
-                items: [labels.fileTooLarge, labels.roomCode, labels.copyLink],
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <DropTool labels={labels} />
+    </>
   );
 }

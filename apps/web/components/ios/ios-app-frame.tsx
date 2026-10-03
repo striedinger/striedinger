@@ -37,6 +37,7 @@ const systemColorClasses = [
   "[--ios-orange:#ff9500] dark:[--ios-orange:#ff9f0a]",
   "[--ios-purple:#af52de] dark:[--ios-purple:#bf5af2]",
   "[--ios-blue:#007aff] dark:[--ios-blue:#0a84ff]",
+  "[--ios-green:#34c759] dark:[--ios-green:#30d158]",
 ].join(" ");
 
 type IosAppFrameProps = Omit<ComponentPropsWithRef<"main">, "ref">;

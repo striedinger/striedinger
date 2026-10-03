@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Podcast, PodcastEpisode } from "./types";
@@ -173,5 +173,25 @@ describe("Podcasts", function () {
     expect(JSON.parse(window.localStorage.getItem("podcast-now-playing:v1") ?? "{}")).toMatchObject(
       { episode: { id: "1001" } },
     );
+  });
+
+  it("keeps Now Playing open while the episode plays", async function () {
+    let clock = 0;
+    vi.spyOn(HTMLMediaElement.prototype, "currentTime", "get").mockImplementation(
+      function readAdvancingTime() {
+        clock += 0.25;
+        return clock;
+      },
+    );
+    await renderShow();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Play: The Newest Episode" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Open Now Playing/ }));
+
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByRole("slider", { name: "Playback position" })).toBeInTheDocument();
+    await waitFor(function expectSheetToStayOpen() {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
   });
 });

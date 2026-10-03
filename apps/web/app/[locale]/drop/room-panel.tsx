@@ -2,40 +2,30 @@
 
 import { CheckIcon } from "@workspace/icons/check-icon";
 import { CopyIcon } from "@workspace/icons/copy-icon";
-import { LockIcon } from "@workspace/icons/lock-icon";
-import { ShareIcon } from "@workspace/icons/share-icon";
-import { UsersIcon } from "@workspace/icons/users-icon";
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { useState, type FormEvent } from "react";
 
 import type { DropLabels } from "./types";
 
+import { IosListSection } from "../../../components/ios/ios-list-section";
 import { formatRoomCode, normalizeRoomCode } from "./room-code";
 
 interface RoomPanelProps {
-  connectionError: boolean;
   copied: boolean;
   copyFailed: boolean;
   labels: DropLabels;
   onCopy: () => void;
   onJoin: (roomCode: string) => boolean;
-  onShare: () => void;
-  peerCount: number;
   roomCode?: string;
 }
 
+/** The room code to share, and a field to join another device's room, as grouped lists. */
 export function RoomPanel({
-  connectionError,
   copied,
   copyFailed,
   labels,
   onCopy,
   onJoin,
-  onShare,
-  peerCount,
   roomCode,
 }: RoomPanelProps) {
   const [joinCode, setJoinCode] = useState("");
@@ -43,114 +33,52 @@ export function RoomPanel({
 
   function handleJoin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const joined = onJoin(joinCode);
-    setJoinCodeInvalid(!joined);
+    setJoinCodeInvalid(!onJoin(joinCode));
   }
 
   return (
-    <Surface className="flex min-w-0 flex-col gap-6 rounded-3xl p-6 hover:border-primary/20 hover:shadow-raised sm:p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <Text as="h2" size="xl" weight="semibold">
-            {labels.roomCode}
-          </Text>
-          <Text size="sm" tone="muted">
-            {labels.shareHint}
-          </Text>
-        </div>
-        <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
-          title={labels.encrypted}
-        >
-          <LockIcon className="size-4" />
-          <span className="sr-only">{labels.encrypted}</span>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-surface-inset p-4 text-center shadow-inner transition-colors duration-200 hover:border-primary/25 motion-reduce:transition-none">
-        <Text
-          as="output"
-          family="mono"
-          size="xl"
-          weight="semibold"
-          className="tracking-[0.12em] break-all sm:text-2xl"
-          aria-live="polite"
-          aria-atomic="true"
-          aria-label={labels.roomCode}
-        >
-          {roomCode ? formatRoomCode(roomCode) : labels.preparing}
-        </Text>
-      </div>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="lg"
-        className="h-11"
-        onClick={onCopy}
-        disabled={!roomCode}
+    <>
+      <IosListSection
+        header={labels.roomCode}
+        footer={copyFailed ? undefined : labels.shareHint}
+        label={labels.roomCode}
       >
-        {copied ? <CheckIcon /> : <CopyIcon />}
-        {copied ? labels.copied : labels.copyLink}
-      </Button>
-
-      <Button
-        type="button"
-        variant="secondary"
-        size="lg"
-        className="h-11"
-        onClick={onShare}
-        disabled={!roomCode}
-      >
-        <ShareIcon />
-        {labels.share}
-      </Button>
-
+        <li className="relative px-4 py-3.5 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-(--ios-separator)">
+          <Text
+            as="output"
+            family="mono"
+            aria-live="polite"
+            aria-atomic="true"
+            aria-label={labels.roomCode}
+            className="block text-center text-[22px] leading-7 font-semibold tracking-[0.12em] break-all text-(--ios-label)"
+          >
+            {roomCode ? formatRoomCode(roomCode) : labels.preparing}
+          </Text>
+        </li>
+        <li>
+          <button
+            type="button"
+            disabled={!roomCode}
+            className="flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) transition-colors duration-150 outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) disabled:text-(--ios-tertiary-label) motion-reduce:transition-none [&_svg]:size-5"
+            onClick={onCopy}
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+            {copied ? labels.copied : labels.copyLink}
+          </button>
+        </li>
+      </IosListSection>
       {copyFailed ? (
-        <Text size="sm" tone="destructive" role="alert">
+        <Text role="alert" className="px-9 text-[13px] leading-[18px] text-(--ios-red)">
           {labels.copyFailed}
         </Text>
       ) : null}
-
-      <div
-        className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-4 py-3 transition-colors duration-200 hover:bg-secondary/80 motion-reduce:transition-none"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        <span className="relative flex size-2.5" aria-hidden="true">
-          {peerCount > 0 ? (
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60 motion-reduce:animate-none" />
-          ) : null}
-          <span
-            className={`relative inline-flex size-2.5 rounded-full ${peerCount > 0 ? "bg-success" : "bg-muted-foreground/50"}`}
-          />
-        </span>
-        <UsersIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-        <Text size="sm" weight="medium">
-          {peerCount === 0
-            ? labels.noPeers
-            : peerCount === 1
-              ? labels.onePeer
-              : labels.peers.replace("{count}", String(peerCount))}
-        </Text>
-      </div>
-
-      {connectionError ? (
-        <Text size="sm" tone="destructive" role="alert">
-          {labels.roomError}
-        </Text>
-      ) : null}
-
-      <div className="border-t border-border pt-6">
-        <form className="flex flex-col gap-3" onSubmit={handleJoin}>
-          <label htmlFor="join-code">
-            <Text as="span" size="sm" weight="medium">
+      <form onSubmit={handleJoin}>
+        <IosListSection header={labels.joinHint}>
+          <li className="flex min-h-[48px] items-center gap-2 pr-2 pl-4">
+            <label htmlFor="join-code" className="sr-only">
               {labels.joinHint}
-            </Text>
-          </label>
-          <div className="flex gap-2">
-            <Input
+            </label>
+            <input
               id="join-code"
               value={joinCode}
               onChange={function updateJoinCode(event) {
@@ -165,19 +93,26 @@ export function RoomPanel({
               autoCapitalize="characters"
               autoComplete="off"
               spellCheck={false}
-              className="h-11 font-mono tracking-wide"
+              className="min-w-0 flex-1 bg-transparent py-3 font-mono text-[17px] tracking-wide text-(--ios-label) outline-none placeholder:text-(--ios-tertiary-label)"
             />
-            <Button type="submit" variant="secondary" className="h-11 px-5">
+            <button
+              type="submit"
+              className="h-8 shrink-0 rounded-full bg-(--ios-tint) px-4 text-[15px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-70"
+            >
               {labels.join}
-            </Button>
-          </div>
-          {joinCodeInvalid ? (
-            <Text id="join-code-error" size="sm" tone="destructive" role="alert">
-              {labels.invalidCode}
-            </Text>
-          ) : null}
-        </form>
-      </div>
-    </Surface>
+            </button>
+          </li>
+        </IosListSection>
+        {joinCodeInvalid ? (
+          <Text
+            id="join-code-error"
+            role="alert"
+            className="px-9 pt-2 text-[13px] leading-[18px] text-(--ios-red)"
+          >
+            {labels.invalidCode}
+          </Text>
+        ) : null}
+      </form>
+    </>
   );
 }
