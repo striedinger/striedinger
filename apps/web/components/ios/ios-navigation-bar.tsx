@@ -12,24 +12,27 @@ interface IosNavigationBarProps {
   accessory?: ReactNode;
   className?: string;
   leading?: ReactNode;
+  subtitle?: string;
   title: string;
   titleDisplay?: IosNavigationBarTitleDisplay;
   trailing?: ReactNode;
 }
 
-const compactBarHeight = 44;
+const compactBarHeight = 56;
 
 /**
- * A UIKit-style navigation bar rendered inside an element marked with `data-ios-scroll`.
- * The large title collapses into the compact bar once it scrolls underneath it, using an
- * intersection observer instead of scroll listeners so scrolling stays on the compositor.
- * With `scroll-edge`, the inline title and bar material appear once the accessory (such as an
- * artwork header) has scrolled away.
+ * An iOS 26 navigation bar rendered inside an element marked with `data-ios-scroll`. The bar
+ * has no opaque background: its glass buttons float over content, and a soft blurred scroll
+ * edge fades in once content passes underneath. The large title collapses into the centered
+ * inline title, observed with an intersection observer so scrolling stays on the compositor.
+ * With `scroll-edge`, the inline title appears once the accessory has scrolled away.
+ * Set `--ios-bar-edge` on the scroll container to match its background color.
  */
 export function IosNavigationBar({
   accessory,
   className,
   leading,
+  subtitle,
   title,
   titleDisplay = "large",
   trailing,
@@ -62,12 +65,13 @@ export function IosNavigationBar({
       <div
         data-scrolled={isScrolledUnder || undefined}
         className={cn(
-          "group/bar sticky top-0 z-20 grid h-11 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 transition-[background-color,box-shadow] duration-200 data-scrolled:bg-(--ios-chrome) data-scrolled:shadow-[0_0.5px_0_var(--ios-separator)] data-scrolled:backdrop-blur-xl data-scrolled:backdrop-saturate-180 motion-reduce:transition-none",
+          "group/bar sticky top-0 z-20 grid h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4",
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-[calc(100%+20px)] before:bg-linear-to-b before:from-[var(--ios-bar-edge,var(--ios-background))] before:from-35% before:to-transparent before:[mask-image:linear-gradient(to_bottom,black_55%,transparent)] before:opacity-0 before:backdrop-blur-[3px] before:transition-opacity before:duration-300 data-scrolled:before:opacity-100 motion-reduce:before:transition-none",
           className,
         )}
       >
-        <div className="flex min-w-0 items-center justify-start">{leading}</div>
-        <div className="flex min-w-0 justify-center">
+        <div className="flex min-w-0 items-center justify-start gap-2">{leading}</div>
+        <div className="flex min-w-0 flex-col items-center justify-center">
           <Text
             as={showsLargeTitle ? "span" : "h1"}
             aria-hidden={showsLargeTitle || undefined}
@@ -82,17 +86,33 @@ export function IosNavigationBar({
           >
             {title}
           </Text>
+          {subtitle && !showsLargeTitle && !hidesTitle ? (
+            <Text
+              as="span"
+              numberOfLines={1}
+              className="text-[12px] leading-4 text-(--ios-secondary-label)"
+            >
+              {subtitle}
+            </Text>
+          ) : null}
         </div>
-        <div className="flex min-w-0 items-center justify-end">{trailing}</div>
+        <div className="flex min-w-0 items-center justify-end gap-2">{trailing}</div>
       </div>
       {showsLargeTitle ? (
-        <Text
-          as="h1"
-          numberOfLines={1}
-          className="shrink-0 px-4 pt-0.5 pb-2 text-[34px] leading-[41px] font-bold tracking-[0.37px] text-(--ios-label)"
-        >
-          {title}
-        </Text>
+        <div className="flex shrink-0 flex-col px-5 pt-0.5 pb-3">
+          <Text
+            as="h1"
+            numberOfLines={1}
+            className="text-[34px] leading-[41px] font-bold tracking-[0.4px] text-(--ios-label)"
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+              {subtitle}
+            </Text>
+          ) : null}
+        </div>
       ) : null}
       <div ref={sentinelRef} aria-hidden="true" className="-mb-px h-px shrink-0" />
       {accessory}

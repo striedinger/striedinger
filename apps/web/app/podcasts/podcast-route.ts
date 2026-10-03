@@ -4,6 +4,7 @@ export type LibraryView = "shows" | "saved" | "recent";
 
 export interface PodcastRoute {
   episodeId: string | null;
+  followedIds: readonly string[];
   libraryView: LibraryView | null;
   podcastId: string | null;
   query: string;
@@ -14,12 +15,22 @@ interface SearchParameterReader {
   get(name: string): string | null;
 }
 
-const podcastTabs = new Set<string>(["home", "browse", "library", "search"]);
+const podcastTabs = new Set<string>(["home", "new", "library", "search"]);
+const maximumFollowedIds = 20;
 const libraryViews = new Set<string>(["shows", "saved", "recent"]);
 
 function normalizePodcastId(value: string | null | undefined) {
   const normalizedValue = value?.trim() ?? "";
   return /^\d{1,20}$/.test(normalizedValue) ? normalizedValue : null;
+}
+
+/** Sorted, de-duplicated show ids that identify the New tab's server-loaded episodes. */
+export function normalizeFollowedIds(ids: readonly string[]) {
+  const validIds = ids.flatMap(function keepValidId(id) {
+    const normalizedId = normalizePodcastId(id);
+    return normalizedId ? [normalizedId] : [];
+  });
+  return Array.from(new Set(validIds)).toSorted().slice(0, maximumFollowedIds);
 }
 
 export function normalizeSearchQuery(value: string | null | undefined) {
@@ -39,6 +50,8 @@ export function parsePodcastRoute(parameters: SearchParameterReader): PodcastRou
   const requestedView = parameters.get("view") ?? "";
   return {
     episodeId: podcastId ? normalizePodcastId(parameters.get("episode")) : null,
+    followedIds:
+      tab === "new" ? normalizeFollowedIds((parameters.get("shows") ?? "").split(",")) : [],
     libraryView:
       tab === "library" && libraryViews.has(requestedView) ? (requestedView as LibraryView) : null,
     podcastId,
@@ -52,6 +65,9 @@ export function createPodcastHref(pathname: string, route: PodcastRoute) {
   if (route.tab !== "home") parameters.set("tab", route.tab);
   if (route.query) parameters.set("q", route.query);
   if (route.libraryView) parameters.set("view", route.libraryView);
+  if (route.tab === "new" && route.followedIds.length > 0) {
+    parameters.set("shows", route.followedIds.join(","));
+  }
   if (route.podcastId) parameters.set("podcast", route.podcastId);
   if (route.podcastId && route.episodeId) parameters.set("episode", route.episodeId);
   const search = parameters.toString();
@@ -59,9 +75,16 @@ export function createPodcastHref(pathname: string, route: PodcastRoute) {
 }
 
 export function getPodcastRouteKey(route: PodcastRoute) {
-  return [route.tab, route.query, route.libraryView, route.podcastId, route.episodeId].join("|");
+  return [
+    route.tab,
+    route.query,
+    route.libraryView,
+    route.podcastId,
+    route.episodeId,
+    route.followedIds.join(","),
+  ].join("|");
 }
 
 export function createTabRoute(tab: PodcastTab): PodcastRoute {
-  return { episodeId: null, libraryView: null, podcastId: null, query: "", tab };
+  return { episodeId: null, followedIds: [], libraryView: null, podcastId: null, query: "", tab };
 }

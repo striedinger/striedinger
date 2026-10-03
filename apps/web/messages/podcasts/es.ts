@@ -10,7 +10,9 @@ export const messages = {
     "Los datos de descubrimiento de podcasts los proporciona Apple. El audio se transmite directamente desde cada editor de podcasts.",
   "Your library stays on this device.": "Tu biblioteca se queda en este dispositivo.",
   Home: "Inicio",
-  Browse: "Explorar",
+  New: "Nuevo",
+  "New episodes from shows you follow will appear here.":
+    "Los episodios nuevos de los programas que sigues aparecerán aquí.",
   Library: "Biblioteca",
   Search: "Buscar",
   "Up Next": "A continuación",
@@ -28,9 +30,6 @@ export const messages = {
   "Follow shows to see them here.": "Sigue programas para verlos aquí.",
   "Save episodes to listen to them later.": "Guarda episodios para escucharlos más tarde.",
   "Episodes you play will appear here.": "Los episodios que reproduzcas aparecerán aquí.",
-  "Start listening": "Empieza a escuchar",
-  "Follow shows you love and pick up episodes right where you left off.":
-    "Sigue los programas que te encantan y retoma los episodios justo donde los dejaste.",
   "Shows, Episodes, and More": "Programas, episodios y más",
   "Top Results": "Mejores resultados",
   "No Results": "No hay resultados",

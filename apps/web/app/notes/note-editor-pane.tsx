@@ -1,10 +1,11 @@
 "use client";
 
 import { CameraIcon } from "@workspace/icons/camera-icon";
+import { CheckIcon } from "@workspace/icons/check-icon";
 import { ChecklistIcon } from "@workspace/icons/checklist-icon";
 import { ChevronLeftIcon } from "@workspace/icons/chevron-left-icon";
 import { ComposeIcon } from "@workspace/icons/compose-icon";
-import { EllipsisCircleIcon } from "@workspace/icons/ellipsis-circle-icon";
+import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { FolderIcon } from "@workspace/icons/folder-icon";
 import { KeyboardDismissIcon } from "@workspace/icons/keyboard-dismiss-icon";
 import { PinIcon } from "@workspace/icons/pin-icon";
@@ -20,6 +21,8 @@ import type { Note, NotesMessages } from "./types";
 
 import { IosAlert } from "../../components/ios/ios-alert";
 import { IosBarButton } from "../../components/ios/ios-bar-button";
+import { iosStrongGlassClassName } from "../../components/ios/ios-glass";
+import { IosGlassGroup } from "../../components/ios/ios-glass-group";
 import { IosMenu, type IosMenuSection } from "../../components/ios/ios-menu";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
 import { copyText } from "../../lib/copy-text";
@@ -251,53 +254,63 @@ export function NoteEditorPane({
         <IosNavigationBar
           title={note ? note.title || messages["New Note"] : messages.Notes}
           titleDisplay="hidden"
-          className="bg-(--ios-background)/0"
           leading={
             <IosBarButton
-              className={cn("-ml-1 gap-0.5 px-1", backButtonClassName)}
+              aria-label={`${messages.Back}: ${backLabel}`}
+              className={backButtonClassName}
               onClick={onBack}
             >
-              <ChevronLeftIcon className="!size-[24px]" strokeWidth={2.6} />
-              <span className="truncate">{backLabel}</span>
+              <ChevronLeftIcon strokeWidth={2.6} />
             </IosBarButton>
           }
           trailing={
             note ? (
               <>
-                {isEditing ? (
-                  <IosBarButton
-                    aria-label={messages.Undo}
-                    onPointerDown={keepEditorFocus}
-                    onClick={undoEditing}
-                  >
-                    <UndoIcon />
-                  </IosBarButton>
-                ) : null}
-                <IosBarButton
-                  aria-label={messages["Share Note"]}
-                  onClick={function share() {
-                    void shareNote();
-                  }}
-                >
-                  <ShareUpIcon />
-                </IosBarButton>
-                <IosMenu
-                  sections={menuSections}
-                  trigger={
-                    <IosBarButton aria-label={messages.More}>
-                      <EllipsisCircleIcon />
+                <IosGlassGroup label={messages.More}>
+                  {isEditing ? (
+                    <IosBarButton
+                      variant="plain"
+                      aria-label={messages.Undo}
+                      className="text-(--ios-label)"
+                      onPointerDown={keepEditorFocus}
+                      onClick={undoEditing}
+                    >
+                      <UndoIcon />
                     </IosBarButton>
-                  }
-                />
+                  ) : null}
+                  <IosBarButton
+                    variant="plain"
+                    aria-label={messages["Share Note"]}
+                    className="text-(--ios-label)"
+                    onClick={function share() {
+                      void shareNote();
+                    }}
+                  >
+                    <ShareUpIcon />
+                  </IosBarButton>
+                  <IosMenu
+                    sections={menuSections}
+                    trigger={
+                      <IosBarButton
+                        variant="plain"
+                        aria-label={messages.More}
+                        className="text-(--ios-label)"
+                      >
+                        <EllipsisIcon />
+                      </IosBarButton>
+                    }
+                  />
+                </IosGlassGroup>
                 {isEditing ? (
                   <IosBarButton
-                    className="font-semibold"
+                    variant="prominent"
+                    aria-label={messages.Done}
                     onClick={function finishEditing() {
                       editorRef.current?.blur();
                       setIsFormatOpen(false);
                     }}
                   >
-                    {messages.Done}
+                    <CheckIcon strokeWidth={2.8} />
                   </IosBarButton>
                 ) : null}
               </>
@@ -350,9 +363,10 @@ export function NoteEditorPane({
         className={cn(isFormatOpen && isEditing && "pointer-events-none opacity-0")}
       >
         {note && !isDeleted ? (
-          isEditing ? (
-            <>
+          <IosGlassGroup label={messages.Format}>
+            {isEditing ? (
               <IosBarButton
+                variant="plain"
                 aria-label={messages.Format}
                 aria-pressed={isFormatOpen}
                 onPointerDown={keepEditorFocus}
@@ -362,60 +376,46 @@ export function NoteEditorPane({
               >
                 <TextFormatIcon />
               </IosBarButton>
-              <IosBarButton
-                aria-label={messages.Checklist}
-                onPointerDown={keepEditorFocus}
-                onClick={addChecklist}
-              >
-                <ChecklistIcon />
-              </IosBarButton>
-              <IosMenu
-                side="top"
-                align="center"
-                sections={photoMenuSections}
-                trigger={
-                  <IosBarButton aria-label={messages["Attach Photo"]}>
-                    <CameraIcon />
-                  </IosBarButton>
-                }
-              />
-              <IosBarButton
-                aria-label={messages["Hide Keyboard"]}
-                onClick={function hideKeyboard() {
-                  editorRef.current?.blur();
-                }}
-              >
-                <KeyboardDismissIcon />
-              </IosBarButton>
-            </>
-          ) : (
-            <>
-              <IosBarButton aria-label={messages.Checklist} onClick={addChecklist}>
-                <ChecklistIcon />
-              </IosBarButton>
-              <IosMenu
-                side="top"
-                align="center"
-                sections={photoMenuSections}
-                trigger={
-                  <IosBarButton aria-label={messages["Attach Photo"]}>
-                    <CameraIcon />
-                  </IosBarButton>
-                }
-              />
-              <span className="flex-1" />
-              <IosBarButton aria-label={messages["New Note"]} onClick={onCreateNote}>
-                <ComposeIcon />
-              </IosBarButton>
-            </>
-          )
-        ) : (
-          <>
-            <span className="flex-1" />
-            <IosBarButton aria-label={messages["New Note"]} onClick={onCreateNote}>
-              <ComposeIcon />
+            ) : null}
+            <IosBarButton
+              variant="plain"
+              aria-label={messages.Checklist}
+              onPointerDown={isEditing ? keepEditorFocus : undefined}
+              onClick={addChecklist}
+            >
+              <ChecklistIcon />
             </IosBarButton>
-          </>
+            <IosMenu
+              side="top"
+              align="center"
+              sections={photoMenuSections}
+              trigger={
+                <IosBarButton variant="plain" aria-label={messages["Attach Photo"]}>
+                  <CameraIcon />
+                </IosBarButton>
+              }
+            />
+          </IosGlassGroup>
+        ) : null}
+        <span className="flex-1" />
+        {isEditing ? (
+          <IosBarButton
+            aria-label={messages["Hide Keyboard"]}
+            className="text-(--ios-tint)"
+            onClick={function hideKeyboard() {
+              editorRef.current?.blur();
+            }}
+          >
+            <KeyboardDismissIcon />
+          </IosBarButton>
+        ) : (
+          <IosBarButton
+            aria-label={messages["New Note"]}
+            className="text-(--ios-tint)"
+            onClick={onCreateNote}
+          >
+            <ComposeIcon />
+          </IosBarButton>
         )}
       </NotesToolbar>
       <input
@@ -447,7 +447,8 @@ export function NoteEditorPane({
       <div
         aria-live="polite"
         className={cn(
-          "pointer-events-none absolute top-1/3 left-1/2 z-30 -translate-x-1/2 rounded-[14px] bg-(--ios-menu) px-5 py-3 text-[15px] font-semibold text-(--ios-label) shadow-[0_10px_40px_rgb(0_0_0/0.18)] backdrop-blur-2xl transition-opacity duration-200 motion-reduce:transition-none",
+          "pointer-events-none absolute top-1/3 left-1/2 z-30 -translate-x-1/2 rounded-full px-5 py-3 text-[15px] font-semibold text-(--ios-label) transition-opacity duration-200 motion-reduce:transition-none",
+          iosStrongGlassClassName,
           statusMessage ? "opacity-100" : "opacity-0",
         )}
       >

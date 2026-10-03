@@ -63,7 +63,7 @@ export function UpNextCard({
 
   return (
     <li
-      className="relative flex w-[min(82vw,340px)] shrink-0 snap-start flex-col overflow-hidden rounded-[14px] bg-[#3a3a3c] p-4 text-white shadow-[0_4px_16px_rgb(0_0_0/0.12)] transition-[background-color] duration-500 md:w-[340px]"
+      className="relative flex w-[min(82vw,340px)] shrink-0 snap-start flex-col overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white shadow-[0_4px_16px_rgb(0_0_0/0.12)] transition-[background-color] duration-500 md:w-[340px]"
       style={artworkColor ? { backgroundColor: artworkColor } : undefined}
     >
       <div className="flex items-center gap-3">

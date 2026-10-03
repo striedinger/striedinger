@@ -21,7 +21,7 @@ export function FeaturedPodcastCard({ href, onOpen, podcast, priority }: Feature
     <li className="w-[min(86vw,420px)] shrink-0 snap-start">
       <PodcastLink
         href={href}
-        className="group flex h-full items-center gap-4 overflow-hidden rounded-[14px] bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-[0.98] motion-reduce:transition-none"
+        className="group flex h-full items-center gap-4 overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-[0.98] motion-reduce:transition-none"
         style={artworkColor ? { backgroundColor: artworkColor } : undefined}
         onOpen={function openFeatured() {
           onOpen(podcast);

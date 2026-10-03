@@ -69,6 +69,8 @@ async function renderPodcasts(search = "") {
       searchQuery=""
       searchResults={[]}
       show={{ podcast, episodes }}
+      newEpisodes={[]}
+      newEpisodesShowIds={[]}
     />,
   );
 }

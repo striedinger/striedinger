@@ -43,4 +43,4 @@ export interface PodcastShow {
   podcast: Podcast;
 }
 
-export type PodcastTab = "home" | "browse" | "library" | "search";
+export type PodcastTab = "home" | "new" | "library" | "search";

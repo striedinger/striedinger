@@ -82,21 +82,9 @@ export function FoldersPane({
     >
       <div
         data-ios-scroll
-        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-24"
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)]"
       >
-        <IosNavigationBar
-          title={messages.Folders}
-          accessory={
-            <IosSearchField
-              aria-label={messages.Search}
-              placeholder={messages.Search}
-              cancelLabel={messages.Cancel}
-              clearLabel={messages["Clear text"]}
-              value={searchQuery}
-              onValueChange={onSearchQueryChange}
-            />
-          }
-        />
+        <IosNavigationBar title={messages.Folders} />
         {isSearching ? (
           searchResults.length > 0 ? (
             <IosListSection header={messages.Notes} headerVariant="prominent" className="pt-2">
@@ -214,11 +202,31 @@ export function FoldersPane({
           </IosListSection>
         )}
       </div>
-      <NotesToolbar label={messages.Folders}>
-        <IosBarButton aria-label={messages["New Folder"]} onClick={onCreateFolder}>
+      <NotesToolbar
+        label={messages.Folders}
+        className="[--ios-bar-edge:var(--ios-grouped-background)]"
+      >
+        <IosBarButton
+          aria-label={messages["New Folder"]}
+          className="text-(--ios-tint)"
+          onClick={onCreateFolder}
+        >
           <FolderPlusIcon />
         </IosBarButton>
-        <IosBarButton aria-label={messages["New Note"]} onClick={onCreateNote}>
+        <IosSearchField
+          aria-label={messages.Search}
+          placeholder={messages.Search}
+          cancelLabel={messages.Cancel}
+          clearLabel={messages["Clear text"]}
+          value={searchQuery}
+          containerClassName="min-w-0 flex-1"
+          onValueChange={onSearchQueryChange}
+        />
+        <IosBarButton
+          aria-label={messages["New Note"]}
+          className="text-(--ios-tint)"
+          onClick={onCreateNote}
+        >
           <ComposeIcon />
         </IosBarButton>
       </NotesToolbar>

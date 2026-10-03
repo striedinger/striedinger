@@ -76,7 +76,7 @@ export function NowPlayingSheet({
         <Drawer.Backdrop className="fixed inset-0 z-40 bg-black opacity-[calc(0.4*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-40 flex items-end justify-center">
           <Drawer.Popup
-            className="flex h-[calc(100dvh-10px)] w-full [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-[12px] bg-[#2c2c2e] text-white shadow-[0_-8px_40px_rgb(0_0_0/0.3)] transition-[transform,background-color] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none md:mb-3 md:h-[min(880px,calc(100dvh-24px))] md:max-w-[480px] md:rounded-[16px]"
+            className="flex h-[calc(100dvh-10px)] w-full [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-[38px] bg-[#2c2c2e] text-white shadow-[0_-8px_40px_rgb(0_0_0/0.3)] transition-[transform,background-color] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none md:mb-3 md:h-[min(880px,calc(100dvh-24px))] md:max-w-[480px] md:rounded-[38px]"
             style={artworkColor ? { backgroundColor: artworkColor } : undefined}
           >
             {item ? (

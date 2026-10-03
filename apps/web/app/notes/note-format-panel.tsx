@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 
 import type { NotesMessages } from "./types";
 
+import { iosStrongGlassClassName } from "../../components/ios/ios-glass";
 import {
   applyBlockStyle,
   changeIndent,
@@ -89,7 +90,10 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
   return (
     <section
       aria-label={messages.Format}
-      className="flex flex-col gap-3 rounded-t-[12px] bg-(--ios-secondary-background) px-4 pt-3 pb-4 shadow-[0_-0.5px_0_var(--ios-separator)]"
+      className={cn(
+        "mx-2 mb-[max(env(safe-area-inset-bottom),8px)] flex flex-col gap-3 rounded-[32px] px-5 pt-4 pb-5",
+        iosStrongGlassClassName,
+      )}
       onPointerDown={keepEditorSelection}
     >
       <div className="flex items-center justify-between">
@@ -114,7 +118,7 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
               type="button"
               aria-pressed={isActive}
               className={cn(
-                "h-9 shrink-0 snap-start rounded-lg px-3 whitespace-nowrap text-(--ios-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) aria-pressed:bg-(--ios-tint) aria-pressed:text-black",
+                "h-9 shrink-0 snap-start rounded-full px-3.5 whitespace-nowrap text-(--ios-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) aria-pressed:bg-(--ios-tint) aria-pressed:text-black",
                 blockStyle.className,
               )}
               onClick={function selectBlockStyle() {
@@ -128,7 +132,7 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
           );
         })}
       </div>
-      <div className="grid grid-cols-4 overflow-hidden rounded-lg bg-(--ios-tertiary-background)">
+      <div className="grid grid-cols-4 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
         {inlineStyles.map(function renderInlineStyle(inlineStyle) {
           const isActive = formatState[inlineStyle.style];
           return (
@@ -152,7 +156,7 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
         })}
       </div>
       <div className="flex gap-2">
-        <div className="grid flex-[3] grid-cols-3 overflow-hidden rounded-lg bg-(--ios-tertiary-background)">
+        <div className="grid flex-[3] grid-cols-3 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
           {listStyles.map(function renderListStyle(listStyle) {
             return (
               <NoteFormatIconButton
@@ -170,7 +174,7 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
             );
           })}
         </div>
-        <div className="grid flex-[2] grid-cols-2 overflow-hidden rounded-lg bg-(--ios-tertiary-background)">
+        <div className="grid flex-[2] grid-cols-2 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
           <NoteFormatIconButton
             label={messages["Decrease Indent"]}
             disabled={!formatState.inList}
@@ -194,7 +198,7 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
             <IndentIncreaseIcon />
           </NoteFormatIconButton>
         </div>
-        <div className="grid flex-1 overflow-hidden rounded-lg bg-(--ios-tertiary-background)">
+        <div className="grid flex-1 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
           <NoteFormatIconButton
             label={messages["Block Quote"]}
             pressed={formatState.blockQuote}

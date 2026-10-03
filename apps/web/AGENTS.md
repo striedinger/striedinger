@@ -19,7 +19,8 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 
 ## Native app replicas
 
-- Build native app replicas, such as Notes and Podcasts, inside the shared `IosAppFrame`. It supplies Apple system color tokens, the system font stack, and the portal container that menus, alerts, and sheets render into.
+- Build native app replicas, such as Notes and Podcasts, inside the shared `IosAppFrame`. It supplies Apple system color tokens, Liquid Glass material tokens, the system font stack, and the portal container that menus, alerts, and sheets render into.
+- Match the current iOS design language (iOS 26 Liquid Glass): floating glass bar buttons, toolbars, and tab bars over content with scroll-edge fades instead of opaque bars, using `iosGlassClassName` from `components/ios/ios-glass`.
 - These routes intentionally use a full-height frame and native styling instead of the shared page canvas, surfaces, and site palette. Keep each app's tint as a CSS variable on its frame.
 - Reuse the primitives in `components/ios` for navigation bars, search fields, lists, menus, alerts, swipe actions, and stack transitions before adding route-specific chrome.
 

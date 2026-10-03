@@ -8,7 +8,9 @@ export const messages = defineMessages({
     "Podcast discovery data is provided by Apple. Audio is streamed directly from each podcast publisher.",
   "Your library stays on this device.": "Your library stays on this device.",
   Home: "Home",
-  Browse: "Browse",
+  New: "New",
+  "New episodes from shows you follow will appear here.":
+    "New episodes from shows you follow will appear here.",
   Library: "Library",
   Search: "Search",
   "Up Next": "Up Next",
@@ -26,9 +28,6 @@ export const messages = defineMessages({
   "Follow shows to see them here.": "Follow shows to see them here.",
   "Save episodes to listen to them later.": "Save episodes to listen to them later.",
   "Episodes you play will appear here.": "Episodes you play will appear here.",
-  "Start listening": "Start listening",
-  "Follow shows you love and pick up episodes right where you left off.":
-    "Follow shows you love and pick up episodes right where you left off.",
   "Shows, Episodes, and More": "Shows, Episodes, and More",
   "Top Results": "Top Results",
   "No Results": "No Results",

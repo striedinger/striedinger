@@ -5,6 +5,8 @@ import { Text } from "@workspace/ui/components/text";
 import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
 
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
+import { FeaturedPodcastCard } from "./featured-podcast-card";
+import { PodcastChartRow } from "./podcast-chart-row";
 import { usePodcastLibrary } from "./podcast-library-store";
 import { removeFromQueue, usePodcastPlayer } from "./podcast-player-store";
 import { PodcastShelf } from "./podcast-shelf";
@@ -71,15 +73,23 @@ export function PodcastsHomeTab({
     >
       <IosNavigationBar title={messages.Home} />
       <div className="flex flex-col gap-7 pt-1">
-        {isNewListener ? (
-          <div className="mx-4 flex flex-col gap-1.5 rounded-[14px] bg-(--ios-secondary-background) p-5 md:mx-6">
-            <Text as="h2" className="text-[20px] leading-[25px] font-bold text-(--ios-label)">
-              {messages["Start listening"]}
-            </Text>
-            <Text className="text-[15px] leading-5 text-(--ios-secondary-label)">
-              {messages["Follow shows you love and pick up episodes right where you left off."]}
-            </Text>
-          </div>
+        {isNewListener && popular.length > 0 ? (
+          <ul
+            aria-label={messages["Top Shows"]}
+            className="m-0 flex snap-x snap-mandatory scroll-px-4 list-none gap-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {popular.slice(0, 5).map(function renderFeatured(podcast, index) {
+              return (
+                <FeaturedPodcastCard
+                  key={podcast.id}
+                  podcast={podcast}
+                  href={getShowHref(podcast)}
+                  priority={index === 0}
+                  onOpen={onOpenShow}
+                />
+              );
+            })}
+          </ul>
         ) : null}
         {upNextItems.length > 0 ? (
           <PodcastShelf title={messages["Up Next"]}>
@@ -134,21 +144,28 @@ export function PodcastsHomeTab({
           </PodcastShelf>
         ) : null}
         {popular.length > 0 ? (
-          <PodcastShelf title={messages["Top Shows"]}>
-            {popular.map(function renderPopularShow(podcast, index) {
-              return (
-                <li key={podcast.id} className="w-[150px] shrink-0 snap-start md:w-[180px]">
-                  <PodcastTile
+          <section aria-label={messages["Top Shows"]} className="flex flex-col">
+            <Text
+              as="h2"
+              className="px-4 pb-1 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
+            >
+              {messages["Top Shows"]}
+            </Text>
+            <ol className="m-0 grid list-none grid-cols-1 p-0 pl-4 md:grid-cols-2 md:gap-x-6 xl:grid-cols-3">
+              {popular.map(function renderChartRow(podcast, index) {
+                return (
+                  <PodcastChartRow
+                    key={podcast.id}
                     podcast={podcast}
+                    rank={index + 1}
+                    detail={podcast.genre || podcast.author}
                     href={getShowHref(podcast)}
-                    sizes={tileSizes}
-                    priority={index < 3 && isNewListener}
                     onOpen={onOpenShow}
                   />
-                </li>
-              );
-            })}
-          </PodcastShelf>
+                );
+              })}
+            </ol>
+          </section>
         ) : null}
         <Text className="px-4 text-[13px] leading-[18px] text-(--ios-secondary-label)">
           {

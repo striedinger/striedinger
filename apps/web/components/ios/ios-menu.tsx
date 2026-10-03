@@ -6,6 +6,7 @@ import { Menu } from "@base-ui/react/menu";
 import { CheckIcon } from "@workspace/icons/check-icon";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { iosStrongGlassClassName } from "./ios-glass";
 import { useIosPortalContainer } from "./ios-portal-container";
 
 export interface IosMenuAction {
@@ -53,7 +54,12 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
           collisionPadding={12}
           className="z-50 outline-none"
         >
-          <Menu.Popup className="max-h-(--available-height) w-[250px] origin-(--transform-origin) overflow-y-auto overscroll-contain rounded-[13px] bg-(--ios-menu) [font-family:inherit] text-(--ios-label) shadow-[0_10px_40px_rgb(0_0_0/0.2)] backdrop-blur-2xl backdrop-saturate-180 transition-[scale,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:scale-[0.85] data-ending-style:opacity-0 data-starting-style:scale-[0.6] data-starting-style:opacity-0 motion-reduce:transition-none">
+          <Menu.Popup
+            className={cn(
+              "max-h-(--available-height) w-[260px] origin-(--transform-origin) overflow-y-auto overscroll-contain rounded-[26px] py-1.5 text-(--ios-label) transition-[scale,opacity,filter] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-[0.8] data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[0.5] data-starting-style:opacity-0 data-starting-style:blur-[6px] motion-reduce:transition-none",
+              iosStrongGlassClassName,
+            )}
+          >
             {visibleSections.map(function renderSection(section, sectionIndex) {
               return (
                 <Menu.Group
@@ -64,7 +70,7 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
                   )}
                 >
                   {section.title ? (
-                    <Menu.GroupLabel className="px-4 pt-2 pb-1.5 text-[13px] leading-[18px] text-(--ios-secondary-label)">
+                    <Menu.GroupLabel className="px-5 pt-1.5 pb-1 text-[13px] leading-[18px] font-medium text-(--ios-secondary-label)">
                       {section.title}
                     </Menu.GroupLabel>
                   ) : null}
@@ -75,14 +81,14 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
                         disabled={action.disabled}
                         onClick={action.onSelect}
                         className={cn(
-                          "relative flex min-h-11 cursor-default items-center gap-3 py-[11px] pr-4 text-[17px] leading-[22px] tracking-[-0.43px] outline-none select-none not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) data-disabled:text-(--ios-tertiary-label) data-highlighted:bg-(--ios-fill) [&_svg]:size-5 [&_svg]:shrink-0",
-                          hasCheckableActions ? "pl-10" : "pl-4",
+                          "relative mx-1.5 flex min-h-11 cursor-default items-center gap-3 rounded-[16px] py-[11px] pr-3.5 text-[17px] leading-[22px] tracking-[-0.43px] outline-none select-none data-disabled:text-(--ios-tertiary-label) data-highlighted:bg-(--ios-glass-lens) [&_svg]:size-5 [&_svg]:shrink-0",
+                          hasCheckableActions ? "pl-10" : "pl-3.5",
                           action.destructive && "text-(--ios-red)",
                         )}
                       >
                         {action.checked ? (
                           <CheckIcon
-                            className="absolute left-3.5 !size-4 text-(--ios-label)"
+                            className="absolute left-3 !size-4 text-(--ios-label)"
                             strokeWidth={3}
                           />
                         ) : null}

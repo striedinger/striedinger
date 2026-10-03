@@ -1,4 +1,4 @@
-import type { Podcast, PodcastShow } from "./types";
+import type { Podcast, PodcastQueueItem, PodcastShow } from "./types";
 
 import { JsonLd } from "../../components/json-ld";
 import {
@@ -24,7 +24,7 @@ export async function PodcastsLoader({ searchParams }: PodcastsLoaderProps) {
       return (Array.isArray(value) ? value[0] : value) ?? null;
     },
   });
-  const [messages, popular, search, show] = await Promise.all([
+  const [messages, popular, search, show, newEpisodes] = await Promise.all([
     loadPodcastMessages(locale),
     getPopularPodcasts().catch(function useEmptyChart(): Podcast[] {
       return [];
@@ -49,6 +49,7 @@ export async function PodcastsLoader({ searchParams }: PodcastsLoaderProps) {
           },
         )
       : Promise.resolve(null),
+    loadNewEpisodes(route.followedIds),
   ]);
   const description =
     messages[
@@ -81,7 +82,35 @@ export async function PodcastsLoader({ searchParams }: PodcastsLoaderProps) {
         searchQuery={route.query}
         searchResults={search.results}
         show={show}
+        newEpisodes={newEpisodes}
+        newEpisodesShowIds={route.followedIds}
       />
     </>
   );
+}
+
+const maximumNewEpisodes = 60;
+
+/** Latest episodes across followed shows for the New tab, newest first. */
+async function loadNewEpisodes(showIds: readonly string[]): Promise<PodcastQueueItem[]> {
+  if (showIds.length === 0) return [];
+  const shows = await Promise.all(
+    showIds.map(function loadShow(showId) {
+      return getPodcastShow(showId).catch(function skipUnavailableShow() {
+        return [null, []] as Awaited<ReturnType<typeof getPodcastShow>>;
+      });
+    }),
+  );
+  return shows
+    .flatMap(function createItems([podcast, episodes]) {
+      return podcast
+        ? episodes.slice(0, 6).map(function createItem(episode) {
+            return { podcast, episode };
+          })
+        : [];
+    })
+    .toSorted(function compareNewest(first, second) {
+      return Date.parse(second.episode.publishedAt) - Date.parse(first.episode.publishedAt);
+    })
+    .slice(0, maximumNewEpisodes);
 }

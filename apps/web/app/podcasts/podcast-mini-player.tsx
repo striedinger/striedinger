@@ -4,9 +4,11 @@ import { GoForwardIcon } from "@workspace/icons/go-forward-icon";
 import { PauseFillIcon } from "@workspace/icons/pause-fill-icon";
 import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 
 import type { PodcastMessages } from "./types";
 
+import { iosGlassClassName } from "../../components/ios/ios-glass";
 import { PodcastArtwork } from "./podcast-artwork";
 import {
   skipForward,
@@ -28,18 +30,21 @@ export function PodcastMiniPlayer({ messages, onOpen }: PodcastMiniPlayerProps) 
   return (
     <section
       aria-label={messages["Now Playing"]}
-      className="absolute inset-x-2 bottom-[calc(49px+env(safe-area-inset-bottom)+8px)] z-30 flex h-14 items-center gap-1 rounded-[14px] bg-(--ios-chrome) pr-2 shadow-[0_6px_24px_rgb(0_0_0/0.16),0_0_0_0.5px_var(--ios-separator)] backdrop-blur-2xl backdrop-saturate-180 md:bottom-4 md:left-1/2 md:w-[min(560px,calc(100%-32px))] md:-translate-x-1/2"
+      className={cn(
+        "absolute inset-x-4 bottom-[calc(max(env(safe-area-inset-bottom),14px)+72px)] z-30 flex h-[52px] animate-in items-center gap-0.5 rounded-full pr-1.5 duration-300 fade-in slide-in-from-bottom-4 motion-reduce:animate-none md:bottom-4 md:left-1/2 md:w-[min(560px,calc(100%-32px))] md:-translate-x-1/2",
+        iosGlassClassName,
+      )}
     >
       <button
         type="button"
         aria-label={`${messages["Open Now Playing"]}: ${item.episode.title}`}
-        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-[14px] pl-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)"
+        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-full pl-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)"
         onClick={onOpen}
       >
         <PodcastArtwork
           src={item.podcast.artworkUrl}
           sizes="40px"
-          className="w-10 rounded-md shadow-sm"
+          className="w-10 rounded-[10px]"
         />
         <span className="flex min-w-0 flex-col">
           <Text

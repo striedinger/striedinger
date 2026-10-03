@@ -65,7 +65,6 @@ export function PodcastEpisodePage({
         leading={
           <PodcastPageBarButton
             aria-label={`${messages.Back}: ${item.podcast.title}`}
-            className="ml-2"
             onClick={onBack}
           >
             <ChevronLeftIcon strokeWidth={2.8} />
@@ -78,7 +77,7 @@ export function PodcastEpisodePage({
             onGoToShow={onGoToShow}
             onShare={onShare}
             trigger={
-              <PodcastPageBarButton aria-label={messages.More} className="mr-2">
+              <PodcastPageBarButton aria-label={messages.More}>
                 <EllipsisIcon />
               </PodcastPageBarButton>
             }

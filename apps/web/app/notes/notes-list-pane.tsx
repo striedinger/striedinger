@@ -4,7 +4,7 @@ import { ArrowUpDownIcon } from "@workspace/icons/arrow-up-down-icon";
 import { CalendarIcon } from "@workspace/icons/calendar-icon";
 import { ChevronLeftIcon } from "@workspace/icons/chevron-left-icon";
 import { ComposeIcon } from "@workspace/icons/compose-icon";
-import { EllipsisCircleIcon } from "@workspace/icons/ellipsis-circle-icon";
+import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { ListIcon } from "@workspace/icons/list-icon";
 import { PencilIcon } from "@workspace/icons/pencil-icon";
 import { SquareGridIcon } from "@workspace/icons/square-grid-icon";
@@ -164,17 +164,18 @@ export function NotesListPane({
     >
       <div
         data-ios-scroll
-        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-24"
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)]"
       >
         <IosNavigationBar
           title={title}
+          subtitle={countLabel}
           leading={
             <IosBarButton
-              className={cn("-ml-1 gap-0.5 px-1", backButtonClassName)}
+              aria-label={`${messages.Back}: ${backLabel}`}
+              className={backButtonClassName}
               onClick={onBack}
             >
-              <ChevronLeftIcon className="!size-[24px]" strokeWidth={2.6} />
-              <span className="truncate">{backLabel}</span>
+              <ChevronLeftIcon strokeWidth={2.6} />
             </IosBarButton>
           }
           trailing={
@@ -182,19 +183,9 @@ export function NotesListPane({
               sections={menuSections}
               trigger={
                 <IosBarButton aria-label={messages.More}>
-                  <EllipsisCircleIcon />
+                  <EllipsisIcon />
                 </IosBarButton>
               }
-            />
-          }
-          accessory={
-            <IosSearchField
-              aria-label={messages.Search}
-              placeholder={messages.Search}
-              cancelLabel={messages.Cancel}
-              clearLabel={messages["Clear text"]}
-              value={searchQuery}
-              onValueChange={onSearchQueryChange}
             />
           }
         />
@@ -273,15 +264,22 @@ export function NotesListPane({
           </div>
         )}
       </div>
-      <NotesToolbar label={title}>
-        <span className="min-w-11" />
-        <Text as="span" className="text-[13px] leading-4 text-(--ios-label)" aria-live="polite">
-          {countLabel}
-        </Text>
-        {isRecentlyDeleted ? (
-          <span className="min-w-11" />
-        ) : (
-          <IosBarButton aria-label={messages["New Note"]} onClick={onCreateNote}>
+      <NotesToolbar label={title} className="[--ios-bar-edge:var(--ios-grouped-background)]">
+        <IosSearchField
+          aria-label={messages.Search}
+          placeholder={messages.Search}
+          cancelLabel={messages.Cancel}
+          clearLabel={messages["Clear text"]}
+          value={searchQuery}
+          containerClassName="min-w-0 flex-1"
+          onValueChange={onSearchQueryChange}
+        />
+        {isRecentlyDeleted ? null : (
+          <IosBarButton
+            aria-label={messages["New Note"]}
+            className="text-(--ios-tint)"
+            onClick={onCreateNote}
+          >
             <ComposeIcon />
           </IosBarButton>
         )}

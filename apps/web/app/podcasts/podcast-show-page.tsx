@@ -69,16 +69,12 @@ export function PodcastShowPage({
         title={podcast.title}
         titleDisplay="scroll-edge"
         leading={
-          <PodcastPageBarButton
-            aria-label={`${messages.Back}: ${backLabel}`}
-            className="ml-2"
-            onClick={onBack}
-          >
+          <PodcastPageBarButton aria-label={`${messages.Back}: ${backLabel}`} onClick={onBack}>
             <ChevronLeftIcon strokeWidth={2.8} />
           </PodcastPageBarButton>
         }
         trailing={
-          <div className="mr-2 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <PodcastPageBarButton
               aria-pressed={isFollowed}
               aria-label={isFollowed ? messages["Unfollow Show"] : messages["Follow Show"]}

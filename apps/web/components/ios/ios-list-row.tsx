@@ -30,7 +30,7 @@ export function IosListRow({
         type={type}
         aria-current={selected || undefined}
         className={cn(
-          "flex min-h-11 w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint) aria-current:text-white",
+          "flex min-h-[52px] w-full items-center gap-3 py-3 pr-4 pl-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint) aria-current:text-white dark:aria-current:text-black",
           className,
         )}
         {...props}

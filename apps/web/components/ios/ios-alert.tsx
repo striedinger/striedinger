@@ -4,6 +4,7 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { useId, useRef } from "react";
 
+import { iosStrongGlassClassName } from "./ios-glass";
 import { useIosPortalContainer } from "./ios-portal-container";
 
 interface IosAlertAction {
@@ -49,24 +50,28 @@ export function IosAlert({
   return (
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal container={portalContainer}>
-        <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/20 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none dark:bg-black/45" />
+        <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/25 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none dark:bg-black/45" />
         <AlertDialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center p-6">
           <AlertDialog.Popup
             initialFocus={textField ? inputRef : true}
-            className="w-[270px] overflow-hidden rounded-[14px] bg-(--ios-menu) text-center text-(--ios-label) shadow-[0_10px_40px_rgb(0_0_0/0.18)] backdrop-blur-2xl backdrop-saturate-180 transition-[scale,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:opacity-0 data-starting-style:scale-[1.15] data-starting-style:opacity-0 motion-reduce:transition-none"
+            className={cn(
+              "w-[min(300px,calc(100vw-48px))] rounded-[34px] p-[22px] text-left text-(--ios-label) transition-[scale,opacity] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[1.12] data-starting-style:opacity-0 motion-reduce:transition-none",
+              iosStrongGlassClassName,
+            )}
           >
             <form
+              className="flex flex-col gap-5"
               onSubmit={function submitPreferredAction(event) {
                 event.preventDefault();
                 preferredAction?.onSelect();
               }}
             >
-              <div className="flex flex-col gap-0.5 px-4 pt-[19px] pb-[18px]">
+              <div className="flex flex-col gap-1">
                 <AlertDialog.Title className="text-[17px] leading-[22px] font-semibold tracking-[-0.43px]">
                   {title}
                 </AlertDialog.Title>
                 {message ? (
-                  <AlertDialog.Description className="text-[13px] leading-[18px] tracking-[-0.08px]">
+                  <AlertDialog.Description className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-label)/80">
                     {message}
                   </AlertDialog.Description>
                 ) : null}
@@ -84,18 +89,18 @@ export function IosAlert({
                       onChange={function updateValue(event) {
                         textField.onValueChange(event.currentTarget.value);
                       }}
-                      className="mt-3.5 h-[30px] w-full rounded-[7px] border border-(--ios-separator) bg-(--ios-tertiary-background) px-1.5 text-left text-[16px] text-(--ios-label) outline-none placeholder:text-(--ios-tertiary-label) focus:border-(--ios-tint)"
+                      className="mt-3 h-11 w-full rounded-full bg-(--ios-tertiary-fill) px-4 text-[16px] text-(--ios-label) outline-none placeholder:text-(--ios-tertiary-label) focus:ring-2 focus:ring-(--ios-tint)/70"
                     />
                   </>
                 ) : null}
               </div>
               <div
                 className={cn(
-                  "grid border-t-[0.5px] border-(--ios-separator)",
+                  "grid gap-2",
                   stacksActions
-                    ? "grid-cols-1 divide-y-[0.5px] divide-(--ios-separator)"
+                    ? "grid-cols-1"
                     : actions.length === 2
-                      ? "grid-cols-2 divide-x-[0.5px] divide-(--ios-separator)"
+                      ? "grid-cols-2"
                       : "grid-cols-1",
                 )}
               >
@@ -113,9 +118,10 @@ export function IosAlert({
                             }
                       }
                       className={cn(
-                        "h-11 px-2 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) outline-none focus-visible:bg-(--ios-fill) active:bg-(--ios-fill) disabled:text-(--ios-tertiary-label)",
+                        "h-12 truncate rounded-full bg-(--ios-fill) px-3 text-[17px] leading-[22px] font-medium tracking-[-0.43px] text-(--ios-label) transition-transform duration-150 outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-95 disabled:opacity-40 motion-reduce:transition-none",
                         action.role === "destructive" && "text-(--ios-red)",
-                        action.preferred && "font-semibold",
+                        action.preferred &&
+                          "bg-(--ios-tint) font-semibold text-white dark:text-black",
                       )}
                     >
                       {action.label}

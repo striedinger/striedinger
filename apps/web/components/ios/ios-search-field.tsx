@@ -3,9 +3,12 @@
 import type { ComponentPropsWithRef, PointerEvent } from "react";
 
 import { CircleXFillIcon } from "@workspace/icons/circle-x-fill-icon";
+import { CloseIcon } from "@workspace/icons/close-icon";
 import { SearchIcon } from "@workspace/icons/search-icon";
 import { cn } from "@workspace/ui/lib/utils";
 import { useRef, useState } from "react";
+
+import { iosGlassClassName } from "./ios-glass";
 
 type IosSearchFieldProps = Omit<ComponentPropsWithRef<"input">, "onChange" | "type" | "value"> & {
   cancelLabel: string;
@@ -16,6 +19,10 @@ type IosSearchFieldProps = Omit<ComponentPropsWithRef<"input">, "onChange" | "ty
   value: string;
 };
 
+/**
+ * The iOS 26 search field: a glass capsule that, while active, is joined by a round glass
+ * button to dismiss search.
+ */
 export function IosSearchField({
   cancelLabel,
   clearLabel,
@@ -41,9 +48,17 @@ export function IosSearchField({
   }
 
   return (
-    <div role="search" className={cn("flex items-center px-4 pb-2", containerClassName)}>
-      <label className="relative flex h-9 min-w-0 flex-1 items-center rounded-[10px] bg-(--ios-tertiary-fill) text-(--ios-secondary-label)">
-        <SearchIcon className="pointer-events-none absolute left-2 size-[18px]" strokeWidth={2.4} />
+    <div role="search" className={cn("flex items-center gap-2", containerClassName)}>
+      <label
+        className={cn(
+          "relative flex h-11 min-w-0 flex-1 items-center rounded-full text-(--ios-secondary-label)",
+          iosGlassClassName,
+        )}
+      >
+        <SearchIcon
+          className="pointer-events-none absolute left-3.5 size-[18px]"
+          strokeWidth={2.4}
+        />
         <input
           ref={inputRef}
           type="search"
@@ -53,17 +68,17 @@ export function IosSearchField({
           spellCheck={false}
           value={value}
           className={cn(
-            "size-full min-w-0 appearance-none bg-transparent pr-8 pl-[30px] text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none placeholder:text-(--ios-secondary-label) [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+            "size-full min-w-0 appearance-none rounded-full bg-transparent pr-10 pl-10 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none placeholder:text-(--ios-secondary-label) [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
             className,
           )}
           onChange={function updateQuery(event) {
             onValueChange(event.currentTarget.value);
           }}
-          onFocus={function showCancelButton(event) {
+          onFocus={function activateSearch(event) {
             setIsFocused(true);
             onFocus?.(event);
           }}
-          onBlur={function hideCancelButton(event) {
+          onBlur={function deactivateSearch(event) {
             setIsFocused(false);
             onBlur?.(event);
           }}
@@ -77,36 +92,31 @@ export function IosSearchField({
           <button
             type="button"
             aria-label={clearLabel}
-            className="absolute right-0 flex size-9 items-center justify-center text-(--ios-tertiary-label) outline-none focus-visible:text-(--ios-secondary-label)"
+            className="absolute right-1 flex size-9 items-center justify-center rounded-full text-(--ios-tertiary-label) outline-none focus-visible:text-(--ios-secondary-label)"
             onPointerDown={keepInputFocus}
             onClick={function clearQuery() {
               onValueChange("");
               inputRef.current?.focus();
             }}
           >
-            <CircleXFillIcon className="size-[17px]" />
+            <CircleXFillIcon className="size-[18px]" />
           </button>
         ) : null}
       </label>
-      <div
-        className={cn(
-          "grid transition-[grid-template-columns,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-          isActive ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0",
-        )}
-      >
-        <div className="overflow-hidden">
-          <button
-            type="button"
-            tabIndex={isActive ? 0 : -1}
-            aria-hidden={!isActive || undefined}
-            className="ml-2 h-9 text-[17px] leading-[22px] tracking-[-0.43px] whitespace-nowrap text-(--ios-tint) outline-none active:opacity-40"
-            onPointerDown={keepInputFocus}
-            onClick={cancelSearch}
-          >
-            {cancelLabel}
-          </button>
-        </div>
-      </div>
+      {isActive ? (
+        <button
+          type="button"
+          aria-label={cancelLabel}
+          className={cn(
+            "flex size-11 shrink-0 animate-in items-center justify-center rounded-full text-(--ios-label) duration-200 outline-none zoom-in-75 fade-in focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-90 motion-reduce:animate-none",
+            iosGlassClassName,
+          )}
+          onPointerDown={keepInputFocus}
+          onClick={cancelSearch}
+        >
+          <CloseIcon className="size-[18px]" strokeWidth={2.4} />
+        </button>
+      ) : null}
     </div>
   );
 }

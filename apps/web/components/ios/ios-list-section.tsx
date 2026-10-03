@@ -29,18 +29,18 @@ export function IosListSection({
           as="h2"
           className={cn(
             headerVariant === "prominent"
-              ? "px-1 pt-2 pb-2 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-              : "px-4 pt-4 pb-1.5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label) uppercase",
+              ? "px-2 pt-3 pb-2 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
+              : "px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)",
           )}
         >
           {header}
         </Text>
       ) : null}
-      <ul className="m-0 list-none overflow-hidden rounded-[10px] bg-(--ios-grouped-cell) p-0">
+      <ul className="m-0 list-none overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) p-0">
         {children}
       </ul>
       {footer ? (
-        <Text className="px-4 pt-1.5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
+        <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
           {footer}
         </Text>
       ) : null}

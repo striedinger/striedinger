@@ -10,7 +10,9 @@ export const messages = {
     "Podcastの検索データはAppleが提供しています。オーディオは各Podcast配信元から直接ストリーミングされます。",
   "Your library stays on this device.": "ライブラリはこのデバイスに保存されます。",
   Home: "ホーム",
-  Browse: "見つける",
+  New: "新着",
+  "New episodes from shows you follow will appear here.":
+    "フォロー中の番組の新しいエピソードがここに表示されます。",
   Library: "ライブラリ",
   Search: "検索",
   "Up Next": "次はこちら",
@@ -28,9 +30,6 @@ export const messages = {
   "Follow shows to see them here.": "番組をフォローするとここに表示されます。",
   "Save episodes to listen to them later.": "エピソードを保存して後で聴きましょう。",
   "Episodes you play will appear here.": "再生したエピソードがここに表示されます。",
-  "Start listening": "聴いてみましょう",
-  "Follow shows you love and pick up episodes right where you left off.":
-    "好きな番組をフォローして、中断したところからエピソードを再開できます。",
   "Shows, Episodes, and More": "番組、エピソード、その他",
   "Top Results": "トップヒット",
   "No Results": "結果なし",

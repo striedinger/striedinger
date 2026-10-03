@@ -30,16 +30,18 @@ import {
   createPodcastHref,
   createTabRoute,
   getPodcastRouteKey,
+  normalizeFollowedIds,
   parsePodcastRoute,
   type LibraryView,
   type PodcastRoute,
 } from "./podcast-route";
 import { PodcastShowPage } from "./podcast-show-page";
-import { PodcastsBrowseTab } from "./podcasts-browse-tab";
 import { PodcastsHomeTab } from "./podcasts-home-tab";
 import { PodcastsLibraryTab } from "./podcasts-library-tab";
+import { PodcastsNewTab } from "./podcasts-new-tab";
 import { PodcastsSearchTab } from "./podcasts-search-tab";
 import { PodcastsTabBar } from "./podcasts-tab-bar";
+import { useSearchInput } from "./use-search-input";
 
 interface PodcastsAppProps {
   locale: string;
@@ -48,6 +50,8 @@ interface PodcastsAppProps {
   searchFailed: boolean;
   searchQuery: string;
   searchResults: readonly Podcast[];
+  newEpisodes: readonly PodcastQueueItem[];
+  newEpisodesShowIds: readonly string[];
   show: PodcastShow | null;
 }
 
@@ -57,7 +61,7 @@ interface OptimisticRoute {
 }
 
 const stackTransitionName = "ios-podcasts-stack";
-const tabOrder: readonly PodcastTab[] = ["home", "browse", "library", "search"];
+const tabOrder: readonly PodcastTab[] = ["home", "new", "library", "search"];
 
 export function PodcastsApp({
   locale,
@@ -66,6 +70,8 @@ export function PodcastsApp({
   searchFailed,
   searchQuery,
   searchResults,
+  newEpisodes,
+  newEpisodesShowIds,
   show,
 }: PodcastsAppProps) {
   const router = useRouter();
@@ -90,6 +96,9 @@ export function PodcastsApp({
     },
   );
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+  const [previousTab, setPreviousTab] = useState<Exclude<PodcastTab, "search">>(
+    urlRoute.tab === "search" ? "home" : urlRoute.tab,
+  );
   const [statusMessage, setStatusMessage] = useState("");
   const [now] = useState(function readCurrentTime() {
     return Date.now();
@@ -99,6 +108,11 @@ export function PodcastsApp({
   const tabScrollRefs = useRef(new Map<PodcastTab, HTMLDivElement>());
   const library = usePodcastLibrary();
   const player = usePodcastPlayer();
+  const followedShowIds = normalizeFollowedIds(
+    library.followed.map(function selectPodcastId(podcast) {
+      return podcast.id;
+    }),
+  );
 
   useEffect(function trackBrowserHistory() {
     function forgetHistoryEntry() {
@@ -113,6 +127,24 @@ export function PodcastsApp({
       window.removeEventListener("popstate", forgetHistoryEntry);
     };
   }, []);
+
+  const followedShowKey = followedShowIds.join(",");
+  const newEpisodesShowKey = newEpisodesShowIds.join(",");
+  const isNewTabActive = route.tab === "new" && route.podcastId === null;
+
+  useEffect(
+    function loadNewEpisodesForFollowedShows() {
+      if (!isNewTabActive || followedShowKey === newEpisodesShowKey) return;
+      const nextRoute = {
+        ...createTabRoute("new"),
+        followedIds: followedShowKey ? followedShowKey.split(",") : [],
+      };
+      startNavigation(function refreshNewEpisodes() {
+        router.replace(createPodcastHref(pathname, nextRoute), { scroll: false });
+      });
+    },
+    [followedShowKey, isNewTabActive, newEpisodesShowKey, pathname, router],
+  );
 
   useEffect(function pauseWhenLeavingPodcasts() {
     return pausePlayback;
@@ -156,7 +188,7 @@ export function PodcastsApp({
   const mountedTabs = new Set([...visitedTabs, route.tab]);
   const tabTitles: Record<PodcastTab, string> = {
     home: messages.Home,
-    browse: messages.Browse,
+    new: messages.New,
     library: messages.Library,
     search: messages.Search,
   };
@@ -247,10 +279,22 @@ export function PodcastsApp({
         ?.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    const nextRoute =
+      tab === "new"
+        ? { ...createTabRoute("new"), followedIds: followedShowIds }
+        : createTabRoute(tab);
     setVisitedTabs(new Set([...visitedTabs, tab]));
-    setOptimisticRoute({ fromKey: urlRouteKey, route: createTabRoute(tab) });
+    if (tab !== "search") setPreviousTab(tab);
+    setOptimisticRoute({ fromKey: urlRouteKey, route: nextRoute });
     routeStackRef.current = [];
-    window.history.replaceState(null, "", createPodcastHref(pathname, createTabRoute(tab)));
+    const href = createPodcastHref(pathname, nextRoute);
+    if (tab === "new" && followedShowIds.join(",") !== newEpisodesShowIds.join(",")) {
+      startNavigation(function loadNewEpisodes() {
+        router.replace(href, { scroll: false });
+      });
+      return;
+    }
+    window.history.replaceState(null, "", href);
   }
 
   function search(query: string) {
@@ -259,6 +303,8 @@ export function PodcastsApp({
       router.replace(createPodcastHref(pathname, nextRoute), { scroll: false });
     });
   }
+
+  const searchInput = useSearchInput(searchQuery, search);
 
   async function shareLink(title: string, href: string) {
     const url = new URL(href, window.location.origin).toString();
@@ -308,13 +354,19 @@ export function PodcastsApp({
         />
       );
     }
-    if (tab === "browse") {
+    if (tab === "new") {
       return (
-        <PodcastsBrowseTab
-          popular={popular}
-          getShowHref={getShowHref}
+        <PodcastsNewTab
+          items={newEpisodesShowIds.join(",") === followedShowIds.join(",") ? newEpisodes : []}
+          hasFollowedShows={followedShowIds.length > 0}
+          isLoading={isNavigating && route.tab === "new"}
+          getEpisodeHref={getEpisodeHref}
+          locale={locale}
           messages={messages}
-          onOpenShow={openShow}
+          now={now}
+          onGoToShow={goToShow}
+          onOpenEpisode={openEpisode}
+          onShare={shareEpisode}
         />
       );
     }
@@ -341,13 +393,14 @@ export function PodcastsApp({
     return (
       <PodcastsSearchTab
         query={searchQuery}
+        inputValue={searchInput.value}
         results={searchResults}
         searchFailed={searchFailed}
         isSearching={isNavigating && route.tab === "search" && !isStackOpen}
         getShowHref={getShowHref}
         messages={messages}
         onOpenShow={openShow}
-        onSearch={search}
+        onSearchCategory={searchInput.searchNow}
       />
     );
   }
@@ -410,7 +463,17 @@ export function PodcastsApp({
     <Drawer.Provider>
       <Drawer.IndentBackground className="absolute inset-0 bg-black" />
       <Drawer.Indent className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform data-active:scale-[0.94] data-active:rounded-[12px] motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]">
-        <PodcastsTabBar activeTab={route.tab} messages={messages} onSelectTab={selectTab} />
+        <PodcastsTabBar
+          activeTab={route.tab}
+          previousTab={previousTab}
+          messages={messages}
+          searchInput={searchInput.value}
+          onSearchInputChange={searchInput.updateValue}
+          onSearchSubmit={function submitSearch() {
+            searchInput.searchNow(searchInput.value);
+          }}
+          onSelectTab={selectTab}
+        />
         <div className="relative min-h-0 min-w-0 flex-1">
           <div
             style={{ viewTransitionName: stackTransitionName }}
