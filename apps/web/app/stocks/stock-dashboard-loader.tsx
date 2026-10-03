@@ -2,7 +2,7 @@ import type { Locale } from "@workspace/i18n";
 
 import { headers } from "next/headers";
 
-import type { StocksLabels, StockTimeframe } from "./types";
+import type { StockIdentity, StocksLabels, StockTimeframe } from "./types";
 
 import { isRateLimited } from "../../lib/rate-limit";
 import { getStockSeries, searchStockSymbols } from "../../lib/stocks/market-data";
@@ -31,7 +31,7 @@ export async function StockDashboardLoader({
     ? searchStockSymbols(query).catch(function useEmptySearchResults() {
         return [];
       })
-    : Promise.resolve([]);
+    : Promise.resolve<StockIdentity[]>([]);
   const seriesPromise = stockPromise
     .then(function loadInitialSeries(initialStock) {
       return getStockSeries(initialStock, initialTimeframe);
@@ -39,11 +39,8 @@ export async function StockDashboardLoader({
     .catch(function useUnavailableInitialSeries() {
       return null;
     });
-  const [initialStock, searchResults, initialSeries] = await Promise.all([
-    stockPromise,
-    searchResultsPromise,
-    seriesPromise,
-  ]);
+  // Search suggestions stream separately, so the chart never waits on symbol search.
+  const [initialStock, initialSeries] = await Promise.all([stockPromise, seriesPromise]);
   return (
     <StockDashboard
       initialSeries={initialSeries}
@@ -53,7 +50,7 @@ export async function StockDashboardLoader({
       labels={labels}
       locale={locale}
       searchQuery={query}
-      searchResults={searchResults}
+      searchResults={searchResultsPromise}
     />
   );
 }

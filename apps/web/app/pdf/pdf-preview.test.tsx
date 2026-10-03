@@ -11,7 +11,7 @@ const mocks = vi.hoisted(function createPdfMocks() {
     destroy: vi.fn<() => Promise<void>>(async function destroy() {}),
   };
 });
-vi.mock("pdfjs-dist", function mockPdfjs() {
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", function mockPdfjs() {
   return { GlobalWorkerOptions: {}, getDocument: mocks.getDocument };
 });
 

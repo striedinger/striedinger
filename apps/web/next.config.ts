@@ -37,6 +37,15 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: publicMetadataCacheControl }],
       },
       {
+        source: "/vendor/pdfjs-dist/:version/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         source: "/vendor/jsquash-avif/:version/:path*",
         headers: [
           {

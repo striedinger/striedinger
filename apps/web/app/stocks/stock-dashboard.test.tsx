@@ -76,10 +76,10 @@ describe("StockDashboard", function () {
     vi.restoreAllMocks();
   });
 
-  it("restores an intentionally empty watchlist", function () {
+  it("restores an intentionally empty watchlist", async function () {
     vi.useFakeTimers();
     window.localStorage.setItem("stocks-watchlist:v1", "[]");
-    renderDashboard();
+    await renderDashboard();
     act(function restoreWatchlist() {
       vi.advanceTimersByTime(0);
     });
@@ -87,19 +87,19 @@ describe("StockDashboard", function () {
     expect(screen.queryByRole("button", { name: "Remove AAPL" })).not.toBeInTheDocument();
   });
 
-  it("still navigates after removing a stock when persistence fails", function () {
+  it("still navigates after removing a stock when persistence fails", async function () {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function denyWrite() {
       throw new DOMException("Full", "QuotaExceededError");
     });
-    renderDashboard();
+    await renderDashboard();
     fireEvent.click(screen.getByRole("button", { name: "Remove AAPL" }));
     expect(navigationMocks.push).toHaveBeenCalledWith("/stocks?symbol=MSFT&timeframe=1M", {
       scroll: false,
     });
   });
 
-  it("does not enter a loading state when the selected timeframe is pressed again", function () {
-    renderDashboard();
+  it("does not enter a loading state when the selected timeframe is pressed again", async function () {
+    await renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "1M" }));
 
@@ -107,8 +107,8 @@ describe("StockDashboard", function () {
     expect(screen.queryByRole("status", { name: labels.loading })).not.toBeInTheDocument();
   });
 
-  it("keeps the chart visible while a timeframe navigation is requested", function () {
-    renderDashboard();
+  it("keeps the chart visible while a timeframe navigation is requested", async function () {
+    await renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: "1W" }));
 
@@ -118,9 +118,9 @@ describe("StockDashboard", function () {
     });
   });
 
-  it("requests server suggestions while typing without requiring a submit button", function () {
+  it("requests server suggestions while typing without requiring a submit button", async function () {
     vi.useFakeTimers();
-    renderDashboard();
+    await renderDashboard();
 
     fireEvent.change(screen.getByRole("combobox", { name: labels.search }), {
       target: { value: "Tesla" },
@@ -141,8 +141,8 @@ describe("StockDashboard", function () {
     });
   });
 
-  it("supports choosing a typeahead result with the keyboard", function () {
-    renderDashboard({ searchQuery: "app", searchResults: [apple] });
+  it("supports choosing a typeahead result with the keyboard", async function () {
+    await renderDashboard({ searchQuery: "app", searchResults: [apple] });
     const searchInput = screen.getByRole("combobox", { name: labels.search });
 
     fireEvent.keyDown(searchInput, { key: "ArrowDown" });
@@ -154,8 +154,8 @@ describe("StockDashboard", function () {
     });
   });
 
-  it("removes a stock from the watchlist with an always-available control", function () {
-    renderDashboard();
+  it("removes a stock from the watchlist with an always-available control", async function () {
+    await renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: `${labels.remove} AAPL` }));
 
@@ -169,25 +169,27 @@ describe("StockDashboard", function () {
   });
 });
 
-function renderDashboard({
+async function renderDashboard({
   searchQuery = "",
   searchResults = [],
 }: {
   searchQuery?: string;
   searchResults?: (typeof apple)[];
 } = {}) {
-  render(
-    <StockDashboard
-      initialSeries={initialSeries}
-      initialStock={apple}
-      initialTimeframe="1M"
-      isSharedSelection
-      labels={labels}
-      locale="en-US"
-      searchQuery={searchQuery}
-      searchResults={searchResults}
-    />,
-  );
+  await act(async function renderWithStreamedSuggestions() {
+    render(
+      <StockDashboard
+        initialSeries={initialSeries}
+        initialStock={apple}
+        initialTimeframe="1M"
+        isSharedSelection
+        labels={labels}
+        locale="en-US"
+        searchQuery={searchQuery}
+        searchResults={Promise.resolve(searchResults)}
+      />,
+    );
+  });
 }
 
 function createSeries(timeframe: StockSeries["timeframe"], close: number): StockSeries {

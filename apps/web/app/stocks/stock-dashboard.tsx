@@ -6,7 +6,7 @@ import { Button } from "@workspace/ui/components/button";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { Suspense, useEffect, useRef, useState, useTransition } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
@@ -16,6 +16,7 @@ import { MarketSessionIndicator } from "./market-session-indicator";
 import { StockChart } from "./stock-chart";
 import { defaultStocks, spaceXStock } from "./stock-defaults";
 import { StockSearch } from "./stock-search";
+import { StockSearchFallback } from "./stock-search-fallback";
 import { stockTimeframeFreshnessSeconds, stockTimeframes } from "./types";
 
 interface StockDashboardProps {
@@ -26,7 +27,7 @@ interface StockDashboardProps {
   labels: StocksLabels;
   locale: string;
   searchQuery: string;
-  searchResults: StockIdentity[];
+  searchResults: Promise<StockIdentity[]>;
 }
 
 const storageKey = "stocks-watchlist:v1";
@@ -198,15 +199,17 @@ export function StockDashboard({
   return (
     <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside className="flex min-w-0 flex-col gap-5" aria-label={labels.watchlist}>
-        <StockSearch
-          initialQuery={searchQuery}
-          labels={labels}
-          searchResults={searchResults}
-          selectedSymbol={selectedStock.symbol}
-          timeframe={timeframe}
-          watchlist={watchlist}
-          onSelectStock={addStock}
-        />
+        <Suspense fallback={<StockSearchFallback labels={labels} query={searchQuery} />}>
+          <StockSearch
+            initialQuery={searchQuery}
+            labels={labels}
+            searchResults={searchResults}
+            selectedSymbol={selectedStock.symbol}
+            timeframe={timeframe}
+            watchlist={watchlist}
+            onSelectStock={addStock}
+          />
+        </Suspense>
 
         <Surface className="overflow-hidden p-2">
           <div className="flex items-center justify-between px-2 py-2">

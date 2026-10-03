@@ -39,10 +39,15 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
         setDocument(undefined);
         setPageSizes([]);
         try {
-          const [pdfjs, buffer] = await Promise.all([import("pdfjs-dist"), file.arrayBuffer()]);
+          // The legacy build polyfills recent JavaScript (such as Map#getOrInsertComputed) that
+          // pdf.js 6's default build assumes, so PDFs open in current Safari and Chromium releases.
+          const [pdfjs, buffer] = await Promise.all([
+            import("pdfjs-dist/legacy/build/pdf.mjs"),
+            file.arrayBuffer(),
+          ]);
           if (cancelled) return;
           pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            "pdfjs-dist/build/pdf.worker.min.mjs",
+            "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
             import.meta.url,
           ).toString();
           loadingTask = pdfjs.getDocument({

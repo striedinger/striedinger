@@ -1,4 +1,4 @@
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,3 +19,21 @@ await Promise.all([
     join(outputDirectory, "LICENSE-qpdf.txt"),
   ),
 ]);
+
+// pdf.js font, character map, and image decoder data, fetched only when "Smallest" mode
+// renders a document that needs them, such as one with fonts it does not embed.
+const PDFJS_VERSION = JSON.parse(
+  await readFile(fileURLToPath(import.meta.resolve("pdfjs-dist/package.json")), "utf8"),
+).version;
+const pdfjsDirectory = dirname(fileURLToPath(import.meta.resolve("pdfjs-dist/package.json")));
+const pdfjsOutputDirectory = fileURLToPath(
+  new URL(`../public/vendor/pdfjs-dist/${PDFJS_VERSION}/`, import.meta.url),
+);
+await Promise.all(
+  ["standard_fonts", "cmaps", "wasm"].map(function copyPdfjsData(directory) {
+    return cp(join(pdfjsDirectory, directory), join(pdfjsOutputDirectory, directory), {
+      recursive: true,
+    });
+  }),
+);
+await copyFile(join(pdfjsDirectory, "LICENSE"), join(pdfjsOutputDirectory, "LICENSE-pdfjs.txt"));

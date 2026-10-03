@@ -5,7 +5,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { use, useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
 
 import type { StockIdentity, StocksLabels, StockTimeframe } from "./types";
 
@@ -13,7 +13,8 @@ interface StockSearchProps {
   initialQuery: string;
   labels: StocksLabels;
   onSelectStock: (stock: StockIdentity) => void;
-  searchResults: StockIdentity[];
+  /** Suggestions for `initialQuery`, streaming from the server. */
+  searchResults: Promise<StockIdentity[]>;
   selectedSymbol: string;
   timeframe: StockTimeframe;
   watchlist: StockIdentity[];
@@ -25,11 +26,12 @@ export function StockSearch({
   initialQuery,
   labels,
   onSelectStock,
-  searchResults,
+  searchResults: searchResultsPromise,
   selectedSymbol,
   timeframe,
   watchlist,
 }: StockSearchProps) {
+  const searchResults = use(searchResultsPromise);
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
