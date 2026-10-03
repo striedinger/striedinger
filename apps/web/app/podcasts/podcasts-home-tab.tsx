@@ -14,6 +14,7 @@ import { PodcastTile } from "./podcast-tile";
 import { UpNextCard } from "./up-next-card";
 
 interface PodcastsHomeTabProps {
+  onShareShow: (podcast: Podcast) => void;
   getEpisodeHref: (item: PodcastQueueItem) => string;
   getShowHref: (podcast: Podcast) => string;
   locale: string;
@@ -39,6 +40,7 @@ export function PodcastsHomeTab({
   onOpenShow,
   onShare,
   popular,
+  onShareShow,
 }: PodcastsHomeTabProps) {
   const library = usePodcastLibrary();
   const player = usePodcastPlayer();
@@ -133,6 +135,8 @@ export function PodcastsHomeTab({
               return (
                 <li key={podcast.id} className="w-[150px] shrink-0 snap-start md:w-[180px]">
                   <PodcastTile
+                    messages={messages}
+                    onShare={onShareShow}
                     podcast={podcast}
                     href={getShowHref(podcast)}
                     sizes={tileSizes}
@@ -155,6 +159,8 @@ export function PodcastsHomeTab({
               {popular.map(function renderChartRow(podcast, index) {
                 return (
                   <PodcastChartRow
+                    messages={messages}
+                    onShare={onShareShow}
                     key={podcast.id}
                     podcast={podcast}
                     rank={index + 1}

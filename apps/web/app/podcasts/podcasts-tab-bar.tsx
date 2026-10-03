@@ -58,7 +58,7 @@ export function PodcastsTabBar({
   return (
     <nav
       aria-label={messages.Podcasts}
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 px-4 pb-[max(env(safe-area-inset-bottom),14px)] md:pointer-events-auto md:static md:m-3 md:mr-0 md:w-[280px] md:shrink-0 md:flex-col md:items-stretch md:gap-3 md:rounded-[30px] md:bg-(--ios-glass) md:p-3 md:pb-3 md:shadow-[inset_0_0.5px_0_0.5px_var(--ios-glass-edge),0_8px_30px_var(--ios-glass-shadow)] md:backdrop-blur-[14px] [&>*]:pointer-events-auto"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 px-4 pb-[max(env(safe-area-inset-bottom),14px)] md:pointer-events-auto md:static md:m-3 md:mt-[max(env(safe-area-inset-top),12px)] md:mr-0 md:w-[280px] md:shrink-0 md:flex-col md:items-stretch md:gap-3 md:rounded-[30px] md:bg-(--ios-glass) md:p-3 md:pb-3 md:shadow-[inset_0_0.5px_0_0.5px_var(--ios-glass-edge),0_8px_30px_var(--ios-glass-shadow)] md:backdrop-blur-[14px] [&>*]:pointer-events-auto"
     >
       <Text
         as="span"

@@ -1,5 +1,7 @@
 import type { Note, NotesSortOrder } from "./types";
 
+import { getCollator, getDateTimeFormat, getRelativeTimeFormat } from "../../lib/intl-cache";
+
 export interface NoteSection {
   id: string;
   notes: Note[];
@@ -15,7 +17,7 @@ interface SectionLabels {
 const dayMilliseconds = 86_400_000;
 
 export function sortNotes(notes: readonly Note[], sortOrder: NotesSortOrder, locale: string) {
-  const collator = new Intl.Collator(locale, { numeric: true, sensitivity: "base" });
+  const collator = getCollator(locale, { numeric: true, sensitivity: "base" });
   return notes.toSorted(function compareNotes(first, second) {
     if (sortOrder === "title") return collator.compare(first.title, second.title);
     if (sortOrder === "created") return second.createdAt - first.createdAt;
@@ -64,8 +66,8 @@ export function groupNotes(
     return sections;
   }
 
-  const relativeFormatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-  const monthFormatter = new Intl.DateTimeFormat(locale, { month: "long" });
+  const relativeFormatter = getRelativeTimeFormat(locale, { numeric: "auto" });
+  const monthFormatter = getDateTimeFormat(locale, { month: "long" });
   const today = startOfDay(now);
   const currentYear = new Date(now).getFullYear();
   const sectionsById = new Map<string, NoteSection>();
@@ -111,23 +113,15 @@ export function groupNotes(
 export function formatNoteListDate(timestamp: number, locale: string, now: number) {
   const dayDifference = Math.round((startOfDay(now) - startOfDay(timestamp)) / dayMilliseconds);
   if (dayDifference <= 0) {
-    return new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).format(
-      timestamp,
-    );
+    return getDateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).format(timestamp);
   }
   if (dayDifference === 1) {
-    return capitalize(
-      new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-1, "day"),
-      locale,
-    );
+    return capitalize(getRelativeTimeFormat(locale, { numeric: "auto" }).format(-1, "day"), locale);
   }
   if (dayDifference < 7) {
-    return capitalize(
-      new Intl.DateTimeFormat(locale, { weekday: "long" }).format(timestamp),
-      locale,
-    );
+    return capitalize(getDateTimeFormat(locale, { weekday: "long" }).format(timestamp), locale);
   }
-  return new Intl.DateTimeFormat(locale, {
+  return getDateTimeFormat(locale, {
     day: "numeric",
     month: "numeric",
     year: "2-digit",
@@ -135,9 +129,7 @@ export function formatNoteListDate(timestamp: number, locale: string, now: numbe
 }
 
 export function formatNoteHeaderDate(timestamp: number, locale: string) {
-  return new Intl.DateTimeFormat(locale, { dateStyle: "long", timeStyle: "short" }).format(
-    timestamp,
-  );
+  return getDateTimeFormat(locale, { dateStyle: "long", timeStyle: "short" }).format(timestamp);
 }
 
 function capitalize(value: string, locale: string) {

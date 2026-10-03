@@ -1,108 +1,83 @@
 "use client";
 
-import type { ReactElement, ReactNode } from "react";
+import type { MouseEvent, ReactElement } from "react";
 
-import { Menu } from "@base-ui/react/menu";
-import { CheckIcon } from "@workspace/icons/check-icon";
-import { cn } from "@workspace/ui/lib/utils";
+import { cloneElement, lazy, Suspense, useRef, useState } from "react";
 
-import { iosStrongGlassClassName } from "./ios-glass";
-import { useIosPortalContainer } from "./ios-portal-container";
+import type { IosMenuSection } from "./ios-menu-types";
 
-export interface IosMenuAction {
-  checked?: boolean;
-  destructive?: boolean;
-  disabled?: boolean;
-  icon?: ReactNode;
-  id: string;
-  label: string;
-  onSelect: () => void;
+export type { IosMenuAction, IosMenuSection } from "./ios-menu-types";
+
+const loadMenuPopup = () => import("./ios-menu-popup");
+const IosMenuPopup = lazy(function importMenuPopup() {
+  return loadMenuPopup().then(function selectMenuPopup(module) {
+    return { default: module.IosMenuPopup };
+  });
+});
+
+/** Starts downloading the menu surface before it is needed, such as on hover or touch. */
+export function preloadIosMenu() {
+  void loadMenuPopup();
 }
 
-export interface IosMenuSection {
-  actions: readonly IosMenuAction[];
-  id: string;
-  title?: string;
-}
+export type IosMenuTrigger = IosMenuProps["trigger"];
 
 interface IosMenuProps {
   align?: "start" | "center" | "end";
   sections: readonly IosMenuSection[];
   side?: "top" | "bottom";
-  trigger: ReactElement;
+  trigger: ReactElement<{
+    onClick?: (event: MouseEvent<HTMLElement>) => void;
+    onFocus?: () => void;
+    onPointerEnter?: () => void;
+    onTouchStart?: () => void;
+  }>;
 }
 
+const reopenGuardMilliseconds = 250;
+
+/** A pull-down menu attached to a bar button or other trigger. */
 export function IosMenu({ align = "end", sections, side = "bottom", trigger }: IosMenuProps) {
-  const portalContainer = useIosPortalContainer();
-  const visibleSections = sections.filter(function hasActions(section) {
-    return section.actions.length > 0;
-  });
-  const hasCheckableActions = visibleSections.some(function containsCheckable(section) {
-    return section.actions.some(function isCheckable(action) {
-      return action.checked !== undefined;
-    });
-  });
+  const triggerRef = useRef<HTMLElement>(null);
+  const closedAtRef = useRef(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
+
+  function updateOpen(nextOpen: boolean, timeStamp: number) {
+    if (!nextOpen) closedAtRef.current = timeStamp;
+    setIsOpen(nextOpen);
+  }
 
   return (
-    <Menu.Root>
-      <Menu.Trigger render={trigger} />
-      <Menu.Portal container={portalContainer}>
-        <Menu.Positioner
-          side={side}
-          align={align}
-          sideOffset={6}
-          collisionPadding={12}
-          className="z-50 outline-none"
-        >
-          <Menu.Popup
-            className={cn(
-              "max-h-(--available-height) w-[260px] origin-(--transform-origin) overflow-y-auto overscroll-contain rounded-[26px] py-1.5 text-(--ios-label) transition-[scale,opacity,filter] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-[0.8] data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[0.5] data-starting-style:opacity-0 data-starting-style:blur-[6px] motion-reduce:transition-none",
-              iosStrongGlassClassName,
-            )}
-          >
-            {visibleSections.map(function renderSection(section, sectionIndex) {
-              return (
-                <Menu.Group
-                  key={section.id}
-                  className={cn(
-                    sectionIndex > 0 &&
-                      "relative mt-1.5 pt-1.5 before:absolute before:inset-x-4 before:top-0 before:h-px before:scale-y-50 before:bg-(--ios-separator)",
-                  )}
-                >
-                  {section.title ? (
-                    <Menu.GroupLabel className="px-5 pt-1.5 pb-1 text-[13px] leading-[18px] font-medium text-(--ios-secondary-label)">
-                      {section.title}
-                    </Menu.GroupLabel>
-                  ) : null}
-                  {section.actions.map(function renderAction(action) {
-                    return (
-                      <Menu.Item
-                        key={action.id}
-                        disabled={action.disabled}
-                        onClick={action.onSelect}
-                        className={cn(
-                          "relative mx-1.5 flex min-h-11 cursor-default items-center gap-3 rounded-[16px] py-[11px] pr-3.5 text-[17px] leading-[22px] tracking-[-0.43px] outline-none select-none data-disabled:text-(--ios-tertiary-label) data-highlighted:bg-(--ios-glass-lens) [&_svg]:size-5 [&_svg]:shrink-0",
-                          hasCheckableActions ? "pl-10" : "pl-3.5",
-                          action.destructive && "text-(--ios-red)",
-                        )}
-                      >
-                        {action.checked ? (
-                          <CheckIcon
-                            className="absolute left-3 !size-4 text-(--ios-label)"
-                            strokeWidth={3}
-                          />
-                        ) : null}
-                        <span className="min-w-0 flex-1">{action.label}</span>
-                        {action.icon}
-                      </Menu.Item>
-                    );
-                  })}
-                </Menu.Group>
-              );
-            })}
-          </Menu.Popup>
-        </Menu.Positioner>
-      </Menu.Portal>
-    </Menu.Root>
+    <>
+      {cloneElement(trigger, {
+        ref: triggerRef,
+        "aria-haspopup": "menu",
+        "aria-expanded": isOpen,
+        onPointerEnter: preloadIosMenu,
+        onTouchStart: preloadIosMenu,
+        onFocus: preloadIosMenu,
+        onClick: function toggleMenu(event: MouseEvent<HTMLElement>) {
+          trigger.props.onClick?.(event);
+          // A press on the trigger first closes an open menu as an outside press; ignore the click.
+          if (event.timeStamp - closedAtRef.current < reopenGuardMilliseconds) return;
+          setHasOpened(true);
+          updateOpen(!isOpen, event.timeStamp);
+        },
+      } as Record<string, unknown>)}
+      {hasOpened ? (
+        <Suspense fallback={null}>
+          <IosMenuPopup
+            open={isOpen}
+            onOpenChange={updateOpen}
+            anchor={triggerRef}
+            finalFocus={triggerRef}
+            sections={sections}
+            align={align}
+            side={side}
+          />
+        </Suspense>
+      ) : null}
+    </>
   );
 }

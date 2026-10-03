@@ -113,6 +113,19 @@ function updateLibrary(update: Partial<PodcastLibraryState>) {
   for (const listener of listeners) listener();
 }
 
+function getFollowedSnapshot() {
+  return getLibrarySnapshot().followed;
+}
+
+function getServerFollowedSnapshot() {
+  return emptyLibrary.followed;
+}
+
+/** Subscribes only to followed shows, so progress saves during playback do not re-render. */
+export function useFollowedPodcasts() {
+  return useSyncExternalStore(subscribeToLibrary, getFollowedSnapshot, getServerFollowedSnapshot);
+}
+
 export function usePodcastLibrary() {
   return useSyncExternalStore(subscribeToLibrary, getLibrarySnapshot, getServerLibrarySnapshot);
 }

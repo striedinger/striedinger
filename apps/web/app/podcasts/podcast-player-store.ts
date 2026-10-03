@@ -98,6 +98,27 @@ function getServerPlayerSnapshot() {
   return initialPlayerState;
 }
 
+interface PodcastPlayerItems {
+  current: PodcastQueueItem | null;
+  queue: readonly PodcastQueueItem[];
+}
+
+let playerItems: PodcastPlayerItems | null = null;
+
+function getPlayerItemsSnapshot(): PodcastPlayerItems {
+  const { current, queue } = getPlayerSnapshot();
+  if (!playerItems || playerItems.current !== current || playerItems.queue !== queue) {
+    playerItems = { current, queue };
+  }
+  return playerItems;
+}
+
+const serverPlayerItems: PodcastPlayerItems = { current: null, queue: [] };
+
+function getServerPlayerItemsSnapshot() {
+  return serverPlayerItems;
+}
+
 function setPlayerState(update: Partial<PodcastPlayerState>) {
   playerState = { ...getPlayerSnapshot(), ...update };
   for (const listener of stateListeners) listener();
@@ -131,6 +152,18 @@ function getServerPlaybackTime() {
 
 export function usePodcastPlayer() {
   return useSyncExternalStore(subscribeToPlayer, getPlayerSnapshot, getServerPlayerSnapshot);
+}
+
+/**
+ * Subscribes only to the current episode and queue, so play, pause, and buffering changes do
+ * not re-render components that just need to know what is loaded.
+ */
+export function usePodcastPlayerItems() {
+  return useSyncExternalStore(
+    subscribeToPlayer,
+    getPlayerItemsSnapshot,
+    getServerPlayerItemsSnapshot,
+  );
 }
 
 /** Subscribes to the playhead separately so only time-based UI re-renders while audio plays. */

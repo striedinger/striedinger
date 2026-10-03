@@ -1,12 +1,10 @@
 "use client";
 
-import { ArrowUpRightIcon } from "@workspace/icons/arrow-up-right-icon";
 import { CheckIcon } from "@workspace/icons/check-icon";
 import { ChevronLeftIcon } from "@workspace/icons/chevron-left-icon";
 import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { PlusIcon } from "@workspace/icons/plus-icon";
-import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { Text } from "@workspace/ui/components/text";
 import { useState } from "react";
 
@@ -19,6 +17,7 @@ import { PodcastHero } from "./podcast-hero";
 import { toggleFollowedPodcast, usePodcastLibrary } from "./podcast-library-store";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
 import { playEpisode } from "./podcast-player-store";
+import { usePodcastMenuSections } from "./use-podcast-menu-sections";
 
 interface PodcastShowPageProps {
   backLabel: string;
@@ -51,6 +50,7 @@ export function PodcastShowPage({
 }: PodcastShowPageProps) {
   const library = usePodcastLibrary();
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const menuSections = usePodcastMenuSections(podcast, messages, onShareShow);
   const isFollowed = library.followed.some(function matchesPodcast(item) {
     return item.id === podcast.id;
   });
@@ -90,37 +90,7 @@ export function PodcastShowPage({
                   <EllipsisIcon />
                 </PodcastPageBarButton>
               }
-              sections={[
-                {
-                  id: "show",
-                  actions: [
-                    {
-                      id: "follow",
-                      label: isFollowed ? messages["Unfollow Show"] : messages["Follow Show"],
-                      icon: isFollowed ? <CheckIcon /> : <PlusIcon />,
-                      onSelect: function toggleFollow() {
-                        toggleFollowedPodcast(podcast);
-                      },
-                    },
-                    {
-                      id: "share",
-                      label: messages["Share Show"],
-                      icon: <ShareUpIcon />,
-                      onSelect: function shareShow() {
-                        onShareShow(podcast);
-                      },
-                    },
-                    {
-                      id: "apple",
-                      label: messages["View on Apple Podcasts"],
-                      icon: <ArrowUpRightIcon />,
-                      onSelect: function openApplePodcasts() {
-                        window.open(podcast.url, "_blank", "noopener,noreferrer");
-                      },
-                    },
-                  ],
-                },
-              ]}
+              sections={menuSections}
             />
           </div>
         }

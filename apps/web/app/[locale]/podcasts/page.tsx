@@ -1,1 +1,1 @@
-export { default, generateMetadata } from "../../podcasts/page";
+export { default, generateMetadata, viewport } from "../../podcasts/page";

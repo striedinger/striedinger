@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { Suspense } from "react";
 
@@ -9,6 +9,14 @@ import { getRequestLocale } from "../get-request-locale";
 import { podcastsFrameClassName } from "./podcasts-frame";
 import { PodcastsLoader } from "./podcasts-loader";
 import { PodcastsSkeleton } from "./podcasts-skeleton";
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();

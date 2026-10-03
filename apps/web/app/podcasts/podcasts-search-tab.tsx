@@ -13,6 +13,7 @@ import { PodcastChartRow } from "./podcast-chart-row";
 import { normalizeSearchQuery } from "./podcast-route";
 
 interface PodcastsSearchTabProps {
+  onShareShow: (podcast: Podcast) => void;
   getShowHref: (podcast: Podcast) => string;
   inputValue: string;
   isSearching: boolean;
@@ -34,6 +35,7 @@ export function PodcastsSearchTab({
   query,
   results,
   searchFailed,
+  onShareShow,
 }: PodcastsSearchTabProps) {
   const normalizedInput = normalizeSearchQuery(inputValue);
   const categories = getPodcastCategories(messages);
@@ -69,6 +71,8 @@ export function PodcastsSearchTab({
                 {results.map(function renderResult(podcast) {
                   return (
                     <PodcastChartRow
+                      messages={messages}
+                      onShare={onShareShow}
                       key={podcast.id}
                       podcast={podcast}
                       detail={[podcast.author, podcast.genre].filter(Boolean).join(" · ")}

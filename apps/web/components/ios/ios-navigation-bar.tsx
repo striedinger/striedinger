@@ -18,8 +18,6 @@ interface IosNavigationBarProps {
   trailing?: ReactNode;
 }
 
-const compactBarHeight = 56;
-
 /**
  * An iOS 26 navigation bar rendered inside an element marked with `data-ios-scroll`. The bar
  * has no opaque background: its glass buttons float over content, and a soft blurred scroll
@@ -37,6 +35,7 @@ export function IosNavigationBar({
   titleDisplay = "large",
   trailing,
 }: IosNavigationBarProps) {
+  const barRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [isScrolledUnder, setIsScrolledUnder] = useState(false);
   const showsLargeTitle = titleDisplay === "large";
@@ -44,14 +43,15 @@ export function IosNavigationBar({
 
   useEffect(function observeScrollEdge() {
     const sentinel = sentinelRef.current;
-    if (!sentinel || typeof IntersectionObserver === "undefined") return;
+    const bar = barRef.current;
+    if (!sentinel || !bar || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       function updateScrollEdge([entry]) {
         if (entry) setIsScrolledUnder(!entry.isIntersecting);
       },
       {
         root: sentinel.closest("[data-ios-scroll]"),
-        rootMargin: `-${compactBarHeight}px 0px 0px 0px`,
+        rootMargin: `-${bar.offsetHeight}px 0px 0px 0px`,
       },
     );
     observer.observe(sentinel);
@@ -63,10 +63,11 @@ export function IosNavigationBar({
   return (
     <>
       <div
+        ref={barRef}
         data-scrolled={isScrolledUnder || undefined}
         className={cn(
-          "group/bar sticky top-0 z-20 grid h-14 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4",
-          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-[calc(100%+20px)] before:bg-linear-to-b before:from-[var(--ios-bar-edge,var(--ios-background))] before:from-35% before:to-transparent before:[mask-image:linear-gradient(to_bottom,black_55%,transparent)] before:opacity-0 before:backdrop-blur-[3px] before:transition-opacity before:duration-300 data-scrolled:before:opacity-100 motion-reduce:before:transition-none",
+          "group/bar sticky top-0 z-20 grid h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-4 pt-[env(safe-area-inset-top)]",
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-[calc(100%+20px)] before:bg-linear-to-b before:from-[var(--ios-bar-edge,var(--ios-background))] before:from-35% before:to-transparent before:[mask-image:linear-gradient(to_bottom,black_55%,transparent)] before:opacity-0 before:transition-opacity before:duration-300 data-scrolled:before:opacity-100 data-scrolled:before:backdrop-blur-[3px] motion-reduce:before:transition-none",
           className,
         )}
       >

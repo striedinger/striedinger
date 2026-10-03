@@ -3,7 +3,7 @@
 import type { ComponentPropsWithRef } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { IosPortalContainerContext } from "./ios-portal-container";
 
@@ -42,12 +42,30 @@ type IosAppFrameProps = Omit<ComponentPropsWithRef<"main">, "ref">;
 export function IosAppFrame({ children, className, ...props }: IosAppFrameProps) {
   const [frameElement, setFrameElement] = useState<HTMLElement | null>(null);
 
+  // Native apps do not rubber-band the whole window or zoom on double tap; only their own
+  // scroll views bounce.
+  useEffect(function lockDocumentScrolling() {
+    const rootStyle = document.documentElement.style;
+    const bodyStyle = document.body.style;
+    const previousRootOverscroll = rootStyle.overscrollBehavior;
+    const previousBodyOverscroll = bodyStyle.overscrollBehavior;
+    const previousBodyOverflow = bodyStyle.overflow;
+    rootStyle.overscrollBehavior = "none";
+    bodyStyle.overscrollBehavior = "none";
+    bodyStyle.overflow = "hidden";
+    return function restoreDocumentScrolling() {
+      rootStyle.overscrollBehavior = previousRootOverscroll;
+      bodyStyle.overscrollBehavior = previousBodyOverscroll;
+      bodyStyle.overflow = previousBodyOverflow;
+    };
+  }, []);
+
   return (
     <main
       ref={setFrameElement}
       data-slot="ios-app-frame"
       className={cn(
-        "relative flex h-[calc(100dvh-3.5rem)] w-full overflow-hidden bg-(--ios-background) [font-family:-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',var(--font-ios-fallback),system-ui,sans-serif] text-(--ios-label) antialiased [-webkit-tap-highlight-color:transparent] [font-feature-settings:'cv11','ss03'] [text-rendering:optimizeLegibility]",
+        "relative flex h-dvh w-full touch-manipulation overflow-hidden bg-(--ios-background) [font-family:-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',var(--font-ios-fallback),system-ui,sans-serif] text-(--ios-label) antialiased [-webkit-tap-highlight-color:transparent] [font-feature-settings:'cv11','ss03'] [text-rendering:optimizeLegibility]",
         systemColorClasses,
         className,
       )}

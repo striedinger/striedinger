@@ -1,10 +1,9 @@
 "use client";
 
-import { Drawer } from "@base-ui/react/drawer";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 
 import type {
   Podcast,
@@ -21,12 +20,12 @@ import {
   type IosStackDirection,
 } from "../../components/ios/ios-stack-transition";
 import { IosToast } from "../../components/ios/ios-toast";
+import { useHasOpened } from "../../components/ios/use-has-opened";
 import { copyText } from "../../lib/copy-text";
-import { NowPlayingSheet } from "./now-playing-sheet";
 import { PodcastEpisodePage } from "./podcast-episode-page";
-import { usePodcastLibrary } from "./podcast-library-store";
+import { useFollowedPodcasts } from "./podcast-library-store";
 import { PodcastMiniPlayer } from "./podcast-mini-player";
-import { pausePlayback, usePodcastPlayer } from "./podcast-player-store";
+import { pausePlayback, usePodcastPlayerItems } from "./podcast-player-store";
 import {
   createPodcastHref,
   createTabRoute,
@@ -62,6 +61,12 @@ interface OptimisticRoute {
 }
 
 const stackTransitionName = "ios-podcasts-stack";
+const noEpisodes: readonly PodcastQueueItem[] = [];
+const NowPlayingSheet = lazy(function importNowPlayingSheet() {
+  return import("./now-playing-sheet").then(function selectNowPlayingSheet(module) {
+    return { default: module.NowPlayingSheet };
+  });
+});
 const tabOrder: readonly PodcastTab[] = ["home", "new", "library", "search"];
 
 export function PodcastsApp({
@@ -98,6 +103,7 @@ export function PodcastsApp({
   );
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [isTabBarMinimized, setIsTabBarMinimized] = useState(false);
+  const hasNowPlayingOpened = useHasOpened(isNowPlayingOpen);
   const contentRef = useRef<HTMLDivElement>(null);
   const [previousTab, setPreviousTab] = useState<Exclude<PodcastTab, "search">>(
     urlRoute.tab === "search" ? "home" : urlRoute.tab,
@@ -109,10 +115,10 @@ export function PodcastsApp({
   const routeStackRef = useRef<PodcastRoute[]>([]);
   const isLeavingByBackRef = useRef(false);
   const tabScrollRefs = useRef(new Map<PodcastTab, HTMLDivElement>());
-  const library = usePodcastLibrary();
-  const player = usePodcastPlayer();
+  const followedPodcasts = useFollowedPodcasts();
+  const player = usePodcastPlayerItems();
   const followedShowIds = normalizeFollowedIds(
-    library.followed.map(function selectPodcastId(podcast) {
+    followedPodcasts.map(function selectPodcastId(podcast) {
       return podcast.id;
     }),
   );
@@ -199,9 +205,9 @@ export function PodcastsApp({
     knownPodcasts.set(item.podcast.id, item.podcast);
     knownItems.set(item.episode.id, { podcast: item.podcast, episode: item.episode });
   }
-  for (const podcast of [...popular, ...searchResults, ...library.followed])
+  for (const podcast of [...popular, ...searchResults, ...followedPodcasts])
     knownPodcasts.set(podcast.id, podcast);
-  for (const item of [...library.progress, ...library.saved, ...player.queue]) rememberItem(item);
+  for (const item of player.queue) rememberItem(item);
   if (player.current) rememberItem(player.current);
   if (openedItem) rememberItem(openedItem);
   if (show) {
@@ -223,23 +229,18 @@ export function PodcastsApp({
     search: messages.Search,
   };
 
-  function getShowHref(podcast: Podcast) {
-    return createPodcastHref(pathname, { ...route, podcastId: podcast.id, episodeId: null });
-  }
-
-  function getEpisodeHref(item: PodcastQueueItem) {
-    return createPodcastHref(pathname, {
-      ...route,
-      podcastId: item.podcast.id,
-      episodeId: item.episode.id,
-    });
-  }
+  // Navigation handlers read the latest route from a ref so their identity stays stable across
+  // navigations; otherwise every mounted tab and row would re-render on each push.
+  const latestRef = useRef({ route, showId: show?.podcast.id ?? null, urlRouteKey });
+  useLayoutEffect(function rememberLatestRoute() {
+    latestRef.current = { route, showId: show?.podcast.id ?? null, urlRouteKey };
+  });
 
   function navigate(nextRoute: PodcastRoute, direction: IosStackDirection) {
+    const latest = latestRef.current;
     const href = createPodcastHref(pathname, nextRoute);
-    const needsServerData =
-      nextRoute.podcastId !== null && nextRoute.podcastId !== show?.podcast.id;
-    const fromKey = urlRouteKey;
+    const needsServerData = nextRoute.podcastId !== null && nextRoute.podcastId !== latest.showId;
+    const fromKey = latest.urlRouteKey;
     runIosStackTransition({
       commit: function showNextRoute() {
         setOptimisticRoute({ fromKey, route: nextRoute });
@@ -248,7 +249,7 @@ export function PodcastsApp({
       narrowScreensOnly: false,
       transitionName: stackTransitionName,
     });
-    routeStackRef.current.push(route);
+    routeStackRef.current.push(latest.route);
     if (needsServerData) {
       startNavigation(function loadNextRoute() {
         router.push(href, { scroll: false });
@@ -261,7 +262,7 @@ export function PodcastsApp({
   function goBack(fallbackRoute: PodcastRoute) {
     const previousRoute = routeStackRef.current.pop();
     const parentRoute = previousRoute ?? fallbackRoute;
-    const fromKey = urlRouteKey;
+    const fromKey = latestRef.current.urlRouteKey;
     runIosStackTransition({
       commit: function showParentRoute() {
         setOptimisticRoute({ fromKey, route: parentRoute });
@@ -279,18 +280,22 @@ export function PodcastsApp({
   }
 
   function openShow(podcast: Podcast) {
-    navigate({ ...route, podcastId: podcast.id, episodeId: null }, "forward");
+    navigate({ ...latestRef.current.route, podcastId: podcast.id, episodeId: null }, "forward");
   }
 
   function openEpisode(item: PodcastQueueItem) {
     setOpenedItem(item);
-    navigate({ ...route, podcastId: item.podcast.id, episodeId: item.episode.id }, "forward");
+    navigate(
+      { ...latestRef.current.route, podcastId: item.podcast.id, episodeId: item.episode.id },
+      "forward",
+    );
   }
 
   function goToShow(item: PodcastQueueItem) {
+    const currentRoute = latestRef.current.route;
     setIsNowPlayingOpen(false);
-    if (route.podcastId === item.podcast.id && route.episodeId === null) return;
-    navigate({ ...route, podcastId: item.podcast.id, episodeId: null }, "forward");
+    if (currentRoute.podcastId === item.podcast.id && currentRoute.episodeId === null) return;
+    navigate({ ...currentRoute, podcastId: item.podcast.id, episodeId: null }, "forward");
   }
 
   function openLibraryView(view: LibraryView) {
@@ -369,9 +374,11 @@ export function PodcastsApp({
   }
 
   function renderTab(tab: PodcastTab) {
+    const { getEpisodeHref, getShowHref } = getTabHrefs(pathname, tab);
     if (tab === "home") {
       return (
         <PodcastsHomeTab
+          onShareShow={shareShow}
           popular={popular}
           getEpisodeHref={getEpisodeHref}
           getShowHref={getShowHref}
@@ -388,7 +395,9 @@ export function PodcastsApp({
     if (tab === "new") {
       return (
         <PodcastsNewTab
-          items={newEpisodesShowIds.join(",") === followedShowIds.join(",") ? newEpisodes : []}
+          items={
+            newEpisodesShowIds.join(",") === followedShowIds.join(",") ? newEpisodes : noEpisodes
+          }
           hasFollowedShows={followedShowIds.length > 0}
           isLoading={isNavigating && route.tab === "new"}
           getEpisodeHref={getEpisodeHref}
@@ -404,6 +413,7 @@ export function PodcastsApp({
     if (tab === "library") {
       return (
         <PodcastsLibraryTab
+          onShareShow={shareShow}
           view={route.tab === "library" ? route.libraryView : null}
           getEpisodeHref={getEpisodeHref}
           getShowHref={getShowHref}
@@ -423,6 +433,7 @@ export function PodcastsApp({
     }
     return (
       <PodcastsSearchTab
+        onShareShow={shareShow}
         query={searchQuery}
         inputValue={searchInput.value}
         results={searchResults}
@@ -437,6 +448,7 @@ export function PodcastsApp({
   }
 
   function renderStackPage() {
+    const { getEpisodeHref, getShowHref } = getTabHrefs(pathname, route.tab);
     const parentLabel = route.libraryView ? messages.Library : tabTitles[route.tab];
     if (route.episodeId && routeItem) {
       return (
@@ -491,9 +503,11 @@ export function PodcastsApp({
   }
 
   return (
-    <Drawer.Provider>
-      <Drawer.IndentBackground className="absolute inset-0 bg-black" />
-      <Drawer.Indent className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform data-active:scale-[0.94] data-active:rounded-[12px] motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]">
+    <div className="relative size-full bg-black">
+      <div
+        data-active={isNowPlayingOpen && player.current !== null ? "" : undefined}
+        className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius,filter] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-active:translate-y-2.5 data-active:scale-[0.93] data-active:rounded-[38px] data-active:brightness-90 motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]"
+      >
         <PodcastsTabBar
           activeTab={route.tab}
           hasAccessory={player.current !== null}
@@ -544,17 +558,50 @@ export function PodcastsApp({
             }}
           />
         </div>
-      </Drawer.Indent>
-      <NowPlayingSheet
-        open={isNowPlayingOpen}
-        onOpenChange={setIsNowPlayingOpen}
-        locale={locale}
-        messages={messages}
-        now={now}
-        onGoToShow={goToShow}
-        onShare={shareEpisode}
-      />
+      </div>
+      {hasNowPlayingOpened ? (
+        <Suspense fallback={null}>
+          <NowPlayingSheet
+            open={isNowPlayingOpen}
+            onOpenChange={setIsNowPlayingOpen}
+            locale={locale}
+            messages={messages}
+            now={now}
+            onGoToShow={goToShow}
+            onShare={shareEpisode}
+          />
+        </Suspense>
+      ) : null}
       <IosToast message={statusMessage} />
-    </Drawer.Provider>
+    </div>
   );
+}
+
+interface TabHrefs {
+  getEpisodeHref: (item: PodcastQueueItem) => string;
+  getShowHref: (podcast: Podcast) => string;
+}
+
+const tabHrefsCache = new Map<string, TabHrefs>();
+
+/** Stable, cached link builders for destinations pushed from each tab. */
+function getTabHrefs(pathname: string, tab: PodcastTab): TabHrefs {
+  const cacheKey = `${pathname}|${tab}`;
+  let hrefs = tabHrefsCache.get(cacheKey);
+  if (!hrefs) {
+    hrefs = {
+      getEpisodeHref(item) {
+        return createPodcastHref(pathname, {
+          ...createTabRoute(tab),
+          podcastId: item.podcast.id,
+          episodeId: item.episode.id,
+        });
+      },
+      getShowHref(podcast) {
+        return createPodcastHref(pathname, { ...createTabRoute(tab), podcastId: podcast.id });
+      },
+    };
+    tabHrefsCache.set(cacheKey, hrefs);
+  }
+  return hrefs;
 }

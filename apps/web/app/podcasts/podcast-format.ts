@@ -1,3 +1,5 @@
+import { getDateTimeFormat, getNumberFormat, getRelativeTimeFormat } from "../../lib/intl-cache";
+
 const dayMilliseconds = 86_400_000;
 
 function startOfDay(timestamp: number) {
@@ -11,12 +13,12 @@ export function formatListeningDuration(totalSeconds: number, locale: string) {
   const totalMinutes = Math.max(1, Math.round(totalSeconds / 60));
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  const hourFormatter = new Intl.NumberFormat(locale, {
+  const hourFormatter = getNumberFormat(locale, {
     style: "unit",
     unit: "hour",
     unitDisplay: "short",
   });
-  const minuteFormatter = new Intl.NumberFormat(locale, {
+  const minuteFormatter = getNumberFormat(locale, {
     style: "unit",
     unit: "minute",
     unitDisplay: "short",
@@ -43,13 +45,13 @@ export function formatEpisodeDate(publishedAt: string, locale: string, now: numb
   if (!Number.isFinite(timestamp)) return "";
   const dayDifference = Math.round((startOfDay(now) - startOfDay(timestamp)) / dayMilliseconds);
   if (dayDifference <= 1 && dayDifference >= 0) {
-    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-dayDifference, "day");
+    return getRelativeTimeFormat(locale, { numeric: "auto" }).format(-dayDifference, "day");
   }
   if (dayDifference > 1 && dayDifference < 7) {
-    return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(timestamp);
+    return getDateTimeFormat(locale, { weekday: "long" }).format(timestamp);
   }
   const isSameYear = new Date(timestamp).getFullYear() === new Date(now).getFullYear();
-  return new Intl.DateTimeFormat(locale, {
+  return getDateTimeFormat(locale, {
     day: "numeric",
     month: "short",
     ...(isSameYear ? {} : { year: "numeric" }),
@@ -57,5 +59,5 @@ export function formatEpisodeDate(publishedAt: string, locale: string, now: numb
 }
 
 export function formatPlaybackRate(rate: number, locale: string) {
-  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(rate)}×`;
+  return `${getNumberFormat(locale, { maximumFractionDigits: 2 }).format(rate)}×`;
 }

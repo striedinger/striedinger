@@ -18,6 +18,7 @@ import { clearEpisodeProgress, usePodcastLibrary } from "./podcast-library-store
 import { PodcastTile } from "./podcast-tile";
 
 interface PodcastsLibraryTabProps {
+  onShareShow: (podcast: Podcast) => void;
   getEpisodeHref: (item: PodcastQueueItem) => string;
   getShowHref: (podcast: Podcast) => string;
   locale: string;
@@ -47,6 +48,7 @@ export function PodcastsLibraryTab({
   onOpenView,
   onShare,
   view,
+  onShareShow,
 }: PodcastsLibraryTabProps) {
   const library = usePodcastLibrary();
   const recentItems: PodcastQueueItem[] = library.progress.map(function createItem(item) {
@@ -66,6 +68,8 @@ export function PodcastsLibraryTab({
         return (
           <li key={podcast.id} className="min-w-0">
             <PodcastTile
+              messages={messages}
+              onShare={onShareShow}
               podcast={podcast}
               href={getShowHref(podcast)}
               sizes={gridSizes}

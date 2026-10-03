@@ -1,15 +1,15 @@
 "use client";
 
 import { cn } from "@workspace/ui/lib/utils";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
 
 import type { Note, NoteFolder, NotesMessages } from "./types";
 
 import { IosAlert } from "../../components/ios/ios-alert";
+import { useHasOpened } from "../../components/ios/use-has-opened";
 import { FoldersPane } from "./folders-pane";
 import { groupNotes, sortNotes } from "./note-dates";
 import { NoteEditorPane } from "./note-editor-pane";
-import { NoteMoveSheet } from "./note-move-sheet";
 import { NotesListPane } from "./notes-list-pane";
 import { NotesSkeleton } from "./notes-skeleton";
 import { useKeyboardInset } from "./use-keyboard-inset";
@@ -33,6 +33,11 @@ interface FolderNameDialog {
 }
 
 const minuteMilliseconds = 60_000;
+const NoteMoveSheet = lazy(function importNoteMoveSheet() {
+  return import("./note-move-sheet").then(function selectNoteMoveSheet(module) {
+    return { default: module.NoteMoveSheet };
+  });
+});
 
 export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   const store = useNotesStore({ welcomeNoteHtml });
@@ -127,6 +132,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
     ? sortNotes(filterNotes(store.notes, deferredFolderSearchQuery, locale), "edited", locale)
     : [];
   const noteToMove = noteIdToMove ? (notesById.get(noteIdToMove) ?? null) : null;
+  const hasMoveSheetOpened = useHasOpened(noteToMove !== null);
   const moveDestinations: NoteFolder[] = [
     { id: defaultFolderId, name: messages.Notes, createdAt: 0 },
     ...userFolders,
@@ -437,19 +443,25 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
           },
         ]}
       />
-      <NoteMoveSheet
-        open={noteToMove !== null}
-        onOpenChange={function closeMoveSheet(open) {
-          if (!open) setNoteIdToMove(null);
-        }}
-        currentFolderId={noteToMove && noteToMove.deletedAt === null ? noteToMove.folderId : null}
-        folders={moveDestinations}
-        messages={messages}
-        onMove={function moveSelectedNote(folderId) {
-          if (noteToMove) store.moveNote(noteToMove.id, folderId);
-          setNoteIdToMove(null);
-        }}
-      />
+      {hasMoveSheetOpened ? (
+        <Suspense fallback={null}>
+          <NoteMoveSheet
+            open={noteToMove !== null}
+            onOpenChange={function closeMoveSheet(open) {
+              if (!open) setNoteIdToMove(null);
+            }}
+            currentFolderId={
+              noteToMove && noteToMove.deletedAt === null ? noteToMove.folderId : null
+            }
+            folders={moveDestinations}
+            messages={messages}
+            onMove={function moveSelectedNote(folderId) {
+              if (noteToMove) store.moveNote(noteToMove.id, folderId);
+              setNoteIdToMove(null);
+            }}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

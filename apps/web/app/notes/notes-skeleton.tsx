@@ -6,7 +6,7 @@ export function NotesSkeleton() {
   return (
     <div
       aria-busy="true"
-      className="relative flex size-full flex-col gap-5 bg-(--ios-grouped-background) px-4 pt-16"
+      className="relative flex size-full flex-col gap-5 bg-(--ios-grouped-background) px-4 pt-[calc(4rem+env(safe-area-inset-top))]"
     >
       <IosSkeleton className="h-9 w-36" />
       <IosSkeleton className="mt-2 h-6 w-44" />

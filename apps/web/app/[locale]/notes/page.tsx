@@ -1,1 +1,1 @@
-export { default, generateMetadata } from "../../notes/page";
+export { default, generateMetadata, viewport } from "../../notes/page";

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { Suspense } from "react";
 
@@ -11,6 +11,14 @@ import { loadNotesMessages } from "../../messages/notes/load-messages";
 import { getRequestLocale } from "../get-request-locale";
 import { NotesApp } from "./notes-app";
 import { NotesSkeleton } from "./notes-skeleton";
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();

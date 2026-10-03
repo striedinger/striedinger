@@ -15,7 +15,7 @@ export function PodcastsSkeleton() {
         <IosSkeleton className="h-10 w-3/4 rounded-full" />
         <IosSkeleton className="h-10 w-2/3 rounded-full" />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-6 px-4 pt-16">
+      <div className="flex min-w-0 flex-1 flex-col gap-6 px-4 pt-[calc(4rem+env(safe-area-inset-top))]">
         <IosSkeleton className="h-9 w-32" />
         <div className="flex gap-3 overflow-hidden">
           <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-[24px]" />

@@ -16,7 +16,7 @@ export function PodcastHero({ artworkUrl, children }: PodcastHeroProps) {
 
   return (
     <div
-      className="-mt-14 flex flex-col items-center gap-4 bg-[#3a3a3c] px-6 pt-20 pb-6 text-center text-white transition-[background-color] duration-500 motion-reduce:transition-none"
+      className="-mt-[calc(3.5rem+env(safe-area-inset-top))] flex flex-col items-center gap-4 bg-[#3a3a3c] px-6 pt-[calc(5rem+env(safe-area-inset-top))] pb-6 text-center text-white transition-[background-color] duration-500 motion-reduce:transition-none"
       style={artworkColor ? { backgroundColor: artworkColor } : undefined}
     >
       <PodcastArtwork
