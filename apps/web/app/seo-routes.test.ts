@@ -22,6 +22,7 @@ describe("SEO discovery routes", function () {
       "https://striedinger.co/mta",
       "https://striedinger.co/stocks",
       "https://striedinger.co/podcasts",
+      "https://striedinger.co/notes",
     ];
 
     expect(sitemapEntries).toHaveLength(englishUrls.length * supportedLocales.length);

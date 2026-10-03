@@ -1,6 +1,7 @@
 import type { Podcast, PodcastEpisode, PodcastProgress } from "./types";
 
 import { readStoredValue, removeStoredValue, writeStoredValue } from "../../lib/browser-storage";
+import { isEpisode, isPodcast } from "./podcast-validation";
 
 const progressStorageKey = "podcast-progress:v1";
 const maximumProgressItems = 30;
@@ -84,35 +85,5 @@ function isProgressItem(value: unknown): value is PodcastProgress {
     typeof item.positionSeconds === "number" &&
     typeof item.durationSeconds === "number" &&
     typeof item.updatedAt === "string"
-  );
-}
-
-function isPodcast(value: unknown): value is Podcast {
-  if (!value || typeof value !== "object") return false;
-  const podcast = value as Partial<Podcast>;
-  return (
-    typeof podcast.id === "string" &&
-    typeof podcast.title === "string" &&
-    typeof podcast.author === "string" &&
-    typeof podcast.artworkUrl === "string" &&
-    typeof podcast.genre === "string" &&
-    typeof podcast.url === "string" &&
-    (podcast.episodeCount === undefined ||
-      (typeof podcast.episodeCount === "number" && Number.isSafeInteger(podcast.episodeCount))) &&
-    (podcast.explicit === undefined || typeof podcast.explicit === "boolean") &&
-    (podcast.latestReleaseAt === undefined || typeof podcast.latestReleaseAt === "string")
-  );
-}
-
-function isEpisode(value: unknown): value is PodcastEpisode {
-  if (!value || typeof value !== "object") return false;
-  const episode = value as Partial<PodcastEpisode>;
-  return (
-    typeof episode.id === "string" &&
-    typeof episode.title === "string" &&
-    typeof episode.audioUrl === "string" &&
-    typeof episode.description === "string" &&
-    typeof episode.durationMilliseconds === "number" &&
-    typeof episode.publishedAt === "string"
   );
 }

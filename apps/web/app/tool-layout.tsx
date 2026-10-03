@@ -41,6 +41,7 @@ async function LocalizedAppNavigation() {
         image: translate("Image Optimizer"),
         menu: translate("Open navigation menu"),
         navigation: translate("Navigation"),
+        notes: translate("Notes"),
         og: translate("Open Graph Preview"),
         podcasts: translate("Podcasts"),
         pdf: translate("PDF Optimizer"),

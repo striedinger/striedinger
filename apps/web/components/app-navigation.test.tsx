@@ -33,6 +33,7 @@ const labels = {
   menu: "Open navigation menu",
   navigation: "Navigation",
   og: "Open Graph Preview",
+  notes: "Notes",
   podcasts: "Podcasts",
   pdf: "PDF Optimizer",
   selectLanguage: "Select language",

@@ -32,3 +32,15 @@ export interface PodcastProgress {
   positionSeconds: number;
   updatedAt: string;
 }
+
+export interface PodcastQueueItem {
+  episode: PodcastEpisode;
+  podcast: Podcast;
+}
+
+export interface PodcastShow {
+  episodes: PodcastEpisode[];
+  podcast: Podcast;
+}
+
+export type PodcastTab = "home" | "browse" | "library" | "search";

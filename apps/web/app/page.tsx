@@ -30,6 +30,7 @@ export default async function Page() {
     { href: "/mta", label: translate("Trains near you") },
     { href: "/stocks", label: translate("Stock watchlist") },
     { href: "/podcasts", label: translate("Podcasts") },
+    { href: "/notes", label: translate("Notes") },
   ] as const;
   const structuredData = {
     "@context": "https://schema.org",

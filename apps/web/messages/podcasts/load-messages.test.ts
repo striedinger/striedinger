@@ -8,8 +8,8 @@ describe("Podcast translations", function () {
   it.each(translatedLocales)("loads translated interface labels for %s", async function (locale) {
     const messages = await loadPodcastMessages(locale);
 
-    expect(messages.Search).not.toBe("Search");
-    expect(messages["Local library"]).not.toBe("Local library");
-    expect(messages["Remove saved progress?"]).not.toBe("Remove saved progress?");
+    expect(messages.Library).not.toBe("Library");
+    expect(messages["Up Next"]).not.toBe("Up Next");
+    expect(messages["Sleep Timer"]).not.toBe("Sleep Timer");
   });
 });

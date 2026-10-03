@@ -17,7 +17,7 @@ export default async function OpenGraphImage() {
   return createToolOpenGraphImage({
     title: translate("Podcasts"),
     description: translate(
-      "Find a show, save it for later, and listen without creating an account.",
+      "Discover shows, follow your favorites, and listen with a familiar player. Your library stays on this device.",
     ),
   });
 }

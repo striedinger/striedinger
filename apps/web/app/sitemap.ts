@@ -21,6 +21,7 @@ const publicPaths = [
   "/mta",
   "/stocks",
   "/podcasts",
+  "/notes",
 ] as const satisfies readonly SitePath[];
 
 const lastModified = new Date("2026-08-18");

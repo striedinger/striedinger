@@ -33,6 +33,7 @@ interface AppNavigationLabels {
   pdf: string;
   menu: string;
   navigation: string;
+  notes: string;
   og: string;
   podcasts: string;
   selectLanguage: string;
@@ -61,6 +62,7 @@ const navigationItems = [
   { href: "/mta", label: "subway" },
   { href: "/stocks", label: "stocks" },
   { href: "/podcasts", label: "podcasts" },
+  { href: "/notes", label: "notes" },
 ] as const;
 
 export function AppNavigation({ labels, locale, theme }: AppNavigationProps) {

@@ -58,6 +58,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Daily Sudoku": "Sudoku giornaliero",
   "Trains near you": "Treni nelle vicinanze",
   Podcasts: "Podcast",
+  Notes: "Note",
   "Stock watchlist": "Lista titoli",
   "Hugo Striedinger - Senior Software Engineer": "Hugo Striedinger - Ingegnere software senior",
   "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.":

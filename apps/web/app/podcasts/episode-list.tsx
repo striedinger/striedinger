@@ -1,109 +1,71 @@
 "use client";
 
-import { DownloadIcon } from "@workspace/icons/download-icon";
-import { Button } from "@workspace/ui/components/button";
-import { Text } from "@workspace/ui/components/text";
-import Link from "next/link";
+import type { IosMenuAction } from "../../components/ios/ios-menu";
+import type { PodcastMessages, PodcastQueueItem } from "./types";
 
-import type { PodcastEpisode, PodcastMessages } from "./types";
-
-import { getPodcastEpisodeHref } from "./podcast-links";
+import { EpisodeRow } from "./episode-row";
+import { usePodcastLibrary } from "./podcast-library-store";
+import { usePodcastPlayer } from "./podcast-player-store";
 
 interface EpisodeListProps {
-  activeEpisodeId: string | null;
-  episodes: PodcastEpisode[];
-  messages: PodcastMessages;
+  getExtraActions?: (item: PodcastQueueItem) => readonly IosMenuAction[];
+  getHref: (item: PodcastQueueItem) => string;
+  items: readonly PodcastQueueItem[];
+  label: string;
   locale: string;
-  onPlay: (episode: PodcastEpisode) => void;
-  podcastId: string;
+  messages: PodcastMessages;
+  now: number;
+  onGoToShow?: (item: PodcastQueueItem) => void;
+  onOpen: (item: PodcastQueueItem) => void;
+  onShare: (item: PodcastQueueItem) => void;
+  showsPodcastTitle?: boolean;
 }
 
 export function EpisodeList({
-  activeEpisodeId,
-  episodes,
-  messages,
+  getExtraActions,
+  getHref,
+  items,
+  label,
   locale,
-  onPlay,
-  podcastId,
+  messages,
+  now,
+  onGoToShow,
+  onOpen,
+  onShare,
+  showsPodcastTitle = false,
 }: EpisodeListProps) {
-  const dateFormatter = new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const library = usePodcastLibrary();
+  const player = usePodcastPlayer();
+  const progressByEpisodeId = new Map(
+    library.progress.map(function indexProgress(item) {
+      return [item.episode.id, item];
+    }),
+  );
 
   return (
-    <ul className="m-0 flex list-none flex-col divide-y divide-border/70 p-0">
-      {episodes.map(function renderEpisode(episode) {
-        const isActive = episode.id === activeEpisodeId;
+    <ul aria-label={label} className="m-0 flex list-none flex-col p-0 pl-4">
+      {items.map(function renderEpisode(item) {
+        const isCurrent = player.current?.episode.id === item.episode.id;
         return (
-          <li
-            key={episode.id}
-            className="grid gap-3 py-5 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-          >
-            <div className="min-w-0">
-              <h3>
-                <Text
-                  as={Link}
-                  href={getPodcastEpisodeHref(podcastId, episode.id)}
-                  scroll={false}
-                  size="base"
-                  weight="semibold"
-                  numberOfLines={2}
-                  aria-current={isActive ? "page" : undefined}
-                  className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  {episode.title}
-                </Text>
-              </h3>
-              <Text size="xs" tone="muted" className="mt-1 tabular-nums">
-                {dateFormatter.format(new Date(episode.publishedAt))}
-                {episode.durationMilliseconds > 0
-                  ? ` · ${formatDuration(episode.durationMilliseconds, messages)}`
-                  : ""}
-              </Text>
-              {episode.description ? (
-                <Text size="sm" tone="muted" numberOfLines={2} className="mt-2">
-                  {episode.description}
-                </Text>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={isActive ? "secondary" : "outline"}
-                aria-pressed={isActive}
-                onClick={function playEpisode() {
-                  onPlay(episode);
-                }}
-              >
-                <span aria-hidden="true">{isActive ? "◼" : "▶"}</span>
-                {isActive ? messages["Pause"] : messages["Play"]}
-              </Button>
-              <a
-                href={episode.audioUrl}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${messages["Download episode"]}: ${episode.title}`}
-                className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none"
-              >
-                <DownloadIcon className="size-4" />
-              </a>
-            </div>
-          </li>
+          <EpisodeRow
+            key={item.episode.id}
+            item={item}
+            href={getHref(item)}
+            isCurrent={isCurrent}
+            isPlaying={isCurrent && player.isPlaying}
+            isPlayed={library.playedEpisodeIds.has(item.episode.id)}
+            progress={progressByEpisodeId.get(item.episode.id)}
+            extraActions={getExtraActions?.(item)}
+            locale={locale}
+            messages={messages}
+            now={now}
+            showsPodcastTitle={showsPodcastTitle}
+            onGoToShow={onGoToShow}
+            onOpen={onOpen}
+            onShare={onShare}
+          />
         );
       })}
     </ul>
   );
-}
-
-function formatDuration(milliseconds: number, messages: PodcastMessages) {
-  const totalMinutes = Math.round(milliseconds / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return hours > 0
-    ? `${hours}${messages["h"]} ${minutes}${messages["m"]}`
-    : `${minutes}${messages["m"]}`;
 }

@@ -56,6 +56,7 @@ export const messages = defineMessages({
   "Daily Sudoku": "Daily Sudoku",
   "Trains near you": "Trains near you",
   Podcasts: "Podcasts",
+  Notes: "Notes",
   "Stock watchlist": "Stock watchlist",
   "Hugo Striedinger - Senior Software Engineer": "Hugo Striedinger - Senior Software Engineer",
   "Hugo Striedinger is a Colombian-born senior software engineer based in New York, with experience at SpaceX, Twitter Inc., and X Corp.":

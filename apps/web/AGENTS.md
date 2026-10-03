@@ -17,6 +17,12 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Use `next/link` for internal application navigation.
 - Use native and React/Next view transitions as progressive enhancement. Keep navigation usable without them and disable or minimize their animation for reduced-motion users.
 
+## Native app replicas
+
+- Build native app replicas, such as Notes and Podcasts, inside the shared `IosAppFrame`. It supplies Apple system color tokens, the system font stack, and the portal container that menus, alerts, and sheets render into.
+- These routes intentionally use a full-height frame and native styling instead of the shared page canvas, surfaces, and site palette. Keep each app's tint as a CSS variable on its frame.
+- Reuse the primitives in `components/ios` for navigation bars, search fields, lists, menus, alerts, swipe actions, and stack transitions before adding route-specific chrome.
+
 ## URL state
 
 - Keep shareable, prefillable tool inputs in query parameters when the state belongs in the URL.
