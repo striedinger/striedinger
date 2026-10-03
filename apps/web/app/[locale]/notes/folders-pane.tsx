@@ -10,6 +10,7 @@ import { cn } from "@workspace/ui/lib/utils";
 
 import type { Note, NoteFolder, NotesMessages } from "./types";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosListRow } from "../../../components/ios/ios-list-row";
@@ -85,7 +86,11 @@ export function FoldersPane({
         data-ios-scroll
         className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)]"
       >
-        <IosNavigationBar title={messages.Folders} titleElement="h2" />
+        <IosNavigationBar
+          title={messages.Folders}
+          titleElement="h2"
+          trailing={<IosAppSwitcherButton />}
+        />
         {isSearching ? (
           searchResults.length > 0 ? (
             <IosListSection header={messages.Notes} headerVariant="prominent" className="pt-2">

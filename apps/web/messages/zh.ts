@@ -108,4 +108,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "该回复无效。请让对方设备重新生成。",
   "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.":
     "无法建立本地连接。请让两台设备连接同一 Wi-Fi 网络后重试。",
+  Apps: "应用",
+  Tools: "工具",
+  Home: "主页",
+  Trains: "列车",
+  Stocks: "股市",
+  Sudoku: "数独",
+  "Open apps menu": "打开应用菜单",
 };

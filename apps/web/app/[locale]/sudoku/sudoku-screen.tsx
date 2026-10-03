@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 
 interface SudokuScreenProps {
@@ -18,7 +19,7 @@ export function SudokuScreen({ children, title }: SudokuScreenProps) {
       data-ios-scroll
       className="flex size-full flex-col overflow-y-auto overscroll-contain bg-(--ios-grouped-background) [--ios-bar-edge:var(--ios-grouped-background)]"
     >
-      <IosNavigationBar title={title} />
+      <IosNavigationBar title={title} trailing={<IosAppSwitcherButton />} />
       <div className="mx-auto flex min-h-[26rem] w-full max-w-xl flex-1 flex-col px-4 pb-[max(env(safe-area-inset-bottom),12px)]">
         {children}
       </div>

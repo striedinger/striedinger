@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 
 import { Suspense } from "react";
 
+import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
+import { getRequestLocale } from "../../get-request-locale";
 import { notesFrameClassName } from "./notes-frame";
 import { NotesLoader } from "./notes-loader";
 import { NotesSkeleton } from "./notes-skeleton";
@@ -26,9 +28,14 @@ interface NotesLayoutProps {
  * Notes keeps every note in this browser, so its folders, lists, editor, and toolbars live in
  * this layout and stay mounted while the folder and note routes below change.
  */
-export default function NotesLayout({ children }: NotesLayoutProps) {
+export default async function NotesLayout({ children }: NotesLayoutProps) {
+  const appSwitcherLabels = await getAppSwitcherLabels(await getRequestLocale());
+
   return (
-    <IosAppFrame className={notesFrameClassName}>
+    <IosAppFrame
+      className={notesFrameClassName}
+      appSwitcher={{ currentHref: "/notes", labels: appSwitcherLabels }}
+    >
       {/* The open folder and note come from the URL, which is only known per request. */}
       <Suspense fallback={<NotesSkeleton />}>
         <NotesLoader />

@@ -8,6 +8,7 @@ import { Text } from "@workspace/ui/components/text";
 
 import type { PodcastQueueItem } from "./types";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosListRow } from "../../../components/ios/ios-list-row";
@@ -74,6 +75,7 @@ export function PodcastsLibraryScreen({ view }: PodcastsLibraryScreenProps) {
             </IosBarButton>
           ) : null
         }
+        trailing={view ? null : <IosAppSwitcherButton />}
       />
       {/* The library lives in this browser, so the server renders a placeholder for it. */}
       {!isHydrated ? (

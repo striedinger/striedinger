@@ -1,6 +1,7 @@
 import type { Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
 import { loadPodcastMessages } from "../../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../../get-request-locale";
@@ -25,10 +26,16 @@ interface PodcastsLayoutProps {
  */
 export default async function PodcastsLayout({ children }: PodcastsLayoutProps) {
   const locale = await getRequestLocale();
-  const messages = await loadPodcastMessages(locale);
+  const [messages, appSwitcherLabels] = await Promise.all([
+    loadPodcastMessages(locale),
+    getAppSwitcherLabels(locale),
+  ]);
 
   return (
-    <IosAppFrame className={podcastsFrameClassName}>
+    <IosAppFrame
+      className={podcastsFrameClassName}
+      appSwitcher={{ currentHref: "/podcasts", labels: appSwitcherLabels }}
+    >
       <PodcastsShell locale={locale} messages={messages}>
         {children}
       </PodcastsShell>

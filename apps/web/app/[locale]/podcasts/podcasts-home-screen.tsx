@@ -4,6 +4,7 @@ import { Text } from "@workspace/ui/components/text";
 
 import type { Podcast, PodcastQueueItem } from "./types";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { IosScreen } from "../../../components/ios/ios-screen";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
@@ -55,7 +56,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
 
   return (
     <IosScreen className={podcastsScreenClassName}>
-      <IosNavigationBar title={messages.Home} />
+      <IosNavigationBar title={messages.Home} trailing={<IosAppSwitcherButton />} />
       <div className="flex flex-col gap-7 pt-1">
         {/* Listening history lives in this browser, so the server renders a placeholder for it. */}
         {!isHydrated ? (

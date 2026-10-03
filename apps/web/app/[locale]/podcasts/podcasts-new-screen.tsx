@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import type { NewEpisodes } from "./types";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { IosRevealTransition } from "../../../components/ios/ios-reveal-transition";
@@ -34,7 +35,7 @@ export function PodcastsNewScreen({ episodes }: PodcastsNewScreenProps) {
 
   return (
     <IosScreen className={podcastsScreenClassName}>
-      <IosNavigationBar title={messages.New} />
+      <IosNavigationBar title={messages.New} trailing={<IosAppSwitcherButton />} />
       {/* Followed shows live in this browser, so the server renders a placeholder for them. */}
       {!isHydrated ? (
         skeleton

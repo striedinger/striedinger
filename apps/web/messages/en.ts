@@ -108,4 +108,11 @@ export const messages = defineMessages({
     "That answer is invalid. Ask the other device to create it again.",
   "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.":
     "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.",
+  Apps: "Apps",
+  Tools: "Tools",
+  Home: "Home",
+  Trains: "Trains",
+  Stocks: "Stocks",
+  Sudoku: "Sudoku",
+  "Open apps menu": "Open apps menu",
 });

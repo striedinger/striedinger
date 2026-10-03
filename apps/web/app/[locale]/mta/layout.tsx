@@ -1,7 +1,9 @@
 import type { Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
+import { getRequestLocale } from "../../get-request-locale";
 import { mtaFrameClassName } from "./mta-frame";
 
 export const viewport: Viewport = {
@@ -13,6 +15,16 @@ export const viewport: Viewport = {
 };
 
 /** Subway arrivals run full screen like an installed iOS app. */
-export default function MtaLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <IosAppFrame className={mtaFrameClassName}>{children}</IosAppFrame>;
+export default async function MtaLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const locale = await getRequestLocale();
+  const appSwitcherLabels = await getAppSwitcherLabels(locale);
+
+  return (
+    <IosAppFrame
+      className={mtaFrameClassName}
+      appSwitcher={{ currentHref: "/mta", labels: appSwitcherLabels }}
+    >
+      {children}
+    </IosAppFrame>
+  );
 }

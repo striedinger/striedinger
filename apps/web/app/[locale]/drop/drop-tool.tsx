@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { DropLabels, SharedFile, TransferItem, TransferMetadata } from "./types";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { copyText } from "../../../lib/copy-text";
@@ -319,6 +320,7 @@ export function DropTool({ labels }: DropToolProps) {
       >
         <IosNavigationBar
           title={labels.title}
+          leading={<IosAppSwitcherButton />}
           trailing={
             <IosBarButton aria-label={labels.share} disabled={!roomCode} onClick={handleShare}>
               <ShareUpIcon />

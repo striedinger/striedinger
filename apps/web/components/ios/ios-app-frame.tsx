@@ -5,6 +5,9 @@ import type { ComponentPropsWithRef } from "react";
 import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useState } from "react";
 
+import type { IosAppSwitcherLabels } from "./ios-app-switcher-context";
+
+import { IosAppSwitcher } from "./ios-app-switcher";
 import { IosPortalContainerContext } from "./ios-portal-container";
 import { useKeyboardInset } from "./use-keyboard-inset";
 import "./ios-view-transitions.css";
@@ -40,9 +43,12 @@ const systemColorClasses = [
   "[--ios-green:#34c759] dark:[--ios-green:#30d158]",
 ].join(" ");
 
-type IosAppFrameProps = Omit<ComponentPropsWithRef<"main">, "ref">;
+type IosAppFrameProps = Omit<ComponentPropsWithRef<"main">, "ref"> & {
+  /** Links this app to the others through the app switcher sheet. */
+  appSwitcher?: { currentHref: string; labels: IosAppSwitcherLabels };
+};
 
-export function IosAppFrame({ children, className, ...props }: IosAppFrameProps) {
+export function IosAppFrame({ appSwitcher, children, className, ...props }: IosAppFrameProps) {
   const [frameElement, setFrameElement] = useState<HTMLElement | null>(null);
   useKeyboardInset(frameElement);
 
@@ -75,7 +81,15 @@ export function IosAppFrame({ children, className, ...props }: IosAppFrameProps)
       )}
       {...props}
     >
-      <IosPortalContainerContext value={frameElement}>{children}</IosPortalContainerContext>
+      <IosPortalContainerContext value={frameElement}>
+        {appSwitcher ? (
+          <IosAppSwitcher currentHref={appSwitcher.currentHref} labels={appSwitcher.labels}>
+            {children}
+          </IosAppSwitcher>
+        ) : (
+          children
+        )}
+      </IosPortalContainerContext>
     </main>
   );
 }

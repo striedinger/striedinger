@@ -6,6 +6,7 @@ import { Suspense } from "react";
 
 import type { PodcastSearchResults } from "./types";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { IosScreen } from "../../../components/ios/ios-screen";
 import { getPodcastCategories } from "./podcast-categories";
@@ -27,7 +28,7 @@ export function PodcastsSearchScreen({ results }: PodcastsSearchScreenProps) {
 
   return (
     <IosScreen className={podcastsScreenClassName}>
-      <IosNavigationBar title={messages.Search} />
+      <IosNavigationBar title={messages.Search} trailing={<IosAppSwitcherButton />} />
       {normalizeSearchQuery(inputValue) ? (
         <Suspense fallback={<PodcastsSearchResultsPlaceholder />}>
           <PodcastsSearchResultList results={results} />

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 
 interface MtaScreenProps {
@@ -14,7 +15,7 @@ export function MtaScreen({ children, title }: MtaScreenProps) {
       data-ios-scroll
       className="flex size-full flex-col overflow-y-auto overscroll-contain bg-(--ios-grouped-background) pb-[calc(env(safe-area-inset-bottom)+6.5rem)] [--ios-bar-edge:var(--ios-grouped-background)]"
     >
-      <IosNavigationBar title={title} />
+      <IosNavigationBar title={title} trailing={<IosAppSwitcherButton />} />
       <div className="mx-auto flex w-full max-w-5xl flex-col">{children}</div>
     </div>
   );

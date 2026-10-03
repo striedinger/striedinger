@@ -110,4 +110,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "その返信は無効です。相手のデバイスでもう一度作成してもらってください。",
   "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.":
     "ローカル接続を確立できませんでした。両方のデバイスを同じ Wi-Fi ネットワークに接続して、もう一度お試しください。",
+  Apps: "アプリ",
+  Tools: "ツール",
+  Home: "ホーム",
+  Trains: "電車",
+  Stocks: "株価",
+  Sudoku: "数独",
+  "Open apps menu": "アプリメニューを開く",
 };

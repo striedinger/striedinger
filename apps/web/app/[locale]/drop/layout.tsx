@@ -1,7 +1,9 @@
 import type { Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
+import { getRequestLocale } from "../../get-request-locale";
 import { dropFrameClassName } from "./drop-frame";
 
 export const viewport: Viewport = {
@@ -13,6 +15,16 @@ export const viewport: Viewport = {
 };
 
 /** Drop runs full screen like an installed iOS app. */
-export default function DropLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <IosAppFrame className={dropFrameClassName}>{children}</IosAppFrame>;
+export default async function DropLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const locale = await getRequestLocale();
+  const appSwitcherLabels = await getAppSwitcherLabels(locale);
+
+  return (
+    <IosAppFrame
+      className={dropFrameClassName}
+      appSwitcher={{ currentHref: "/drop", labels: appSwitcherLabels }}
+    >
+      {children}
+    </IosAppFrame>
+  );
 }

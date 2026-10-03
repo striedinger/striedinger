@@ -1,7 +1,9 @@
 import type { Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
+import { getRequestLocale } from "../../get-request-locale";
 import { sudokuFrameClassName } from "./sudoku-frame";
 
 export const viewport: Viewport = {
@@ -13,6 +15,16 @@ export const viewport: Viewport = {
 };
 
 /** Sudoku runs full screen like an installed iOS game. */
-export default function SudokuLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <IosAppFrame className={sudokuFrameClassName}>{children}</IosAppFrame>;
+export default async function SudokuLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const locale = await getRequestLocale();
+  const appSwitcherLabels = await getAppSwitcherLabels(locale);
+
+  return (
+    <IosAppFrame
+      className={sudokuFrameClassName}
+      appSwitcher={{ currentHref: "/sudoku", labels: appSwitcherLabels }}
+    >
+      {children}
+    </IosAppFrame>
+  );
 }

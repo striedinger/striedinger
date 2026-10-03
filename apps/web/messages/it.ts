@@ -110,4 +110,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Questa risposta non è valida. Chiedi all’altro dispositivo di crearla di nuovo.",
   "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.":
     "Impossibile stabilire una connessione locale. Mantieni entrambi i dispositivi sulla stessa rete Wi-Fi e riprova.",
+  Apps: "App",
+  Tools: "Strumenti",
+  Home: "Home",
+  Trains: "Treni",
+  Stocks: "Borsa",
+  Sudoku: "Sudoku",
+  "Open apps menu": "Apri il menu delle app",
 };
