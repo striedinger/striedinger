@@ -22,8 +22,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Close: "閉じる",
   "Link copied": "リンクをコピーしました",
   "Share chart": "チャートを共有",
-  "Drag across the chart to select a range": "チャート上をドラッグして範囲を選択",
-  "Reset zoom": "ズームをリセット",
   Chart: "チャート",
   "Drag across the chart or use the left and right arrow keys to inspect prices.":
     "チャートをドラッグするか左右キーで価格を確認します。",

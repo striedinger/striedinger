@@ -56,9 +56,7 @@ export interface StocksLabels {
   open: string;
   price: string;
   preMarket: string;
-  rangeHelp: string;
   remove: string;
-  resetZoom: string;
   search: string;
   searchHelp: string;
   searchPlaceholder: string;

@@ -21,8 +21,6 @@ export const messages = defineMessages({
   Close: "Close",
   "Link copied": "Link copied",
   "Share chart": "Share chart",
-  "Drag across the chart to select a range": "Drag across the chart to select a range",
-  "Reset zoom": "Reset zoom",
   Chart: "Chart",
   "Drag across the chart or use the left and right arrow keys to inspect prices.":
     "Drag across the chart or use the left and right arrow keys to inspect prices.",

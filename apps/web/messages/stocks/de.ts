@@ -22,8 +22,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Close: "Schließen",
   "Link copied": "Link kopiert",
   "Share chart": "Chart teilen",
-  "Drag across the chart to select a range": "Ziehe über den Chart, um einen Bereich auszuwählen",
-  "Reset zoom": "Zoom zurücksetzen",
   Chart: "Chart",
   "Drag across the chart or use the left and right arrow keys to inspect prices.":
     "Über den Chart ziehen oder mit den Pfeiltasten Kurse prüfen.",

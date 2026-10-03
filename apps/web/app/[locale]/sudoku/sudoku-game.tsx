@@ -156,8 +156,8 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      <Text className="-mt-2 px-1 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <Text className="-mt-2.5 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
         {localizedDate}
       </Text>
       <IosSegmentedControl
@@ -173,21 +173,21 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
         }}
       />
 
-      <div className="flex items-stretch gap-3">
-        <div className="flex flex-1 flex-col gap-0.5 rounded-[18px] bg-(--ios-grouped-cell) px-4 py-2.5">
-          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
+      <div className="flex h-14 shrink-0 items-stretch gap-2.5">
+        <div className="flex min-w-0 flex-1 flex-col justify-center rounded-[16px] bg-(--ios-grouped-cell) px-3.5">
+          <Text className="truncate text-[13px] leading-[18px] text-(--ios-secondary-label)">
             {labels.time}
           </Text>
           <SudokuTimer completedSeconds={completedSeconds} startedAt={startedAt} />
         </div>
-        <div className="flex flex-1 flex-col gap-0.5 rounded-[18px] bg-(--ios-grouped-cell) px-4 py-2.5">
-          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
+        <div className="flex min-w-0 flex-1 flex-col justify-center rounded-[16px] bg-(--ios-grouped-cell) px-3.5">
+          <Text className="truncate text-[13px] leading-[18px] text-(--ios-secondary-label)">
             {labels.score}
           </Text>
           <Text
             family="rounded"
             aria-live="polite"
-            className="text-[22px] leading-7 font-semibold text-(--ios-label) tabular-nums"
+            className="text-[20px] leading-[25px] font-semibold text-(--ios-label) tabular-nums"
           >
             {startedAt === undefined ? "—" : `${liveScore}/100`}
           </Text>
@@ -204,37 +204,55 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
         ) : null}
       </div>
 
-      <div className="relative">
-        <div inert={startedAt === undefined ? true : undefined}>
-          <SudokuBoard
-            active={startedAt !== undefined}
-            cellEmptyLabel={labels.cellEmpty}
-            cellValueLabel={labels.cellValue}
-            fixedValues={activePuzzle.puzzle}
-            label={labels.puzzle}
-            onSelect={handleCellSelect}
-            onKeyDown={handleKeyboardInput}
-            selectedCell={selectedCell}
-            values={values}
-          />
-        </div>
-        {startedAt === undefined ? (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 rounded-[22px] bg-(--ios-grouped-background)/55 p-6 text-center backdrop-blur-[10px]">
-            <Text
-              as="h2"
-              className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-            >
-              {labels.startPrompt}
-            </Text>
-            <button
-              type="button"
-              onClick={handleStart}
-              className="h-[50px] min-w-44 rounded-full bg-(--ios-tint) px-8 text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.97] motion-safe:transition-transform"
-            >
-              {labels.start}
-            </button>
+      {/* The board is a square as large as the remaining space allows. */}
+      <div className="[container-type:size] flex min-h-0 flex-1 items-center justify-center">
+        <div className="relative aspect-square w-[min(100cqw,100cqh)]">
+          <div
+            inert={startedAt === undefined || isComplete ? true : undefined}
+            className="size-full"
+          >
+            <SudokuBoard
+              active={startedAt !== undefined}
+              cellEmptyLabel={labels.cellEmpty}
+              cellValueLabel={labels.cellValue}
+              fixedValues={activePuzzle.puzzle}
+              label={labels.puzzle}
+              onSelect={handleCellSelect}
+              onKeyDown={handleKeyboardInput}
+              selectedCell={selectedCell}
+              values={values}
+            />
           </div>
-        ) : null}
+          {startedAt === undefined ? (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 rounded-[22px] bg-(--ios-grouped-background)/55 p-5 text-center backdrop-blur-[10px]">
+              <Text
+                as="h2"
+                className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
+              >
+                {labels.startPrompt}
+              </Text>
+              <button
+                type="button"
+                onClick={handleStart}
+                className="h-[50px] min-w-44 rounded-full bg-(--ios-tint) px-8 text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.97] motion-safe:transition-transform"
+              >
+                {labels.start}
+              </button>
+            </div>
+          ) : null}
+          {isComplete ? (
+            <CompletionCard
+              date={activePuzzle.date}
+              difficulty={difficulty}
+              elapsedTime={formatElapsedTime(completedSeconds)}
+              inputCount={inputCount}
+              labels={labels}
+              localizedDate={localizedDate}
+              minimumInputCount={minimumInputCount}
+              score={liveScore}
+            />
+          ) : null}
+        </div>
       </div>
       <NumberPad
         disabled={
@@ -248,19 +266,6 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
         label={labels.numberPad}
         onSelect={handleNumberSelect}
       />
-
-      {isComplete ? (
-        <CompletionCard
-          date={activePuzzle.date}
-          difficulty={difficulty}
-          elapsedTime={formatElapsedTime(completedSeconds)}
-          inputCount={inputCount}
-          labels={labels}
-          localizedDate={localizedDate}
-          minimumInputCount={minimumInputCount}
-          score={liveScore}
-        />
-      ) : null}
     </div>
   );
 }

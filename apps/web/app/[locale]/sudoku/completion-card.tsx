@@ -63,7 +63,7 @@ export function CompletionCard({
   return (
     <section
       aria-live="polite"
-      className="flex animate-in flex-col gap-4 rounded-[22px] bg-(--ios-grouped-cell) p-5 duration-500 fade-in slide-in-from-bottom-4 motion-reduce:animate-none"
+      className="absolute inset-0 z-30 flex animate-in flex-col justify-center gap-[clamp(0.5rem,3cqh,1rem)] overflow-y-auto rounded-[22px] bg-(--ios-grouped-cell)/80 p-[clamp(1rem,5cqw,1.5rem)] backdrop-blur-[16px] duration-500 zoom-in-95 fade-in motion-reduce:animate-none"
     >
       <div className="flex flex-col gap-0.5">
         <Text
@@ -77,24 +77,24 @@ export function CompletionCard({
         </Text>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-0.5 rounded-[16px] bg-(--ios-grouped-background) px-4 py-3">
+        <div className="flex flex-col gap-0.5 rounded-[16px] bg-(--ios-grouped-background) px-3.5 py-2.5">
           <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
             {labels.time}
           </Text>
           <Text
             family="rounded"
-            className="text-[34px] leading-[41px] font-bold text-(--ios-label) tabular-nums"
+            className="text-[clamp(22px,7cqw,34px)] leading-tight font-bold text-(--ios-label) tabular-nums"
           >
             {elapsedTime}
           </Text>
         </div>
-        <div className="flex flex-col gap-0.5 rounded-[16px] bg-(--ios-grouped-background) px-4 py-3">
+        <div className="flex flex-col gap-0.5 rounded-[16px] bg-(--ios-grouped-background) px-3.5 py-2.5">
           <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
             {labels.score}
           </Text>
           <Text
             family="rounded"
-            className="text-[34px] leading-[41px] font-bold text-(--ios-tint) tabular-nums"
+            className="text-[clamp(22px,7cqw,34px)] leading-tight font-bold text-(--ios-tint) tabular-nums"
           >
             {score}/100
           </Text>
@@ -108,7 +108,7 @@ export function CompletionCard({
       <button
         type="button"
         disabled={shareState === "sharing"}
-        className="flex h-[50px] items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.98] disabled:opacity-60 motion-safe:transition-transform [&_svg]:size-5"
+        className="flex h-[50px] shrink-0 items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.98] disabled:opacity-60 motion-safe:transition-transform [&_svg]:size-5"
         onClick={handleShare}
       >
         <ShareUpIcon />

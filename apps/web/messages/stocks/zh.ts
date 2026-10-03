@@ -21,8 +21,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Close: "关闭",
   "Link copied": "链接已复制",
   "Share chart": "分享图表",
-  "Drag across the chart to select a range": "在图表上拖动以选择范围",
-  "Reset zoom": "重置缩放",
   Chart: "图表",
   "Drag across the chart or use the left and right arrow keys to inspect prices.":
     "在图表上拖动或使用左右方向键查看价格。",

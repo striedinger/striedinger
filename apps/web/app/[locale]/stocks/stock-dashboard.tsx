@@ -386,12 +386,15 @@ export function StockDashboard({
               return (
                 <li
                   key={stock.symbol}
-                  className="relative flex items-center not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+                  className={cn(
+                    "relative flex items-center transition-colors duration-150 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) motion-reduce:transition-none",
+                    isSelected && "bg-(--ios-tint)/10",
+                  )}
                 >
                   <button
                     type="button"
                     aria-pressed={isSelected}
-                    className="flex min-h-[58px] min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-pressed:bg-(--ios-tint)/10"
+                    className="flex min-h-[58px] min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed)"
                     onClick={function selectWatchlistStock() {
                       setShareStatus("idle");
                       if (!isSelected) navigateToSelection(stock.symbol, timeframe);

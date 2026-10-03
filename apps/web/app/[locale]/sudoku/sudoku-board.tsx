@@ -46,7 +46,7 @@ export function SudokuBoard({
       tabIndex={-1}
       aria-label={label}
       onKeyDown={onKeyDown}
-      className="grid aspect-square w-full grid-cols-9 overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_rgb(0_0_0/0.06)]"
+      className="grid size-full grid-cols-9 grid-rows-9 overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_rgb(0_0_0/0.06)]"
     >
       {values.map(function renderCell(value, cellIndex) {
         const row = Math.floor(cellIndex / 9);
@@ -97,7 +97,7 @@ export function SudokuBoard({
               as="span"
               family="rounded"
               className={cn(
-                "text-[clamp(18px,5.4vw,28px)] leading-none tabular-nums",
+                "text-[calc(min(100cqw,100cqh)*0.06)] leading-none tabular-nums",
                 isFixed ? "font-semibold" : "font-medium",
                 isSelected
                   ? "text-white"

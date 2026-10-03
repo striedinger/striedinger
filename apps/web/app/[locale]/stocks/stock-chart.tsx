@@ -1,12 +1,27 @@
 "use client";
 
 import { Text } from "@workspace/ui/components/text";
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { cn } from "@workspace/ui/lib/utils";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 
-import type { ChartRange } from "./chart-range";
 import type { StockPoint, StocksLabels, StockTimeframe } from "./types";
 
-import { getDraggedRange } from "./chart-range";
+import { getDateTimeFormat, getNumberFormat } from "../../../lib/intl-cache";
+import {
+  createChartSelection,
+  getPointIndex,
+  summarizeChartRange,
+  type ChartSelection,
+} from "./chart-selection";
+import { playStockHaptic } from "./haptics";
+
 interface StockChartProps {
   currency: string;
   labels: StocksLabels;
@@ -17,9 +32,18 @@ interface StockChartProps {
 }
 
 const chartWidth = 800;
-const chartHeight = 340;
-const chartTop = 20;
-const chartBottom = 300;
+const chartHeight = 320;
+const chartTop = 16;
+const chartBottom = 304;
+
+/**
+ * The price chart, with the gestures of the iOS Stocks app: touch and drag to read the price
+ * at any moment, or rest two fingers on the chart to see the change between them. A mouse
+ * reads prices on hover and the arrow keys step through points.
+ */
+function preventLongPressMenu(event: MouseEvent<SVGSVGElement>) {
+  event.preventDefault();
+}
 
 export function StockChart({
   currency,
@@ -29,317 +53,304 @@ export function StockChart({
   symbol,
   timeframe,
 }: StockChartProps) {
-  const [activeIndex, setActiveIndex] = useState(points.length - 1);
-  const [visibleRange, setVisibleRange] = useState<ChartRange>({
-    start: 0,
-    end: points.length - 1,
+  const [selection, setSelection] = useState<ChartSelection | null>(null);
+  const pointerIndices = useRef(new Map<number, number>());
+  const lastIndex = points.length - 1;
+  const priceFormat = getNumberFormat(locale, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: (points[lastIndex]?.close ?? 0) < 10 ? 3 : 2,
   });
-  const [dragSelection, setDragSelection] = useState<{ end: number; start: number } | null>(null);
-  const dragSelectionRef = useRef<{ end: number; start: number } | null>(null);
-  const activePointer = useRef<number | null>(null);
-  const visiblePoints = useMemo(
-    function selectVisiblePoints() {
-      return points.slice(visibleRange.start, visibleRange.end + 1);
-    },
-    [points, visibleRange],
-  );
-  const visibleIndex = Math.max(visibleRange.start, Math.min(activeIndex, visibleRange.end));
-  const activePoint = points[visibleIndex] ?? points.at(-1)!;
-  const { areaPath, coordinates, isPositive, linePath } = useMemo(
+  const dateFormat = getDateTimeFormat(locale, getDateFormat(timeframe));
+  const model = useMemo(
     function createChartModel() {
-      const values = visiblePoints.map(function selectClose(point) {
+      const closes = points.map(function selectClose(point) {
         return point.close;
       });
-      const minimum = Math.min(...values);
-      const maximum = Math.max(...values);
+      const minimum = Math.min(...closes);
+      const maximum = Math.max(...closes);
       const priceRange = maximum - minimum || 1;
-      const nextCoordinates = visiblePoints.map(function createCoordinate(point, index) {
-        const x = (index / Math.max(visiblePoints.length - 1, 1)) * chartWidth;
-        const y = chartBottom - ((point.close - minimum) / priceRange) * (chartBottom - chartTop);
-        return { x, y };
+      function getY(price: number) {
+        return chartBottom - ((price - minimum) / priceRange) * (chartBottom - chartTop);
+      }
+      const coordinates = points.map(function createCoordinate(point, index) {
+        return { x: (index / Math.max(lastIndex, 1)) * chartWidth, y: getY(point.close) };
       });
-      const nextLinePath = nextCoordinates
-        .map(function createPathSegment(point, index) {
-          return `${index === 0 ? "M" : "L"}${point.x.toFixed(2)},${point.y.toFixed(2)}`;
-        })
-        .join(" ");
       return {
-        areaPath: `${nextLinePath} L${chartWidth},${chartHeight} L0,${chartHeight} Z`,
-        coordinates: nextCoordinates,
-        isPositive: visiblePoints.at(-1)!.close >= visiblePoints[0]!.close,
-        linePath: nextLinePath,
+        baselineY: getY(points[0]?.close ?? minimum),
+        coordinates,
+        isPositive: (points[lastIndex]?.close ?? 0) >= (points[0]?.close ?? 0),
+        maximum,
+        minimum,
       };
     },
-    [visiblePoints],
+    [lastIndex, points],
   );
-  const activeCoordinate = coordinates[visibleIndex - visibleRange.start] ?? coordinates.at(-1)!;
-  const priceFormatter = useMemo(
-    function createPriceFormatter() {
-      return new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency,
-        maximumFractionDigits: activePoint.close < 10 ? 3 : 2,
-      });
-    },
-    [activePoint.close, currency, locale],
-  );
-  const dateFormatter = useMemo(
-    function createDateFormatter() {
-      return new Intl.DateTimeFormat(locale, getDateFormat(timeframe));
-    },
-    [locale, timeframe],
-  );
+  const lineColor = model.isPositive ? "var(--ios-green)" : "var(--ios-red)";
+  const range =
+    selection && selection.second !== null
+      ? summarizeChartRange(points, selection.first, selection.second)
+      : null;
+  const rangeColor = range && range.change < 0 ? "var(--ios-red)" : "var(--ios-green)";
+  const scrubIndex = selection && selection.second === null ? selection.first : null;
+  const displayedIndex = scrubIndex ?? lastIndex;
+  const displayedPoint = points[displayedIndex] ?? points[lastIndex]!;
 
-  function selectPointFromPointer(event: PointerEvent<SVGSVGElement>) {
-    const ratio = getPointerRatio(event);
-    setActiveIndex(visibleRange.start + Math.round(ratio * Math.max(visiblePoints.length - 1, 0)));
+  function readPointIndex(event: PointerEvent<SVGSVGElement>) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    return getPointIndex((event.clientX - bounds.left) / bounds.width, points.length);
   }
 
-  function startRangeSelection(event: PointerEvent<SVGSVGElement>) {
-    if (!event.isPrimary) return;
+  function showPointerSelection() {
+    setSelection(createChartSelection([...pointerIndices.current.values()]));
+  }
+
+  function startSelection(event: PointerEvent<SVGSVGElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    activePointer.current = event.pointerId;
-    const ratio = getPointerRatio(event);
-    const selection = { start: ratio, end: ratio };
-    dragSelectionRef.current = selection;
-    setDragSelection(selection);
+    pointerIndices.current.set(event.pointerId, readPointIndex(event));
+    showPointerSelection();
+    if (event.pointerType !== "mouse") playStockHaptic("select");
   }
 
-  function updateRangeSelection(event: PointerEvent<SVGSVGElement>) {
-    if (activePointer.current !== event.pointerId) {
-      if (event.pointerType === "mouse") selectPointFromPointer(event);
+  function moveSelection(event: PointerEvent<SVGSVGElement>) {
+    if (!pointerIndices.current.has(event.pointerId)) {
+      // A mouse reads prices by hovering, without pressing.
+      if (event.pointerType === "mouse" && pointerIndices.current.size === 0) {
+        setSelection({ first: readPointIndex(event), second: null });
+      }
       return;
     }
-    const selection = dragSelectionRef.current;
-    if (!selection) return;
-    const nextSelection = { ...selection, end: getPointerRatio(event) };
-    dragSelectionRef.current = nextSelection;
-    setDragSelection(nextSelection);
+    const index = readPointIndex(event);
+    if (pointerIndices.current.get(event.pointerId) === index) return;
+    pointerIndices.current.set(event.pointerId, index);
+    showPointerSelection();
   }
 
-  function finishRangeSelection(event: PointerEvent<SVGSVGElement>) {
-    if (activePointer.current !== event.pointerId) return;
-    const selection = dragSelectionRef.current;
-    if (selection && Math.abs(selection.end - selection.start) >= 0.035) {
-      const nextRange = getDraggedRange(
-        visibleRange,
-        selection.start,
-        selection.end,
-        points.length,
-      );
-      setVisibleRange(nextRange);
-      setActiveIndex(nextRange.end);
-    } else {
-      selectPointFromPointer(event);
-    }
-    activePointer.current = null;
-    dragSelectionRef.current = null;
-    setDragSelection(null);
+  function endSelection(event: PointerEvent<SVGSVGElement>) {
+    pointerIndices.current.delete(event.pointerId);
+    showPointerSelection();
   }
 
-  function cancelRangeSelection() {
-    activePointer.current = null;
-    dragSelectionRef.current = null;
-    setDragSelection(null);
-  }
-
-  function resetRange() {
-    setVisibleRange({ start: 0, end: points.length - 1 });
-    setActiveIndex(points.length - 1);
+  function clearHover(event: PointerEvent<SVGSVGElement>) {
+    if (event.pointerType === "mouse" && pointerIndices.current.size === 0) setSelection(null);
   }
 
   function selectPointFromKeyboard(event: KeyboardEvent<SVGSVGElement>) {
-    if (
-      event.key !== "ArrowLeft" &&
-      event.key !== "ArrowRight" &&
-      event.key !== "Home" &&
-      event.key !== "End"
-    )
+    const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
+    if (event.key === "Escape") {
+      setSelection(null);
       return;
-    event.preventDefault();
-    if (event.key === "Home") setActiveIndex(visibleRange.start);
-    else if (event.key === "End") setActiveIndex(visibleRange.end);
-    else {
-      setActiveIndex(function moveActivePoint(index) {
-        const direction = event.key === "ArrowLeft" ? -1 : 1;
-        return Math.max(visibleRange.start, Math.min(visibleRange.end, index + direction));
-      });
     }
+    let nextIndex: number | null = null;
+    if (event.key in steps) nextIndex = displayedIndex + (steps[event.key] ?? 0);
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = lastIndex;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    setSelection({ first: Math.max(0, Math.min(lastIndex, nextIndex)), second: null });
   }
 
+  function createLinePath(first: number, last: number) {
+    return model.coordinates
+      .slice(first, last + 1)
+      .map(function createSegment(point, index) {
+        return `${index === 0 ? "M" : "L"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
+      })
+      .join(" ");
+  }
+
+  function createAreaPath(first: number, last: number) {
+    const startX = model.coordinates[first]?.x ?? 0;
+    const endX = model.coordinates[last]?.x ?? chartWidth;
+    return `${createLinePath(first, last)} L${endX},${chartHeight} L${startX},${chartHeight} Z`;
+  }
+
+  const scrubCoordinate = scrubIndex === null ? null : model.coordinates[scrubIndex];
+  const fullLinePath = createLinePath(0, lastIndex);
+
   return (
-    <div className="flex flex-col gap-3">
-      <div
-        className="grid h-[4.5rem] grid-cols-1 content-start gap-1 overflow-hidden sm:h-12 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-baseline sm:gap-2"
-        aria-live="polite"
-      >
-        <div className="flex min-w-0 items-baseline gap-2 overflow-hidden">
-          <Text
-            as="span"
-            className="min-w-[8ch] shrink-0 text-[22px] leading-7 font-semibold text-(--ios-label) tabular-nums"
-          >
-            {priceFormatter.format(activePoint.close)}
-          </Text>
-          <Text
-            as="span"
-            className="truncate text-[13px] leading-[18px] whitespace-nowrap text-(--ios-secondary-label)"
-          >
-            {dateFormatter.format(new Date(activePoint.date))}
-          </Text>
-        </div>
-        <Text className="truncate text-[13px] leading-[18px] whitespace-nowrap text-(--ios-secondary-label) sm:max-w-[22rem] sm:text-right">
-          {labels.open} {priceFormatter.format(activePoint.open)} · {labels.high}{" "}
-          {priceFormatter.format(activePoint.high)} · {labels.low}{" "}
-          {priceFormatter.format(activePoint.low)}
-        </Text>
+    <div className="flex flex-col gap-2">
+      <div aria-live="polite" className="flex h-11 flex-col justify-center">
+        {range ? (
+          <>
+            <Text
+              className="text-[17px] leading-[22px] font-semibold tabular-nums"
+              style={{ color: rangeColor }}
+            >
+              {range.change >= 0 ? "+" : ""}
+              {priceFormat.format(range.change)} ({range.changePercent >= 0 ? "+" : ""}
+              {range.changePercent.toFixed(2)}%)
+            </Text>
+            <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label) tabular-nums">
+              {dateFormat.format(new Date(range.startPoint.date))} –{" "}
+              {dateFormat.format(new Date(range.endPoint.date))}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text className="text-[17px] leading-[22px] font-semibold text-(--ios-label) tabular-nums">
+              {priceFormat.format(displayedPoint.close)}
+            </Text>
+            <Text
+              numberOfLines={1}
+              className="text-[13px] leading-[18px] text-(--ios-secondary-label) tabular-nums"
+            >
+              {dateFormat.format(new Date(displayedPoint.date))} · {labels.open}{" "}
+              {priceFormat.format(displayedPoint.open)} · {labels.high}{" "}
+              {priceFormat.format(displayedPoint.high)} · {labels.low}{" "}
+              {priceFormat.format(displayedPoint.low)}
+            </Text>
+          </>
+        )}
       </div>
 
-      <div className="relative -mx-2 overflow-hidden rounded-[14px] sm:mx-0">
+      <div className="relative">
         <span id={`${symbol}-chart-help`} className="sr-only">
-          {labels.chartHelp} {labels.rangeHelp}
+          {labels.chartHelp}
         </span>
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+          preserveAspectRatio="none"
           role="slider"
+          tabIndex={0}
           aria-label={`${symbol} ${labels.chart}`}
           aria-describedby={`${symbol}-chart-help`}
-          aria-valuemin={visibleRange.start}
-          aria-valuemax={visibleRange.end}
-          aria-valuenow={visibleIndex}
-          aria-valuetext={`${priceFormatter.format(activePoint.close)}, ${dateFormatter.format(new Date(activePoint.date))}`}
-          tabIndex={0}
-          className="block aspect-[1.5/1] w-full cursor-crosshair touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 focus-visible:ring-inset sm:aspect-[2.35/1]"
-          onPointerDown={startRangeSelection}
-          onPointerMove={updateRangeSelection}
-          onPointerUp={finishRangeSelection}
-          onPointerCancel={cancelRangeSelection}
+          aria-valuemin={0}
+          aria-valuemax={lastIndex}
+          aria-valuenow={displayedIndex}
+          aria-valuetext={`${priceFormat.format(displayedPoint.close)}, ${dateFormat.format(new Date(displayedPoint.date))}`}
+          className="block aspect-[1.6/1] w-full cursor-crosshair touch-pan-y overflow-visible outline-none select-none [-webkit-touch-callout:none] focus-visible:rounded-[12px] focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 sm:aspect-[2.4/1]"
+          onPointerDown={startSelection}
+          onPointerMove={moveSelection}
+          onPointerUp={endSelection}
+          onPointerCancel={endSelection}
+          onPointerLeave={clearHover}
           onKeyDown={selectPointFromKeyboard}
-          onPointerLeave={function showLatestPoint(event) {
-            if (event.pointerType === "mouse" && activePointer.current === null)
-              setActiveIndex(visibleRange.end);
-          }}
+          onContextMenu={preventLongPressMenu}
         >
           <defs>
             <linearGradient id={`stock-area-${symbol}`} x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
-                stopOpacity="0.28"
-              />
-              <stop
-                offset="100%"
-                stopColor={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
-                stopOpacity="0"
-              />
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0.24" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={`stock-range-${symbol}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={rangeColor} stopOpacity="0.32" />
+              <stop offset="100%" stopColor={rangeColor} stopOpacity="0.04" />
             </linearGradient>
           </defs>
-          {[0.2, 0.4, 0.6, 0.8].map(function renderGridLine(ratio) {
-            return (
-              <line
-                key={ratio}
-                x1="0"
-                x2={chartWidth}
-                y1={chartTop + (chartBottom - chartTop) * ratio}
-                y2={chartTop + (chartBottom - chartTop) * ratio}
-                stroke="var(--ios-separator)"
-                strokeDasharray="4 8"
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          })}
-          <path d={areaPath} fill={`url(#stock-area-${symbol})`} />
-          <path
-            d={linePath}
-            fill="none"
-            stroke={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
-            strokeWidth="3"
+          <line
+            x1="0"
+            x2={chartWidth}
+            y1={model.baselineY}
+            y2={model.baselineY}
+            stroke="var(--ios-tertiary-label)"
+            strokeDasharray="2 6"
             strokeLinecap="round"
-            strokeLinejoin="round"
+            strokeWidth="1.5"
             vectorEffect="non-scaling-stroke"
           />
-          {dragSelection ? (
-            <g stroke="var(--ios-tint)" strokeWidth="2.5">
-              <line
-                x1={dragSelection.start * chartWidth}
-                x2={dragSelection.start * chartWidth}
-                y1={chartTop}
-                y2={chartBottom}
-                vectorEffect="non-scaling-stroke"
-              />
-              <line
-                x1={dragSelection.end * chartWidth}
-                x2={dragSelection.end * chartWidth}
-                y1={chartTop}
-                y2={chartBottom}
-                vectorEffect="non-scaling-stroke"
-              />
-            </g>
-          ) : (
-            <>
-              <line
-                x1={activeCoordinate.x}
-                x2={activeCoordinate.x}
-                y1={chartTop}
-                y2={chartBottom}
-                stroke="var(--ios-label)"
-                strokeOpacity="0.28"
-                strokeDasharray="3 5"
-                vectorEffect="non-scaling-stroke"
-              />
-              <line
-                x1="0"
-                x2={chartWidth}
-                y1={activeCoordinate.y}
-                y2={activeCoordinate.y}
-                stroke="var(--ios-label)"
-                strokeOpacity="0.2"
-                strokeDasharray="3 5"
-                vectorEffect="non-scaling-stroke"
-              />
-              <circle
-                cx={activeCoordinate.x}
-                cy={activeCoordinate.y}
-                r="7"
-                fill="var(--ios-grouped-cell)"
-                stroke={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
-                strokeWidth="3"
-                vectorEffect="non-scaling-stroke"
-              />
-            </>
-          )}
-        </svg>
-        <Text
-          as="span"
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-[8px] bg-(--ios-menu) px-2 py-1 text-[12px] font-semibold text-(--ios-label) tabular-nums shadow-[0_4px_12px_rgb(0_0_0/0.12)] backdrop-blur-[20px] sm:hidden"
-          style={{
-            left: `${(activeCoordinate.x / chartWidth) * 100}%`,
-            top: `${(activeCoordinate.y / chartHeight) * 100}%`,
-          }}
-          aria-hidden="true"
-        >
-          {priceFormatter.format(activePoint.close)}
-        </Text>
-        {visibleRange.start === 0 && visibleRange.end === points.length - 1 ? (
-          <Text className="pointer-events-none absolute bottom-2 left-3 rounded-full bg-(--ios-menu) px-2.5 py-1 text-[12px] text-(--ios-secondary-label) backdrop-blur-[20px]">
-            {labels.rangeHelp}
-          </Text>
-        ) : (
-          <button
-            type="button"
-            className="absolute right-3 bottom-2 h-7 rounded-full bg-(--ios-menu) px-3 text-[13px] font-semibold text-(--ios-tint) shadow-[0_4px_12px_rgb(0_0_0/0.1)] backdrop-blur-[20px] outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60"
-            onClick={resetRange}
+          <g
+            className="transition-opacity duration-200 motion-reduce:transition-none"
+            opacity={range ? 0.3 : 1}
           >
-            {labels.resetZoom}
-          </button>
-        )}
+            <path d={createAreaPath(0, lastIndex)} fill={`url(#stock-area-${symbol})`} />
+            <path
+              d={fullLinePath}
+              fill="none"
+              stroke={lineColor}
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+          {range && selection && selection.second !== null ? (
+            <>
+              <path
+                d={createAreaPath(selection.first, selection.second)}
+                fill={`url(#stock-range-${symbol})`}
+              />
+              <path
+                d={createLinePath(selection.first, selection.second)}
+                fill="none"
+                stroke={rangeColor}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+              {[selection.first, selection.second].map(function renderRangeEdge(index) {
+                const coordinate = model.coordinates[index];
+                return coordinate ? (
+                  <line
+                    key={index}
+                    x1={coordinate.x}
+                    x2={coordinate.x}
+                    y1="0"
+                    y2={chartHeight}
+                    stroke="var(--ios-label)"
+                    strokeOpacity="0.5"
+                    strokeWidth="1"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ) : null;
+              })}
+            </>
+          ) : null}
+          {scrubCoordinate ? (
+            <line
+              x1={scrubCoordinate.x}
+              x2={scrubCoordinate.x}
+              y1="0"
+              y2={chartHeight}
+              stroke="var(--ios-label)"
+              strokeOpacity="0.45"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null}
+        </svg>
+        {/* Dots stay round over the stretched chart, so they are drawn in HTML. */}
+        {(range && selection && selection.second !== null
+          ? [selection.first, selection.second]
+          : scrubIndex !== null
+            ? [scrubIndex]
+            : [lastIndex]
+        ).map(function renderDot(index) {
+          const coordinate = model.coordinates[index];
+          if (!coordinate) return null;
+          return (
+            <span
+              key={index}
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-(--ios-grouped-cell)",
+                scrubIndex === null && !range && "animate-pulse motion-reduce:animate-none",
+              )}
+              style={{
+                backgroundColor: range ? rangeColor : lineColor,
+                left: `${(coordinate.x / chartWidth) * 100}%`,
+                top: `${(coordinate.y / chartHeight) * 100}%`,
+              }}
+            />
+          );
+        })}
+        <Text
+          aria-hidden="true"
+          className="pointer-events-none absolute top-0 right-0 text-[11px] leading-[13px] text-(--ios-secondary-label) tabular-nums"
+        >
+          {priceFormat.format(model.maximum)}
+        </Text>
+        <Text
+          aria-hidden="true"
+          className="pointer-events-none absolute right-0 bottom-0 text-[11px] leading-[13px] text-(--ios-secondary-label) tabular-nums"
+        >
+          {priceFormat.format(model.minimum)}
+        </Text>
       </div>
     </div>
   );
-}
-
-function getPointerRatio(event: PointerEvent<SVGSVGElement>) {
-  const bounds = event.currentTarget.getBoundingClientRect();
-  return Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
 }
 
 function getDateFormat(timeframe: StockTimeframe): Intl.DateTimeFormatOptions {
