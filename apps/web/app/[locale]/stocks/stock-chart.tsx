@@ -338,13 +338,13 @@ export function StockChart({
         })}
         <Text
           aria-hidden="true"
-          className="pointer-events-none absolute top-0 right-0 text-[11px] leading-[13px] text-(--ios-secondary-label) tabular-nums"
+          className="pointer-events-none absolute top-0 right-0 rounded-[4px] bg-(--ios-grouped-cell) px-1 text-[11px] leading-[13px] text-(--ios-secondary-label) tabular-nums"
         >
           {priceFormat.format(model.maximum)}
         </Text>
         <Text
           aria-hidden="true"
-          className="pointer-events-none absolute right-0 bottom-0 text-[11px] leading-[13px] text-(--ios-secondary-label) tabular-nums"
+          className="pointer-events-none absolute right-0 bottom-0 rounded-[4px] bg-(--ios-grouped-cell) px-1 text-[11px] leading-[13px] text-(--ios-secondary-label) tabular-nums"
         >
           {priceFormat.format(model.minimum)}
         </Text>
