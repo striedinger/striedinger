@@ -82,9 +82,9 @@
   "overrides": [
     {
       "files": [
-        "apps/web/app/mta/station-card.tsx",
-        "apps/web/app/og/metadata-table.tsx",
-        "apps/web/app/sudoku/sudoku-board.tsx"
+        "apps/web/app/*/mta/station-card.tsx",
+        "apps/web/app/*/og/metadata-table.tsx",
+        "apps/web/app/*/sudoku/sudoku-board.tsx"
       ],
       "rules": {
         "react/no-array-index-key": "off"

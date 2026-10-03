@@ -29,7 +29,7 @@ describe("proxy", () => {
     );
   });
 
-  it("allows regular browser requests through", () => {
+  it("renders unprefixed pages in English for visitors with no language preference", () => {
     const request = new NextRequest("https://striedinger.co/sudoku", {
       headers: {
         "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit Safari",
@@ -40,6 +40,42 @@ describe("proxy", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-rewrite")).toBe("https://striedinger.co/en/sudoku");
+  });
+
+  it("renders unprefixed pages in the saved or browser language without changing the URL", () => {
+    const saved = proxy(
+      new NextRequest("https://striedinger.co/json?example=1", {
+        headers: { cookie: "locale=es", "accept-language": "de-DE,de;q=0.9" },
+      }),
+    );
+    const browser = proxy(
+      new NextRequest("https://striedinger.co/", { headers: { "accept-language": "ja,en;q=0.5" } }),
+    );
+
+    expect(saved.headers.get("x-middleware-rewrite")).toBe(
+      "https://striedinger.co/es/json?example=1",
+    );
+    expect(browser.headers.get("x-middleware-rewrite")).toBe("https://striedinger.co/ja");
+  });
+
+  it("keeps shared Open Graph images for unprefixed URLs in English", () => {
+    const response = proxy(
+      new NextRequest("https://striedinger.co/json/opengraph-image", {
+        headers: { cookie: "locale=es" },
+      }),
+    );
+
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://striedinger.co/en/json/opengraph-image",
+    );
+  });
+
+  it("leaves files and the redirect logger outside the localized routes", () => {
+    for (const path of ["/robots.txt", "/sitemap.xml", "/r"]) {
+      const response = proxy(new NextRequest(`https://striedinger.co${path}`));
+      expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    }
   });
 
   it("passes localized URLs to their route and persists the route locale", () => {
@@ -49,7 +85,6 @@ describe("proxy", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-rewrite")).toBeNull();
-    expect(response.headers.get("x-middleware-request-x-route-locale")).toBe("es");
     expect(response.headers.get("set-cookie")).toContain("locale=es");
   });
 

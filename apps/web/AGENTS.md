@@ -19,6 +19,13 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Keep the global stylesheet to the Editorial default theme. Other theme presets are published by `scripts/sync-theme-assets.mjs` as `/themes/<id>.css` and loaded only when selected, so do not import them into `globals.css`.
 - Read request-time data such as cookies only where a page needs it; shared layouts that can render without it stay static.
 
+## Locale routing
+
+- Put every page route under `app/[locale]`, whose layout is the root layout and sets `<html lang>`. Every locale, including English, is generated statically.
+- Keep URLs free of locale codes for English: `proxy.ts` rewrites unprefixed URLs to the visitor's saved or browser language, redirects `/en/...` to the unprefixed URL, and keeps Open Graph images for unprefixed URLs in English because they are shared and cached.
+- Read the current locale with `getRequestLocale()`, which uses `next/root-params`, instead of request headers or cookies, so pages stay static. Route handlers such as Open Graph images read `params` with `getRouteLocale(params)`.
+- Compute request-time values such as the current date inside a Suspense boundary after `await connection()`, so the rest of the page still prerenders.
+
 ## Native app replicas
 
 - Build native app replicas, such as Notes and Podcasts, inside the shared `IosAppFrame`. It supplies Apple system color tokens, Liquid Glass material tokens, the system font stack, and the portal container that menus, alerts, and sheets render into.

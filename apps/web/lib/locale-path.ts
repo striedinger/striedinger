@@ -1,7 +1,5 @@
 import { isLocale, supportedLocales, type Locale } from "@workspace/i18n";
 
-export const routeLocaleHeaderName = "x-route-locale";
-
 export type SitePath = `/${string}` | "/";
 
 export function localizePath(path: SitePath, locale: Locale): SitePath {

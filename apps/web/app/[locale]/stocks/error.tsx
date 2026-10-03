@@ -1,3 +1,3 @@
 "use client";
 
-export { default } from "../../stocks/error";
+export { ToolError as default } from "../../../components/tool-error";

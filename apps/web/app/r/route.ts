@@ -4,7 +4,7 @@ import { after, NextResponse } from "next/server";
 
 import type { VisitServerData } from "./log-visit";
 
-import { getCardParams } from "../card/card-preview";
+import { getCardParams } from "../[locale]/card/card-preview";
 import { isCrawler, recordVisit } from "./log-visit";
 
 export function GET(request: NextRequest) {

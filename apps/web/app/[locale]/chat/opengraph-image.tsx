@@ -1,1 +1,28 @@
-export { alt, contentType, default, size } from "../../chat/opengraph-image";
+import {
+  createToolOpenGraphImage,
+  openGraphImageContentType,
+  openGraphImageSize,
+} from "../../../lib/tool-open-graph-image";
+import { getTranslator } from "../../../messages/get-translator";
+import { getRouteLocale } from "../../get-request-locale";
+
+const descriptionKey =
+  "Chat privately with nearby devices over a fast, encrypted, serverless peer-to-peer mesh.";
+
+interface OpenGraphImageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export const alt = "Nearby Chat - Private local messaging";
+export const size = openGraphImageSize;
+export const contentType = openGraphImageContentType;
+
+export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
+  const locale = await getRouteLocale(params);
+  const translate = await getTranslator(locale);
+
+  return createToolOpenGraphImage({
+    title: translate("Nearby Chat - Private local messaging"),
+    description: translate(descriptionKey),
+  });
+}

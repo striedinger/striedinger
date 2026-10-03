@@ -1,7 +1,7 @@
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import stations from "../../app/mta/data/stations.json";
+import stations from "../../app/[locale]/mta/data/stations.json";
 import { getNearbyStations } from "./live-arrivals";
 
 vi.mock("next/cache", function mockCache() {

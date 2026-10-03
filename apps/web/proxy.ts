@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 
-import { localeCookieName } from "@workspace/i18n";
+import { isLocale, localeCookieName, resolveLocale, type Locale } from "@workspace/i18n";
 import { NextResponse } from "next/server";
 
-import { getPathLocale, routeLocaleHeaderName, stripLocaleFromPath } from "./lib/locale-path";
+import { getPathLocale, stripLocaleFromPath } from "./lib/locale-path";
 
 const instagramWebViewUserAgentPattern = /\bInstagram\b/;
 const aiCrawlerUserAgentPattern =
@@ -25,50 +25,70 @@ export function proxy(request: NextRequest) {
 
   const userAgent = request.headers.get("user-agent") ?? "";
 
-  if (!instagramWebViewUserAgentPattern.test(userAgent)) {
-    const routeLocale = getPathLocale(request.nextUrl.pathname);
-    const isAiCrawler = aiCrawlerUserAgentPattern.test(userAgent);
+  if (instagramWebViewUserAgentPattern.test(userAgent)) {
+    const targetUrl = encodeURIComponent(request.nextUrl.href);
+    return NextResponse.redirect(`instagram://extbrowser/?url=${targetUrl}`, 307);
+  }
 
-    if (!routeLocale && !isAiCrawler) {
-      return NextResponse.next();
-    }
+  const { pathname } = request.nextUrl;
+  const routeLocale = getPathLocale(pathname);
 
-    if (routeLocale === "en") {
-      const destinationUrl = request.nextUrl.clone();
-      destinationUrl.pathname = stripLocaleFromPath(request.nextUrl.pathname);
+  if (routeLocale === "en") {
+    const destinationUrl = request.nextUrl.clone();
+    destinationUrl.pathname = stripLocaleFromPath(pathname);
+    return NextResponse.redirect(destinationUrl, 308);
+  }
 
-      return NextResponse.redirect(destinationUrl, 308);
-    }
+  const requestHeaders = new Headers(request.headers);
+  if (aiCrawlerUserAgentPattern.test(userAgent)) {
+    requestHeaders.set("x-original-user-agent", userAgent);
+    requestHeaders.set("user-agent", "Bingbot/2.0");
+  }
 
-    const requestHeaders = new Headers(request.headers);
-
-    if (routeLocale) {
-      requestHeaders.set(routeLocaleHeaderName, routeLocale);
-    }
-
-    if (isAiCrawler) {
-      requestHeaders.set("x-original-user-agent", userAgent);
-      requestHeaders.set("user-agent", "Bingbot/2.0");
-    }
-
-    const response = NextResponse.next({
-      request: { headers: requestHeaders },
+  if (routeLocale) {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.cookies.set(localeCookieName, routeLocale, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      sameSite: "lax",
     });
-
-    if (routeLocale) {
-      response.cookies.set(localeCookieName, routeLocale, {
-        maxAge: 60 * 60 * 24 * 365,
-        path: "/",
-        sameSite: "lax",
-      });
-    }
-
     return response;
   }
 
-  const targetUrl = encodeURIComponent(request.nextUrl.href);
+  if (!isLocalizedRoute(pathname)) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
 
-  return NextResponse.redirect(`instagram://extbrowser/?url=${targetUrl}`, 307);
+  // Unprefixed URLs render the visitor's language from the statically generated [locale] tree,
+  // so URLs never need a locale code.
+  const destinationUrl = request.nextUrl.clone();
+  destinationUrl.pathname = `/${negotiateLocale(request)}${pathname === "/" ? "" : pathname}`;
+  const response = NextResponse.rewrite(destinationUrl, { request: { headers: requestHeaders } });
+  response.headers.set("Vary", "Cookie, Accept-Language");
+  return response;
+}
+
+/** Pages and their Open Graph images live under [locale]; files and the redirect logger do not. */
+function isLocalizedRoute(pathname: string) {
+  if (pathname === "/r" || pathname.startsWith("/r/")) return false;
+  const lastSegment = pathname.split("/").at(-1) ?? "";
+  return !lastSegment.includes(".");
+}
+
+function negotiateLocale(request: NextRequest): Locale {
+  // Social cards for unprefixed URLs are shared and cached, so they are always English.
+  if (/\/(?:opengraph|twitter)-image$/.test(request.nextUrl.pathname)) return "en";
+  const savedLocale = request.cookies.get(localeCookieName)?.value;
+  if (savedLocale && isLocale(savedLocale)) return savedLocale;
+  const acceptedLanguages =
+    request.headers
+      .get("accept-language")
+      ?.split(",")
+      .map(function removeLanguageWeight(languageRange) {
+        return languageRange.trim().split(";")[0] ?? "";
+      })
+      .filter(Boolean) ?? [];
+  return resolveLocale(acceptedLanguages);
 }
 
 // Static assets, framework chunks, and vendored runtimes never need locale or host handling.

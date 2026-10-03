@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { StockPoint } from "../../app/stocks/types";
+import type { StockPoint } from "../../app/[locale]/stocks/types";
 
 import { getLatestTradingDayPoints } from "./stock-series";
 

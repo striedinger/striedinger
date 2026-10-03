@@ -1,0 +1,89 @@
+import type { Podcast, PodcastEpisode, PodcastProgress } from "./types";
+
+import { readStoredValue, removeStoredValue, writeStoredValue } from "../../../lib/browser-storage";
+import { isEpisode, isPodcast } from "./podcast-validation";
+
+const progressStorageKey = "podcast-progress:v1";
+const maximumProgressItems = 30;
+
+interface StoredProgress {
+  items: PodcastProgress[];
+  version: 1;
+}
+
+export function readPodcastProgress(): PodcastProgress[] {
+  try {
+    const storedValue = readStoredValue(progressStorageKey);
+    if (!storedValue) return [];
+    const parsedValue = JSON.parse(storedValue) as unknown;
+    if (!isStoredProgress(parsedValue)) throw new Error("Invalid podcast progress");
+    return parsedValue.items.slice(0, maximumProgressItems);
+  } catch {
+    removeStoredValue(progressStorageKey);
+    return [];
+  }
+}
+
+export function savePodcastProgress(
+  podcast: Podcast,
+  episode: PodcastEpisode,
+  positionSeconds: number,
+  durationSeconds: number,
+): PodcastProgress[] {
+  const currentItems = readPodcastProgress();
+  const otherItems = currentItems.filter(function keepOtherEpisode(item) {
+    return item.episode.id !== episode.id;
+  });
+  const normalizedPosition = Number.isFinite(positionSeconds) ? Math.max(0, positionSeconds) : 0;
+  const normalizedDuration = Number.isFinite(durationSeconds)
+    ? Math.max(0, durationSeconds)
+    : Math.max(0, episode.durationMilliseconds / 1_000);
+  const shouldKeep =
+    normalizedPosition >= 5 &&
+    (normalizedDuration === 0 || normalizedDuration - normalizedPosition > 10);
+  const nextItems = shouldKeep
+    ? [
+        {
+          podcast,
+          episode,
+          positionSeconds: normalizedPosition,
+          durationSeconds: normalizedDuration,
+          updatedAt: new Date().toISOString(),
+        },
+        ...otherItems,
+      ].slice(0, maximumProgressItems)
+    : otherItems;
+  writeProgress(nextItems);
+  return nextItems;
+}
+
+export function removePodcastProgress(episodeId: string): PodcastProgress[] {
+  const nextItems = readPodcastProgress().filter(function keepOtherEpisode(item) {
+    return item.episode.id !== episodeId;
+  });
+  writeProgress(nextItems);
+  return nextItems;
+}
+
+function writeProgress(items: PodcastProgress[]) {
+  const storedProgress: StoredProgress = { version: 1, items };
+  writeStoredValue(progressStorageKey, JSON.stringify(storedProgress));
+}
+
+function isStoredProgress(value: unknown): value is StoredProgress {
+  if (!value || typeof value !== "object") return false;
+  const stored = value as Partial<StoredProgress>;
+  return stored.version === 1 && Array.isArray(stored.items) && stored.items.every(isProgressItem);
+}
+
+function isProgressItem(value: unknown): value is PodcastProgress {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<PodcastProgress>;
+  return (
+    isPodcast(item.podcast) &&
+    isEpisode(item.episode) &&
+    typeof item.positionSeconds === "number" &&
+    typeof item.durationSeconds === "number" &&
+    typeof item.updatedAt === "string"
+  );
+}

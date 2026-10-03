@@ -34,6 +34,6 @@
     "**/coverage/**",
     "**/dist/**",
     "**/node_modules/**",
-    "apps/web/app/mta/data/stations.json"
+    "apps/web/app/*/mta/data/stations.json"
   ]
 }

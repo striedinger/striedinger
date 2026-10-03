@@ -2,7 +2,7 @@ import "server-only";
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
 import { cacheLife, cacheTag } from "next/cache";
 
-import stations from "../../app/mta/data/stations.json";
+import stations from "../../app/[locale]/mta/data/stations.json";
 
 interface StaticStation {
   id: string;

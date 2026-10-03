@@ -1,1 +1,25 @@
-export { alt, contentType, default, size } from "../../image/opengraph-image";
+import {
+  createToolOpenGraphImage,
+  openGraphImageContentType,
+  openGraphImageSize,
+} from "../../../lib/tool-open-graph-image";
+import { getImageTranslator } from "../../../messages/image/get-translator";
+import { getRouteLocale } from "../../get-request-locale";
+
+interface OpenGraphImageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export const alt = "Image Optimizer";
+export const size = openGraphImageSize;
+export const contentType = openGraphImageContentType;
+
+export default async function OpenGraphImage({ params }: OpenGraphImageProps) {
+  const locale = await getRouteLocale(params);
+  const translate = await getImageTranslator(locale);
+
+  return createToolOpenGraphImage({
+    title: translate("Image Optimizer"),
+    description: translate("Compress images privately in your browser. Nothing is uploaded."),
+  });
+}

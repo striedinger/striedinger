@@ -1,3 +1,3 @@
 "use client";
 
-export { default } from "../../chat/error";
+export { ToolError as default } from "../../../components/tool-error";

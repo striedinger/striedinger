@@ -1,3 +1,3 @@
 "use client";
 
-export { default } from "../../pdf/error";
+export { ToolError as default } from "../../../components/tool-error";

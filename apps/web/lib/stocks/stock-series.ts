@@ -1,4 +1,4 @@
-import type { StockPoint } from "../../app/stocks/types";
+import type { StockPoint } from "../../app/[locale]/stocks/types";
 
 export function getLatestTradingDayPoints(points: StockPoint[]) {
   const latestPoint = points.at(-1);

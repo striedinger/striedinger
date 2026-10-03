@@ -6,10 +6,10 @@ import type {
   StockPoint,
   StockSeries,
   StockTimeframe,
-} from "../../app/stocks/types";
+} from "../../app/[locale]/stocks/types";
 
-import { featuredStocks } from "../../app/stocks/stock-defaults";
-import { stockTimeframeFreshnessSeconds } from "../../app/stocks/types";
+import { featuredStocks } from "../../app/[locale]/stocks/stock-defaults";
+import { stockTimeframeFreshnessSeconds } from "../../app/[locale]/stocks/types";
 import { getLatestTradingDayPoints } from "./stock-series";
 
 const twelveDataBaseUrl = "https://api.twelvedata.com";

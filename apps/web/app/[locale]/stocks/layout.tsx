@@ -1,1 +1,7 @@
-export { default } from "../../stocks/layout";
+import type { ReactNode } from "react";
+
+import { ToolLayout } from "../tool-layout";
+
+export default function StocksLayout({ children }: Readonly<{ children: ReactNode }>) {
+  return <ToolLayout>{children}</ToolLayout>;
+}

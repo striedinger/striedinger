@@ -1,7 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 
-import type { Podcast, PodcastEpisode } from "../../app/podcasts/types";
+import type { Podcast, PodcastEpisode } from "../../app/[locale]/podcasts/types";
 
 const appleSearchBaseUrl = "https://itunes.apple.com";
 const appleChartsUrl =

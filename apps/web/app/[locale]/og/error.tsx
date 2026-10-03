@@ -1,3 +1,3 @@
 "use client";
 
-export { default } from "../../og/error";
+export { ToolError as default } from "../../../components/tool-error";
