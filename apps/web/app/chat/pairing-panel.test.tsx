@@ -4,10 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { PairingPanelProps } from "./pairing-panel";
 
 import { PairingPanel } from "./pairing-panel";
+import { testChatLabels } from "./test-labels";
 
 function createProps(overrides: Partial<PairingPanelProps> = {}): PairingPanelProps {
   return {
     connectionError: "",
+    labels: testChatLabels,
     onAcceptAnswer: vi.fn<(code: string) => Promise<void>>(async function acceptAnswer() {}),
     onAcceptInvite: vi.fn<(code: string) => Promise<void>>(async function acceptInvite() {}),
     onCancel: vi.fn<() => void>(),

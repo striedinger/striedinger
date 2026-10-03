@@ -17,9 +17,13 @@ import { PairingPanel, type PairingPanelProps } from "./pairing-panel";
 
 type DeviceDrawerProps = PairingPanelProps;
 
-export function DeviceDrawer({ peerCount, ...pairingProps }: DeviceDrawerProps) {
+export function DeviceDrawer({ labels, peerCount, ...pairingProps }: DeviceDrawerProps) {
   const deviceLabel =
-    peerCount === 0 ? "Connect" : peerCount === 1 ? "1 device" : `${peerCount} devices`;
+    peerCount === 0
+      ? labels.connect
+      : peerCount === 1
+        ? labels.oneDevice
+        : labels.deviceCount.replace("{count}", String(peerCount));
 
   return (
     <Sheet>
@@ -39,10 +43,10 @@ export function DeviceDrawer({ peerCount, ...pairingProps }: DeviceDrawerProps) 
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <SheetTitle render={<Text as="h2" size="xl" weight="semibold" />}>
-              Nearby devices
+              {labels.nearbyDevices}
             </SheetTitle>
             <SheetDescription render={<Text size="sm" tone="muted" />}>
-              Connect a device to join this chat.
+              {labels.connectToJoin}
             </SheetDescription>
           </div>
           <SheetClose
@@ -52,14 +56,14 @@ export function DeviceDrawer({ peerCount, ...pairingProps }: DeviceDrawerProps) 
                 variant="ghost"
                 size="icon-sm"
                 className="size-11 rounded-xl"
-                aria-label="Close devices"
+                aria-label={labels.closeDevices}
               />
             }
           >
             <CloseIcon />
           </SheetClose>
         </div>
-        <PairingPanel peerCount={peerCount} {...pairingProps} />
+        <PairingPanel labels={labels} peerCount={peerCount} {...pairingProps} />
       </SheetContent>
     </Sheet>
   );

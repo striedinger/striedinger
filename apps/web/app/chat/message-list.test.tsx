@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MessageList } from "./message-list";
+import { testChatLabels } from "./test-labels";
 
 const scrollToMock = vi.fn<(options?: ScrollToOptions) => void>();
 
@@ -20,6 +21,7 @@ describe("message list", function () {
   it("uses local ownership metadata instead of trusting the author name", function () {
     render(
       <MessageList
+        labels={testChatLabels}
         messages={[
           {
             author: "Quiet Otter",
@@ -39,6 +41,7 @@ describe("message list", function () {
   it("exposes new messages as a log and reveals the latest entry", function () {
     render(
       <MessageList
+        labels={testChatLabels}
         messages={[
           {
             author: "Silver Finch",
@@ -64,7 +67,7 @@ describe("message list", function () {
       sentAt: 1_721_000_000_000,
       text: "first",
     };
-    const view = render(<MessageList messages={[firstMessage]} />);
+    const view = render(<MessageList labels={testChatLabels} messages={[firstMessage]} />);
     const log = screen.getByRole("log", { name: "Messages" });
     Object.defineProperties(log, {
       clientHeight: { configurable: true, value: 200 },
@@ -76,6 +79,7 @@ describe("message list", function () {
 
     view.rerender(
       <MessageList
+        labels={testChatLabels}
         messages={[
           firstMessage,
           {

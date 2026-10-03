@@ -6,7 +6,7 @@ import { Text } from "@workspace/ui/components/text";
 import { Textarea } from "@workspace/ui/components/textarea";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
-import type { PairingState } from "./types";
+import type { ChatLabels, PairingState } from "./types";
 
 import { copyText } from "../../lib/copy-text";
 import { PairingCode } from "./pairing-code";
@@ -16,6 +16,7 @@ type DeliveryState = "copied" | "idle" | "shared";
 
 export interface PairingPanelProps {
   connectionError: string;
+  labels: ChatLabels;
   onAcceptAnswer: (code: string) => Promise<void>;
   onAcceptInvite: (code: string) => Promise<void>;
   onCancel: () => void;
@@ -27,6 +28,7 @@ export interface PairingPanelProps {
 
 export function PairingPanel({
   connectionError,
+  labels,
   onAcceptAnswer,
   onAcceptInvite,
   onCancel,
@@ -57,7 +59,7 @@ export function PairingPanel({
   async function handleSendCode() {
     if (navigator.share) {
       try {
-        await navigator.share({ text: pairingCode, title: "Nearby Chat" });
+        await navigator.share({ text: pairingCode, title: labels.title });
         setDeliveryState("shared");
         return;
       } catch (error) {
@@ -106,10 +108,10 @@ export function PairingPanel({
         <UsersIcon className="size-4 text-muted-foreground" />
         <Text size="sm" weight="medium">
           {peerCount === 0
-            ? "Ready to connect"
+            ? labels.readyToConnect
             : peerCount === 1
-              ? "1 device connected"
-              : `${peerCount} devices connected`}
+              ? labels.oneDeviceConnected
+              : labels.devicesConnected.replace("{count}", String(peerCount))}
         </Text>
       </div>
 
@@ -122,7 +124,7 @@ export function PairingPanel({
               className="h-12 rounded-xl"
               onClick={handleCreateInvite}
             >
-              Invite someone
+              {labels.inviteSomeone}
             </Button>
             <Button
               type="button"
@@ -133,14 +135,14 @@ export function PairingPanel({
                 setConnectionPath("join");
               }}
             >
-              Join with an invite
+              {labels.joinWithInvite}
             </Button>
           </div>
         ) : (
           <form className="flex flex-col gap-3" onSubmit={handleAcceptInvite}>
             <label htmlFor="invite-code">
               <Text as="span" size="sm" weight="medium">
-                Paste the invite you received
+                {labels.pasteInvite}
               </Text>
             </label>
             <Textarea
@@ -161,7 +163,7 @@ export function PairingPanel({
               className="h-12 rounded-xl"
               disabled={!inviteCode.trim()}
             >
-              Continue
+              {labels.continue}
             </Button>
             <Button
               type="button"
@@ -170,7 +172,7 @@ export function PairingPanel({
                 setConnectionPath("choose");
               }}
             >
-              Back
+              {labels.back}
             </Button>
           </form>
         )
@@ -179,10 +181,11 @@ export function PairingPanel({
       {pairingState === "answer" ? (
         <div className="flex flex-col gap-5">
           <PairingCode
-            actionLabel="Send invite"
+            actionLabel={labels.sendInvite}
             code={pairingCode}
             deliveryState={deliveryState}
-            instruction="Send this invite to the other person."
+            instruction={labels.sendInviteInstruction}
+            labels={labels}
             onSend={handleSendCode}
           />
           <form
@@ -191,7 +194,7 @@ export function PairingPanel({
           >
             <label htmlFor="answer-code">
               <Text as="span" size="sm" weight="medium">
-                Paste their reply
+                {labels.pasteReply}
               </Text>
             </label>
             <Textarea
@@ -207,7 +210,7 @@ export function PairingPanel({
               className="min-h-20 rounded-xl font-mono text-xs"
             />
             <Button type="submit" className="h-12 rounded-xl" disabled={!answerCode.trim()}>
-              Connect
+              {labels.connect}
             </Button>
           </form>
         </div>
@@ -216,14 +219,15 @@ export function PairingPanel({
       {pairingState === "share" ? (
         <div className="flex flex-col gap-4">
           <PairingCode
-            actionLabel="Send reply"
+            actionLabel={labels.sendReply}
             code={pairingCode}
             deliveryState={deliveryState}
-            instruction="Send this reply to the person who invited you."
+            instruction={labels.sendReplyInstruction}
+            labels={labels}
             onSend={handleSendCode}
           />
           <Text size="sm" tone="muted">
-            Keep this page open while they connect.
+            {labels.keepPageOpen}
           </Text>
         </div>
       ) : null}
@@ -231,14 +235,14 @@ export function PairingPanel({
       {isBusy ? (
         <div className="flex min-h-24 items-center justify-center" role="status">
           <Text size="sm" tone="muted">
-            {pairingState === "creating" ? "Preparing a private connection…" : "Connecting…"}
+            {pairingState === "creating" ? labels.preparingConnection : labels.connecting}
           </Text>
         </div>
       ) : null}
 
       {pairingState !== "idle" ? (
         <Button type="button" variant="ghost" onClick={handleCancel}>
-          Cancel pairing
+          {labels.cancelPairing}
         </Button>
       ) : null}
 

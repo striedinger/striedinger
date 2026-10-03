@@ -6,13 +6,19 @@ import { Input } from "@workspace/ui/components/input";
 import { Text } from "@workspace/ui/components/text";
 import { useState, type FormEvent } from "react";
 
+import type { ChatLabels } from "./types";
+
 import { DeviceDrawer } from "./device-drawer";
 import { MessageList } from "./message-list";
 import { useNearbyChat } from "./use-nearby-chat";
 
-export function ChatTool() {
+interface ChatToolProps {
+  labels: ChatLabels;
+}
+
+export function ChatTool({ labels }: ChatToolProps) {
   const [draft, setDraft] = useState("");
-  const chat = useNearbyChat();
+  const chat = useNearbyChat(labels);
 
   async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,21 +34,22 @@ export function ChatTool() {
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex min-w-0 flex-col">
           <Text as="h2" id="chat-room-title" size="lg" weight="semibold">
-            Nearby chat
+            {labels.title}
           </Text>
           <Text size="xs" tone="muted" className="truncate">
-            You’re {chat.alias}
+            {labels.youAre.replace("{name}", chat.alias)}
           </Text>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <div className="hidden items-center gap-2 text-success sm:flex">
             <LockIcon className="size-4" />
             <Text as="span" size="xs" weight="medium" className="text-current">
-              Local only
+              {labels.localOnly}
             </Text>
           </div>
           <DeviceDrawer
             connectionError={chat.connectionError}
+            labels={labels}
             onAcceptAnswer={chat.acceptAnswer}
             onAcceptInvite={chat.acceptInvite}
             onCancel={chat.cancelPairing}
@@ -54,14 +61,14 @@ export function ChatTool() {
         </div>
       </div>
 
-      <MessageList messages={chat.messages} />
+      <MessageList labels={labels} messages={chat.messages} />
 
       <form
         className="flex gap-2 border-t border-border bg-card p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4"
         onSubmit={handleSend}
       >
         <label htmlFor="chat-message" className="sr-only">
-          Message
+          {labels.message}
         </label>
         <Input
           id="chat-message"
@@ -69,7 +76,7 @@ export function ChatTool() {
           onChange={function updateDraft(event) {
             setDraft(event.currentTarget.value.slice(0, 2_000));
           }}
-          placeholder={chat.peerCount > 0 ? "Message nearby…" : "Connect a device to chat"}
+          placeholder={chat.peerCount > 0 ? labels.messageNearby : labels.connectToChat}
           autoComplete="off"
           disabled={chat.peerCount === 0}
           maxLength={2_000}
@@ -81,7 +88,7 @@ export function ChatTool() {
           disabled={chat.peerCount === 0 || !draft.trim()}
           className="h-12 rounded-xl px-5"
         >
-          Send
+          {labels.send}
         </Button>
       </form>
     </section>

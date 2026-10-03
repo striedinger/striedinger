@@ -3,13 +3,14 @@
 import { Text } from "@workspace/ui/components/text";
 import { useEffect, useRef, type UIEvent } from "react";
 
-import type { VisibleChatMessage } from "./types";
+import type { ChatLabels, VisibleChatMessage } from "./types";
 
 interface MessageListProps {
+  labels: ChatLabels;
   messages: VisibleChatMessage[];
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ labels, messages }: MessageListProps) {
   const listRef = useRef<HTMLOListElement>(null);
   const shouldFollowMessages = useRef(true);
 
@@ -31,9 +32,9 @@ export function MessageList({ messages }: MessageListProps) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center">
         <div className="flex max-w-sm flex-col gap-2">
-          <Text weight="medium">No messages yet</Text>
+          <Text weight="medium">{labels.noMessages}</Text>
           <Text size="sm" tone="muted">
-            Connect a device to start chatting.
+            {labels.connectToStart}
           </Text>
         </div>
       </div>
@@ -44,7 +45,7 @@ export function MessageList({ messages }: MessageListProps) {
     <ol
       ref={listRef}
       className="flex min-h-0 flex-1 list-none flex-col gap-4 overflow-y-auto p-4 sm:p-6"
-      aria-label="Messages"
+      aria-label={labels.messages}
       aria-relevant="additions"
       role="log"
       onScroll={updateFollowPreference}
@@ -57,7 +58,7 @@ export function MessageList({ messages }: MessageListProps) {
           >
             <div className="flex items-baseline gap-2 px-1">
               <Text as="span" size="xs" weight="semibold">
-                {message.isOwn ? "You" : message.author}
+                {message.isOwn ? labels.you : message.author}
               </Text>
               <Text
                 as="time"

@@ -11,6 +11,9 @@
     "apps/web": {
       "entry": ["scripts/generate-mta-stations.mjs"],
       "ignoreUnresolved": ["^\\./(avif_enc|meta|utils)\\.js$"]
+    },
+    "packages/ui": {
+      "ignore": ["src/styles/themes/*.css"]
     }
   }
 }

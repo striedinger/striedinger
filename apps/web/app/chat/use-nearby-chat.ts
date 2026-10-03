@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { ChatMessage, PairingState, PeerSession, VisibleChatMessage } from "./types";
+import type {
+  ChatLabels,
+  ChatMessage,
+  PairingState,
+  PeerSession,
+  VisibleChatMessage,
+} from "./types";
 
 import {
   createMessageKey,
@@ -29,8 +35,8 @@ interface PendingPairing {
   key: CryptoKey;
 }
 
-export function useNearbyChat() {
-  const [alias, setAlias] = useState("Anonymous neighbor");
+export function useNearbyChat(labels: ChatLabels) {
+  const [alias, setAlias] = useState(labels.anonymousAlias);
   const [connectionError, setConnectionError] = useState("");
   const [messages, setMessages] = useState<VisibleChatMessage[]>([]);
   const [pairingCode, setPairingCode] = useState("");
@@ -89,7 +95,7 @@ export function useNearbyChat() {
       );
       setPairingState("answer");
     } catch {
-      failPairing("Could not create an invite. Check browser support and try again.");
+      failPairing(labels.inviteFailed);
     }
   }
 
@@ -122,7 +128,7 @@ export function useNearbyChat() {
       );
       setPairingState("share");
     } catch {
-      failPairing("That invite is invalid or could not be opened.");
+      failPairing(labels.invalidInvite);
     }
   }
 
@@ -137,7 +143,7 @@ export function useNearbyChat() {
       if (answer.description.type !== "answer") throw new Error("Expected an answer");
       await pending.connection.setRemoteDescription(answer.description);
     } catch {
-      setConnectionError("That answer is invalid. Ask the other device to create it again.");
+      setConnectionError(labels.invalidAnswer);
       setPairingState("answer");
     }
   }
@@ -168,9 +174,7 @@ export function useNearbyChat() {
     const connection = new RTCPeerConnection(peerConnectionConfiguration);
     connection.addEventListener("connectionstatechange", function handleConnectionState() {
       if (connection.connectionState === "failed") {
-        setConnectionError(
-          "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.",
-        );
+        setConnectionError(labels.connectionFailed);
       }
     });
     return connection;
