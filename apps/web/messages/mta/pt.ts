@@ -1,5 +1,7 @@
 import { defineMessages } from "@workspace/i18n";
 export const messages = defineMessages({
+  Cancel: "Cancelar",
+  "Clear text": "Limpar texto",
   "Trains near you": "Trens perto de você",
   "NYC Subway Arrival Times": "Horários de chegada do metrô de Nova York",
   "Find nearby subway stops and see when your next train is arriving.":

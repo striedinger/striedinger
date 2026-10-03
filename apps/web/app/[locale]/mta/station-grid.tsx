@@ -9,13 +9,13 @@ interface StationGridProps {
 }
 
 /**
- * Stations in distance order, flowing into two masonry-style columns on large screens. CSS
+ * Stations in distance order, flowing into two masonry-style columns on wide screens. CSS
  * columns size each card to its content, so cards never shift after rendering or refreshing,
  * and reading order matches the visual order.
  */
 export function StationGrid({ labels, locale, stations }: StationGridProps) {
   return (
-    <div className="gap-4 lg:columns-2">
+    <div className="gap-4 px-4 lg:columns-2">
       {stations.map(function renderStation(station) {
         return (
           <div key={station.id} className="mb-4 break-inside-avoid">

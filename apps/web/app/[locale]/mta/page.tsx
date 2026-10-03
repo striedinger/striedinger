@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Text } from "@workspace/ui/components/text";
 import { Suspense } from "react";
 
 import type { InitialMtaState, MtaLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
-import { getTranslator } from "../../../messages/get-translator";
 import { getMtaTranslator } from "../../../messages/mta/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { MtaDashboardLoader } from "./mta-dashboard-loader";
 import { MtaDashboardSkeleton } from "./mta-dashboard-skeleton";
 import { defaultLocation } from "./mta-data";
+import { MtaScreen } from "./mta-screen";
 
 interface MtaPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -35,12 +30,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MtaPage({ searchParams }: MtaPageProps) {
   const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
   const { initialState, locationQuery } = getInitialState(resolvedSearchParams);
-  const [translate, translateCommon] = await Promise.all([
-    getMtaTranslator(locale),
-    getTranslator(locale),
-  ]);
+  const translate = await getMtaTranslator(locale);
   const labels: MtaLabels = {
     title: translate("Trains near you"),
+    cancel: translate("Cancel"),
+    clearText: translate("Clear text"),
     description: translate("Find nearby subway stops and see when your next train is arriving."),
     locationLabel: translate("Where are you?"),
     locationPlaceholder: translate("Enter an address or neighborhood"),
@@ -87,70 +81,17 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
   });
 
   return (
-    <PageShell>
+    <MtaScreen title={labels.title}>
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <PageHeader
-          title={labels.title}
-          description={labels.description}
-          eyebrow={
-            <div className="flex items-center gap-3">
-              <span
-                className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground"
-                aria-hidden="true"
-              >
-                <Text
-                  as="span"
-                  size="2xl"
-                  weight="bold"
-                  family="sans"
-                  className="leading-none text-primary-foreground"
-                >
-                  H
-                </Text>
-              </span>
-              <Text as="span" size="xs" weight="bold" className="tracking-[0.2em]">
-                NYC SUBWAY
-              </Text>
-            </div>
-          }
+      <Suspense fallback={<MtaDashboardSkeleton />}>
+        <MtaDashboardLoader
+          initialState={initialState}
+          labels={labels}
+          locale={locale}
+          locationQuery={locationQuery}
         />
-        <Suspense fallback={<MtaDashboardSkeleton />}>
-          <MtaDashboardLoader
-            initialState={initialState}
-            labels={labels}
-            locale={locale}
-            locationQuery={locationQuery}
-          />
-        </Suspense>
-        <ToolDetails
-          title={translateCommon("About this tool")}
-          description={labels.description}
-          sections={[
-            {
-              title: translateCommon("How it works"),
-              description: labels.searchHint,
-              items: [labels.useLocation, labels.search, labels.nearbyStops],
-            },
-            {
-              title: translateCommon("Live data"),
-              description: labels.refreshes,
-              items: [labels.updated, labels.refresh, labels.arrivalError],
-            },
-            {
-              title: translateCommon("Features"),
-              description: labels.description,
-              items: [labels.filterByTrain, labels.walk, labels.attribution],
-            },
-          ]}
-        />
-        <footer className="border-t py-8">
-          <Text size="xs" tone="muted">
-            {labels.attribution}
-          </Text>
-        </footer>
-      </PageContainer>
-    </PageShell>
+      </Suspense>
+    </MtaScreen>
   );
 }
 

@@ -30,10 +30,12 @@ export function SudokuBoard({
   const cellElements = useRef<Array<HTMLButtonElement | null>>([]);
   const selectedRow = Math.floor(selectedCell / 9);
   const selectedColumn = selectedCell % 9;
+  const selectedBox = Math.floor(selectedRow / 3) * 3 + Math.floor(selectedColumn / 3);
+  const selectedValue = selectedCell >= 0 ? values[selectedCell] : 0;
 
   useEffect(
     function focusSelectedCell() {
-      if (active) cellElements.current[selectedCell]?.focus();
+      if (active) cellElements.current[selectedCell]?.focus({ preventScroll: true });
     },
     [active, selectedCell],
   );
@@ -44,14 +46,16 @@ export function SudokuBoard({
       tabIndex={-1}
       aria-label={label}
       onKeyDown={onKeyDown}
-      className="grid aspect-square w-full grid-cols-9 overflow-hidden rounded-lg border-2 border-foreground/70 bg-border shadow-sm"
+      className="grid aspect-square w-full grid-cols-9 overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_rgb(0_0_0/0.06)]"
     >
       {values.map(function renderCell(value, cellIndex) {
         const row = Math.floor(cellIndex / 9);
         const column = cellIndex % 9;
+        const box = Math.floor(row / 3) * 3 + Math.floor(column / 3);
         const isFixed = fixedValues[cellIndex] !== 0;
         const isSelected = selectedCell === cellIndex;
-        const isRelated = row === selectedRow || column === selectedColumn;
+        const isRelated = row === selectedRow || column === selectedColumn || box === selectedBox;
+        const isSameValue = value !== 0 && value === selectedValue && !isSelected;
         const isConflicting = !isFixed && hasConflict(values, cellIndex);
         const cellLabel = (value ? cellValueLabel : cellEmptyLabel)
           .replace("{row}", String(row + 1))
@@ -74,22 +78,34 @@ export function SudokuBoard({
               onSelect(cellIndex);
             }}
             className={cn(
-              "flex min-w-0 touch-manipulation items-center justify-center border-r border-b border-border bg-background transition-[background-color,transform] outline-none hover:bg-accent/70 focus-visible:relative focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:scale-[0.94] motion-reduce:transition-none",
-              column === 2 || column === 5 ? "border-r-2 border-r-foreground/60" : undefined,
-              row === 2 || row === 5 ? "border-b-2 border-b-foreground/60" : undefined,
-              isRelated && !isSelected ? "bg-muted/70" : undefined,
-              isSelected ? "bg-accent ring-2 ring-ring ring-inset" : undefined,
-              isConflicting ? "bg-destructive/10 text-destructive" : undefined,
+              "flex min-w-0 touch-manipulation items-center justify-center border-(--ios-separator) transition-colors duration-100 outline-none select-none focus-visible:relative focus-visible:z-10 motion-reduce:transition-none",
+              column < 8 &&
+                (column === 2 || column === 5
+                  ? "border-r-2 border-r-(--ios-label)/25"
+                  : "border-r-[0.5px]"),
+              row < 8 &&
+                (row === 2 || row === 5
+                  ? "border-b-2 border-b-(--ios-label)/25"
+                  : "border-b-[0.5px]"),
+              isRelated && !isSelected && "bg-(--ios-tint)/[0.07]",
+              isSameValue && "bg-(--ios-tint)/20",
+              isSelected && "bg-(--ios-tint) text-white",
+              isConflicting && !isSelected && "bg-(--ios-red)/12",
             )}
           >
             <Text
               as="span"
               family="rounded"
-              size="lg"
-              weight={isFixed ? "bold" : "medium"}
               className={cn(
-                "leading-none tabular-nums sm:text-xl",
-                !isFixed ? "text-primary" : undefined,
+                "text-[clamp(18px,5.4vw,28px)] leading-none tabular-nums",
+                isFixed ? "font-semibold" : "font-medium",
+                isSelected
+                  ? "text-white"
+                  : isConflicting
+                    ? "text-(--ios-red)"
+                    : isFixed
+                      ? "text-(--ios-label)"
+                      : "text-(--ios-tint)",
               )}
             >
               {value || ""}

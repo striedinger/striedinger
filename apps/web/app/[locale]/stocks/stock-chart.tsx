@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
 import { Text } from "@workspace/ui/components/text";
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
@@ -177,28 +176,25 @@ export function StockChart({
         <div className="flex min-w-0 items-baseline gap-2 overflow-hidden">
           <Text
             as="span"
-            size="2xl"
-            weight="semibold"
-            className="min-w-[8ch] shrink-0 tabular-nums"
+            className="min-w-[8ch] shrink-0 text-[22px] leading-7 font-semibold text-(--ios-label) tabular-nums"
           >
             {priceFormatter.format(activePoint.close)}
           </Text>
-          <Text as="span" size="xs" tone="muted" className="truncate whitespace-nowrap">
+          <Text
+            as="span"
+            className="truncate text-[13px] leading-[18px] whitespace-nowrap text-(--ios-secondary-label)"
+          >
             {dateFormatter.format(new Date(activePoint.date))}
           </Text>
         </div>
-        <Text
-          size="xs"
-          tone="muted"
-          className="truncate whitespace-nowrap sm:max-w-[22rem] sm:text-right"
-        >
+        <Text className="truncate text-[13px] leading-[18px] whitespace-nowrap text-(--ios-secondary-label) sm:max-w-[22rem] sm:text-right">
           {labels.open} {priceFormatter.format(activePoint.open)} · {labels.high}{" "}
           {priceFormatter.format(activePoint.high)} · {labels.low}{" "}
           {priceFormatter.format(activePoint.low)}
         </Text>
       </div>
 
-      <div className="relative -mx-2 overflow-hidden rounded-xl sm:mx-0">
+      <div className="relative -mx-2 overflow-hidden rounded-[14px] sm:mx-0">
         <span id={`${symbol}-chart-help`} className="sr-only">
           {labels.chartHelp} {labels.rangeHelp}
         </span>
@@ -212,7 +208,7 @@ export function StockChart({
           aria-valuenow={visibleIndex}
           aria-valuetext={`${priceFormatter.format(activePoint.close)}, ${dateFormatter.format(new Date(activePoint.date))}`}
           tabIndex={0}
-          className="block aspect-[1.5/1] w-full cursor-crosshair touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:aspect-[2.35/1]"
+          className="block aspect-[1.5/1] w-full cursor-crosshair touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 focus-visible:ring-inset sm:aspect-[2.35/1]"
           onPointerDown={startRangeSelection}
           onPointerMove={updateRangeSelection}
           onPointerUp={finishRangeSelection}
@@ -225,8 +221,16 @@ export function StockChart({
         >
           <defs>
             <linearGradient id={`stock-area-${symbol}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+              <stop
+                offset="0%"
+                stopColor={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
+                stopOpacity="0.28"
+              />
+              <stop
+                offset="100%"
+                stopColor={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
+                stopOpacity="0"
+              />
             </linearGradient>
           </defs>
           {[0.2, 0.4, 0.6, 0.8].map(function renderGridLine(ratio) {
@@ -237,7 +241,7 @@ export function StockChart({
                 x2={chartWidth}
                 y1={chartTop + (chartBottom - chartTop) * ratio}
                 y2={chartTop + (chartBottom - chartTop) * ratio}
-                stroke="var(--border)"
+                stroke="var(--ios-separator)"
                 strokeDasharray="4 8"
                 vectorEffect="non-scaling-stroke"
               />
@@ -247,14 +251,14 @@ export function StockChart({
           <path
             d={linePath}
             fill="none"
-            stroke={isPositive ? "var(--success)" : "var(--destructive)"}
+            stroke={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
           {dragSelection ? (
-            <g stroke="var(--primary)" strokeWidth="2.5">
+            <g stroke="var(--ios-tint)" strokeWidth="2.5">
               <line
                 x1={dragSelection.start * chartWidth}
                 x2={dragSelection.start * chartWidth}
@@ -277,7 +281,7 @@ export function StockChart({
                 x2={activeCoordinate.x}
                 y1={chartTop}
                 y2={chartBottom}
-                stroke="var(--foreground)"
+                stroke="var(--ios-label)"
                 strokeOpacity="0.28"
                 strokeDasharray="3 5"
                 vectorEffect="non-scaling-stroke"
@@ -287,7 +291,7 @@ export function StockChart({
                 x2={chartWidth}
                 y1={activeCoordinate.y}
                 y2={activeCoordinate.y}
-                stroke="var(--foreground)"
+                stroke="var(--ios-label)"
                 strokeOpacity="0.2"
                 strokeDasharray="3 5"
                 vectorEffect="non-scaling-stroke"
@@ -296,8 +300,8 @@ export function StockChart({
                 cx={activeCoordinate.x}
                 cy={activeCoordinate.y}
                 r="7"
-                fill="var(--card)"
-                stroke={isPositive ? "var(--success)" : "var(--destructive)"}
+                fill="var(--ios-grouped-cell)"
+                stroke={isPositive ? "var(--ios-green)" : "var(--ios-red)"}
                 strokeWidth="3"
                 vectorEffect="non-scaling-stroke"
               />
@@ -306,9 +310,7 @@ export function StockChart({
         </svg>
         <Text
           as="span"
-          size="xs"
-          weight="semibold"
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-md bg-card/90 px-2 py-1 tabular-nums shadow-sm sm:hidden"
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-[8px] bg-(--ios-menu) px-2 py-1 text-[12px] font-semibold text-(--ios-label) tabular-nums shadow-[0_4px_12px_rgb(0_0_0/0.12)] backdrop-blur-[20px] sm:hidden"
           style={{
             left: `${(activeCoordinate.x / chartWidth) * 100}%`,
             top: `${(activeCoordinate.y / chartHeight) * 100}%`,
@@ -318,23 +320,17 @@ export function StockChart({
           {priceFormatter.format(activePoint.close)}
         </Text>
         {visibleRange.start === 0 && visibleRange.end === points.length - 1 ? (
-          <Text
-            size="xs"
-            tone="muted"
-            className="pointer-events-none absolute bottom-2 left-3 rounded-full bg-card/75 px-2 py-1 backdrop-blur-sm"
-          >
+          <Text className="pointer-events-none absolute bottom-2 left-3 rounded-full bg-(--ios-menu) px-2.5 py-1 text-[12px] text-(--ios-secondary-label) backdrop-blur-[20px]">
             {labels.rangeHelp}
           </Text>
         ) : (
-          <Button
+          <button
             type="button"
-            size="xs"
-            variant="outline"
-            className="absolute right-3 bottom-2 rounded-full bg-card/90 backdrop-blur-sm"
+            className="absolute right-3 bottom-2 h-7 rounded-full bg-(--ios-menu) px-3 text-[13px] font-semibold text-(--ios-tint) shadow-[0_4px_12px_rgb(0_0_0/0.1)] backdrop-blur-[20px] outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60"
             onClick={resetRange}
           >
             {labels.resetZoom}
-          </Button>
+          </button>
         )}
       </div>
     </div>

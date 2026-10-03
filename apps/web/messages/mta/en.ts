@@ -1,5 +1,7 @@
 import { defineMessages } from "@workspace/i18n";
 export const messages = defineMessages({
+  Cancel: "Cancel",
+  "Clear text": "Clear text",
   "Previous trains": "Previous trains",
   "Next trains": "Next trains",
   "Filter by train": "Filter by train",

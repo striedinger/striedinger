@@ -1,11 +1,13 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
+import { RefreshIcon } from "@workspace/icons/refresh-icon";
 import { Text } from "@workspace/ui/components/text";
 import { useEffect, useEffectEvent } from "react";
 
 import type { MtaLabels } from "./types";
 
+import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { getDateTimeFormat } from "../../../lib/intl-cache";
 import { useMtaNavigation } from "./mta-navigation-provider";
 
 const refreshIntervalMilliseconds = 60_000;
@@ -52,34 +54,32 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
   }, []);
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="size-2 animate-pulse rounded-full bg-success motion-reduce:animate-none" />
-      <Text size="xs" tone="muted">
+    <div className="flex shrink-0 items-center gap-2">
+      <Text className="hidden text-right text-[12px] leading-4 text-(--ios-secondary-label) sm:block">
         {labels.updated}{" "}
-        {updatedAt.toLocaleTimeString(locale, {
+        {getDateTimeFormat(locale, {
           hour: "numeric",
           minute: "2-digit",
           timeZone: "America/New_York",
-        })}{" "}
-        · {labels.refreshes}
+        }).format(updatedAt)}
+        <br />
+        {labels.refreshes}
       </Text>
-      <Button
-        type="button"
-        size="icon-sm"
-        variant="ghost"
+      <Text className="text-[12px] leading-4 text-(--ios-secondary-label) tabular-nums sm:hidden">
+        {getDateTimeFormat(locale, {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: "America/New_York",
+        }).format(updatedAt)}
+      </Text>
+      <IosBarButton
         aria-label={labels.refresh}
-        loading={state.isNavigating}
+        disabled={state.isNavigating}
+        className="text-(--ios-tint)"
         onClick={actions.refresh}
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path
-            d="M20 6v5h-5M4 18v-5h5M18.5 9a7 7 0 0 0-12-2L4 11m16 2-2.5 4a7 7 0 0 1-12-2"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </Button>
+        <RefreshIcon className={state.isNavigating ? "animate-spin" : undefined} />
+      </IosBarButton>
     </div>
   );
 }

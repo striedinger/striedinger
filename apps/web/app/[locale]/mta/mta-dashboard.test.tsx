@@ -52,6 +52,8 @@ function MockTrainFilter({
 }
 
 const labels: MtaLabels = {
+  cancel: "Cancel",
+  clearText: "Clear text",
   allTrains: "All trains",
   arrivalError: "Arrivals unavailable",
   attribution: "Data attribution",

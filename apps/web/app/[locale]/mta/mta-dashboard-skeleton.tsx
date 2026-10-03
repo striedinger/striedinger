@@ -1,63 +1,50 @@
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Surface } from "@workspace/ui/components/surface";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 
+const stations = [0, 1, 2];
+const arrivals = [0, 1, 2, 3];
+const bullets = [0, 1, 2, 3, 4, 5, 6, 7];
+
+/** Nearby stations in placeholder form while live arrivals load. */
 export function MtaDashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-10" aria-hidden="true">
-      <Surface className="flex min-h-40 flex-col gap-4 p-5 sm:p-6">
-        <div className="flex items-center gap-2">
-          <Skeleton className="size-2 rounded-full" />
-          <Skeleton className="h-5 w-28" />
+    <div aria-hidden="true" className="flex flex-col gap-4 pt-1">
+      <div className="flex items-end justify-between px-4">
+        <div className="flex flex-col gap-1.5">
+          <IosSkeleton className="h-3.5 w-24" />
+          <IosSkeleton className="h-6 w-44" />
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Skeleton className="h-11 flex-1 rounded-xl" />
-          <Skeleton className="h-11 w-full rounded-xl sm:w-44" />
-        </div>
-        <Skeleton className="h-4 w-full max-w-lg" />
-      </Surface>
-      <section className="flex flex-col gap-5">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-8 w-40" />
-            <Skeleton className="h-5 w-32" />
-          </div>
-          <Skeleton className="h-5 w-48" />
-        </div>
-        <div className="flex gap-2 overflow-hidden">
-          {Array.from({ length: 9 }, function renderTrainFilter(_, index) {
-            return <Skeleton key={index} className="size-10 shrink-0 rounded-full" />;
-          })}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {Array.from({ length: 4 }, function renderStation(_station, index) {
-            return (
-              <Surface key={index} className="flex min-h-72 flex-col gap-5 p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-7 w-40" />
-                    <Skeleton className="h-4 w-28" />
-                  </div>
-                  <Skeleton className="h-8 w-16 rounded-full" />
-                </div>
-                {Array.from({ length: 3 }, function renderArrival(_arrival, arrivalIndex) {
-                  return (
-                    <div key={arrivalIndex} className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="size-8 rounded-full" />
-                        <div className="flex flex-col gap-2">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-20" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-6 w-12" />
+        <IosSkeleton className="size-11 rounded-full" />
+      </div>
+      <div className="flex gap-1.5 overflow-hidden px-4 py-1">
+        <IosSkeleton className="h-9 w-24 shrink-0 rounded-full" />
+        {bullets.map(function renderBullet(bullet) {
+          return <IosSkeleton key={bullet} className="size-9 shrink-0 rounded-full" />;
+        })}
+      </div>
+      <div className="gap-4 px-4 lg:columns-2">
+        {stations.map(function renderStation(station) {
+          return (
+            <div
+              key={station}
+              className="mb-4 flex flex-col gap-3 rounded-[22px] bg-(--ios-grouped-cell) p-4"
+            >
+              <IosSkeleton className="h-5 w-40" />
+              {arrivals.map(function renderArrival(arrival) {
+                return (
+                  <div key={arrival} className="flex items-center gap-3">
+                    <IosSkeleton className="size-8 shrink-0 rounded-full" />
+                    <div className="flex flex-1 flex-col gap-1.5">
+                      <IosSkeleton className="h-4 w-3/5" />
+                      <IosSkeleton className="h-3 w-1/4" />
                     </div>
-                  );
-                })}
-              </Surface>
-            );
-          })}
-        </div>
-      </section>
+                    <IosSkeleton className="h-5 w-12" />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

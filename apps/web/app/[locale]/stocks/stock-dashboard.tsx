@@ -1,16 +1,18 @@
 "use client";
 
 import { CloseIcon } from "@workspace/icons/close-icon";
-import { ShareIcon } from "@workspace/icons/share-icon";
-import { Button } from "@workspace/ui/components/button";
-import { Surface } from "@workspace/ui/components/surface";
+import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useTransition } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
+import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { IosSegmentedControl } from "../../../components/ios/ios-segmented-control";
 import { readStoredValue, removeStoredValue, writeStoredValue } from "../../../lib/browser-storage";
+import { getNumberFormat } from "../../../lib/intl-cache";
 import { playStockHaptic } from "./haptics";
 import { MarketSessionIndicator } from "./market-session-indicator";
 import { StockChart } from "./stock-chart";
@@ -190,15 +192,17 @@ export function StockDashboard({
   const firstPoint = displayedSeries?.points[0];
   const change = latestPoint && firstPoint ? latestPoint.close - firstPoint.close : 0;
   const changePercent = firstPoint ? (change / firstPoint.close) * 100 : 0;
-  const priceFormatter = new Intl.NumberFormat(locale, {
+  const priceFormatter = getNumberFormat(locale, {
     style: "currency",
     currency: displayedSeries?.identity.currency ?? selectedStock.currency,
     maximumFractionDigits: 2,
   });
 
+  const isUp = change >= 0;
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="flex min-w-0 flex-col gap-5" aria-label={labels.watchlist}>
+    <div className="flex flex-col gap-5 px-4 pb-4 lg:grid lg:grid-cols-[19rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <div className="lg:col-span-2">
         <Suspense fallback={<StockSearchFallback labels={labels} query={searchQuery} />}>
           <StockSearch
             initialQuery={searchQuery}
@@ -210,232 +214,228 @@ export function StockDashboard({
             onSelectStock={addStock}
           />
         </Suspense>
+      </div>
 
-        <Surface className="overflow-hidden p-2">
-          <div className="flex items-center justify-between px-2 py-2">
-            <Text as="h2" size="xs" weight="bold" className="tracking-[0.15em] uppercase">
-              {labels.watchlist}
-            </Text>
-            <Text as="span" size="xs" tone="muted" className="tabular-nums">
-              {watchlist.length}
+      <section
+        aria-labelledby="stock-heading"
+        className="flex min-w-0 flex-col gap-4 rounded-[22px] bg-(--ios-grouped-cell) p-4 sm:p-5 lg:order-2"
+      >
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <Text
+                as="h2"
+                id="stock-heading"
+                className="text-[28px] leading-[34px] font-bold tracking-[0.36px] text-(--ios-label)"
+              >
+                {selectedStock.symbol}
+              </Text>
+              <MarketSessionIndicator
+                exchange={selectedStock.exchange}
+                labels={{
+                  afterHours: labels.afterHours,
+                  closed: labels.marketClosed,
+                  open: labels.marketOpen,
+                  preMarket: labels.preMarket,
+                }}
+              />
+              {displayedSeries?.isDemo ? (
+                <Text
+                  as="span"
+                  className="rounded-full bg-(--ios-fill) px-2 py-0.5 text-[12px] font-semibold text-(--ios-secondary-label)"
+                >
+                  {labels.demo}
+                </Text>
+              ) : null}
+            </div>
+            <Text
+              numberOfLines={1}
+              className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)"
+            >
+              {selectedStock.name} · {selectedStock.exchange}
             </Text>
           </div>
-          {watchlist.length > 0 ? (
-            <ul className="flex list-none gap-1 overflow-x-auto p-0 lg:flex-col lg:overflow-visible">
-              {watchlist.map(function renderWatchlistStock(stock) {
-                const isSelected = stock.symbol === selectedStock.symbol;
-                return (
-                  <li key={stock.symbol} className="relative min-w-36 lg:min-w-0">
-                    <button
-                      type="button"
-                      aria-pressed={isSelected}
-                      className="flex w-full flex-col rounded-xl py-3 pr-10 pl-3 text-left transition-[background-color,transform] hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring active:scale-[0.98] aria-pressed:bg-primary aria-pressed:text-primary-foreground motion-reduce:transform-none"
-                      onClick={function selectWatchlistStock() {
-                        setShareStatus("idle");
-                        if (!isSelected) navigateToSelection(stock.symbol, timeframe);
-                        playStockHaptic("select");
-                      }}
-                    >
-                      <Text as="span" size="sm" weight="semibold" className="text-inherit">
-                        {stock.symbol}
-                      </Text>
-                      <Text
-                        as="span"
-                        size="xs"
-                        numberOfLines={1}
-                        className={
-                          isSelected ? "text-primary-foreground/90" : "text-muted-foreground"
-                        }
-                      >
-                        {stock.name}
-                      </Text>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`${labels.remove} ${stock.symbol}`}
-                      className={`absolute top-1/2 right-2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-ring ${isSelected ? "text-primary-foreground/80 hover:bg-primary-foreground/15 hover:text-primary-foreground" : "text-muted-foreground hover:bg-background hover:text-foreground"}`}
-                      onClick={function removeWatchlistStock(event) {
-                        event.stopPropagation();
-                        removeStock(stock);
-                      }}
-                    >
-                      <CloseIcon className="size-3.5" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <Text size="sm" tone="muted" className="px-3 py-6 text-center">
-              {labels.emptyWatchlist}
-            </Text>
-          )}
-        </Surface>
-      </aside>
+          <IosBarButton
+            aria-label={labels.share}
+            className="text-(--ios-tint)"
+            onClick={shareSelection}
+          >
+            <ShareUpIcon />
+          </IosBarButton>
+          <span className="sr-only" aria-live="polite">
+            {shareStatus === "copied" ? labels.copied : ""}
+          </span>
+        </header>
 
-      <Surface
-        as="section"
-        className="min-w-0 overflow-hidden p-4 sm:p-6"
-        aria-labelledby="stock-heading"
-      >
-        <div className="flex flex-col gap-6">
-          <header className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Text as="h2" id="stock-heading" size="2xl" weight="semibold">
-                  {selectedStock.symbol}
-                </Text>
-                <MarketSessionIndicator
-                  exchange={selectedStock.exchange}
-                  labels={{
-                    afterHours: labels.afterHours,
-                    closed: labels.marketClosed,
-                    open: labels.marketOpen,
-                    preMarket: labels.preMarket,
-                  }}
-                />
-                {displayedSeries?.isDemo ? (
-                  <Text
-                    as="span"
-                    size="xs"
-                    weight="medium"
-                    className="rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground"
-                  >
-                    {labels.demo}
-                  </Text>
-                ) : null}
-              </div>
-              <Text size="sm" tone="muted" numberOfLines={1}>
-                {selectedStock.name} · {selectedStock.exchange}
+        {latestPoint ? (
+          <div className="flex items-baseline gap-3">
+            <Text className="text-[34px] leading-[41px] font-bold tracking-[0.37px] text-(--ios-label) tabular-nums">
+              {priceFormatter.format(latestPoint.close)}
+            </Text>
+            <Text
+              className={cn(
+                "rounded-[8px] px-2 py-0.5 text-[15px] leading-5 font-semibold text-white tabular-nums",
+                isUp ? "bg-(--ios-green)" : "bg-(--ios-red)",
+              )}
+            >
+              {isUp ? "+" : ""}
+              {priceFormatter.format(change)} ({changePercent >= 0 ? "+" : ""}
+              {changePercent.toFixed(2)}%)
+            </Text>
+          </div>
+        ) : null}
+
+        <IosSegmentedControl
+          label={labels.chart}
+          options={stockTimeframes.map(function createOption(option) {
+            return { label: option, value: option };
+          })}
+          value={timeframe}
+          onChange={function selectTimeframe(option) {
+            setShareStatus("idle");
+            navigateToSelection(selectedStock.symbol, option);
+            playStockHaptic("select");
+          }}
+        />
+
+        {!displayedSeries ? (
+          <div
+            role="alert"
+            className="flex aspect-[1.5/1] items-center justify-center rounded-[14px] bg-(--ios-grouped-background) p-6 text-center sm:aspect-[2.35/1]"
+          >
+            <Text className="text-[15px] leading-5 text-(--ios-secondary-label)">
+              {labels.dataUnavailable}
+            </Text>
+          </div>
+        ) : (
+          <div
+            aria-busy={isNavigating}
+            className="relative transition-opacity duration-200 aria-busy:opacity-60 motion-reduce:transition-none"
+          >
+            <StockChart
+              key={`${selectedStock.symbol}-${displayedSeries.timeframe}`}
+              currency={displayedSeries.identity.currency}
+              labels={labels}
+              locale={locale}
+              points={displayedSeries.points}
+              symbol={selectedStock.symbol}
+              timeframe={displayedSeries.timeframe}
+            />
+            {isNavigating ? (
+              <Text
+                role="status"
+                className="pointer-events-none absolute top-0 right-0 rounded-full bg-(--ios-menu) px-3 py-1 text-[13px] text-(--ios-secondary-label) backdrop-blur-[20px]"
+              >
+                {labels.loading}
               </Text>
-            </div>
-            <div className="flex items-start gap-3">
-              {latestPoint ? (
-                <div className="text-right">
-                  <Text size="2xl" weight="semibold" className="tabular-nums">
-                    {priceFormatter.format(latestPoint.close)}
+            ) : null}
+          </div>
+        )}
+
+        {latestPoint ? (
+          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] bg-(--ios-separator) sm:grid-cols-4">
+            {[
+              [labels.open, priceFormatter.format(latestPoint.open)],
+              [labels.high, priceFormatter.format(latestPoint.high)],
+              [labels.low, priceFormatter.format(latestPoint.low)],
+              [
+                labels.volume,
+                getNumberFormat(locale, { notation: "compact" }).format(latestPoint.volume),
+              ],
+            ].map(function renderStat([label, value]) {
+              return (
+                <div
+                  key={label}
+                  className="flex flex-col bg-(--ios-grouped-background) px-3.5 py-2.5"
+                >
+                  <Text as="dt" className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
+                    {label}
                   </Text>
                   <Text
-                    size="sm"
-                    weight="medium"
-                    className={`tabular-nums ${change >= 0 ? "text-success" : "text-destructive"}`}
+                    as="dd"
+                    className="m-0 text-[17px] leading-[22px] font-semibold text-(--ios-label) tabular-nums"
                   >
-                    {change >= 0 ? "+" : ""}
-                    {priceFormatter.format(change)} ({changePercent >= 0 ? "+" : ""}
-                    {changePercent.toFixed(2)}%)
+                    {value}
                   </Text>
                 </div>
-              ) : null}
-              <Button
-                type="button"
-                size="icon-lg"
-                variant="outline"
-                aria-label={labels.share}
-                className="size-11"
-                onClick={shareSelection}
-              >
-                <ShareIcon />
-              </Button>
-              <span className="sr-only" aria-live="polite">
-                {shareStatus === "copied" ? labels.copied : ""}
-              </span>
-            </div>
-          </header>
-
-          <div
-            className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1"
-            role="group"
-            aria-label={labels.chart}
-          >
-            {stockTimeframes.map(function renderTimeframe(option) {
-              return (
-                <Button
-                  key={option}
-                  type="button"
-                  size="sm"
-                  variant={timeframe === option ? "default" : "ghost"}
-                  aria-pressed={timeframe === option}
-                  className="min-w-11 flex-1 rounded-lg"
-                  onClick={function selectTimeframe() {
-                    if (timeframe === option) return;
-                    setShareStatus("idle");
-                    navigateToSelection(selectedStock.symbol, option);
-                    playStockHaptic("select");
-                  }}
-                >
-                  {option}
-                </Button>
               );
             })}
-          </div>
+          </dl>
+        ) : null}
+        <Text className="text-[12px] leading-4 text-(--ios-secondary-label)">
+          {labels.attribution}
+        </Text>
+      </section>
 
-          {!displayedSeries ? (
-            <div
-              className="flex min-h-[calc(4.5rem+0.75rem)] flex-col justify-end gap-3"
-              role="alert"
-            >
-              <div className="h-[4.5rem] sm:h-12" />
-              <div className="flex aspect-[1.5/1] items-center justify-center rounded-xl border border-dashed p-6 text-center sm:aspect-[2.35/1]">
-                <Text size="sm" tone="muted">
-                  {labels.dataUnavailable}
-                </Text>
-              </div>
-            </div>
-          ) : (
-            <div className="relative" aria-busy={isNavigating}>
-              <StockChart
-                key={`${selectedStock.symbol}-${displayedSeries.timeframe}`}
-                currency={displayedSeries.identity.currency}
-                labels={labels}
-                locale={locale}
-                points={displayedSeries.points}
-                symbol={selectedStock.symbol}
-                timeframe={displayedSeries.timeframe}
-              />
-              {isNavigating ? (
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-xl bg-card/15"
-                  role="status"
-                >
-                  <span className="absolute inset-x-0 top-0 h-1 animate-pulse bg-primary/70 motion-reduce:animate-none" />
-                  <Text
-                    size="sm"
-                    tone="muted"
-                    className="absolute top-3 right-3 rounded-full bg-card/90 px-3 py-1.5 shadow-sm backdrop-blur-sm"
-                  >
-                    {labels.loading}
-                  </Text>
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          {latestPoint ? (
-            <dl className="grid grid-cols-2 gap-3 border-t pt-5 sm:grid-cols-4">
-              {[
-                [labels.open, priceFormatter.format(latestPoint.open)],
-                [labels.high, priceFormatter.format(latestPoint.high)],
-                [labels.low, priceFormatter.format(latestPoint.low)],
-                [
-                  labels.volume,
-                  new Intl.NumberFormat(locale, { notation: "compact" }).format(latestPoint.volume),
-                ],
-              ].map(function renderStat([label, value]) {
-                return (
-                  <div key={label}>
-                    <Text as="dt" size="xs" tone="muted">
-                      {label}
-                    </Text>
-                    <Text as="dd" size="sm" weight="semibold" className="tabular-nums">
-                      {value}
-                    </Text>
-                  </div>
-                );
-              })}
-            </dl>
-          ) : null}
+      <section aria-label={labels.watchlist} className="flex min-w-0 flex-col lg:order-1">
+        <div className="flex items-center justify-between px-4 pb-1.5">
+          <Text
+            as="h2"
+            className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
+          >
+            {labels.watchlist}
+          </Text>
+          <Text as="span" className="text-[15px] text-(--ios-secondary-label) tabular-nums">
+            {watchlist.length}
+          </Text>
         </div>
-      </Surface>
+        {watchlist.length > 0 ? (
+          <ul className="m-0 list-none overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) p-0">
+            {watchlist.map(function renderWatchlistStock(stock) {
+              const isSelected = stock.symbol === selectedStock.symbol;
+              return (
+                <li
+                  key={stock.symbol}
+                  className="relative flex items-center not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={isSelected}
+                    className="flex min-h-[58px] min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-pressed:bg-(--ios-tint)/10"
+                    onClick={function selectWatchlistStock() {
+                      setShareStatus("idle");
+                      if (!isSelected) navigateToSelection(stock.symbol, timeframe);
+                      playStockHaptic("select");
+                    }}
+                  >
+                    <Text
+                      as="span"
+                      className={cn(
+                        "text-[17px] leading-[22px] font-semibold tracking-[-0.43px]",
+                        isSelected ? "text-(--ios-tint)" : "text-(--ios-label)",
+                      )}
+                    >
+                      {stock.symbol}
+                    </Text>
+                    <Text
+                      as="span"
+                      numberOfLines={1}
+                      className="text-[13px] leading-[18px] text-(--ios-secondary-label)"
+                    >
+                      {stock.name}
+                    </Text>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${labels.remove} ${stock.symbol}`}
+                    className="mr-3 flex size-7 shrink-0 items-center justify-center rounded-full bg-(--ios-fill) text-(--ios-secondary-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60 [&_svg]:size-3"
+                    onClick={function removeWatchlistStock(event) {
+                      event.stopPropagation();
+                      removeStock(stock);
+                    }}
+                  >
+                    <CloseIcon strokeWidth={2.8} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <Text className="rounded-[22px] bg-(--ios-grouped-cell) px-4 py-6 text-center text-[15px] leading-5 text-(--ios-secondary-label)">
+            {labels.emptyWatchlist}
+          </Text>
+        )}
+      </section>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 export interface MtaLabels {
+  cancel: string;
+  clearText: string;
   title: string;
   description: string;
   locationLabel: string;

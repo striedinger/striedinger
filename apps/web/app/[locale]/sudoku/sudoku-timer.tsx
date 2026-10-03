@@ -35,7 +35,11 @@ export function SudokuTimer({ completedSeconds, startedAt }: SudokuTimerProps) {
   );
 
   return (
-    <Text size="xl" weight="semibold" family="rounded" className="tabular-nums" aria-live="off">
+    <Text
+      family="rounded"
+      aria-live="off"
+      className="text-[22px] leading-7 font-semibold text-(--ios-label) tabular-nums"
+    >
       {formatElapsedTime(completedSeconds ?? (startedAt === undefined ? 0 : elapsedSeconds))}
     </Text>
   );

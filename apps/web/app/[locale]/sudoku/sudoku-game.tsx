@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
 import { Text } from "@workspace/ui/components/text";
 import { useMemo, useState, type KeyboardEvent } from "react";
 
 import type { SudokuDifficulty, SudokuLabels, SudokuPuzzle } from "./types";
 
+import { IosSegmentedControl } from "../../../components/ios/ios-segmented-control";
 import { CompletionCard } from "./completion-card";
 import { triggerHapticFeedback } from "./haptics";
 import { NumberPad } from "./number-pad";
@@ -156,131 +156,98 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-8">
-      <section className="flex flex-col gap-2 sm:gap-3" aria-labelledby="difficulty-heading">
-        <div className="flex min-h-8 items-center justify-between gap-4">
-          <Text as="h2" id="difficulty-heading" size="sm" weight="semibold">
-            {labels.chooseDifficulty}
-          </Text>
-          {startedAt !== undefined ? (
-            <RestartGameDialog
-              cancelLabel={labels.cancel}
-              confirmLabel={labels.restartConfirm}
-              description={labels.restartDescription}
-              onConfirm={handleRestart}
-              title={labels.restartTitle}
-              triggerLabel={labels.restart}
-            />
-          ) : null}
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {difficulties.map(function renderDifficulty(option) {
-            const isSelected = difficulty === option;
+    <div className="flex flex-col gap-4 pb-4">
+      <Text className="-mt-2 px-1 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+        {localizedDate}
+      </Text>
+      <IosSegmentedControl
+        label={labels.chooseDifficulty}
+        options={difficulties.map(function createOption(option) {
+          return { label: labels.difficulty[option], value: option };
+        })}
+        value={difficulty}
+        disabled={startedAt !== undefined}
+        onChange={function selectDifficulty(option) {
+          triggerHapticFeedback();
+          handleDifficultyChange(option);
+        }}
+      />
 
-            return (
-              <Button
-                key={option}
-                type="button"
-                variant={isSelected ? "default" : "outline"}
-                aria-pressed={isSelected}
-                disabled={startedAt !== undefined}
-                onClick={function selectDifficulty() {
-                  triggerHapticFeedback();
-                  handleDifficultyChange(option);
-                }}
-                className="w-full transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-              >
-                <Text
-                  as="span"
-                  size="sm"
-                  weight="medium"
-                  className={isSelected ? "text-primary-foreground" : undefined}
-                >
-                  {labels.difficulty[option]}
-                </Text>
-              </Button>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="grid grid-cols-[1fr_auto_auto] items-end gap-4">
-        <div className="flex flex-col gap-1">
-          <Text size="xs" tone="muted">
-            {labels.date}
-          </Text>
-          <Text size="sm" weight="medium">
-            {localizedDate}
-          </Text>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <Text size="xs" tone="muted">
+      <div className="flex items-stretch gap-3">
+        <div className="flex flex-1 flex-col gap-0.5 rounded-[18px] bg-(--ios-grouped-cell) px-4 py-2.5">
+          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
             {labels.time}
           </Text>
           <SudokuTimer completedSeconds={completedSeconds} startedAt={startedAt} />
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Text size="xs" tone="muted">
+        <div className="flex flex-1 flex-col gap-0.5 rounded-[18px] bg-(--ios-grouped-cell) px-4 py-2.5">
+          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
             {labels.score}
           </Text>
           <Text
-            size="xl"
-            weight="semibold"
             family="rounded"
-            className="tabular-nums"
             aria-live="polite"
+            className="text-[22px] leading-7 font-semibold text-(--ios-label) tabular-nums"
           >
             {startedAt === undefined ? "—" : `${liveScore}/100`}
           </Text>
         </div>
+        {startedAt !== undefined ? (
+          <RestartGameDialog
+            cancelLabel={labels.cancel}
+            confirmLabel={labels.restartConfirm}
+            description={labels.restartDescription}
+            onConfirm={handleRestart}
+            title={labels.restartTitle}
+            triggerLabel={labels.restart}
+          />
+        ) : null}
       </div>
 
-      <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4 sm:max-w-[36rem] sm:gap-5">
-        <div className="relative">
-          <div inert={startedAt === undefined ? true : undefined}>
-            <SudokuBoard
-              active={startedAt !== undefined}
-              cellEmptyLabel={labels.cellEmpty}
-              cellValueLabel={labels.cellValue}
-              fixedValues={activePuzzle.puzzle}
-              label={labels.puzzle}
-              onSelect={handleCellSelect}
-              onKeyDown={handleKeyboardInput}
-              selectedCell={selectedCell}
-              values={values}
-            />
-          </div>
-          {startedAt === undefined ? (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 rounded-lg border-2 border-foreground/70 bg-card/95 p-6 text-center backdrop-blur-sm">
-              <Text as="h2" size="2xl" weight="semibold">
-                {labels.startPrompt}
-              </Text>
-              <Button
-                type="button"
-                size="lg"
-                onClick={handleStart}
-                className="min-w-36 transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
-              >
-                <Text as="span" size="sm" weight="semibold" className="text-primary-foreground">
-                  {labels.start}
-                </Text>
-              </Button>
-            </div>
-          ) : null}
+      <div className="relative">
+        <div inert={startedAt === undefined ? true : undefined}>
+          <SudokuBoard
+            active={startedAt !== undefined}
+            cellEmptyLabel={labels.cellEmpty}
+            cellValueLabel={labels.cellValue}
+            fixedValues={activePuzzle.puzzle}
+            label={labels.puzzle}
+            onSelect={handleCellSelect}
+            onKeyDown={handleKeyboardInput}
+            selectedCell={selectedCell}
+            values={values}
+          />
         </div>
-        <NumberPad
-          disabled={
-            startedAt === undefined ||
-            isComplete ||
-            selectedCell < 0 ||
-            activePuzzle.puzzle[selectedCell] !== 0
-          }
-          disabledValues={completedNumbers}
-          eraseLabel={labels.erase}
-          label={labels.numberPad}
-          onSelect={handleNumberSelect}
-        />
+        {startedAt === undefined ? (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 rounded-[22px] bg-(--ios-grouped-background)/55 p-6 text-center backdrop-blur-[10px]">
+            <Text
+              as="h2"
+              className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
+            >
+              {labels.startPrompt}
+            </Text>
+            <button
+              type="button"
+              onClick={handleStart}
+              className="h-[50px] min-w-44 rounded-full bg-(--ios-tint) px-8 text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.97] motion-safe:transition-transform"
+            >
+              {labels.start}
+            </button>
+          </div>
+        ) : null}
       </div>
+      <NumberPad
+        disabled={
+          startedAt === undefined ||
+          isComplete ||
+          selectedCell < 0 ||
+          activePuzzle.puzzle[selectedCell] !== 0
+        }
+        disabledValues={completedNumbers}
+        eraseLabel={labels.erase}
+        label={labels.numberPad}
+        onSelect={handleNumberSelect}
+      />
 
       {isComplete ? (
         <CompletionCard

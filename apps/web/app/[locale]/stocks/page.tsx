@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Text } from "@workspace/ui/components/text";
 import { Suspense } from "react";
 
 import type { StocksLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
-import { getTranslator } from "../../../messages/get-translator";
 import { getStocksTranslator } from "../../../messages/stocks/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
 import { StockDashboardSkeleton } from "./stock-dashboard-skeleton";
 import { getStockPageState } from "./stock-page-state";
+import { StocksScreen } from "./stocks-screen";
 
 interface StocksPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -35,10 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function StocksPage({ searchParams }: StocksPageProps) {
   const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
   const initialState = getStockPageState(resolvedSearchParams);
-  const [translate, translateCommon] = await Promise.all([
-    getStocksTranslator(locale),
-    getTranslator(locale),
-  ]);
+  const translate = await getStocksTranslator(locale);
   const localStorageDescription = translate(
     "Your watchlist is stored only in this browser and works without creating an account.",
   );
@@ -91,66 +83,17 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
   });
 
   return (
-    <PageShell>
+    <StocksScreen title={labels.title}>
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <PageHeader
-          title={labels.title}
-          description={labels.description}
-          eyebrow={
-            <span
-              className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm"
-              aria-hidden="true"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="size-5"
-              >
-                <path d="M3 17 9 11l4 4 8-9" />
-                <path d="M15 6h6v6" />
-              </svg>
-            </span>
-          }
+      <Suspense fallback={<StockDashboardSkeleton />}>
+        <StockDashboardLoader
+          initialSymbol={initialState.symbol}
+          initialTimeframe={initialState.timeframe}
+          query={initialState.query}
+          labels={labels}
+          locale={locale}
         />
-        <Suspense fallback={<StockDashboardSkeleton />}>
-          <StockDashboardLoader
-            initialSymbol={initialState.symbol}
-            initialTimeframe={initialState.timeframe}
-            query={initialState.query}
-            labels={labels}
-            locale={locale}
-          />
-        </Suspense>
-        <ToolDetails
-          title={translateCommon("About this tool")}
-          description={labels.description}
-          sections={[
-            {
-              title: translateCommon("How it works"),
-              description: labels.searchHelp,
-              items: [labels.search, labels.add, labels.share],
-            },
-            {
-              title: translateCommon("Live data"),
-              description: labels.attribution,
-              items: [labels.marketOpen, labels.preMarket, labels.afterHours],
-            },
-            {
-              title: translateCommon("Local storage"),
-              description: localStorageDescription,
-              items: [labels.watchlist, labels.remove, labels.emptyWatchlist],
-            },
-          ]}
-        />
-        <footer className="border-t py-8">
-          <Text size="xs" tone="muted">
-            {labels.attribution}
-          </Text>
-        </footer>
-      </PageContainer>
-    </PageShell>
+      </Suspense>
+    </StocksScreen>
   );
 }

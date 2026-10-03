@@ -8,7 +8,10 @@ export function MtaNavigationFrame({ children }: { children: ReactNode }) {
   const { state } = useMtaNavigation();
 
   return (
-    <div className="flex flex-col gap-10" aria-busy={state.isNavigating}>
+    <div
+      aria-busy={state.isNavigating}
+      className="flex flex-col pt-1 transition-opacity duration-200 aria-busy:opacity-60 motion-reduce:transition-none"
+    >
       {children}
     </div>
   );

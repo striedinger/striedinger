@@ -26,6 +26,9 @@ const routeColors: Readonly<Record<string, string>> = {
   S: "bg-[#808183]",
 };
 
+const darkTextRoutes = new Set(["N", "Q", "R", "W"]);
+
+/** An MTA line bullet in the line's official color. */
 export function TrainIcon({
   route,
   size = "default",
@@ -33,17 +36,14 @@ export function TrainIcon({
   route: string;
   size?: "default" | "small";
 }) {
-  const lightText = !["N", "Q", "R", "W"].includes(route);
   return (
     <span
-      className={`${size === "small" ? "size-6" : "size-8"} ${routeColors[route] ?? "bg-neutral-500"} inline-flex shrink-0 items-center justify-center rounded-full shadow-sm`}
+      className={`${size === "small" ? "size-[22px] text-[12px]" : "size-8 text-[16px]"} ${routeColors[route] ?? "bg-neutral-500"} inline-flex shrink-0 items-center justify-center rounded-full`}
     >
       <Text
         as="span"
         family="sans"
-        size={size === "small" ? "xs" : "sm"}
-        weight="bold"
-        className={lightText ? "text-white" : "text-black"}
+        className={`leading-none font-bold text-inherit ${darkTextRoutes.has(route) ? "text-black" : "text-white"}`}
       >
         {route}
       </Text>

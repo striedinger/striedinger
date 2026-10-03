@@ -1,39 +1,24 @@
-import { Skeleton } from "@workspace/ui/components/skeleton";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 
+const keys = Array.from({ length: 10 }, function createKey(_, index) {
+  return index;
+});
+
+/** Today's puzzle in placeholder form while it is chosen. */
 export function SudokuGameSkeleton() {
   return (
-    <div className="flex flex-col gap-5 sm:gap-8" aria-hidden="true">
-      <section className="flex flex-col gap-2 sm:gap-3">
-        <div className="flex min-h-8 items-center">
-          <Skeleton className="h-5 w-28" />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Skeleton className="h-10 rounded-lg" />
-          <Skeleton className="h-10 rounded-lg" />
-          <Skeleton className="h-10 rounded-lg" />
-        </div>
-      </section>
-      <div className="grid grid-cols-[1fr_auto_auto] items-end gap-4">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-10" />
-          <Skeleton className="h-5 w-36" />
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Skeleton className="h-4 w-10" />
-          <Skeleton className="h-7 w-16" />
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Skeleton className="h-4 w-10" />
-          <Skeleton className="h-7 w-12" />
-        </div>
+    <div className="flex flex-col gap-4 pb-4" aria-hidden="true">
+      <IosSkeleton className="-mt-2 h-5 w-40" />
+      <IosSkeleton className="h-9 rounded-[10px]" />
+      <div className="flex gap-3">
+        <IosSkeleton className="h-[74px] flex-1 rounded-[18px]" />
+        <IosSkeleton className="h-[74px] flex-1 rounded-[18px]" />
       </div>
-      <div className="mx-auto flex w-full max-w-[20rem] flex-col gap-4 sm:max-w-[36rem] sm:gap-5">
-        <Skeleton className="aspect-square w-full rounded-lg" />
-        <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
-          {Array.from({ length: 10 }, function renderNumber(_, index) {
-            return <Skeleton key={index} className="aspect-square rounded-lg" />;
-          })}
-        </div>
+      <IosSkeleton className="aspect-square w-full rounded-[22px]" />
+      <div className="grid grid-cols-5 gap-2">
+        {keys.map(function renderKey(key) {
+          return <IosSkeleton key={key} className="h-14 rounded-[14px]" />;
+        })}
       </div>
     </div>
   );

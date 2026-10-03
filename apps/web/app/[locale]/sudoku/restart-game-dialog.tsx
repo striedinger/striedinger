@@ -1,16 +1,9 @@
 "use client";
 
 import { RefreshIcon } from "@workspace/icons/refresh-icon";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@workspace/ui/components/alert-dialog";
-import { Button } from "@workspace/ui/components/button";
-import { Text } from "@workspace/ui/components/text";
+import { useState } from "react";
+
+import { IosAlert } from "../../../components/ios/ios-alert";
 
 interface RestartGameDialogProps {
   cancelLabel: string;
@@ -21,6 +14,7 @@ interface RestartGameDialogProps {
   triggerLabel: string;
 }
 
+/** A restart button that asks for confirmation with an iOS alert. */
 export function RestartGameDialog({
   cancelLabel,
   confirmLabel,
@@ -29,47 +23,43 @@ export function RestartGameDialog({
   title,
   triggerLabel,
 }: RestartGameDialogProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <AlertDialog>
-      <AlertDialogTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label={triggerLabel}
-            className="shrink-0 transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96]"
-          />
-        }
+    <>
+      <button
+        type="button"
+        aria-label={triggerLabel}
+        className="flex w-14 shrink-0 items-center justify-center rounded-[18px] bg-(--ios-grouped-cell) text-(--ios-tint) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.94] active:bg-(--ios-grouped-cell-pressed) motion-safe:transition-transform [&_svg]:size-[22px]"
+        onClick={function openRestartAlert() {
+          setIsOpen(true);
+        }}
       >
         <RefreshIcon />
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <AlertDialogTitle render={<Text as="h2" size="2xl" weight="semibold" />}>
-              {title}
-            </AlertDialogTitle>
-            <AlertDialogDescription render={<Text tone="muted" className="leading-relaxed" />}>
-              {description}
-            </AlertDialogDescription>
-          </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <AlertDialogClose render={<Button type="button" variant="outline" />}>
-              <Text as="span" size="sm" weight="medium">
-                {cancelLabel}
-              </Text>
-            </AlertDialogClose>
-            <AlertDialogClose
-              render={<Button type="button" variant="destructive" onClick={onConfirm} />}
-            >
-              <Text as="span" size="sm" weight="medium" className="text-destructive-foreground">
-                {confirmLabel}
-              </Text>
-            </AlertDialogClose>
-          </div>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
+      </button>
+      <IosAlert
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        title={title}
+        message={description}
+        actions={[
+          {
+            label: cancelLabel,
+            role: "cancel",
+            onSelect: function cancelRestart() {
+              setIsOpen(false);
+            },
+          },
+          {
+            label: confirmLabel,
+            role: "destructive",
+            onSelect: function confirmRestart() {
+              setIsOpen(false);
+              onConfirm();
+            },
+          },
+        ]}
+      />
+    </>
   );
 }

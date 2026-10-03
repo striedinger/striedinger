@@ -1,13 +1,15 @@
 "use client";
 
-import { CloseIcon } from "@workspace/icons/close-icon";
-import { Input } from "@workspace/ui/components/input";
-import { Surface } from "@workspace/ui/components/surface";
+import { CircleXFillIcon } from "@workspace/icons/circle-x-fill-icon";
+import { SearchIcon } from "@workspace/icons/search-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
 
 import type { StockIdentity, StocksLabels, StockTimeframe } from "./types";
+
+import { iosGlassClassName, iosStrongGlassClassName } from "../../../components/ios/ios-glass";
 
 interface StockSearchProps {
   initialQuery: string;
@@ -125,19 +127,13 @@ export function StockSearch({
       <label htmlFor="stock-search" className="sr-only">
         {labels.search}
       </label>
-      <div className="relative">
-        <svg
+      <div className={cn("relative flex h-11 items-center rounded-full", iosGlassClassName)}>
+        <SearchIcon
           aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.8-3.8" />
-        </svg>
-        <Input
+          className="pointer-events-none absolute left-3.5 size-[18px] text-(--ios-secondary-label)"
+          strokeWidth={2.4}
+        />
+        <input
           id="stock-search"
           name="q"
           type="text"
@@ -147,13 +143,16 @@ export function StockSearch({
           enterKeyHint="search"
           value={query}
           autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           aria-autocomplete="list"
           aria-busy={isSearching}
           aria-controls="stock-suggestions"
           aria-expanded={showSuggestions}
           aria-activedescendant={activeIndex >= 0 ? `stock-suggestion-${activeIndex}` : undefined}
+          aria-describedby="stock-search-help"
           placeholder={labels.searchPlaceholder}
-          className="h-11 rounded-xl pr-18 pl-9"
+          className="size-full min-w-0 rounded-full bg-transparent pr-16 pl-10 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none placeholder:text-(--ios-secondary-label)"
           onFocus={function openSuggestions() {
             setIsOpen(true);
           }}
@@ -169,14 +168,14 @@ export function StockSearch({
         {isSearching ? (
           <span
             aria-hidden="true"
-            className="absolute top-1/2 right-10 size-3.5 -translate-y-1/2 animate-spin rounded-full border-2 border-muted-foreground border-r-transparent motion-reduce:animate-none"
+            className="absolute right-10 size-3.5 animate-spin rounded-full border-2 border-(--ios-secondary-label) border-r-transparent motion-reduce:animate-none"
           />
         ) : null}
         {query ? (
           <button
             type="button"
             aria-label={labels.close}
-            className="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            className="absolute right-2 flex size-7 items-center justify-center rounded-full text-(--ios-tertiary-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60 [&_svg]:size-[18px]"
             onClick={function clearSearch() {
               setQuery("");
               setIsOpen(false);
@@ -184,17 +183,22 @@ export function StockSearch({
               navigateToSearch("");
             }}
           >
-            <CloseIcon className="size-4" />
+            <CircleXFillIcon />
           </button>
         ) : null}
       </div>
+      <span id="stock-search-help" className="sr-only">
+        {labels.searchHelp}
+      </span>
 
       {showSuggestions ? (
-        <Surface
-          as="ul"
+        <div
           id="stock-suggestions"
           role="listbox"
-          className="absolute top-[calc(100%+0.5rem)] right-0 left-0 max-h-80 list-none overflow-y-auto p-1 shadow-raised"
+          className={cn(
+            "absolute top-[calc(100%+0.5rem)] right-0 left-0 max-h-80 overflow-y-auto rounded-[22px] p-1.5",
+            iosStrongGlassClassName,
+          )}
         >
           {searchResults.map(function renderSuggestion(stock, index) {
             const isAdded = watchlist.some(function hasSymbol(item) {
@@ -202,13 +206,13 @@ export function StockSearch({
             });
             const isHighlighted = index === activeIndex;
             return (
-              <li key={`${stock.symbol}-${stock.exchange}`} role="none">
+              <div key={`${stock.symbol}-${stock.exchange}`} role="none">
                 <button
                   id={`stock-suggestion-${index}`}
                   type="button"
                   role="option"
                   aria-selected={isHighlighted}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none aria-selected:bg-accent"
+                  className="flex w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2.5 text-left outline-none aria-selected:bg-(--ios-fill)"
                   onPointerEnter={function highlightSuggestion() {
                     setHighlightedIndex(index);
                   }}
@@ -217,25 +221,35 @@ export function StockSearch({
                   }}
                 >
                   <span className="min-w-0">
-                    <Text as="span" size="sm" weight="semibold">
+                    <Text
+                      as="span"
+                      className="block text-[17px] leading-[22px] font-semibold text-(--ios-label)"
+                    >
                       {stock.symbol}
                     </Text>
-                    <Text as="span" size="xs" tone="muted" numberOfLines={1} className="block">
+                    <Text
+                      as="span"
+                      numberOfLines={1}
+                      className="block text-[13px] leading-[18px] text-(--ios-secondary-label)"
+                    >
                       {stock.name} · {stock.exchange}
                     </Text>
                   </span>
-                  <Text as="span" size="xs" tone="muted">
+                  <Text
+                    as="span"
+                    className={cn(
+                      "shrink-0 text-[15px] font-semibold",
+                      isAdded ? "text-(--ios-secondary-label)" : "text-(--ios-tint)",
+                    )}
+                  >
                     {isAdded ? labels.added : labels.add}
                   </Text>
                 </button>
-              </li>
+              </div>
             );
           })}
-        </Surface>
+        </div>
       ) : null}
-      <Text size="xs" tone="muted" className="px-1 pt-2">
-        {labels.searchHelp}
-      </Text>
     </div>
   );
 }

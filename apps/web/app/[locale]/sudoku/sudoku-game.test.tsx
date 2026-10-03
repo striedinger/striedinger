@@ -57,7 +57,7 @@ describe("SudokuGame", function () {
     vi.useRealTimers();
   });
 
-  it("keeps the puzzle covered and timer stopped until the player starts", function () {
+  it("keeps the puzzle covered and timer stopped until the player starts", async function () {
     render(
       <SudokuGame
         labels={labels}
@@ -92,8 +92,12 @@ describe("SudokuGame", function () {
     expect(screen.getAllByText("50/100")).toHaveLength(2);
     expect(screen.getByText("Inputs: 2 · minimum: 1")).toBeInTheDocument();
 
+    // The restart alert loads on first use, which needs real timers to settle.
+    vi.useRealTimers();
     fireEvent.click(screen.getByRole("button", { name: labels.restart }));
-    expect(screen.getByRole("alertdialog", { name: labels.restartTitle })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("alertdialog", { name: labels.restartTitle }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: labels.restartConfirm }));
 
     expect(screen.getByRole("heading", { name: labels.startPrompt })).toBeInTheDocument();

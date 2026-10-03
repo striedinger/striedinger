@@ -68,15 +68,20 @@ export function MtaDashboard({
   return (
     <MtaNavigationProvider>
       <MtaNavigationFrame>
-        <MtaLocationControls initialSearchFailed={initialSearchFailed} labels={labels} />
-
-        <section className="flex flex-col gap-5" aria-labelledby="nearby-heading">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-            <div className="flex flex-col gap-1">
-              <Text as="h2" id="nearby-heading" size="2xl" weight="semibold">
+        <section aria-labelledby="nearby-heading" className="flex flex-col gap-4">
+          <div className="flex items-end justify-between gap-3 px-4">
+            <div className="flex min-w-0 flex-col">
+              <Text
+                as="h2"
+                id="nearby-heading"
+                className="text-[13px] leading-[18px] font-semibold tracking-[-0.08px] text-(--ios-secondary-label) uppercase"
+              >
                 {labels.nearbyStops}
               </Text>
-              <Text size="sm" tone="muted">
+              <Text
+                numberOfLines={1}
+                className="text-[20px] leading-[25px] font-semibold tracking-[0.38px] text-(--ios-label)"
+              >
                 {locationName}
               </Text>
             </div>
@@ -86,7 +91,6 @@ export function MtaDashboard({
               locale={locale}
             />
           </div>
-
           <TrainFilter
             coordinates={coordinates}
             labels={labels}
@@ -95,10 +99,19 @@ export function MtaDashboard({
             selectedRoute={selectedRoute}
           />
           {initialStations.length === 0 ? (
-            <Text tone="destructive">{labels.arrivalError}</Text>
+            <Text
+              role="alert"
+              className="mx-4 rounded-[18px] bg-(--ios-grouped-cell) px-4 py-3 text-[15px] leading-5 text-(--ios-red)"
+            >
+              {labels.arrivalError}
+            </Text>
           ) : null}
           <StationGrid labels={labels} locale={locale} stations={displayedStations} />
+          <Text className="px-8 text-[12px] leading-4 text-(--ios-secondary-label)">
+            {labels.attribution}
+          </Text>
         </section>
+        <MtaLocationControls initialSearchFailed={initialSearchFailed} labels={labels} />
       </MtaNavigationFrame>
     </MtaNavigationProvider>
   );
