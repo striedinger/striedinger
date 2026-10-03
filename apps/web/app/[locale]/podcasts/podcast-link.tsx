@@ -1,29 +1,32 @@
 "use client";
 
-import type { ComponentPropsWithRef, MouseEvent } from "react";
+import type { ComponentPropsWithRef } from "react";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef } from "react";
 
-type PodcastLinkProps = Omit<ComponentPropsWithRef<typeof Link>, "href" | "onClick"> & {
-  href: string;
-  onOpen: () => void;
-};
+import type { Podcast, PodcastQueueItem } from "./types";
+
+import { IosLink } from "../../../components/ios/ios-link";
+import { rememberEpisode, rememberPodcast } from "./podcast-catalog";
+import { getEpisodeHref, getShowHref } from "./podcast-route";
+
+type PodcastLinkProps = Omit<ComponentPropsWithRef<typeof IosLink>, "href"> &
+  ({ item: PodcastQueueItem; podcast?: never } | { item?: never; podcast: Podcast });
 
 type RouterPrefetchOptions = Parameters<ReturnType<typeof useRouter>["prefetch"]>[1];
 
 const fullPrefetch = { kind: "full" } as RouterPrefetchOptions;
 
 /**
- * A real link for show and episode destinations that hands ordinary clicks to the app so it
- * can animate the push and render the destination optimistically. Modified clicks still open
- * a new tab the way links normally do. The destination's live data starts loading as soon as
- * a finger touches down or a pointer hovers, so most pushes arrive with episodes ready.
+ * A link that pushes a show or episode screen. The destination renders its header right away
+ * from what the list already knows, and its episodes start loading as soon as a finger
+ * touches down or a pointer hovers, so most pushes arrive with content ready.
  */
-export function PodcastLink({ children, href, onOpen, ...props }: PodcastLinkProps) {
+export function PodcastLink({ item, onClick, podcast, ...props }: PodcastLinkProps) {
   const router = useRouter();
   const hasPrefetchedRef = useRef(false);
+  const href = item ? getEpisodeHref(item) : getShowHref(podcast.id);
 
   function prefetchDestination() {
     if (hasPrefetchedRef.current) return;
@@ -32,21 +35,17 @@ export function PodcastLink({ children, href, onOpen, ...props }: PodcastLinkPro
   }
 
   return (
-    <Link
-      scroll={false}
+    <IosLink
       {...props}
       href={href}
       onPointerEnter={prefetchDestination}
       onTouchStart={prefetchDestination}
       onFocus={prefetchDestination}
-      onClick={function openInApp(event: MouseEvent<HTMLAnchorElement>) {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)
-          return;
-        event.preventDefault();
-        onOpen();
+      onClick={function rememberDestination(event) {
+        if (item) rememberEpisode(item);
+        else rememberPodcast(podcast);
+        onClick?.(event);
       }}
-    >
-      {children}
-    </Link>
+    />
   );
 }

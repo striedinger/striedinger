@@ -9,23 +9,18 @@ import { PodcastLink } from "./podcast-link";
 import { useArtworkColor } from "./use-artwork-color";
 
 interface FeaturedPodcastCardProps {
-  href: string;
-  onOpen: (podcast: Podcast) => void;
   podcast: Podcast;
   priority: boolean;
 }
 
-export function FeaturedPodcastCard({ href, onOpen, podcast, priority }: FeaturedPodcastCardProps) {
+export function FeaturedPodcastCard({ podcast, priority }: FeaturedPodcastCardProps) {
   const artworkColor = useArtworkColor(podcast.artworkUrl);
   return (
     <li className="w-[min(86vw,420px)] shrink-0 snap-start">
       <PodcastLink
-        href={href}
+        podcast={podcast}
         className="group flex h-full items-center gap-4 overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-[0.98] motion-reduce:transition-none"
         style={artworkColor ? { backgroundColor: artworkColor } : undefined}
-        onOpen={function openFeatured() {
-          onOpen(podcast);
-        }}
       >
         <PodcastArtwork
           src={podcast.artworkUrl}

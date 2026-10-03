@@ -1,7 +1,7 @@
 "use client";
 
 import type { IosMenuAction, IosMenuTrigger } from "../../../components/ios/ios-menu";
-import type { PodcastMessages, PodcastQueueItem } from "./types";
+import type { PodcastQueueItem } from "./types";
 
 import { IosMenu } from "../../../components/ios/ios-menu";
 import { useEpisodeMenuSections } from "./use-episode-menu-sections";
@@ -9,9 +9,7 @@ import { useEpisodeMenuSections } from "./use-episode-menu-sections";
 interface EpisodeMenuProps {
   extraActions?: readonly IosMenuAction[];
   item: PodcastQueueItem;
-  messages: PodcastMessages;
-  onGoToShow?: (item: PodcastQueueItem) => void;
-  onShare: (item: PodcastQueueItem) => void;
+  showsGoToShow?: boolean;
   trigger: IosMenuTrigger;
 }
 

@@ -4,55 +4,39 @@ import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { Text } from "@workspace/ui/components/text";
 
 import type { IosMenuAction } from "../../../components/ios/ios-menu";
-import type { PodcastMessages, PodcastProgress, PodcastQueueItem } from "./types";
+import type { PodcastProgress, PodcastQueueItem } from "./types";
 
 import { IosContextMenu } from "../../../components/ios/ios-context-menu";
 import { IosMenu } from "../../../components/ios/ios-menu";
 import { EpisodePlayButton } from "./episode-play-button";
 import { formatEpisodeDate } from "./podcast-format";
 import { PodcastLink } from "./podcast-link";
+import { usePodcasts } from "./podcasts-context";
 import { useEpisodeMenuSections } from "./use-episode-menu-sections";
 
 interface EpisodeRowProps {
   extraActions?: readonly IosMenuAction[];
-  href: string;
   isCurrent: boolean;
   isPlayed: boolean;
   isPlaying: boolean;
   item: PodcastQueueItem;
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onGoToShow?: (item: PodcastQueueItem) => void;
-  onOpen: (item: PodcastQueueItem) => void;
-  onShare: (item: PodcastQueueItem) => void;
   progress: PodcastProgress | undefined;
+  showsGoToShow?: boolean;
   showsPodcastTitle?: boolean;
 }
 
 export function EpisodeRow({
   extraActions,
-  href,
   isCurrent,
   isPlayed,
   isPlaying,
   item,
-  locale,
-  messages,
-  now,
-  onGoToShow,
-  onOpen,
-  onShare,
   progress,
+  showsGoToShow,
   showsPodcastTitle = false,
 }: EpisodeRowProps) {
-  const menuSections = useEpisodeMenuSections({
-    extraActions,
-    item,
-    messages,
-    onGoToShow,
-    onShare,
-  });
+  const { locale, messages, now } = usePodcasts();
+  const menuSections = useEpisodeMenuSections({ extraActions, item, showsGoToShow });
 
   return (
     <li className="relative transition-colors duration-150 [contain-intrinsic-size:auto_180px] [content-visibility:auto] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) has-[a:active]:bg-(--ios-fill)/40 has-[a:hover]:bg-(--ios-fill)/20 motion-reduce:transition-none">
@@ -76,11 +60,8 @@ export function EpisodeRow({
           ) : null}
         </Text>
         <PodcastLink
-          href={href}
+          item={item}
           className="outline-none after:absolute after:inset-0 focus-visible:underline"
-          onOpen={function openEpisode() {
-            onOpen(item);
-          }}
         >
           <Text
             as="span"

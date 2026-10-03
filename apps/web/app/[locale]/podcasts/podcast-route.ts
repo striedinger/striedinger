@@ -1,27 +1,33 @@
-import type { PodcastTab } from "./types";
+import type { PodcastQueueItem, PodcastTab } from "./types";
 
 export type LibraryView = "shows" | "saved" | "recent";
 
+/** Where a Podcasts URL points, read from the segments below the Podcasts layout. */
 export interface PodcastRoute {
   episodeId: string | null;
-  followedIds: readonly string[];
   libraryView: LibraryView | null;
   podcastId: string | null;
-  query: string;
-  tab: PodcastTab;
+  /** The tab whose root or list the URL shows; null for shows and episodes, which any tab can push. */
+  tab: PodcastTab | null;
 }
 
-interface SearchParameterReader {
-  get(name: string): string | null;
-}
+export const libraryViews: readonly LibraryView[] = ["shows", "saved", "recent"];
 
-const podcastTabs = new Set<string>(["home", "new", "library", "search"]);
+const basePath = "/podcasts";
 const maximumFollowedIds = 20;
-const libraryViews = new Set<string>(["shows", "saved", "recent"]);
+const tabRoots: Record<Exclude<PodcastTab, "new">, string> = {
+  home: basePath,
+  library: `${basePath}/library`,
+  search: `${basePath}/search`,
+};
 
-function normalizePodcastId(value: string | null | undefined) {
+export function normalizePodcastId(value: string | null | undefined) {
   const normalizedValue = value?.trim() ?? "";
   return /^\d{1,20}$/.test(normalizedValue) ? normalizedValue : null;
+}
+
+export function isLibraryView(value: string | null | undefined): value is LibraryView {
+  return libraryViews.includes(value as LibraryView);
 }
 
 /** Sorted, de-duplicated show ids that identify the New tab's server-loaded episodes. */
@@ -38,51 +44,75 @@ export function normalizeSearchQuery(value: string | null | undefined) {
   return normalizedValue.length >= 2 ? normalizedValue : "";
 }
 
-export function parsePodcastRoute(parameters: SearchParameterReader): PodcastRoute {
-  const query = normalizeSearchQuery(parameters.get("q"));
-  const requestedTab = parameters.get("tab") ?? "";
-  const tab = podcastTabs.has(requestedTab)
-    ? (requestedTab as PodcastTab)
-    : query
-      ? "search"
-      : "home";
-  const podcastId = normalizePodcastId(parameters.get("podcast"));
-  const requestedView = parameters.get("view") ?? "";
-  return {
-    episodeId: podcastId ? normalizePodcastId(parameters.get("episode")) : null,
-    followedIds:
-      tab === "new" ? normalizeFollowedIds((parameters.get("shows") ?? "").split(",")) : [],
-    libraryView:
-      tab === "library" && libraryViews.has(requestedView) ? (requestedView as LibraryView) : null,
-    podcastId,
-    query: tab === "search" ? query : "",
-    tab,
-  };
+/** The first value of a search parameter as Next.js passes it to pages. */
+export function readSearchParameter(value: string | string[] | undefined) {
+  return (Array.isArray(value) ? value[0] : value) ?? null;
 }
 
-export function createPodcastHref(pathname: string, route: PodcastRoute) {
-  const parameters = new URLSearchParams();
-  if (route.tab !== "home") parameters.set("tab", route.tab);
-  if (route.query) parameters.set("q", route.query);
-  if (route.libraryView) parameters.set("view", route.libraryView);
-  if (route.tab === "new" && route.followedIds.length > 0) {
-    parameters.set("shows", route.followedIds.join(","));
+export function getTabHref(tab: Exclude<PodcastTab, "new">) {
+  return tabRoots[tab];
+}
+
+/** The New tab for a set of followed shows, whose latest episodes load on the server. */
+export function getNewEpisodesHref(followedIds: readonly string[]) {
+  const ids = normalizeFollowedIds(followedIds);
+  return ids.length > 0 ? `${basePath}/new?shows=${ids.join(",")}` : `${basePath}/new`;
+}
+
+export function getLibraryViewHref(view: LibraryView) {
+  return `${tabRoots.library}/${view}`;
+}
+
+export function getSearchHref(query: string) {
+  const normalizedQuery = normalizeSearchQuery(query);
+  return normalizedQuery
+    ? `${tabRoots.search}?${new URLSearchParams({ q: normalizedQuery })}`
+    : tabRoots.search;
+}
+
+export function getShowHref(podcastId: string) {
+  return `${basePath}/show/${podcastId}`;
+}
+
+export function getEpisodeHref(item: PodcastQueueItem) {
+  return `${getShowHref(item.podcast.id)}/episode/${item.episode.id}`;
+}
+
+/** Parses the active segments below the Podcasts layout, as `useSelectedLayoutSegments` returns them. */
+export function parsePodcastSegments(segments: readonly string[]): PodcastRoute {
+  const [first, second, third, fourth] = segments;
+  const route: PodcastRoute = { episodeId: null, libraryView: null, podcastId: null, tab: null };
+  if (first === undefined) return { ...route, tab: "home" };
+  if (first === "new" || first === "search") return { ...route, tab: first };
+  if (first === "library") {
+    return { ...route, libraryView: isLibraryView(second) ? second : null, tab: "library" };
   }
-  if (route.podcastId) parameters.set("podcast", route.podcastId);
-  if (route.podcastId && route.episodeId) parameters.set("episode", route.episodeId);
-  const search = parameters.toString();
-  return search ? `${pathname}?${search}` : pathname;
+  if (first === "show") {
+    const podcastId = normalizePodcastId(second);
+    return {
+      ...route,
+      episodeId: podcastId && third === "episode" ? normalizePodcastId(fourth) : null,
+      podcastId,
+    };
+  }
+  return route;
 }
 
-/** How many screens are pushed above the tab's root, which orders back and forward moves. */
-export function getPodcastRouteDepth(route: PodcastRoute) {
-  return (
-    Number(route.libraryView !== null) +
-    Number(route.podcastId !== null) +
-    Number(route.episodeId !== null)
-  );
+/** The segments below `/podcasts` in a pathname, with or without a locale prefix. */
+function readPodcastSegments(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  return segments.slice(segments.indexOf("podcasts") + 1);
 }
 
-export function createTabRoute(tab: PodcastTab): PodcastRoute {
-  return { episodeId: null, followedIds: [], libraryView: null, podcastId: null, query: "", tab };
+/** How many screens a pathname sits above its tab's root, which orders history moves. */
+export function getPodcastPathDepth(pathname: string) {
+  const route = parsePodcastSegments(readPodcastSegments(pathname));
+  if (route.episodeId) return 3;
+  if (route.podcastId) return 2;
+  return route.libraryView ? 1 : 0;
+}
+
+/** The tab a pathname belongs to; shows and episodes belong to whichever tab pushed them. */
+export function getPodcastPathScope(pathname: string) {
+  return parsePodcastSegments(readPodcastSegments(pathname)).tab;
 }

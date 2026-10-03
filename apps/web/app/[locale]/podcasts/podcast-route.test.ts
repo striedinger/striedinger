@@ -1,52 +1,62 @@
 import { describe, expect, it } from "vitest";
 
-import { createPodcastHref, parsePodcastRoute } from "./podcast-route";
+import {
+  getEpisodeHref,
+  getNewEpisodesHref,
+  getPodcastPathDepth,
+  getPodcastPathScope,
+  getSearchHref,
+  parsePodcastSegments,
+} from "./podcast-route";
+
+const podcast = {
+  artworkUrl: "",
+  author: "",
+  genre: "",
+  id: "42",
+  title: "Show",
+  url: "",
+};
+const episode = {
+  audioUrl: "",
+  description: "",
+  durationMilliseconds: 0,
+  id: "1000",
+  publishedAt: "",
+  title: "Episode",
+};
 
 describe("podcast routes", function () {
-  it("opens the search tab for shared search links and drops unsafe identifiers", function () {
-    const route = parsePodcastRoute(
-      new URLSearchParams("q=%20true%20%20crime%20&podcast=12a&episode=9"),
-    );
+  it("round-trips episode destinations and drops unsafe identifiers", function () {
+    const href = getEpisodeHref({ podcast, episode });
 
-    expect(route).toEqual({
-      episodeId: null,
-      followedIds: [],
-      libraryView: null,
-      podcastId: null,
-      query: "true crime",
-      tab: "search",
-    });
-  });
-
-  it("keeps library views only on the library tab", function () {
-    expect(parsePodcastRoute(new URLSearchParams("tab=library&view=saved")).libraryView).toBe(
-      "saved",
-    );
-    expect(parsePodcastRoute(new URLSearchParams("tab=home&view=saved")).libraryView).toBeNull();
-  });
-
-  it("round-trips show and episode destinations", function () {
-    const href = createPodcastHref("/es/podcasts", {
+    expect(href).toBe("/podcasts/show/42/episode/1000");
+    expect(parsePodcastSegments(href.split("/").slice(2))).toEqual({
       episodeId: "1000",
-      followedIds: [],
       libraryView: null,
       podcastId: "42",
-      query: "",
-      tab: "library",
+      tab: null,
     });
-
-    expect(href).toBe("/es/podcasts?tab=library&podcast=42&episode=1000");
-    expect(parsePodcastRoute(new URL(href, "https://example.com").searchParams)).toMatchObject({
-      episodeId: "1000",
-      podcastId: "42",
-      tab: "library",
-    });
+    expect(parsePodcastSegments(["show", "12a", "episode", "9"]).podcastId).toBeNull();
   });
 
-  it("identifies New tab episodes by a stable list of followed shows", function () {
-    const route = parsePodcastRoute(new URLSearchParams("tab=new&shows=30,10,abc,10"));
+  it("keeps only known library views", function () {
+    expect(parsePodcastSegments(["library", "saved"]).libraryView).toBe("saved");
+    expect(parsePodcastSegments(["library", "other"]).libraryView).toBeNull();
+  });
 
-    expect(route.followedIds).toEqual(["10", "30"]);
-    expect(createPodcastHref("/podcasts", route)).toBe("/podcasts?tab=new&shows=10%2C30");
+  it("normalizes search and New tab links", function () {
+    expect(getSearchHref("  true   crime ")).toBe("/podcasts/search?q=true+crime");
+    expect(getSearchHref("a")).toBe("/podcasts/search");
+    expect(getNewEpisodesHref(["30", "10", "abc", "10"])).toBe("/podcasts/new?shows=10,30");
+  });
+
+  it("orders screens for history moves, with or without a locale prefix", function () {
+    expect(getPodcastPathDepth("/es/podcasts")).toBe(0);
+    expect(getPodcastPathDepth("/podcasts/library/saved")).toBe(1);
+    expect(getPodcastPathDepth("/podcasts/show/42")).toBe(2);
+    expect(getPodcastPathDepth("/podcasts/show/42/episode/1")).toBe(3);
+    expect(getPodcastPathScope("/podcasts/search")).toBe("search");
+    expect(getPodcastPathScope("/podcasts/show/42")).toBeNull();
   });
 });

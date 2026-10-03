@@ -1,46 +1,46 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 
-import { Suspense } from "react";
-
-import { IosAppFrame } from "../../../components/ios/ios-app-frame";
-import { createPageMetadata } from "../../../lib/seo";
-import { getPodcastTranslator } from "../../../messages/podcasts/get-translator";
+import { JsonLd } from "../../../components/json-ld";
+import { createWebApplicationStructuredData } from "../../../lib/seo";
+import { loadPodcastMessages } from "../../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../../get-request-locale";
-import { podcastsFrameClassName } from "./podcasts-frame";
-import { PodcastsLoader } from "./podcasts-loader";
-import { PodcastsSkeleton } from "./podcasts-skeleton";
-
-export const viewport: Viewport = {
-  viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
-};
+import { loadPopularPodcasts } from "./podcasts-data";
+import { PodcastsHomeScreen } from "./podcasts-home-screen";
+import { createPodcastsMetadata } from "./podcasts-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
+  return createPodcastsMetadata({ locale: await getRequestLocale(), path: "/podcasts" });
+}
+
+export default async function PodcastsHomePage() {
   const locale = await getRequestLocale();
-  const translate = await getPodcastTranslator(locale);
-  return createPageMetadata({
-    title: translate("Podcasts"),
-    description: translate(
-      "Discover shows, follow your favorites, and listen with a familiar player. Your library stays on this device.",
-    ),
+  const [messages, popular] = await Promise.all([
+    loadPodcastMessages(locale),
+    loadPopularPodcasts(),
+  ]);
+  const structuredData = createWebApplicationStructuredData({
+    name: messages.Podcasts,
+    description:
+      messages[
+        "Discover shows, follow your favorites, and listen with a familiar player. Your library stays on this device."
+      ],
+    applicationCategory: "MultimediaApplication",
+    browserRequirements: "Requires JavaScript",
+    featureList: [
+      messages["Top Shows"],
+      messages.Search,
+      messages.Library,
+      messages["Up Next"],
+      messages["Sleep Timer"],
+    ],
     locale,
     path: "/podcasts",
   });
-}
 
-interface PodcastsPageProps {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export default function PodcastsPage({ searchParams }: PodcastsPageProps) {
   return (
-    <IosAppFrame className={podcastsFrameClassName}>
-      <Suspense fallback={<PodcastsSkeleton />}>
-        <PodcastsLoader searchParams={searchParams} />
-      </Suspense>
-    </IosAppFrame>
+    <>
+      <JsonLd value={structuredData} />
+      <PodcastsHomeScreen popular={popular} />
+    </>
   );
 }

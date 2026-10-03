@@ -6,6 +6,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useState } from "react";
 
 import { IosPortalContainerContext } from "./ios-portal-container";
+import { useKeyboardInset } from "./use-keyboard-inset";
 import "./ios-view-transitions.css";
 
 // Apple's iOS system colors for the light and dark appearances. Native replicas use these
@@ -42,6 +43,7 @@ type IosAppFrameProps = Omit<ComponentPropsWithRef<"main">, "ref">;
 
 export function IosAppFrame({ children, className, ...props }: IosAppFrameProps) {
   const [frameElement, setFrameElement] = useState<HTMLElement | null>(null);
+  useKeyboardInset(frameElement);
 
   // Native apps do not rubber-band the whole window or zoom on double tap; only their own
   // scroll views bounce.

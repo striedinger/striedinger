@@ -15,7 +15,8 @@ import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { IosSearchField } from "../../../components/ios/ios-search-field";
 
 interface PodcastsTabBarProps {
-  activeTab: PodcastTab;
+  /** The selected tab, or null while the server cannot tell which tab owns the screen. */
+  activeTab: PodcastTab | null;
   hasAccessory: boolean;
   isMinimized: boolean;
   messages: PodcastMessages;
@@ -53,7 +54,7 @@ export function PodcastsTabBar({
     return tab.id === previousTab;
   });
   const tabButtonClassName =
-    "flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] leading-3 font-semibold tracking-[0.1px] text-(--ios-label) outline-none select-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-(--ios-tint) aria-[current=page]:bg-(--ios-glass-lens) aria-[current=page]:text-(--ios-tint) md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-[17px] md:leading-[22px] md:font-normal md:tracking-[-0.43px] md:aria-[current=page]:bg-(--ios-tint) md:aria-[current=page]:text-white dark:md:aria-[current=page]:text-black motion-reduce:transition-none [&_svg]:size-[24px] md:[&_svg]:size-[21px]";
+    "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 text-[10px] leading-3 font-semibold tracking-[0.1px] text-(--ios-label) outline-none select-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-(--ios-tint) aria-[current=page]:bg-(--ios-glass-lens) aria-[current=page]:text-(--ios-tint) md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-[17px] md:leading-[22px] md:font-normal md:tracking-[-0.43px] md:aria-[current=page]:bg-(--ios-tint) md:aria-[current=page]:text-white dark:md:aria-[current=page]:text-black motion-reduce:transition-none [&_svg]:size-[24px] md:[&_svg]:size-[21px]";
 
   return (
     <nav
@@ -106,7 +107,7 @@ export function PodcastsTabBar({
       />
       <ul
         className={cn(
-          "m-0 h-[62px] min-w-0 flex-1 list-none gap-0.5 rounded-full p-1 md:flex md:h-auto md:flex-none md:flex-col md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none",
+          "m-0 h-[62px] min-w-0 flex-1 list-none gap-0.5 rounded-full p-1.5 md:flex md:h-auto md:flex-none md:flex-col md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none",
           iosGlassClassName,
           isSearching ? "hidden" : "flex",
           isMinimized && "max-md:flex-none",
@@ -120,7 +121,7 @@ export function PodcastsTabBar({
               className={cn(
                 "flex min-w-0 flex-1 md:flex-none",
                 isHiddenWhileMinimized && "max-md:hidden",
-                isMinimized && !isHiddenWhileMinimized && "max-md:w-[54px] max-md:flex-none",
+                isMinimized && !isHiddenWhileMinimized && "max-md:w-[50px] max-md:flex-none",
               )}
             >
               <button

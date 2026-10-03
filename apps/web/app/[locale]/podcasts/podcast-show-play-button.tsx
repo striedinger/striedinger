@@ -11,7 +11,7 @@ import { playEpisode } from "./podcast-player-store";
 interface PodcastShowPlayButtonProps {
   messages: PodcastMessages;
   podcast: Podcast;
-  /** The streamed show, or null while it has not been requested yet. */
+  /** The streamed show, or null while its episodes are loading. */
   show: Promise<PodcastShow | null> | null;
 }
 

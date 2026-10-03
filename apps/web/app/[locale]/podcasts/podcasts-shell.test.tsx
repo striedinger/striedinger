@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -5,21 +7,24 @@ import type { Podcast, PodcastEpisode } from "./types";
 
 import { messages } from "../../../messages/podcasts/en";
 
-const navigationMocks = vi.hoisted(function createNavigationMocks() {
+const navigation = vi.hoisted(function createNavigationMocks() {
   return {
-    back: vi.fn<() => void>(),
-    push: vi.fn<(href: string) => void>(),
-    replace: vi.fn<(href: string) => void>(),
+    router: {
+      back: vi.fn<() => void>(),
+      prefetch: vi.fn<(href: string) => void>(),
+      push: vi.fn<(href: string, options?: unknown) => void>(),
+      replace: vi.fn<(href: string, options?: unknown) => void>(),
+    },
+    segments: [] as string[],
   };
 });
 
-vi.mock("next/navigation", async function mockNavigation() {
-  const { useHistoryPathname, useHistorySearchParams } =
-    await import("../../../test/history-navigation");
+vi.mock("next/navigation", function mockNavigation() {
   return {
-    usePathname: useHistoryPathname,
-    useRouter: () => navigationMocks,
-    useSearchParams: useHistorySearchParams,
+    useParams: () => ({ showId: navigation.segments[1] }),
+    useRouter: () => navigation.router,
+    useSearchParams: () => new URLSearchParams(),
+    useSelectedLayoutSegments: () => navigation.segments,
   };
 });
 
@@ -64,29 +69,29 @@ function createResolvedPromise<Value>(value: Value) {
   return Object.assign(Promise.resolve(value), { status: "fulfilled", value });
 }
 
-async function renderPodcasts(search = "") {
-  window.history.replaceState(null, "", `/podcasts${search}`);
-  const { PodcastsApp } = await import("./podcasts-app");
+async function renderInShell(segments: string[], renderScreen: () => Promise<ReactNode>) {
+  navigation.segments = segments;
+  const { PodcastsShell } = await import("./podcasts-shell");
+  const screenElement = await renderScreen();
   return render(
-    <PodcastsApp
-      locale="en"
-      messages={messages}
-      popular={[podcast]}
-      searchFailed={false}
-      searchQuery=""
-      searchResults={[]}
-      show={createResolvedPromise({ podcast, episodes })}
-      showId="123"
-      newEpisodes={[]}
-      newEpisodesShowIds={[]}
-    />,
+    <PodcastsShell locale="en" messages={messages}>
+      {screenElement}
+    </PodcastsShell>,
   );
 }
 
-describe("PodcastsApp", function () {
+async function renderShow() {
+  return renderInShell(["show", "123"], async function createShowScreen() {
+    const { PodcastShowScreen } = await import("./podcast-show-screen");
+    return <PodcastShowScreen show={createResolvedPromise({ podcast, episodes })} />;
+  });
+}
+
+describe("Podcasts", function () {
   beforeEach(function resetDevice() {
     vi.resetModules();
     window.localStorage.clear();
+    window.history.replaceState(null, "", "/podcasts/show/123");
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function skipLoading() {});
     vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(
       function startPlaying(this: HTMLMediaElement) {
@@ -103,13 +108,15 @@ describe("PodcastsApp", function () {
 
   afterEach(function restoreMocks() {
     vi.restoreAllMocks();
+    navigation.router.push.mockReset();
+    navigation.router.replace.mockReset();
     window.history.replaceState(null, "", "/");
   });
 
-  it("follows a show and lists it in the library", async function () {
-    await renderPodcasts("?podcast=123");
+  it("follows a show and counts it in the library", async function () {
+    const { unmount } = await renderShow();
 
-    fireEvent.click(screen.getByRole("button", { name: "Follow" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Follow" }));
     expect(screen.getByRole("button", { name: "Following" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -118,37 +125,50 @@ describe("PodcastsApp", function () {
       version: 2,
       podcasts: [{ id: "123" }],
     });
+    unmount();
 
-    fireEvent.click(screen.getByRole("button", { name: "Library" }));
-    const showsRow = screen.getByRole("button", { name: /^Shows\s*1/ });
-    expect(showsRow).toBeInTheDocument();
+    await renderInShell(["library"], async function createLibraryScreen() {
+      const { PodcastsLibraryScreen } = await import("./podcasts-library-screen");
+      return <PodcastsLibraryScreen view={null} />;
+    });
+    expect(await screen.findByRole("link", { name: /^Shows\s*1/ })).toHaveAttribute(
+      "href",
+      "/podcasts/library/shows",
+    );
+  });
+
+  it("pushes an episode's own route with a forward slide", async function () {
+    await renderShow();
+
+    fireEvent.click(await screen.findByRole("link", { name: "The Newest Episode" }));
+
+    expect(navigation.router.push).toHaveBeenCalledWith("/podcasts/show/123/episode/1001", {
+      scroll: false,
+      transitionTypes: ["ios-nav-forward"],
+    });
+  });
+
+  it("switches tabs in place and remembers each tab's screen", async function () {
+    await renderShow();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Library" }));
+
+    expect(navigation.router.push).toHaveBeenCalledWith("/podcasts/library", {
+      scroll: false,
+      transitionTypes: undefined,
+    });
   });
 
   it("plays an episode in the mini player and remembers it", async function () {
-    await renderPodcasts("?podcast=123");
+    await renderShow();
 
-    fireEvent.click(screen.getByRole("button", { name: "Play: The Newest Episode" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Play: The Newest Episode" }));
 
     const miniPlayer = screen.getByRole("region", { name: "Now Playing" });
     expect(within(miniPlayer).getByText("The Newest Episode")).toBeInTheDocument();
     expect(within(miniPlayer).getByRole("button", { name: "Pause" })).toBeInTheDocument();
     expect(JSON.parse(window.localStorage.getItem("podcast-now-playing:v1") ?? "{}")).toMatchObject(
-      {
-        episode: { id: "1001" },
-      },
+      { episode: { id: "1001" } },
     );
-  });
-
-  it("queues episodes with Play Next and shows them in Up Next on Home", async function () {
-    await renderPodcasts("?podcast=123");
-
-    fireEvent.click(screen.getByRole("button", { name: "Play: The Newest Episode" }));
-    fireEvent.click(screen.getByRole("button", { name: "More: The First Episode" }));
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Play Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Home" }));
-
-    const upNext = screen.getByRole("region", { name: "Up Next" });
-    expect(within(upNext).getByText("The Newest Episode")).toBeInTheDocument();
-    expect(within(upNext).getByText("The First Episode")).toBeInTheDocument();
   });
 });

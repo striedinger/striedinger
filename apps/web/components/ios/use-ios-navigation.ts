@@ -1,7 +1,9 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
+  // Next.js runs this with React canary; stable React used by unit tests has no transition types.
+  addTransitionType,
   startTransition,
   useEffect,
   useEffectEvent,
@@ -10,10 +12,11 @@ import {
   useState,
 } from "react";
 
-import { addIosNavigationType, type IosNavigationDirection } from "./ios-navigation-transition";
+import { iosNavigationTypes, type IosNavigationDirection } from "./ios-navigation-transition";
 
-interface RouteParameters {
-  get(name: string): string | null;
+interface RouteLocation {
+  pathname: string;
+  searchParams: URLSearchParams;
 }
 
 interface IosNavigationOptions<Route> {
@@ -21,7 +24,7 @@ interface IosNavigationOptions<Route> {
   createHref: (route: Route) => string;
   /** How many screens a route sits above its root, which orders back and forward moves. */
   getDepth: (route: Route) => number;
-  parseRoute: (parameters: RouteParameters) => Route;
+  parseRoute: (location: RouteLocation) => Route;
   /** Whether screens currently slide, for layouts that only stack screens on phones. */
   shouldAnimate?: () => boolean;
 }
@@ -51,11 +54,18 @@ function alwaysAnimate() {
   return true;
 }
 
+function addIosNavigationType(direction: IosNavigationDirection) {
+  addTransitionType?.(iosNavigationTypes[direction]);
+}
+
 /**
- * Screen navigation for the native app replicas. The current route lives in React state and
- * changes inside transitions tagged with a direction, so `IosScreenTransition` boundaries
- * push and pop immediately; the URL follows after each change so screens stay shareable and
- * the browser's back and forward buttons keep working.
+ * Screen navigation for native app replicas whose content lives only in the browser, such as
+ * Notes. Each screen has a real route, so links and reloads open it directly, but moving
+ * between screens never waits on the server: the current route lives in React state and
+ * changes inside transitions tagged with a direction, so `IosScreenTransition` boundaries push
+ * and pop immediately, and the URL follows after each change through the History API, which
+ * Next.js keeps `usePathname` in sync with. Apps that load each screen's data on the server
+ * use `IosNavigationProvider` and router navigations instead.
  */
 export function useIosNavigation<Route>({
   createHref,
@@ -63,9 +73,10 @@ export function useIosNavigation<Route>({
   parseRoute,
   shouldAnimate = alwaysAnimate,
 }: IosNavigationOptions<Route>) {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [navigation, setNavigation] = useState<NavigationState<Route>>(function readInitialRoute() {
-    return { history: "none", route: parseRoute(searchParams) };
+    return { history: "none", route: parseRoute({ pathname, searchParams }) };
   });
   const currentRouteRef = useRef(navigation.route);
   // How many entries the app pushed below the current one. Loading data through the router
@@ -105,7 +116,10 @@ export function useIosNavigation<Route>({
   useEffect(function followHistoryTraversal() {
     let pendingTimeout = 0;
     function showHistoryEntry(event: PopStateEvent) {
-      const route = readRoute(new URLSearchParams(window.location.search));
+      const route = readRoute({
+        pathname: window.location.pathname,
+        searchParams: new URLSearchParams(window.location.search),
+      });
       const isPop = readDepth(route) < readDepth(currentRouteRef.current);
       const shouldSlide = !event.hasUAVisualTransition && readShouldAnimate();
       historyDepthRef.current =

@@ -6,9 +6,11 @@ import { PauseFillIcon } from "@workspace/icons/pause-fill-icon";
 import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { Text } from "@workspace/ui/components/text";
 
-import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
+import type { PodcastQueueItem } from "./types";
 
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
+import { useIosRouter } from "../../../components/ios/ios-navigation-context";
+import { IosScreen } from "../../../components/ios/ios-screen";
 import { EpisodeMenu } from "./episode-menu";
 import { formatEpisodeDate, formatListeningDuration } from "./podcast-format";
 import { PodcastHero } from "./podcast-hero";
@@ -16,28 +18,17 @@ import { usePodcastLibrary } from "./podcast-library-store";
 import { PodcastLink } from "./podcast-link";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
 import { playEpisode, togglePlayback, usePodcastPlayer } from "./podcast-player-store";
+import { getShowHref } from "./podcast-route";
+import { usePodcasts } from "./podcasts-context";
+import { podcastsScreenClassName } from "./podcasts-screen";
 
-export interface PodcastEpisodePageProps {
+interface PodcastEpisodePageProps {
   item: PodcastQueueItem;
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onBack: () => void;
-  onGoToShow: (item: PodcastQueueItem) => void;
-  onShare: (item: PodcastQueueItem) => void;
-  getShowHref: (podcast: Podcast) => string;
 }
 
-export function PodcastEpisodePage({
-  item,
-  locale,
-  messages,
-  now,
-  onBack,
-  onGoToShow,
-  onShare,
-  getShowHref,
-}: PodcastEpisodePageProps) {
+export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
+  const { locale, messages, now } = usePodcasts();
+  const iosRouter = useIosRouter();
   const library = usePodcastLibrary();
   const player = usePodcastPlayer();
   const isCurrent = player.current?.episode.id === item.episode.id;
@@ -58,14 +49,16 @@ export function PodcastEpisodePage({
         : "";
 
   return (
-    <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain pb-40">
+    <IosScreen className={podcastsScreenClassName}>
       <IosNavigationBar
         title={item.episode.title}
         titleDisplay="scroll-edge"
         leading={
           <PodcastPageBarButton
             aria-label={`${messages.Back}: ${item.podcast.title}`}
-            onClick={onBack}
+            onClick={function goBack() {
+              iosRouter.back(getShowHref(item.podcast.id));
+            }}
           >
             <ChevronLeftIcon strokeWidth={2.8} />
           </PodcastPageBarButton>
@@ -73,9 +66,6 @@ export function PodcastEpisodePage({
         trailing={
           <EpisodeMenu
             item={item}
-            messages={messages}
-            onGoToShow={onGoToShow}
-            onShare={onShare}
             trigger={
               <PodcastPageBarButton aria-label={messages.More}>
                 <EllipsisIcon />
@@ -96,11 +86,8 @@ export function PodcastEpisodePage({
                 {item.episode.title}
               </Text>
               <PodcastLink
-                href={getShowHref(item.podcast)}
+                podcast={item.podcast}
                 className="text-[17px] leading-[22px] text-white/75 underline-offset-2 outline-none hover:underline focus-visible:underline"
-                onOpen={function openShow() {
-                  onGoToShow(item);
-                }}
               >
                 {item.podcast.title}
               </PodcastLink>
@@ -131,6 +118,6 @@ export function PodcastEpisodePage({
           {item.episode.description || messages["This episode is no longer available."]}
         </Text>
       </div>
-    </div>
+    </IosScreen>
   );
 }

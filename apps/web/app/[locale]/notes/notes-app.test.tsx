@@ -5,8 +5,9 @@ import { messages } from "../../../messages/notes/en";
 import { NotesApp } from "./notes-app";
 
 vi.mock("next/navigation", async function mockNavigation() {
-  const { useHistorySearchParams } = await import("../../../test/history-navigation");
-  return { useSearchParams: useHistorySearchParams };
+  const { useHistoryPathname, useHistorySearchParams } =
+    await import("../../../test/history-navigation");
+  return { usePathname: useHistoryPathname, useSearchParams: useHistorySearchParams };
 });
 
 const welcomeNoteHtml = "<h1>Welcome to Notes</h1><p>Start writing</p>";
@@ -31,7 +32,7 @@ describe("NotesApp", function () {
     const notesFolder = await screen.findByRole("button", { name: /^Notes\s*1$/ });
     fireEvent.click(notesFolder);
 
-    expect(window.location.search).toBe("?folder=notes");
+    expect(window.location.pathname).toBe("/notes/notes");
     expect(await screen.findByRole("button", { name: /Welcome to Notes/ })).toBeInTheDocument();
   });
 

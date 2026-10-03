@@ -6,50 +6,33 @@ import { GoBackwardIcon } from "@workspace/icons/go-backward-icon";
 import { SquareStackFillIcon } from "@workspace/icons/square-stack-fill-icon";
 import { Text } from "@workspace/ui/components/text";
 
-import type { LibraryView } from "./podcast-route";
-import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
+import type { PodcastQueueItem } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosListRow } from "../../../components/ios/ios-list-row";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
+import { useIosRouter } from "../../../components/ios/ios-navigation-context";
+import { IosScreen } from "../../../components/ios/ios-screen";
+import { useIsHydrated } from "../../../components/use-is-hydrated";
 import { EpisodeList } from "./episode-list";
+import { EpisodeListSkeleton } from "./episode-list-skeleton";
 import { clearEpisodeProgress, usePodcastLibrary } from "./podcast-library-store";
+import { getLibraryViewHref, getTabHref, type LibraryView } from "./podcast-route";
 import { PodcastTile } from "./podcast-tile";
+import { usePodcasts } from "./podcasts-context";
+import { podcastsScreenClassName } from "./podcasts-screen";
 
-interface PodcastsLibraryTabProps {
-  onShareShow: (podcast: Podcast) => void;
-  getEpisodeHref: (item: PodcastQueueItem) => string;
-  getShowHref: (podcast: Podcast) => string;
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onBack: () => void;
-  onGoToShow: (item: PodcastQueueItem) => void;
-  onOpenEpisode: (item: PodcastQueueItem) => void;
-  onOpenShow: (podcast: Podcast) => void;
-  onOpenView: (view: LibraryView) => void;
-  onShare: (item: PodcastQueueItem) => void;
+interface PodcastsLibraryScreenProps {
   view: LibraryView | null;
 }
 
 const gridSizes = "(min-width: 1280px) 200px, (min-width: 768px) 25vw, 45vw";
 
-export function PodcastsLibraryTab({
-  getEpisodeHref,
-  getShowHref,
-  locale,
-  messages,
-  now,
-  onBack,
-  onGoToShow,
-  onOpenEpisode,
-  onOpenShow,
-  onOpenView,
-  onShare,
-  view,
-  onShareShow,
-}: PodcastsLibraryTabProps) {
+export function PodcastsLibraryScreen({ view }: PodcastsLibraryScreenProps) {
+  const { messages } = usePodcasts();
+  const iosRouter = useIosRouter();
+  const isHydrated = useIsHydrated();
   const library = usePodcastLibrary();
   const recentItems: PodcastQueueItem[] = library.progress.map(function createItem(item) {
     return { podcast: item.podcast, episode: item.episode };
@@ -67,14 +50,7 @@ export function PodcastsLibraryTab({
       {library.followed.map(function renderShow(podcast) {
         return (
           <li key={podcast.id} className="min-w-0">
-            <PodcastTile
-              messages={messages}
-              onShare={onShareShow}
-              podcast={podcast}
-              href={getShowHref(podcast)}
-              sizes={gridSizes}
-              onOpen={onOpenShow}
-            />
+            <PodcastTile podcast={podcast} sizes={gridSizes} />
           </li>
         );
       })}
@@ -82,22 +58,27 @@ export function PodcastsLibraryTab({
   );
 
   return (
-    <div
-      data-ios-scroll
-      className="flex h-full flex-col overflow-y-auto overscroll-contain pb-44 md:pb-32"
-    >
+    <IosScreen className={podcastsScreenClassName}>
       <IosNavigationBar
         title={viewTitle}
+        titleDisplay={view ? "inline" : "large"}
         leading={
           view ? (
-            <IosBarButton className="-ml-1 gap-0.5 px-1" onClick={onBack}>
-              <ChevronLeftIcon className="!size-[24px]" strokeWidth={2.6} />
-              {messages.Library}
+            <IosBarButton
+              aria-label={`${messages.Back}: ${messages.Library}`}
+              onClick={function returnToLibrary() {
+                iosRouter.back(getTabHref("library"));
+              }}
+            >
+              <ChevronLeftIcon strokeWidth={2.6} />
             </IosBarButton>
           ) : null
         }
       />
-      {view === null ? (
+      {/* The library lives in this browser, so the server renders a placeholder for it. */}
+      {!isHydrated ? (
+        <EpisodeListSkeleton label={viewTitle} />
+      ) : view === null ? (
         <div className="flex flex-col gap-6 pt-1">
           <ul className="m-0 mx-4 list-none border-y-[0.5px] border-(--ios-separator) p-0 md:mx-6">
             <IosListRow
@@ -105,27 +86,21 @@ export function PodcastsLibraryTab({
               label={messages.Shows}
               detail={library.followed.length}
               className="pl-0 active:bg-transparent active:opacity-60"
-              onClick={function openShows() {
-                onOpenView("shows");
-              }}
+              href={getLibraryViewHref("shows")}
             />
             <IosListRow
               icon={<BookmarkIcon />}
               label={messages.Saved}
               detail={library.saved.length}
               className="pl-0 active:bg-transparent active:opacity-60"
-              onClick={function openSaved() {
-                onOpenView("saved");
-              }}
+              href={getLibraryViewHref("saved")}
             />
             <IosListRow
               icon={<GoBackwardIcon />}
               label={messages["Recently Played"]}
               detail={recentItems.length}
               className="pl-0 active:bg-transparent active:opacity-60"
-              onClick={function openRecent() {
-                onOpenView("recent");
-              }}
+              href={getLibraryViewHref("recent")}
             />
           </ul>
           <section aria-label={messages["Recently Updated"]} className="flex flex-col gap-3">
@@ -159,18 +134,7 @@ export function PodcastsLibraryTab({
         )
       ) : view === "saved" ? (
         library.saved.length > 0 ? (
-          <EpisodeList
-            items={library.saved}
-            label={messages.Saved}
-            getHref={getEpisodeHref}
-            locale={locale}
-            messages={messages}
-            now={now}
-            showsPodcastTitle
-            onGoToShow={onGoToShow}
-            onOpen={onOpenEpisode}
-            onShare={onShare}
-          />
+          <EpisodeList items={library.saved} label={messages.Saved} showsPodcastTitle />
         ) : (
           <IosContentUnavailable
             icon={<BookmarkIcon />}
@@ -182,7 +146,6 @@ export function PodcastsLibraryTab({
         <EpisodeList
           items={recentItems}
           label={messages["Recently Played"]}
-          getHref={getEpisodeHref}
           getExtraActions={function getRecentActions(item) {
             return [
               {
@@ -195,13 +158,7 @@ export function PodcastsLibraryTab({
               },
             ];
           }}
-          locale={locale}
-          messages={messages}
-          now={now}
           showsPodcastTitle
-          onGoToShow={onGoToShow}
-          onOpen={onOpenEpisode}
-          onShare={onShare}
         />
       ) : (
         <IosContentUnavailable
@@ -210,6 +167,6 @@ export function PodcastsLibraryTab({
           description={messages["Episodes you play will appear here."]}
         />
       )}
-    </div>
+    </IosScreen>
   );
 }

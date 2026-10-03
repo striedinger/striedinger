@@ -1,6 +1,6 @@
 "use client";
 
-import { Drawer } from "@base-ui/react/drawer";
+import { Drawer, type DrawerRootChangeEventDetails } from "@base-ui/react/drawer";
 import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { ListBulletIcon } from "@workspace/icons/list-bullet-icon";
 import { MoonIcon } from "@workspace/icons/moon-icon";
@@ -11,8 +11,6 @@ import { SpeakerWaveIcon } from "@workspace/icons/speaker-wave-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
-
-import type { PodcastMessages, PodcastQueueItem } from "./types";
 
 import { IosMenu } from "../../../components/ios/ios-menu";
 import { useIosPortalContainer } from "../../../components/ios/ios-portal-container";
@@ -36,29 +34,18 @@ import {
   usePodcastPlayer,
 } from "./podcast-player-store";
 import { PodcastSlider } from "./podcast-slider";
+import { usePodcasts } from "./podcasts-context";
 import { useArtworkColor } from "./use-artwork-color";
 
 interface NowPlayingSheetProps {
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onGoToShow: (item: PodcastQueueItem) => void;
-  onOpenChange: (open: boolean) => void;
-  onShare: (item: PodcastQueueItem) => void;
+  onOpenChange: (open: boolean, details: DrawerRootChangeEventDetails) => void;
   open: boolean;
 }
 
 const sleepTimerMinutes = [5, 10, 15, 30, 45, 60] as const;
 
-export function NowPlayingSheet({
-  locale,
-  messages,
-  now,
-  onGoToShow,
-  onOpenChange,
-  onShare,
-  open,
-}: NowPlayingSheetProps) {
+export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
+  const { goToShow, locale, messages, now } = usePodcasts();
   const portalContainer = useIosPortalContainer();
   const player = usePodcastPlayer();
   const [showsQueue, setShowsQueue] = useState(false);
@@ -141,8 +128,8 @@ export function NowPlayingSheet({
                       <button
                         type="button"
                         className="self-start text-left text-[17px] leading-[22px] text-white/60 outline-none hover:underline focus-visible:underline"
-                        onClick={function goToShow() {
-                          onGoToShow(item);
+                        onClick={function openShow() {
+                          goToShow(item);
                         }}
                       >
                         {item.podcast.title}
@@ -150,9 +137,6 @@ export function NowPlayingSheet({
                     </div>
                     <EpisodeMenu
                       item={item}
-                      messages={messages}
-                      onGoToShow={onGoToShow}
-                      onShare={onShare}
                       trigger={
                         <button
                           type="button"

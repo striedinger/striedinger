@@ -44,3 +44,16 @@ export interface PodcastShow {
 }
 
 export type PodcastTab = "home" | "new" | "library" | "search";
+
+/** The New tab's latest episodes and the followed shows they were loaded for. */
+export interface NewEpisodes {
+  items: PodcastQueueItem[];
+  showIds: readonly string[];
+}
+
+/** Search results for a query, as the server loaded them. */
+export interface PodcastSearchResults {
+  failed: boolean;
+  query: string;
+  results: Podcast[];
+}

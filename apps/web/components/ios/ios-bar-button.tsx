@@ -1,6 +1,7 @@
 import type { ComponentPropsWithRef } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
+import { isValidElement } from "react";
 
 import { iosGlassClassName } from "./ios-glass";
 
@@ -15,16 +16,21 @@ type IosBarButtonProps = ComponentPropsWithRef<"button"> & {
  * for text. The prominent variant fills with the app tint, like Done and compose actions.
  */
 export function IosBarButton({
+  children,
   className,
   type = "button",
   variant = "glass",
   ...props
 }: IosBarButtonProps) {
+  // A lone symbol sits in a circle; text, with or without a symbol, gets capsule padding.
+  const isSymbolOnly = isValidElement(children);
+
   return (
     <button
       type={type}
       className={cn(
-        "inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-3 text-[17px] leading-[22px] font-medium tracking-[-0.43px] whitespace-nowrap text-(--ios-label) transition-[transform,opacity] duration-150 outline-none select-none hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-(--ios-tint)/60 active:scale-[0.92] disabled:text-(--ios-tertiary-label) has-[svg:only-child]:px-0 motion-reduce:transition-none dark:hover:brightness-110 [&_svg]:size-[21px] [&_svg]:shrink-0",
+        "inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full text-[17px] leading-[22px] font-medium tracking-[-0.43px] whitespace-nowrap text-(--ios-label) transition-[transform,opacity] duration-150 outline-none select-none hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-(--ios-tint)/60 active:scale-[0.92] disabled:text-(--ios-tertiary-label) motion-reduce:transition-none dark:hover:brightness-110 [&_svg]:size-[21px] [&_svg]:shrink-0",
+        isSymbolOnly ? "w-11 px-0" : "px-4",
         variant === "glass" && iosGlassClassName,
         variant === "prominent" &&
           "bg-(--ios-tint) text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_6px_20px_var(--ios-glass-shadow)] dark:text-black",
@@ -32,6 +38,8 @@ export function IosBarButton({
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </button>
   );
 }

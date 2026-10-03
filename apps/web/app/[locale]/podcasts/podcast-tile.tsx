@@ -3,7 +3,7 @@
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
-import type { Podcast, PodcastMessages } from "./types";
+import type { Podcast } from "./types";
 
 import { IosContextMenu } from "../../../components/ios/ios-context-menu";
 import { PodcastArtwork } from "./podcast-artwork";
@@ -13,36 +13,19 @@ import { usePodcastMenuSections } from "./use-podcast-menu-sections";
 interface PodcastTileProps {
   className?: string;
   detail?: string;
-  href: string;
-  messages: PodcastMessages;
-  onOpen: (podcast: Podcast) => void;
-  onShare: (podcast: Podcast) => void;
   podcast: Podcast;
   priority?: boolean;
   sizes: string;
 }
 
-export function PodcastTile({
-  className,
-  detail,
-  href,
-  messages,
-  onOpen,
-  onShare,
-  podcast,
-  priority,
-  sizes,
-}: PodcastTileProps) {
-  const menuSections = usePodcastMenuSections(podcast, messages, onShare);
+export function PodcastTile({ className, detail, podcast, priority, sizes }: PodcastTileProps) {
+  const menuSections = usePodcastMenuSections(podcast);
 
   return (
     <IosContextMenu sections={menuSections} className="min-w-0">
       <PodcastLink
-        href={href}
+        podcast={podcast}
         className={cn("group flex min-w-0 flex-col gap-1.5 outline-none", className)}
-        onOpen={function openPodcast() {
-          onOpen(podcast);
-        }}
       >
         <PodcastArtwork
           src={podcast.artworkUrl}

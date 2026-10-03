@@ -6,7 +6,7 @@ import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { Text } from "@workspace/ui/components/text";
 
 import type { IosMenuAction } from "../../../components/ios/ios-menu";
-import type { PodcastMessages, PodcastProgress, PodcastQueueItem } from "./types";
+import type { PodcastProgress, PodcastQueueItem } from "./types";
 
 import { IosContextMenu } from "../../../components/ios/ios-context-menu";
 import { IosMenu } from "../../../components/ios/ios-menu";
@@ -14,38 +14,26 @@ import { PodcastArtwork } from "./podcast-artwork";
 import { formatEpisodeDate, formatListeningDuration } from "./podcast-format";
 import { PodcastLink } from "./podcast-link";
 import { playEpisode, togglePlayback } from "./podcast-player-store";
+import { usePodcasts } from "./podcasts-context";
 import { useArtworkColor } from "./use-artwork-color";
 import { useEpisodeMenuSections } from "./use-episode-menu-sections";
 
 interface UpNextCardProps {
   extraActions?: readonly IosMenuAction[];
-  href: string;
   isCurrent: boolean;
   isPlaying: boolean;
   item: PodcastQueueItem;
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onGoToShow: (item: PodcastQueueItem) => void;
-  onOpen: (item: PodcastQueueItem) => void;
-  onShare: (item: PodcastQueueItem) => void;
   progress: PodcastProgress | undefined;
 }
 
 export function UpNextCard({
   extraActions,
-  href,
   isCurrent,
   isPlaying,
   item,
-  locale,
-  messages,
-  now,
-  onGoToShow,
-  onOpen,
-  onShare,
   progress,
 }: UpNextCardProps) {
+  const { locale, messages, now } = usePodcasts();
   const artworkColor = useArtworkColor(item.podcast.artworkUrl);
   const durationSeconds = progress?.durationSeconds || item.episode.durationMilliseconds / 1_000;
   const remainingSeconds = progress
@@ -63,13 +51,7 @@ export function UpNextCard({
         : formatListeningDuration(remainingSeconds, locale)
       : messages.Play;
 
-  const menuSections = useEpisodeMenuSections({
-    extraActions,
-    item,
-    messages,
-    onGoToShow,
-    onShare,
-  });
+  const menuSections = useEpisodeMenuSections({ extraActions, item });
 
   return (
     <li className="flex w-[min(82vw,340px)] shrink-0 snap-start md:w-[340px]">
@@ -96,11 +78,8 @@ export function UpNextCard({
           </span>
         </div>
         <PodcastLink
-          href={href}
+          item={item}
           className="mt-3 outline-none after:absolute after:inset-0 focus-visible:underline"
-          onOpen={function openEpisode() {
-            onOpen(item);
-          }}
         >
           <Text
             as="span"

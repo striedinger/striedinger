@@ -2,46 +2,31 @@
 
 import { Text } from "@workspace/ui/components/text";
 
-import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
+import type { Podcast, PodcastQueueItem } from "./types";
 
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
+import { IosScreen } from "../../../components/ios/ios-screen";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import { useIsHydrated } from "../../../components/use-is-hydrated";
 import { FeaturedPodcastCard } from "./featured-podcast-card";
 import { PodcastChartRow } from "./podcast-chart-row";
 import { usePodcastLibrary } from "./podcast-library-store";
 import { removeFromQueue, usePodcastPlayer } from "./podcast-player-store";
 import { PodcastShelf } from "./podcast-shelf";
 import { PodcastTile } from "./podcast-tile";
+import { usePodcasts } from "./podcasts-context";
+import { podcastsScreenClassName } from "./podcasts-screen";
 import { UpNextCard } from "./up-next-card";
 
-interface PodcastsHomeTabProps {
-  onShareShow: (podcast: Podcast) => void;
-  getEpisodeHref: (item: PodcastQueueItem) => string;
-  getShowHref: (podcast: Podcast) => string;
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onGoToShow: (item: PodcastQueueItem) => void;
-  onOpenEpisode: (item: PodcastQueueItem) => void;
-  onOpenShow: (podcast: Podcast) => void;
-  onShare: (item: PodcastQueueItem) => void;
+interface PodcastsHomeScreenProps {
   popular: readonly Podcast[];
 }
 
 const tileSizes = "(min-width: 768px) 180px, 150px";
 
-export function PodcastsHomeTab({
-  getEpisodeHref,
-  getShowHref,
-  locale,
-  messages,
-  now,
-  onGoToShow,
-  onOpenEpisode,
-  onOpenShow,
-  onShare,
-  popular,
-  onShareShow,
-}: PodcastsHomeTabProps) {
+export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
+  const { messages } = usePodcasts();
+  const isHydrated = useIsHydrated();
   const library = usePodcastLibrary();
   const player = usePodcastPlayer();
   const progressByEpisodeId = new Map(
@@ -69,26 +54,23 @@ export function PodcastsHomeTab({
   const isNewListener = upNextItems.length === 0 && library.followed.length === 0;
 
   return (
-    <div
-      data-ios-scroll
-      className="flex h-full flex-col overflow-y-auto overscroll-contain pb-44 md:pb-32"
-    >
+    <IosScreen className={podcastsScreenClassName}>
       <IosNavigationBar title={messages.Home} />
       <div className="flex flex-col gap-7 pt-1">
-        {isNewListener && popular.length > 0 ? (
+        {/* Listening history lives in this browser, so the server renders a placeholder for it. */}
+        {!isHydrated ? (
+          <div aria-hidden="true" className="flex gap-3 overflow-hidden px-4">
+            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-[24px]" />
+            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-[24px]" />
+          </div>
+        ) : isNewListener && popular.length > 0 ? (
           <ul
             aria-label={messages["Top Shows"]}
-            className="m-0 flex snap-x snap-mandatory scroll-px-4 list-none gap-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="m-0 flex animate-in snap-x snap-mandatory scroll-px-4 list-none gap-3 overflow-x-auto overscroll-x-contain px-4 duration-300 [scrollbar-width:none] fade-in motion-reduce:animate-none [&::-webkit-scrollbar]:hidden"
           >
             {popular.slice(0, 5).map(function renderFeatured(podcast, index) {
               return (
-                <FeaturedPodcastCard
-                  key={podcast.id}
-                  podcast={podcast}
-                  href={getShowHref(podcast)}
-                  priority={index === 0}
-                  onOpen={onOpenShow}
-                />
+                <FeaturedPodcastCard key={podcast.id} podcast={podcast} priority={index === 0} />
               );
             })}
           </ul>
@@ -101,7 +83,6 @@ export function PodcastsHomeTab({
                 <UpNextCard
                   key={item.episode.id}
                   item={item}
-                  href={getEpisodeHref(item)}
                   isCurrent={isCurrent}
                   isPlaying={isCurrent && player.isPlaying}
                   progress={progressByEpisodeId.get(item.episode.id)}
@@ -118,12 +99,6 @@ export function PodcastsHomeTab({
                         ]
                       : undefined
                   }
-                  locale={locale}
-                  messages={messages}
-                  now={now}
-                  onGoToShow={onGoToShow}
-                  onOpen={onOpenEpisode}
-                  onShare={onShare}
                 />
               );
             })}
@@ -134,14 +109,7 @@ export function PodcastsHomeTab({
             {library.followed.map(function renderFollowedShow(podcast) {
               return (
                 <li key={podcast.id} className="w-[150px] shrink-0 snap-start md:w-[180px]">
-                  <PodcastTile
-                    messages={messages}
-                    onShare={onShareShow}
-                    podcast={podcast}
-                    href={getShowHref(podcast)}
-                    sizes={tileSizes}
-                    onOpen={onOpenShow}
-                  />
+                  <PodcastTile podcast={podcast} sizes={tileSizes} />
                 </li>
               );
             })}
@@ -159,14 +127,10 @@ export function PodcastsHomeTab({
               {popular.map(function renderChartRow(podcast, index) {
                 return (
                   <PodcastChartRow
-                    messages={messages}
-                    onShare={onShareShow}
                     key={podcast.id}
                     podcast={podcast}
                     rank={index + 1}
                     detail={podcast.genre || podcast.author}
-                    href={getShowHref(podcast)}
-                    onOpen={onOpenShow}
                   />
                 );
               })}
@@ -181,6 +145,6 @@ export function PodcastsHomeTab({
           }
         </Text>
       </div>
-    </div>
+    </IosScreen>
   );
 }

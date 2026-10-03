@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { isLocale, localeCookieName, resolveLocale, type Locale } from "@workspace/i18n";
 import { NextResponse } from "next/server";
 
+import { getLegacyAppRedirect } from "./lib/legacy-app-url";
 import { getPathLocale, stripLocaleFromPath } from "./lib/locale-path";
 
 const instagramWebViewUserAgentPattern = /\bInstagram\b/;
@@ -29,6 +30,9 @@ export function proxy(request: NextRequest) {
     const targetUrl = encodeURIComponent(request.nextUrl.href);
     return NextResponse.redirect(`instagram://extbrowser/?url=${targetUrl}`, 307);
   }
+
+  const legacyAppDestination = getLegacyAppRedirect(request.nextUrl);
+  if (legacyAppDestination) return NextResponse.redirect(legacyAppDestination, 308);
 
   const { pathname } = request.nextUrl;
   const routeLocale = getPathLocale(pathname);

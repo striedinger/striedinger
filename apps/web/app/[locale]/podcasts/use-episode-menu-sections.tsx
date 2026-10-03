@@ -9,17 +9,17 @@ import { PodcastIcon } from "@workspace/icons/podcast-icon";
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 
 import type { IosMenuAction, IosMenuSection } from "../../../components/ios/ios-menu";
-import type { PodcastMessages, PodcastQueueItem } from "./types";
+import type { PodcastQueueItem } from "./types";
 
 import { setEpisodePlayed, toggleSavedEpisode, usePodcastLibrary } from "./podcast-library-store";
 import { enqueueEpisode, playEpisode } from "./podcast-player-store";
+import { usePodcasts } from "./podcasts-context";
 
 interface EpisodeMenuSectionsOptions {
   extraActions?: readonly IosMenuAction[];
   item: PodcastQueueItem;
-  messages: PodcastMessages;
-  onGoToShow?: (item: PodcastQueueItem) => void;
-  onShare: (item: PodcastQueueItem) => void;
+  /** Lists inside a show leave out Go to Show. */
+  showsGoToShow?: boolean;
 }
 
 const noExtraActions: readonly IosMenuAction[] = [];
@@ -28,10 +28,9 @@ const noExtraActions: readonly IosMenuAction[] = [];
 export function useEpisodeMenuSections({
   extraActions = noExtraActions,
   item,
-  messages,
-  onGoToShow,
-  onShare,
+  showsGoToShow = true,
 }: EpisodeMenuSectionsOptions): IosMenuSection[] {
+  const { goToShow, messages, shareEpisode } = usePodcasts();
   const library = usePodcastLibrary();
   const isSaved = library.saved.some(function matchesEpisode(savedItem) {
     return savedItem.episode.id === item.episode.id;
@@ -93,14 +92,14 @@ export function useEpisodeMenuSections({
     {
       id: "share",
       actions: [
-        ...(onGoToShow
+        ...(showsGoToShow
           ? [
               {
                 id: "show",
                 label: messages["Go to Show"],
                 icon: <PodcastIcon />,
-                onSelect: function goToShow() {
-                  onGoToShow(item);
+                onSelect: function openShow() {
+                  goToShow(item);
                 },
               },
             ]
@@ -110,7 +109,7 @@ export function useEpisodeMenuSections({
           label: messages["Share Episode"],
           icon: <ShareUpIcon />,
           onSelect: function share() {
-            onShare(item);
+            shareEpisode(item);
           },
         },
         {

@@ -32,7 +32,7 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
     <section
       aria-label={messages["Now Playing"]}
       className={cn(
-        "absolute right-4 z-30 flex animate-in items-center gap-0.5 rounded-full pr-1.5 transition-[left,bottom,height] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] [view-transition-class:ios-anchored] [view-transition-name:podcasts-mini-player] fade-in slide-in-from-bottom-4 motion-reduce:animate-none motion-reduce:transition-none md:bottom-4 md:left-1/2 md:h-[52px] md:w-[min(560px,calc(100%-32px))] md:-translate-x-1/2",
+        "absolute right-4 z-30 flex animate-in items-center gap-1 rounded-full pr-2 transition-[left,bottom,height] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] [view-transition-class:ios-anchored] [view-transition-name:podcasts-mini-player] fade-in slide-in-from-bottom-4 motion-reduce:animate-none motion-reduce:transition-none md:bottom-4 md:left-[calc(50%+146px)] md:h-[52px] md:w-[min(560px,calc(100%-324px))] md:-translate-x-1/2",
         isTabBarMinimized
           ? "bottom-[max(env(safe-area-inset-bottom),14px)] left-[90px] h-[62px]"
           : "bottom-[calc(max(env(safe-area-inset-bottom),14px)+72px)] left-4 h-[52px]",
@@ -42,13 +42,13 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
       <button
         type="button"
         aria-label={`${messages["Open Now Playing"]}: ${item.episode.title}`}
-        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-full pl-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)"
+        className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full pl-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)"
         onClick={onOpen}
       >
         <PodcastArtwork
           src={item.podcast.artworkUrl}
-          sizes="36px"
-          className="w-9 shrink-0 rounded-[8px]"
+          sizes="32px"
+          className="w-8 shrink-0 rounded-[7px]"
         />
         <span className="flex min-w-0 flex-col">
           <Text

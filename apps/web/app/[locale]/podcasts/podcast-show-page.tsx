@@ -7,65 +7,53 @@ import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
 import { Suspense } from "react";
 
-import type { Podcast, PodcastMessages, PodcastQueueItem, PodcastShow } from "./types";
+import type { Podcast, PodcastShow } from "./types";
 
 import { IosMenu } from "../../../components/ios/ios-menu";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
+import { useIosRouter } from "../../../components/ios/ios-navigation-context";
 import { IosRevealTransition } from "../../../components/ios/ios-reveal-transition";
+import { IosScreen } from "../../../components/ios/ios-screen";
 import { EpisodeListSkeleton } from "./episode-list-skeleton";
 import { PodcastHero } from "./podcast-hero";
 import { toggleFollowedPodcast, usePodcastLibrary } from "./podcast-library-store";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
+import { getTabHref } from "./podcast-route";
 import { PodcastShowDescription } from "./podcast-show-description";
 import { PodcastShowEpisodes } from "./podcast-show-episodes";
 import { PodcastShowPlayButton } from "./podcast-show-play-button";
+import { usePodcasts } from "./podcasts-context";
+import { podcastsScreenClassName } from "./podcasts-screen";
 import { usePodcastMenuSections } from "./use-podcast-menu-sections";
 
-export interface PodcastShowPageProps {
-  backLabel: string;
-  getEpisodeHref: (item: PodcastQueueItem) => string;
-  locale: string;
-  messages: PodcastMessages;
-  now: number;
-  onBack: () => void;
-  onOpenEpisode: (item: PodcastQueueItem) => void;
-  onShare: (item: PodcastQueueItem) => void;
-  onShareShow: (podcast: Podcast) => void;
+interface PodcastShowPageProps {
   podcast: Podcast;
-  /**
-   * The show's episodes streaming from the server, or null while the app is still requesting
-   * them, as it does right after pushing a show it only knows from a list.
-   */
-  show: Promise<PodcastShow | null> | null;
+  /** The show's episodes, streaming from the server. */
+  show: Promise<PodcastShow | null>;
 }
 
-export function PodcastShowPage({
-  backLabel,
-  getEpisodeHref,
-  locale,
-  messages,
-  now,
-  onBack,
-  onOpenEpisode,
-  onShare,
-  onShareShow,
-  podcast,
-  show,
-}: PodcastShowPageProps) {
+export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
+  const { messages } = usePodcasts();
+  const iosRouter = useIosRouter();
   const library = usePodcastLibrary();
-  const menuSections = usePodcastMenuSections(podcast, messages, onShareShow);
+  const menuSections = usePodcastMenuSections(podcast);
   const isFollowed = library.followed.some(function matchesPodcast(item) {
     return item.id === podcast.id;
   });
   const episodesSkeleton = <EpisodeListSkeleton label={messages["Loading episodes"]} />;
 
   return (
-    <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain pb-40">
+    <IosScreen className={podcastsScreenClassName}>
       <IosNavigationBar
         title={podcast.title}
         titleDisplay="scroll-edge"
         leading={
-          <PodcastPageBarButton aria-label={`${messages.Back}: ${backLabel}`} onClick={onBack}>
+          <PodcastPageBarButton
+            aria-label={messages.Back}
+            onClick={function goBack() {
+              iosRouter.back(getTabHref("home"));
+            }}
+          >
             <ChevronLeftIcon strokeWidth={2.8} />
           </PodcastPageBarButton>
         }
@@ -130,11 +118,9 @@ export function PodcastShowPage({
                 {isFollowed ? messages.Following : messages.Follow}
               </button>
             </div>
-            {show ? (
-              <Suspense fallback={null}>
-                <PodcastShowDescription messages={messages} show={show} />
-              </Suspense>
-            ) : null}
+            <Suspense fallback={null}>
+              <PodcastShowDescription messages={messages} show={show} />
+            </Suspense>
           </PodcastHero>
         }
       />
@@ -148,25 +134,12 @@ export function PodcastShowPage({
         >
           {messages.Episodes}
         </Text>
-        {show ? (
-          <Suspense fallback={<IosRevealTransition>{episodesSkeleton}</IosRevealTransition>}>
-            <IosRevealTransition>
-              <PodcastShowEpisodes
-                show={show}
-                podcast={podcast}
-                getEpisodeHref={getEpisodeHref}
-                locale={locale}
-                messages={messages}
-                now={now}
-                onOpenEpisode={onOpenEpisode}
-                onShare={onShare}
-              />
-            </IosRevealTransition>
-          </Suspense>
-        ) : (
-          episodesSkeleton
-        )}
+        <Suspense fallback={<IosRevealTransition>{episodesSkeleton}</IosRevealTransition>}>
+          <IosRevealTransition>
+            <PodcastShowEpisodes show={show} podcast={podcast} />
+          </IosRevealTransition>
+        </Suspense>
       </section>
-    </div>
+    </IosScreen>
   );
 }

@@ -29,6 +29,25 @@ describe("proxy", () => {
     );
   });
 
+  it("moves links from the query-parameter versions of Podcasts and Notes to path routes", () => {
+    const episode = proxy(
+      new NextRequest("https://striedinger.co/es/podcasts?tab=library&podcast=42&episode=1000"),
+    );
+    const search = proxy(
+      new NextRequest("https://striedinger.co/podcasts?tab=search&q=true+crime"),
+    );
+    const note = proxy(new NextRequest("https://striedinger.co/notes?folder=notes&note=abc-1"));
+
+    expect(episode.status).toBe(308);
+    expect(episode.headers.get("location")).toBe(
+      "https://striedinger.co/es/podcasts/show/42/episode/1000",
+    );
+    expect(search.headers.get("location")).toBe(
+      "https://striedinger.co/podcasts/search?q=true+crime",
+    );
+    expect(note.headers.get("location")).toBe("https://striedinger.co/notes/notes/abc-1");
+  });
+
   it("renders unprefixed pages in English for visitors with no language preference", () => {
     const request = new NextRequest("https://striedinger.co/sudoku", {
       headers: {

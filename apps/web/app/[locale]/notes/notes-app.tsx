@@ -13,7 +13,6 @@ import { groupNotes, sortNotes } from "./note-dates";
 import { NoteEditorPane } from "./note-editor-pane";
 import { NotesListPane } from "./notes-list-pane";
 import { NotesSkeleton } from "./notes-skeleton";
-import { useKeyboardInset } from "./use-keyboard-inset";
 import { useNotesRoute } from "./use-notes-route";
 import {
   allNotesFolderId,
@@ -43,7 +42,6 @@ const NoteMoveSheet = lazy(function importNoteMoveSheet() {
 export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   const store = useNotesStore({ welcomeNoteHtml });
   const { goBack, navigate, route } = useNotesRoute();
-  const rootRef = useRef<HTMLDivElement>(null);
   const keyboardWarmupRef = useRef<HTMLInputElement>(null);
   const previousNoteIdRef = useRef<string | null>(null);
   const [now, setNow] = useState(function readCurrentTime() {
@@ -58,7 +56,6 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   const [isNameTakenOpen, setIsNameTakenOpen] = useState(false);
   const [folderPendingDeletion, setFolderPendingDeletion] = useState<NoteFolder | null>(null);
   const [noteIdToMove, setNoteIdToMove] = useState<string | null>(null);
-  useKeyboardInset(rootRef);
 
   useEffect(function refreshRelativeDates() {
     const interval = window.setInterval(function updateCurrentTime() {
@@ -239,7 +236,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   });
 
   return (
-    <div ref={rootRef} className="flex size-full min-w-0">
+    <div className="flex size-full min-w-0">
       <h1 className="sr-only">{messages.Notes}</h1>
       <input
         ref={keyboardWarmupRef}

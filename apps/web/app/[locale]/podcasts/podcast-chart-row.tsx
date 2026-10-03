@@ -2,7 +2,7 @@
 
 import { Text } from "@workspace/ui/components/text";
 
-import type { Podcast, PodcastMessages } from "./types";
+import type { Podcast } from "./types";
 
 import { IosContextMenu } from "../../../components/ios/ios-context-menu";
 import { PodcastArtwork } from "./podcast-artwork";
@@ -11,34 +11,19 @@ import { usePodcastMenuSections } from "./use-podcast-menu-sections";
 
 interface PodcastChartRowProps {
   detail: string;
-  href: string;
-  messages: PodcastMessages;
-  onOpen: (podcast: Podcast) => void;
-  onShare: (podcast: Podcast) => void;
   podcast: Podcast;
   rank?: number;
 }
 
-export function PodcastChartRow({
-  detail,
-  href,
-  messages,
-  onOpen,
-  onShare,
-  podcast,
-  rank,
-}: PodcastChartRowProps) {
-  const menuSections = usePodcastMenuSections(podcast, messages, onShare);
+export function PodcastChartRow({ detail, podcast, rank }: PodcastChartRowProps) {
+  const menuSections = usePodcastMenuSections(podcast);
 
   return (
     <li className="relative">
       <IosContextMenu sections={menuSections}>
         <PodcastLink
-          href={href}
+          podcast={podcast}
           className="group flex items-center gap-3 py-2 pr-4 transition-colors duration-150 outline-none hover:bg-(--ios-fill)/25 active:bg-(--ios-fill)/50 motion-reduce:transition-none"
-          onOpen={function openPodcast() {
-            onOpen(podcast);
-          }}
         >
           <PodcastArtwork
             src={podcast.artworkUrl}

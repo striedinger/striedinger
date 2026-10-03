@@ -75,6 +75,21 @@ html:has([data-slot="ios-app-frame"])::view-transition {
   animation: none;
 }
 
+/* A toolbar shared by the screens on either side of a push: it stays put while its controls
+   cross-fade. */
+::view-transition-group(.ios-toolbar) {
+  z-index: 100;
+  animation: none;
+}
+
+::view-transition-old(.ios-toolbar) {
+  animation: 180ms ease-out both ios-fade-out;
+}
+
+::view-transition-new(.ios-toolbar) {
+  animation: 240ms ease-out both ios-fade-in;
+}
+
 @keyframes ios-slide-in-from-trailing {
   from {
     transform: translateX(100%);
