@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 
 import { JsonLd } from "../../../components/json-ld";
+import { getPopularPodcasts } from "../../../lib/podcasts/apple-podcasts";
 import { createWebApplicationStructuredData } from "../../../lib/seo";
 import { loadPodcastMessages } from "../../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../../get-request-locale";
-import { loadPopularPodcasts } from "./podcasts-data";
 import { PodcastsHomeScreen } from "./podcasts-home-screen";
 import { createPodcastsMetadata } from "./podcasts-metadata";
 
@@ -16,7 +16,7 @@ export default async function PodcastsHomePage() {
   const locale = await getRequestLocale();
   const [messages, popular] = await Promise.all([
     loadPodcastMessages(locale),
-    loadPopularPodcasts(),
+    getPopularPodcasts(),
   ]);
   const structuredData = createWebApplicationStructuredData({
     name: messages.Podcasts,

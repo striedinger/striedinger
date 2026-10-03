@@ -1,4 +1,4 @@
-import type { PodcastQueueItem, PodcastTab } from "./types";
+import type { Podcast, PodcastEpisode, PodcastTab } from "./types";
 
 export type LibraryView = "shows" | "saved" | "recent";
 
@@ -70,32 +70,45 @@ export function getSearchHref(query: string) {
     : tabRoots.search;
 }
 
-export function getShowHref(podcastId: string) {
-  return `${basePath}/show/${podcastId}`;
+/** A readable path segment, like Apple Podcasts links: the title's slug followed by the id. */
+function createSlugSegment(title: string, id: string) {
+  const slug = title
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .slice(0, 60)
+    .replace(/^-+|-+$/g, "");
+  return slug ? `${slug}-${id}` : id;
 }
 
-export function getEpisodeHref(item: PodcastQueueItem) {
-  return `${getShowHref(item.podcast.id)}/episode/${item.episode.id}`;
+/** The id at the end of a slug segment; the slug itself is ignored, so renamed titles still resolve. */
+export function readSlugSegmentId(segment: string | null | undefined) {
+  return normalizePodcastId(/(?:^|-)(\d{1,20})$/.exec(segment ?? "")?.[1]);
+}
+
+export function getShowHref(podcast: Pick<Podcast, "id" | "title">): `/${string}` {
+  return `${basePath}/${createSlugSegment(podcast.title, podcast.id)}`;
+}
+
+export function getEpisodeHref(item: {
+  episode: Pick<PodcastEpisode, "id" | "title">;
+  podcast: Pick<Podcast, "id" | "title">;
+}): `/${string}` {
+  return `${getShowHref(item.podcast)}/${createSlugSegment(item.episode.title, item.episode.id)}`;
 }
 
 /** Parses the active segments below the Podcasts layout, as `useSelectedLayoutSegments` returns them. */
 export function parsePodcastSegments(segments: readonly string[]): PodcastRoute {
-  const [first, second, third, fourth] = segments;
+  const [first, second] = segments;
   const route: PodcastRoute = { episodeId: null, libraryView: null, podcastId: null, tab: null };
   if (first === undefined) return { ...route, tab: "home" };
   if (first === "new" || first === "search") return { ...route, tab: first };
   if (first === "library") {
     return { ...route, libraryView: isLibraryView(second) ? second : null, tab: "library" };
   }
-  if (first === "show") {
-    const podcastId = normalizePodcastId(second);
-    return {
-      ...route,
-      episodeId: podcastId && third === "episode" ? normalizePodcastId(fourth) : null,
-      podcastId,
-    };
-  }
-  return route;
+  const podcastId = readSlugSegmentId(first);
+  return { ...route, episodeId: podcastId ? readSlugSegmentId(second) : null, podcastId };
 }
 
 /** The segments below `/podcasts` in a pathname, with or without a locale prefix. */

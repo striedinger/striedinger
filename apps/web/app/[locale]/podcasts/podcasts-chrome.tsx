@@ -156,7 +156,7 @@ export function PodcastsChrome({ children, locale, messages }: PodcastsChromePro
     goToShow(item: PodcastQueueItem) {
       setIsNowPlayingOpen(false);
       rememberPodcast(item.podcast);
-      iosRouter.push(getShowHref(item.podcast.id));
+      iosRouter.push(getShowHref(item.podcast));
     },
     locale,
     messages,
@@ -165,7 +165,7 @@ export function PodcastsChrome({ children, locale, messages }: PodcastsChromePro
       void shareLink(item.episode.title, getEpisodeHref(item));
     },
     shareShow(podcast: Podcast) {
-      void shareLink(podcast.title, getShowHref(podcast.id));
+      void shareLink(podcast.title, getShowHref(podcast));
     },
   };
   const searchContext: PodcastsSearchContextValue = {

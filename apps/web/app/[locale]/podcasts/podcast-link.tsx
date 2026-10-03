@@ -26,7 +26,7 @@ const fullPrefetch = { kind: "full" } as RouterPrefetchOptions;
 export function PodcastLink({ item, onClick, podcast, ...props }: PodcastLinkProps) {
   const router = useRouter();
   const hasPrefetchedRef = useRef(false);
-  const href = item ? getEpisodeHref(item) : getShowHref(podcast.id);
+  const href = item ? getEpisodeHref(item) : getShowHref(podcast);
 
   function prefetchDestination() {
     if (hasPrefetchedRef.current) return;

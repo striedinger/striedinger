@@ -1,22 +1,17 @@
-import type { NewEpisodes, Podcast, PodcastSearchResults, PodcastShow } from "./types";
+import type { NewEpisodes, PodcastSearchResults, PodcastShow } from "./types";
 
+import { getPodcastShow, searchPodcastCatalog } from "../../../lib/podcasts/apple-podcasts";
 import {
-  getPodcastShow,
-  getPopularPodcasts,
-  searchPodcastCatalog,
-} from "../../../lib/podcasts/apple-podcasts";
-import { normalizeFollowedIds, normalizePodcastId, normalizeSearchQuery } from "./podcast-route";
+  normalizeFollowedIds,
+  normalizePodcastId,
+  normalizeSearchQuery,
+  readSlugSegmentId,
+} from "./podcast-route";
 
 const maximumNewEpisodes = 60;
 
-export function loadPopularPodcasts(): Promise<Podcast[]> {
-  return getPopularPodcasts().catch(function useEmptyChart(): Podcast[] {
-    return [];
-  });
-}
-
 /** A show and its episodes, or null when the id is invalid or the show is unavailable. */
-export async function loadPodcastShow(showId: string): Promise<PodcastShow | null> {
+async function loadPodcastShow(showId: string): Promise<PodcastShow | null> {
   const podcastId = normalizePodcastId(showId);
   if (!podcastId) return null;
   try {
@@ -25,6 +20,12 @@ export async function loadPodcastShow(showId: string): Promise<PodcastShow | nul
   } catch {
     return null;
   }
+}
+
+/** The show a `/podcasts/[show]` segment, such as `crime-junkie-986384976`, points to. */
+export function loadPodcastShowForSegment(segment: string) {
+  const podcastId = readSlugSegmentId(segment);
+  return podcastId ? loadPodcastShow(podcastId) : Promise.resolve(null);
 }
 
 export async function loadSearchResults(query: string | null): Promise<PodcastSearchResults> {

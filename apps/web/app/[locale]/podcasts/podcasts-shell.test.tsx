@@ -21,7 +21,7 @@ const navigation = vi.hoisted(function createNavigationMocks() {
 
 vi.mock("next/navigation", function mockNavigation() {
   return {
-    useParams: () => ({ showId: navigation.segments[1] }),
+    useParams: () => ({ show: navigation.segments[0] }),
     useRouter: () => navigation.router,
     useSearchParams: () => new URLSearchParams(),
     useSelectedLayoutSegments: () => navigation.segments,
@@ -81,7 +81,7 @@ async function renderInShell(segments: string[], renderScreen: () => Promise<Rea
 }
 
 async function renderShow() {
-  return renderInShell(["show", "123"], async function createShowScreen() {
+  return renderInShell(["a-thoughtful-show-123"], async function createShowScreen() {
     const { PodcastShowScreen } = await import("./podcast-show-screen");
     return <PodcastShowScreen show={createResolvedPromise({ podcast, episodes })} />;
   });
@@ -91,7 +91,7 @@ describe("Podcasts", function () {
   beforeEach(function resetDevice() {
     vi.resetModules();
     window.localStorage.clear();
-    window.history.replaceState(null, "", "/podcasts/show/123");
+    window.history.replaceState(null, "", "/podcasts/a-thoughtful-show-123");
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function skipLoading() {});
     vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(
       function startPlaying(this: HTMLMediaElement) {
@@ -142,10 +142,13 @@ describe("Podcasts", function () {
 
     fireEvent.click(await screen.findByRole("link", { name: "The Newest Episode" }));
 
-    expect(navigation.router.push).toHaveBeenCalledWith("/podcasts/show/123/episode/1001", {
-      scroll: false,
-      transitionTypes: ["ios-nav-forward"],
-    });
+    expect(navigation.router.push).toHaveBeenCalledWith(
+      "/podcasts/a-thoughtful-show-123/the-newest-episode-1001",
+      {
+        scroll: false,
+        transitionTypes: ["ios-nav-forward"],
+      },
+    );
   });
 
   it("switches tabs in place and remembers each tab's screen", async function () {

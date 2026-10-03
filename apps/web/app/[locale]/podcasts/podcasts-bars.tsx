@@ -13,7 +13,6 @@ import {
   getLibraryViewHref,
   getNewEpisodesHref,
   getSearchHref,
-  getShowHref,
   getTabHref,
   normalizeFollowedIds,
   normalizeSearchQuery,
@@ -36,11 +35,14 @@ interface PodcastsBarsProps {
 
 type TabHrefs = Partial<Record<PodcastTab, string>>;
 
-function createRouteHref(route: PodcastRoute, query: string, followedIds: readonly string[]) {
-  if (route.podcastId && route.episodeId) {
-    return `${getShowHref(route.podcastId)}/episode/${route.episodeId}`;
-  }
-  if (route.podcastId) return getShowHref(route.podcastId);
+function createRouteHref(
+  segments: readonly string[],
+  route: PodcastRoute,
+  query: string,
+  followedIds: readonly string[],
+) {
+  // Show and episode paths carry slugs the route does not keep, so they are reused as is.
+  if (route.podcastId) return `/podcasts/${segments.join("/")}`;
   if (route.libraryView) return getLibraryViewHref(route.libraryView);
   if (route.tab === "new") return getNewEpisodesHref(followedIds);
   if (route.tab === "search") return getSearchHref(query);
@@ -74,7 +76,8 @@ export function PodcastsBars({
 }: PodcastsBarsProps) {
   const iosRouter = useIosRouter();
   const hasAccessory = usePodcastPlayerItems().current !== null;
-  const route = parsePodcastSegments(useSelectedLayoutSegments());
+  const segments = useSelectedLayoutSegments();
+  const route = parsePodcastSegments(segments);
   const query = normalizeSearchQuery(useSearchParams().get("q"));
   const followedIds = normalizeFollowedIds(
     useFollowedPodcasts().map(function selectPodcastId(podcast) {
@@ -86,7 +89,7 @@ export function PodcastsBars({
   const [tabHrefs, setTabHrefs] = useState<TabHrefs>({});
   if (route.tab && route.tab !== stackTab) setStackTab(route.tab);
   const activeTab = route.tab ?? stackTab;
-  const routeHref = createRouteHref(route, query, followedIds);
+  const routeHref = createRouteHref(segments, route, query, followedIds);
   if (tabHrefs[activeTab] !== routeHref) setTabHrefs({ ...tabHrefs, [activeTab]: routeHref });
   const [previousTab, setPreviousTab] = useState<Exclude<PodcastTab, "search">>(
     activeTab === "search" ? "home" : activeTab,

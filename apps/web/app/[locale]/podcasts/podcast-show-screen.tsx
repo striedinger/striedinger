@@ -7,7 +7,7 @@ import type { PodcastShow } from "./types";
 
 import { findKnownPodcast } from "./podcast-catalog";
 import { useFollowedPodcasts } from "./podcast-library-store";
-import { normalizePodcastId } from "./podcast-route";
+import { readSlugSegmentId } from "./podcast-route";
 import { PodcastShowPage } from "./podcast-show-page";
 import { PodcastStackPlaceholder } from "./podcast-stack-placeholder";
 import { PodcastStreamedShow } from "./podcast-streamed-show";
@@ -22,8 +22,7 @@ interface PodcastShowScreenProps {
  * knew while its episodes stream in; a shared link waits for the show to arrive.
  */
 export function PodcastShowScreen({ show }: PodcastShowScreenProps) {
-  const { showId } = useParams<{ showId: string }>();
-  const podcastId = normalizePodcastId(showId);
+  const podcastId = readSlugSegmentId(useParams<{ show: string }>().show);
   const followedPodcasts = useFollowedPodcasts();
   const knownPodcast = podcastId
     ? (findKnownPodcast(podcastId) ??

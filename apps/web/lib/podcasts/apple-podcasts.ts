@@ -54,17 +54,19 @@ export function getPopularPodcasts(): Promise<Podcast[]> {
 
 async function loadPopularPodcasts(): Promise<Podcast[]> {
   "use cache";
-  cacheLife({ stale: 300, revalidate: 3_600, expire: 86_400 });
   cacheTag("podcast-charts");
 
-  const response = await fetch(appleChartsUrl, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 3_600 },
-    signal: AbortSignal.timeout(8_000),
+  // The chart prerenders with pages, so an unavailable feed renders an empty chart and is
+  // retried within a minute instead of failing the build.
+  const payload = await fetchChart().catch(function useUnavailableChart() {
+    return null;
   });
-  if (!response.ok) throw new Error("Podcast chart request failed");
-  const payload = (await response.json()) as AppleChartResponse;
-  return (payload.feed?.results ?? []).flatMap(function mapChartPodcast(result) {
+  cacheLife(
+    payload
+      ? { stale: 300, revalidate: 3_600, expire: 86_400 }
+      : { stale: 30, revalidate: 60, expire: 300 },
+  );
+  return (payload?.feed?.results ?? []).flatMap(function mapChartPodcast(result) {
     const id = stringValue(result.id);
     const title = stringValue(result.name);
     const author = stringValue(result.artistName);
@@ -73,6 +75,16 @@ async function loadPopularPodcasts(): Promise<Podcast[]> {
     if (!id || !title || !author || !artworkUrl || !url) return [];
     return [{ id, title, author, artworkUrl, url, genre: stringValue(result.genres?.[0]?.name) }];
   });
+}
+
+async function fetchChart(): Promise<AppleChartResponse> {
+  const response = await fetch(appleChartsUrl, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3_600 },
+    signal: AbortSignal.timeout(8_000),
+  });
+  if (!response.ok) throw new Error("Podcast chart request failed");
+  return (await response.json()) as AppleChartResponse;
 }
 
 export function searchPodcastCatalog(query: string): Promise<Podcast[]> {

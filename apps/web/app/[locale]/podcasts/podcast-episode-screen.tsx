@@ -9,7 +9,7 @@ import { findKnownEpisode } from "./podcast-catalog";
 import { PodcastEpisodePage } from "./podcast-episode-page";
 import { usePodcastLibrary } from "./podcast-library-store";
 import { usePodcastPlayerItems } from "./podcast-player-store";
-import { normalizePodcastId } from "./podcast-route";
+import { readSlugSegmentId } from "./podcast-route";
 import { PodcastStackPlaceholder } from "./podcast-stack-placeholder";
 import { PodcastStreamedEpisode } from "./podcast-streamed-episode";
 
@@ -23,9 +23,9 @@ interface PodcastEpisodeScreenProps {
  * a shared link waits for the episode's show to arrive.
  */
 export function PodcastEpisodeScreen({ show }: PodcastEpisodeScreenProps) {
-  const params = useParams<{ episodeId: string; showId: string }>();
-  const podcastId = normalizePodcastId(params.showId);
-  const episodeId = normalizePodcastId(params.episodeId);
+  const params = useParams<{ episode: string; show: string }>();
+  const podcastId = readSlugSegmentId(params.show);
+  const episodeId = readSlugSegmentId(params.episode);
   const library = usePodcastLibrary();
   const player = usePodcastPlayerItems();
 

@@ -57,7 +57,7 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
           <PodcastPageBarButton
             aria-label={`${messages.Back}: ${item.podcast.title}`}
             onClick={function goBack() {
-              iosRouter.back(getShowHref(item.podcast.id));
+              iosRouter.back(getShowHref(item.podcast));
             }}
           >
             <ChevronLeftIcon strokeWidth={2.8} />
