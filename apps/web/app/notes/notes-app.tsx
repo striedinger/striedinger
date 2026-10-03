@@ -6,6 +6,7 @@ import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from "r
 import type { Note, NoteFolder, NotesMessages } from "./types";
 
 import { IosAlert } from "../../components/ios/ios-alert";
+import { IosScreenTransition } from "../../components/ios/ios-screen-transition";
 import { useHasOpened } from "../../components/ios/use-has-opened";
 import { FoldersPane } from "./folders-pane";
 import { groupNotes, sortNotes } from "./note-dates";
@@ -13,7 +14,7 @@ import { NoteEditorPane } from "./note-editor-pane";
 import { NotesListPane } from "./notes-list-pane";
 import { NotesSkeleton } from "./notes-skeleton";
 import { useKeyboardInset } from "./use-keyboard-inset";
-import { notesStackTransitionName, useNotesRoute } from "./use-notes-route";
+import { useNotesRoute } from "./use-notes-route";
 import {
   allNotesFolderId,
   defaultFolderId,
@@ -156,7 +157,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
     setListSearchQuery("");
     navigate(
       { folderId, noteId: null },
-      { replace: route.folderId !== null || route.noteId !== null },
+      { history: route.folderId !== null || route.noteId !== null ? "replace" : "push" },
     );
   }
 
@@ -164,7 +165,10 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
     const isSwitchingNotes = route.noteId !== null;
     navigate(
       { folderId, noteId: note.id },
-      { direction: isSwitchingNotes ? "none" : "forward", replace: isSwitchingNotes },
+      {
+        direction: isSwitchingNotes ? "none" : "forward",
+        history: isSwitchingNotes ? "replace" : "push",
+      },
     );
   }
 
@@ -225,7 +229,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
     if (!folderPendingDeletion) return;
     store.deleteFolder(folderPendingDeletion.id);
     if (routeFolderId === folderPendingDeletion.id) {
-      navigate({ folderId: null, noteId: null }, { direction: "back", replace: true });
+      navigate({ folderId: null, noteId: null }, { direction: "back", history: "replace" });
     }
     setFolderPendingDeletion(null);
   }
@@ -235,11 +239,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   });
 
   return (
-    <div
-      ref={rootRef}
-      style={{ viewTransitionName: notesStackTransitionName }}
-      className="flex size-full min-w-0"
-    >
+    <div ref={rootRef} className="flex size-full min-w-0">
       <input
         ref={keyboardWarmupRef}
         aria-hidden="true"
@@ -248,125 +248,131 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
       />
       {store.isReady ? (
         <>
-          <FoldersPane
-            className={cn(
-              !route.folderId && !route.noteId ? "flex" : "hidden",
-              route.folderId ? "md:hidden lg:flex" : "md:flex",
-              "w-full md:w-[320px] md:shrink-0 md:border-r-[0.5px] md:border-(--ios-separator) lg:w-[280px]",
-            )}
-            deletedCount={deletedNotes.length}
-            folderCounts={folderCounts}
-            folderNames={folderNames}
-            folders={userFolders}
-            locale={locale}
-            messages={messages}
-            now={now}
-            searchQuery={folderSearchQuery}
-            searchResults={searchResults}
-            selectedFolderId={routeFolderId}
-            selectedNoteId={route.noteId}
-            totalCount={activeNotes.length}
-            onCreateFolder={function openNewFolderDialog() {
-              setFolderNameDialog({ folderId: null, name: "" });
-            }}
-            onCreateNote={function createNoteFromFolders() {
-              createNote(defaultFolderId);
-            }}
-            onDeleteFolder={setFolderPendingDeletion}
-            onDeleteNote={deleteNote}
-            onMoveNote={function chooseFolder(note) {
-              setNoteIdToMove(note.id);
-            }}
-            onRecoverNote={function recover(note) {
-              store.recoverNote(note.id);
-            }}
-            onRenameFolder={function openRenameDialog(folder) {
-              setFolderNameDialog({ folderId: folder.id, name: folder.name });
-            }}
-            onSearchQueryChange={setFolderSearchQuery}
-            onSelectFolder={selectFolder}
-            onSelectNote={selectSearchResult}
-            onTogglePinned={function togglePinned(note) {
-              store.togglePinned(note.id);
-            }}
-          />
-          <NotesListPane
-            className={cn(
-              route.folderId && !route.noteId ? "flex" : "hidden",
-              route.folderId ? "md:flex" : "md:hidden lg:flex",
-              "w-full md:w-[320px] md:shrink-0 md:border-r-[0.5px] md:border-(--ios-separator)",
-            )}
-            backButtonClassName="lg:hidden"
-            backLabel={messages.Folders}
-            canManageFolder={Boolean(currentUserFolder)}
-            folderNames={isAllNotes ? folderNames : null}
-            isRecentlyDeleted={isRecentlyDeleted}
-            locale={locale}
-            messages={messages}
-            noteCount={folderNotes.length}
-            now={now}
-            preferences={store.preferences}
-            searchQuery={listSearchQuery}
-            sections={listSections}
-            selectedNoteId={route.noteId}
-            title={listTitle}
-            onBack={function showFolders() {
-              goBack({ folderId: null, noteId: null });
-            }}
-            onCreateNote={function createNoteInFolder() {
-              createNote(listFolderId);
-            }}
-            onDeleteFolder={function confirmDeleteFolder() {
-              if (currentUserFolder) setFolderPendingDeletion(currentUserFolder);
-            }}
-            onDeleteNote={deleteNote}
-            onMoveNote={function chooseFolder(note) {
-              setNoteIdToMove(note.id);
-            }}
-            onPreferencesChange={store.updatePreferences}
-            onRecoverNote={function recover(note) {
-              store.recoverNote(note.id);
-            }}
-            onRenameFolder={function openRenameDialog() {
-              if (currentUserFolder) {
-                setFolderNameDialog({
-                  folderId: currentUserFolder.id,
-                  name: currentUserFolder.name,
-                });
-              }
-            }}
-            onSearchQueryChange={setListSearchQuery}
-            onSelectNote={selectListNote}
-            onTogglePinned={function togglePinned(note) {
-              store.togglePinned(note.id);
-            }}
-          />
-          <NoteEditorPane
-            className={cn(route.noteId ? "flex" : "hidden", "min-w-0 flex-1 md:flex")}
-            focusOnOpen={selectedNote?.id === autoFocusNoteId}
-            backButtonClassName="md:hidden"
-            backLabel={listTitle}
-            locale={locale}
-            messages={messages}
-            note={selectedNote}
-            onBack={function showList() {
-              goBack({ folderId: listFolderId, noteId: null });
-            }}
-            onCreateNote={function createNoteFromEditor() {
-              createNote(selectedNote?.folderId ?? listFolderId);
-            }}
-            onDeleteNote={deleteNote}
-            onHtmlChange={store.updateNoteHtml}
-            onMoveNote={function chooseFolder(note) {
-              setNoteIdToMove(note.id);
-            }}
-            onRecoverNote={function recover(note) {
-              store.recoverNote(note.id);
-            }}
-            onTogglePinned={function togglePinned(note) {
-              store.togglePinned(note.id);
-            }}
-          />
+          <IosScreenTransition>
+            <FoldersPane
+              className={cn(
+                !route.folderId && !route.noteId ? "flex" : "hidden",
+                route.folderId ? "md:hidden lg:flex" : "md:flex",
+                "w-full md:w-[320px] md:shrink-0 md:border-r-[0.5px] md:border-(--ios-separator) lg:w-[280px]",
+              )}
+              deletedCount={deletedNotes.length}
+              folderCounts={folderCounts}
+              folderNames={folderNames}
+              folders={userFolders}
+              locale={locale}
+              messages={messages}
+              now={now}
+              searchQuery={folderSearchQuery}
+              searchResults={searchResults}
+              selectedFolderId={routeFolderId}
+              selectedNoteId={route.noteId}
+              totalCount={activeNotes.length}
+              onCreateFolder={function openNewFolderDialog() {
+                setFolderNameDialog({ folderId: null, name: "" });
+              }}
+              onCreateNote={function createNoteFromFolders() {
+                createNote(defaultFolderId);
+              }}
+              onDeleteFolder={setFolderPendingDeletion}
+              onDeleteNote={deleteNote}
+              onMoveNote={function chooseFolder(note) {
+                setNoteIdToMove(note.id);
+              }}
+              onRecoverNote={function recover(note) {
+                store.recoverNote(note.id);
+              }}
+              onRenameFolder={function openRenameDialog(folder) {
+                setFolderNameDialog({ folderId: folder.id, name: folder.name });
+              }}
+              onSearchQueryChange={setFolderSearchQuery}
+              onSelectFolder={selectFolder}
+              onSelectNote={selectSearchResult}
+              onTogglePinned={function togglePinned(note) {
+                store.togglePinned(note.id);
+              }}
+            />
+          </IosScreenTransition>
+          <IosScreenTransition>
+            <NotesListPane
+              className={cn(
+                route.folderId && !route.noteId ? "flex" : "hidden",
+                route.folderId ? "md:flex" : "md:hidden lg:flex",
+                "w-full md:w-[320px] md:shrink-0 md:border-r-[0.5px] md:border-(--ios-separator)",
+              )}
+              backButtonClassName="lg:hidden"
+              backLabel={messages.Folders}
+              canManageFolder={Boolean(currentUserFolder)}
+              folderNames={isAllNotes ? folderNames : null}
+              isRecentlyDeleted={isRecentlyDeleted}
+              locale={locale}
+              messages={messages}
+              noteCount={folderNotes.length}
+              now={now}
+              preferences={store.preferences}
+              searchQuery={listSearchQuery}
+              sections={listSections}
+              selectedNoteId={route.noteId}
+              title={listTitle}
+              onBack={function showFolders() {
+                goBack({ folderId: null, noteId: null });
+              }}
+              onCreateNote={function createNoteInFolder() {
+                createNote(listFolderId);
+              }}
+              onDeleteFolder={function confirmDeleteFolder() {
+                if (currentUserFolder) setFolderPendingDeletion(currentUserFolder);
+              }}
+              onDeleteNote={deleteNote}
+              onMoveNote={function chooseFolder(note) {
+                setNoteIdToMove(note.id);
+              }}
+              onPreferencesChange={store.updatePreferences}
+              onRecoverNote={function recover(note) {
+                store.recoverNote(note.id);
+              }}
+              onRenameFolder={function openRenameDialog() {
+                if (currentUserFolder) {
+                  setFolderNameDialog({
+                    folderId: currentUserFolder.id,
+                    name: currentUserFolder.name,
+                  });
+                }
+              }}
+              onSearchQueryChange={setListSearchQuery}
+              onSelectNote={selectListNote}
+              onTogglePinned={function togglePinned(note) {
+                store.togglePinned(note.id);
+              }}
+            />
+          </IosScreenTransition>
+          <IosScreenTransition>
+            <NoteEditorPane
+              className={cn(route.noteId ? "flex" : "hidden", "min-w-0 flex-1 md:flex")}
+              focusOnOpen={selectedNote?.id === autoFocusNoteId}
+              backButtonClassName="md:hidden"
+              backLabel={listTitle}
+              locale={locale}
+              messages={messages}
+              note={selectedNote}
+              onBack={function showList() {
+                goBack({ folderId: listFolderId, noteId: null });
+              }}
+              onCreateNote={function createNoteFromEditor() {
+                createNote(selectedNote?.folderId ?? listFolderId);
+              }}
+              onDeleteNote={deleteNote}
+              onHtmlChange={store.updateNoteHtml}
+              onMoveNote={function chooseFolder(note) {
+                setNoteIdToMove(note.id);
+              }}
+              onRecoverNote={function recover(note) {
+                store.recoverNote(note.id);
+              }}
+              onTogglePinned={function togglePinned(note) {
+                store.togglePinned(note.id);
+              }}
+            />
+          </IosScreenTransition>
         </>
       ) : (
         <NotesSkeleton />

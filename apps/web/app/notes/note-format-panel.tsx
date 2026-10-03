@@ -1,6 +1,6 @@
 "use client";
 
-import type { PointerEvent, ReactNode, RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { CloseIcon } from "@workspace/icons/close-icon";
 import { IndentDecreaseIcon } from "@workspace/icons/indent-decrease-icon";
@@ -33,11 +33,18 @@ import { NoteFormatIconButton } from "./note-format-icon-button";
 
 interface NoteFormatPanelProps {
   editorRef: RefObject<HTMLDivElement | null>;
+  /** Focuses the note with its last selection restored and returns it, if it is open. */
+  focusEditor: () => HTMLDivElement | null;
   messages: NotesMessages;
   onClose: () => void;
 }
 
-export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPanelProps) {
+export function NoteFormatPanel({
+  editorRef,
+  focusEditor,
+  messages,
+  onClose,
+}: NoteFormatPanelProps) {
   const [formatState, setFormatState] = useState<NoteFormatState>(emptyFormatState);
   const blockStyles: ReadonlyArray<{ className: string; label: string; style: NoteBlockStyle }> = [
     { style: "h1", label: messages.Title, className: "text-[22px] font-bold" },
@@ -80,9 +87,8 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
   );
 
   function runFormatCommand(command: (editor: HTMLDivElement) => void) {
-    const editor = editorRef.current;
+    const editor = focusEditor();
     if (!editor) return;
-    if (!editor.contains(document.activeElement)) editor.focus({ preventScroll: true });
     command(editor);
     setFormatState(readFormatState(editor));
   }
@@ -94,7 +100,6 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
         "mx-2 mb-[max(env(safe-area-inset-bottom),8px)] flex flex-col gap-3 rounded-[32px] px-5 pt-4 pb-5",
         iosStrongGlassClassName,
       )}
-      onPointerDown={keepEditorSelection}
     >
       <div className="flex items-center justify-between">
         <Text as="h2" className="text-[20px] leading-[25px] font-bold text-(--ios-label)">
@@ -212,8 +217,4 @@ export function NoteFormatPanel({ editorRef, messages, onClose }: NoteFormatPane
       </div>
     </section>
   );
-}
-
-function keepEditorSelection(event: PointerEvent<HTMLElement>) {
-  event.preventDefault();
 }

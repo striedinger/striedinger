@@ -1,8 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { messages } from "../../messages/notes/en";
 import { NotesApp } from "./notes-app";
+
+vi.mock("next/navigation", async function mockNavigation() {
+  const { useHistorySearchParams } = await import("../../test/history-navigation");
+  return { useSearchParams: useHistorySearchParams };
+});
 
 const welcomeNoteHtml = "<h1>Welcome to Notes</h1><p>Start writing</p>";
 

@@ -1,0 +1,123 @@
+/*
+ * View transition animations for the native app replicas. React <ViewTransition> boundaries
+ * assign these classes (see ios-screen-transition.tsx and ios-reveal-transition.tsx); the
+ * pseudo-elements they style cannot be expressed as utilities.
+ */
+
+/* The site-wide page fade would move the whole app; native apps only move the screens. */
+html:has([data-slot="ios-app-frame"])::view-transition-old(root),
+html:has([data-slot="ios-app-frame"])::view-transition-new(root) {
+  animation: none;
+}
+
+/* Keep taps working while a transition finishes. */
+html:has([data-slot="ios-app-frame"])::view-transition {
+  pointer-events: none;
+}
+
+/* Push: the new screen slides over from the trailing edge while the old one recedes. */
+::view-transition-old(.ios-nav-forward),
+::view-transition-new(.ios-nav-forward),
+::view-transition-old(.ios-nav-back),
+::view-transition-new(.ios-nav-back) {
+  mix-blend-mode: normal;
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  animation-fill-mode: both;
+}
+
+::view-transition-new(.ios-nav-forward) {
+  animation-name: ios-slide-in-from-trailing;
+  box-shadow: -12px 0 32px rgb(0 0 0 / 0.12);
+}
+
+::view-transition-old(.ios-nav-forward) {
+  animation-name: ios-recede-to-leading;
+}
+
+/* Pop: the top screen slides away and the previous one returns from underneath. */
+::view-transition-old(.ios-nav-back) {
+  z-index: 1;
+  animation-name: ios-slide-out-to-trailing;
+  box-shadow: -12px 0 32px rgb(0 0 0 / 0.12);
+}
+
+::view-transition-new(.ios-nav-back) {
+  animation-name: ios-return-from-leading;
+}
+
+::view-transition-group(.ios-nav-forward),
+::view-transition-group(.ios-nav-back) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Content arriving in place of a loading placeholder. */
+::view-transition-new(.ios-reveal) {
+  animation: 240ms cubic-bezier(0.22, 1, 0.36, 1) both ios-fade-in;
+}
+
+::view-transition-old(.ios-reveal) {
+  animation: 140ms ease-out both ios-fade-out;
+}
+
+/* Bars that stay put while screens move under them, like a tab bar. */
+::view-transition-group(.ios-anchored) {
+  z-index: 100;
+  animation: none;
+}
+
+::view-transition-old(.ios-anchored) {
+  display: none;
+}
+
+::view-transition-new(.ios-anchored) {
+  animation: none;
+}
+
+@keyframes ios-slide-in-from-trailing {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ios-recede-to-leading {
+  to {
+    transform: translateX(-30%);
+    filter: brightness(0.92);
+  }
+}
+
+@keyframes ios-slide-out-to-trailing {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ios-return-from-leading {
+  from {
+    transform: translateX(-30%);
+    filter: brightness(0.92);
+  }
+}
+
+@keyframes ios-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ios-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

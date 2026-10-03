@@ -90,7 +90,7 @@ export function NowPlayingSheet({
                 </Drawer.Close>
                 <Drawer.Title className="sr-only">{messages["Now Playing"]}</Drawer.Title>
                 <Drawer.Description className="sr-only">{item.episode.title}</Drawer.Description>
-                <div className="flex min-h-0 flex-1 flex-col justify-center py-4">
+                <div className="[container-type:size] flex min-h-0 flex-1 flex-col justify-center py-4">
                   {showsQueue ? (
                     <div className="flex min-h-0 flex-1 flex-col gap-5">
                       <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ export function NowPlayingSheet({
                       sizes="(min-width: 768px) 420px, 90vw"
                       priority
                       className={cn(
-                        "mx-auto w-full max-w-[min(100%,46dvh)] rounded-[12px] shadow-[0_18px_40px_rgb(0_0_0/0.4)] transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none",
+                        "mx-auto w-[min(100cqw,100cqh)] max-w-[420px] shrink-0 rounded-[12px] shadow-[0_18px_40px_rgb(0_0_0/0.4)] transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none",
                         player.isPlaying ? "scale-100" : "scale-[0.82]",
                       )}
                     />

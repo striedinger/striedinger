@@ -13,11 +13,13 @@ const navigationMocks = vi.hoisted(function createNavigationMocks() {
   };
 });
 
-vi.mock("next/navigation", function mockNavigation() {
+vi.mock("next/navigation", async function mockNavigation() {
+  const { useHistoryPathname, useHistorySearchParams } =
+    await import("../../test/history-navigation");
   return {
-    usePathname: () => "/podcasts",
+    usePathname: useHistoryPathname,
     useRouter: () => navigationMocks,
-    useSearchParams: () => new URLSearchParams(window.location.search),
+    useSearchParams: useHistorySearchParams,
   };
 });
 
@@ -57,6 +59,11 @@ const episodes: PodcastEpisode[] = [
   },
 ];
 
+/** A promise React can read synchronously, like one already resolved in a server payload. */
+function createResolvedPromise<Value>(value: Value) {
+  return Object.assign(Promise.resolve(value), { status: "fulfilled", value });
+}
+
 async function renderPodcasts(search = "") {
   window.history.replaceState(null, "", `/podcasts${search}`);
   const { PodcastsApp } = await import("./podcasts-app");
@@ -68,7 +75,8 @@ async function renderPodcasts(search = "") {
       searchFailed={false}
       searchQuery=""
       searchResults={[]}
-      show={{ podcast, episodes }}
+      show={createResolvedPromise({ podcast, episodes })}
+      showId="123"
       newEpisodes={[]}
       newEpisodesShowIds={[]}
     />,

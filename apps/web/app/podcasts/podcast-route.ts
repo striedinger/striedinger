@@ -74,15 +74,13 @@ export function createPodcastHref(pathname: string, route: PodcastRoute) {
   return search ? `${pathname}?${search}` : pathname;
 }
 
-export function getPodcastRouteKey(route: PodcastRoute) {
-  return [
-    route.tab,
-    route.query,
-    route.libraryView,
-    route.podcastId,
-    route.episodeId,
-    route.followedIds.join(","),
-  ].join("|");
+/** How many screens are pushed above the tab's root, which orders back and forward moves. */
+export function getPodcastRouteDepth(route: PodcastRoute) {
+  return (
+    Number(route.libraryView !== null) +
+    Number(route.podcastId !== null) +
+    Number(route.episodeId !== null)
+  );
 }
 
 export function createTabRoute(tab: PodcastTab): PodcastRoute {

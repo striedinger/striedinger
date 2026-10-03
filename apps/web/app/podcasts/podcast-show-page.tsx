@@ -3,27 +3,27 @@
 import { CheckIcon } from "@workspace/icons/check-icon";
 import { ChevronLeftIcon } from "@workspace/icons/chevron-left-icon";
 import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
-import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
-import { useState } from "react";
+import { Suspense } from "react";
 
-import type { Podcast, PodcastEpisode, PodcastMessages, PodcastQueueItem } from "./types";
+import type { Podcast, PodcastMessages, PodcastQueueItem, PodcastShow } from "./types";
 
 import { IosMenu } from "../../components/ios/ios-menu";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
-import { EpisodeList } from "./episode-list";
+import { IosRevealTransition } from "../../components/ios/ios-reveal-transition";
+import { EpisodeListSkeleton } from "./episode-list-skeleton";
 import { PodcastHero } from "./podcast-hero";
 import { toggleFollowedPodcast, usePodcastLibrary } from "./podcast-library-store";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
-import { playEpisode } from "./podcast-player-store";
+import { PodcastShowDescription } from "./podcast-show-description";
+import { PodcastShowEpisodes } from "./podcast-show-episodes";
+import { PodcastShowPlayButton } from "./podcast-show-play-button";
 import { usePodcastMenuSections } from "./use-podcast-menu-sections";
 
-interface PodcastShowPageProps {
+export interface PodcastShowPageProps {
   backLabel: string;
-  episodes: readonly PodcastEpisode[] | null;
   getEpisodeHref: (item: PodcastQueueItem) => string;
-  isLoading: boolean;
   locale: string;
   messages: PodcastMessages;
   now: number;
@@ -32,13 +32,16 @@ interface PodcastShowPageProps {
   onShare: (item: PodcastQueueItem) => void;
   onShareShow: (podcast: Podcast) => void;
   podcast: Podcast;
+  /**
+   * The show's episodes streaming from the server, or null while the app is still requesting
+   * them, as it does right after pushing a show it only knows from a list.
+   */
+  show: Promise<PodcastShow | null> | null;
 }
 
 export function PodcastShowPage({
   backLabel,
-  episodes,
   getEpisodeHref,
-  isLoading,
   locale,
   messages,
   now,
@@ -47,21 +50,14 @@ export function PodcastShowPage({
   onShare,
   onShareShow,
   podcast,
+  show,
 }: PodcastShowPageProps) {
   const library = usePodcastLibrary();
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const menuSections = usePodcastMenuSections(podcast, messages, onShareShow);
   const isFollowed = library.followed.some(function matchesPodcast(item) {
     return item.id === podcast.id;
   });
-  const items: PodcastQueueItem[] = (episodes ?? []).map(function createItem(episode) {
-    return { podcast, episode };
-  });
-  const resumeItem = library.progress.find(function belongsToShow(item) {
-    return item.podcast.id === podcast.id;
-  });
-  const latestItem = items[0];
-  const description = latestItem?.episode.description ?? "";
+  const episodesSkeleton = <EpisodeListSkeleton label={messages["Loading episodes"]} />;
 
   return (
     <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain pb-40">
@@ -111,19 +107,13 @@ export function PodcastShowPage({
               </Text>
             </div>
             <div className="flex w-full max-w-sm items-center gap-2.5">
-              <button
-                type="button"
-                disabled={!latestItem && !resumeItem}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[12px] bg-white text-[17px] font-semibold text-black outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70 disabled:opacity-50"
-                onClick={function playShow() {
-                  if (resumeItem)
-                    playEpisode({ podcast: resumeItem.podcast, episode: resumeItem.episode });
-                  else if (latestItem) playEpisode(latestItem);
-                }}
+              <Suspense
+                fallback={
+                  <PodcastShowPlayButton messages={messages} podcast={podcast} show={null} />
+                }
               >
-                <PlayFillIcon className="size-4" />
-                {resumeItem ? messages.Resume : messages["Latest Episode"]}
-              </button>
+                <PodcastShowPlayButton messages={messages} podcast={podcast} show={show} />
+              </Suspense>
               <button
                 type="button"
                 aria-pressed={isFollowed}
@@ -140,28 +130,10 @@ export function PodcastShowPage({
                 {isFollowed ? messages.Following : messages.Follow}
               </button>
             </div>
-            {description ? (
-              <button
-                type="button"
-                aria-expanded={isDescriptionExpanded}
-                className="max-w-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                onClick={function toggleDescription() {
-                  setIsDescriptionExpanded(!isDescriptionExpanded);
-                }}
-              >
-                <Text
-                  as="span"
-                  numberOfLines={isDescriptionExpanded ? undefined : 3}
-                  className="text-[15px] leading-5 tracking-[-0.23px] text-white/80"
-                >
-                  {description}
-                </Text>
-                {isDescriptionExpanded ? null : (
-                  <Text as="span" className="text-[13px] font-semibold text-white uppercase">
-                    {messages["Show More"]}
-                  </Text>
-                )}
-              </button>
+            {show ? (
+              <Suspense fallback={null}>
+                <PodcastShowDescription messages={messages} show={show} />
+              </Suspense>
             ) : null}
           </PodcastHero>
         }
@@ -176,41 +148,23 @@ export function PodcastShowPage({
         >
           {messages.Episodes}
         </Text>
-        {items.length > 0 ? (
-          <EpisodeList
-            items={items}
-            label={messages.Episodes}
-            getHref={getEpisodeHref}
-            locale={locale}
-            messages={messages}
-            now={now}
-            onOpen={onOpenEpisode}
-            onShare={onShare}
-          />
-        ) : isLoading ? (
-          <div
-            role="status"
-            aria-label={messages["Loading episodes"]}
-            className="flex flex-col gap-6 px-4 pt-4"
-          >
-            {[0, 1, 2, 3].map(function renderPlaceholder(placeholder) {
-              return (
-                <div
-                  key={placeholder}
-                  className="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
-                >
-                  <span className="h-3 w-16 rounded bg-(--ios-tertiary-fill)" />
-                  <span className="h-4 w-4/5 rounded bg-(--ios-tertiary-fill)" />
-                  <span className="h-3 w-full rounded bg-(--ios-tertiary-fill)" />
-                  <span className="h-7 w-24 rounded-full bg-(--ios-tertiary-fill)" />
-                </div>
-              );
-            })}
-          </div>
+        {show ? (
+          <Suspense fallback={<IosRevealTransition>{episodesSkeleton}</IosRevealTransition>}>
+            <IosRevealTransition>
+              <PodcastShowEpisodes
+                show={show}
+                podcast={podcast}
+                getEpisodeHref={getEpisodeHref}
+                locale={locale}
+                messages={messages}
+                now={now}
+                onOpenEpisode={onOpenEpisode}
+                onShare={onShare}
+              />
+            </IosRevealTransition>
+          </Suspense>
         ) : (
-          <Text className="px-4 pt-4 text-[15px] text-(--ios-secondary-label)">
-            {messages["Episodes are unavailable right now. Please try another show."]}
-          </Text>
+          episodesSkeleton
         )}
       </section>
     </div>

@@ -6,6 +6,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useState } from "react";
 
 import { IosPortalContainerContext } from "./ios-portal-container";
+import "./ios-view-transitions.css";
 
 // Apple's iOS system colors for the light and dark appearances. Native replicas use these
 // instead of the site palette so materials, labels, and separators match the real apps.

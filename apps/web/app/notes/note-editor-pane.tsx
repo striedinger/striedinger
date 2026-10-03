@@ -15,7 +15,7 @@ import { TrashIcon } from "@workspace/icons/trash-icon";
 import { UndoIcon } from "@workspace/icons/undo-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
 import type { Note, NotesMessages } from "./types";
 
@@ -69,6 +69,7 @@ export function NoteEditorPane({
 }: NoteEditorPaneProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const lastRangeRef = useRef<Range | null>(null);
+  const editingControlPressedAtRef = useRef(Number.NEGATIVE_INFINITY);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -77,24 +78,21 @@ export function NoteEditorPane({
   const [statusMessage, setStatusMessage] = useState("");
   const isDeleted = note?.deletedAt !== null && note?.deletedAt !== undefined;
 
-  useEffect(
-    function rememberEditorSelection() {
-      if (!isEditing) return;
-      function storeSelection() {
-        const selection = window.getSelection();
-        const editor = editorRef.current;
-        if (!selection || selection.rangeCount === 0 || !editor) return;
-        const range = selection.getRangeAt(0);
-        if (editor.contains(range.commonAncestorContainer))
-          lastRangeRef.current = range.cloneRange();
-      }
-      document.addEventListener("selectionchange", storeSelection);
-      return function stopRememberingSelection() {
-        document.removeEventListener("selectionchange", storeSelection);
-      };
-    },
-    [isEditing],
-  );
+  // The last selection inside the note survives taps on toolbars and menus, which can move
+  // focus or collapse the selection on touch devices, so commands still apply to it.
+  useEffect(function rememberEditorSelection() {
+    function storeSelection() {
+      const selection = window.getSelection();
+      const editor = editorRef.current;
+      if (!selection || selection.rangeCount === 0 || !editor) return;
+      const range = selection.getRangeAt(0);
+      if (editor.contains(range.commonAncestorContainer)) lastRangeRef.current = range.cloneRange();
+    }
+    document.addEventListener("selectionchange", storeSelection);
+    return function stopRememberingSelection() {
+      document.removeEventListener("selectionchange", storeSelection);
+    };
+  }, []);
 
   useEffect(
     function clearStatusMessage() {
@@ -122,6 +120,27 @@ export function NoteEditorPane({
       startNewLineAtEnd(editor);
     }
     return editor;
+  }
+
+  function rememberEditingControlPress(event: PointerEvent<HTMLElement>) {
+    editingControlPressedAtRef.current = event.timeStamp;
+  }
+
+  // Editing controls act on the note, so pressing one keeps the note focused and keeps its
+  // selection and the software keyboard.
+  const editingControlHandlers = {
+    onMouseDown: keepEditorFocus,
+    onPointerDown: rememberEditingControlPress,
+  };
+
+  function updateEditing(nextIsEditing: boolean, timeStamp: number) {
+    const isLeavingForEditingControl =
+      !nextIsEditing && timeStamp - editingControlPressedAtRef.current < editingControlGracePeriod;
+    if (!isLeavingForEditingControl) setIsEditing(nextIsEditing);
+  }
+
+  function undo() {
+    if (focusEditorAtSelection()) undoEditing();
   }
 
   function addChecklist() {
@@ -272,8 +291,8 @@ export function NoteEditorPane({
                       variant="plain"
                       aria-label={messages.Undo}
                       className="text-(--ios-label)"
-                      onPointerDown={keepEditorFocus}
-                      onClick={undoEditing}
+                      {...editingControlHandlers}
+                      onClick={undo}
                     >
                       <UndoIcon />
                     </IosBarButton>
@@ -331,9 +350,7 @@ export function NoteEditorPane({
                 label={messages["Note text"]}
                 noteId={note.id}
                 readOnly={isDeleted}
-                onEditingChange={function updateEditing(nextIsEditing) {
-                  setIsEditing(nextIsEditing);
-                }}
+                onEditingChange={updateEditing}
                 onHtmlChange={onHtmlChange}
                 onReadOnlyInteraction={function explainReadOnly() {
                   setIsReadOnlyAlertOpen(true);
@@ -347,10 +364,14 @@ export function NoteEditorPane({
           </Text>
         )}
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col">
+      <div
+        className="absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col"
+        {...editingControlHandlers}
+      >
         {isFormatOpen && isEditing ? (
           <NoteFormatPanel
             editorRef={editorRef}
+            focusEditor={focusEditorAtSelection}
             messages={messages}
             onClose={function closeFormat() {
               setIsFormatOpen(false);
@@ -369,7 +390,7 @@ export function NoteEditorPane({
                 variant="plain"
                 aria-label={messages.Format}
                 aria-pressed={isFormatOpen}
-                onPointerDown={keepEditorFocus}
+                {...editingControlHandlers}
                 onClick={function toggleFormat() {
                   setIsFormatOpen(!isFormatOpen);
                 }}
@@ -380,7 +401,7 @@ export function NoteEditorPane({
             <IosBarButton
               variant="plain"
               aria-label={messages.Checklist}
-              onPointerDown={isEditing ? keepEditorFocus : undefined}
+              {...(isEditing ? editingControlHandlers : undefined)}
               onClick={addChecklist}
             >
               <ChecklistIcon />
@@ -477,6 +498,8 @@ export function NoteEditorPane({
   );
 }
 
-function keepEditorFocus(event: PointerEvent<HTMLElement>) {
+const editingControlGracePeriod = 800;
+
+function keepEditorFocus(event: MouseEvent<HTMLElement>) {
   event.preventDefault();
 }

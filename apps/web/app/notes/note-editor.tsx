@@ -24,7 +24,7 @@ interface NoteEditorProps {
   html: string;
   label: string;
   noteId: string;
-  onEditingChange: (isEditing: boolean) => void;
+  onEditingChange: (isEditing: boolean, timeStamp: number) => void;
   onHtmlChange: (noteId: string, html: string) => void;
   focusOnOpen: boolean;
   onReadOnlyInteraction: () => void;
@@ -186,12 +186,12 @@ export function NoteEditor({
       data-note-id={noteId}
       className={cn(noteContentClassName, "min-h-full px-5 pt-1 pb-40")}
       dangerouslySetInnerHTML={{ __html: initialHtml }}
-      onFocus={function startEditing() {
-        onEditingChange(true);
+      onFocus={function startEditing(event) {
+        onEditingChange(true, event.timeStamp);
       }}
-      onBlur={function stopEditing() {
+      onBlur={function stopEditing(event) {
         saveNow();
-        onEditingChange(false);
+        onEditingChange(false, event.timeStamp);
       }}
       onInput={function handleInput(event) {
         const editor = event.currentTarget;

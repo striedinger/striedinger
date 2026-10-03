@@ -24,6 +24,8 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - These routes intentionally run full screen like installed apps: no shared app bar, a full-viewport frame with safe-area insets, and native styling instead of the shared page canvas, surfaces, and site palette. Keep each app's tint as a CSS variable on its frame.
 - Keep native replicas fast on phones: load popups (menus, alerts, sheets) on first use, subscribe to the narrowest store slice a component needs, keep navigation handlers stable, and reuse cached `Intl` formatters from `lib/intl-cache`.
 - Reuse the primitives in `components/ios` for navigation bars, search fields, lists, menus, alerts, swipe actions, and stack transitions before adding route-specific chrome.
+- Drive screen changes with `useIosNavigation` and wrap each screen in `IosScreenTransition`. Routes change in React state inside transitions tagged with a push or pop direction, so React `<ViewTransition>` animates them immediately, and the URL follows after commit. Do not rely on Next.js shallow `history.pushState` updates to drive animated screens.
+- Push screens before their data arrives. Load what is missing through the Server Components for the new URL, pass it to the client as a promise, and read it with `use()` inside Suspense boundaries wrapped in `IosRevealTransition`.
 
 ## URL state
 

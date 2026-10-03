@@ -24,7 +24,18 @@ export async function PodcastsLoader({ searchParams }: PodcastsLoaderProps) {
       return (Array.isArray(value) ? value[0] : value) ?? null;
     },
   });
-  const [messages, popular, search, show, newEpisodes] = await Promise.all([
+  // The show streams into its screen's Suspense boundaries instead of holding up the app.
+  const show = route.podcastId
+    ? getPodcastShow(route.podcastId).then(
+        function createShow([podcast, episodes]): PodcastShow | null {
+          return podcast ? { podcast, episodes } : null;
+        },
+        function useUnavailableShow() {
+          return null;
+        },
+      )
+    : Promise.resolve(null);
+  const [messages, popular, search, newEpisodes] = await Promise.all([
     loadPodcastMessages(locale),
     getPopularPodcasts().catch(function useEmptyChart(): Podcast[] {
       return [];
@@ -39,16 +50,6 @@ export async function PodcastsLoader({ searchParams }: PodcastsLoaderProps) {
           },
         )
       : Promise.resolve({ failed: false, results: [] as Podcast[] }),
-    route.podcastId
-      ? getPodcastShow(route.podcastId).then(
-          function createShow([podcast, episodes]): PodcastShow | null {
-            return podcast ? { podcast, episodes } : null;
-          },
-          function useUnavailableShow() {
-            return null;
-          },
-        )
-      : Promise.resolve(null),
     loadNewEpisodes(route.followedIds),
   ]);
   const description =
@@ -82,6 +83,7 @@ export async function PodcastsLoader({ searchParams }: PodcastsLoaderProps) {
         searchQuery={route.query}
         searchResults={search.results}
         show={show}
+        showId={route.podcastId}
         newEpisodes={newEpisodes}
         newEpisodesShowIds={route.followedIds}
       />

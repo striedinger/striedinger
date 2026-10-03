@@ -6,7 +6,7 @@ import { PauseFillIcon } from "@workspace/icons/pause-fill-icon";
 import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { Text } from "@workspace/ui/components/text";
 
-import type { PodcastMessages, PodcastQueueItem } from "./types";
+import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
 
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
 import { EpisodeMenu } from "./episode-menu";
@@ -17,7 +17,7 @@ import { PodcastLink } from "./podcast-link";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
 import { playEpisode, togglePlayback, usePodcastPlayer } from "./podcast-player-store";
 
-interface PodcastEpisodePageProps {
+export interface PodcastEpisodePageProps {
   item: PodcastQueueItem;
   locale: string;
   messages: PodcastMessages;
@@ -25,7 +25,7 @@ interface PodcastEpisodePageProps {
   onBack: () => void;
   onGoToShow: (item: PodcastQueueItem) => void;
   onShare: (item: PodcastQueueItem) => void;
-  showHref: string;
+  getShowHref: (podcast: Podcast) => string;
 }
 
 export function PodcastEpisodePage({
@@ -36,7 +36,7 @@ export function PodcastEpisodePage({
   onBack,
   onGoToShow,
   onShare,
-  showHref,
+  getShowHref,
 }: PodcastEpisodePageProps) {
   const library = usePodcastLibrary();
   const player = usePodcastPlayer();
@@ -96,7 +96,7 @@ export function PodcastEpisodePage({
                 {item.episode.title}
               </Text>
               <PodcastLink
-                href={showHref}
+                href={getShowHref(item.podcast)}
                 className="text-[17px] leading-[22px] text-white/75 underline-offset-2 outline-none hover:underline focus-visible:underline"
                 onOpen={function openShow() {
                   onGoToShow(item);

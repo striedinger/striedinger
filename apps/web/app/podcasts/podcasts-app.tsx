@@ -1,8 +1,7 @@
 "use client";
 
-import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 
 import type {
@@ -14,13 +13,11 @@ import type {
   PodcastTab,
 } from "./types";
 
-import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
-import {
-  runIosStackTransition,
-  type IosStackDirection,
-} from "../../components/ios/ios-stack-transition";
+import { IosErrorBoundary } from "../../components/ios/ios-error-boundary";
+import { IosScreenTransition } from "../../components/ios/ios-screen-transition";
 import { IosToast } from "../../components/ios/ios-toast";
 import { useHasOpened } from "../../components/ios/use-has-opened";
+import { useIosNavigation } from "../../components/ios/use-ios-navigation";
 import { copyText } from "../../lib/copy-text";
 import { PodcastEpisodePage } from "./podcast-episode-page";
 import { useFollowedPodcasts } from "./podcast-library-store";
@@ -29,13 +26,15 @@ import { pausePlayback, usePodcastPlayerItems } from "./podcast-player-store";
 import {
   createPodcastHref,
   createTabRoute,
-  getPodcastRouteKey,
+  getPodcastRouteDepth,
   normalizeFollowedIds,
   parsePodcastRoute,
   type LibraryView,
   type PodcastRoute,
 } from "./podcast-route";
+import { PodcastSharedDestination } from "./podcast-shared-destination";
 import { PodcastShowPage } from "./podcast-show-page";
+import { PodcastStackPlaceholder } from "./podcast-stack-placeholder";
 import { PodcastsHomeTab } from "./podcasts-home-tab";
 import { PodcastsLibraryTab } from "./podcasts-library-tab";
 import { PodcastsNewTab } from "./podcasts-new-tab";
@@ -52,15 +51,12 @@ interface PodcastsAppProps {
   searchResults: readonly Podcast[];
   newEpisodes: readonly PodcastQueueItem[];
   newEpisodesShowIds: readonly string[];
-  show: PodcastShow | null;
+  /** The show for `showId`, streaming from the server. */
+  show: Promise<PodcastShow | null>;
+  /** The show the server rendered this page for, if any. */
+  showId: string | null;
 }
 
-interface OptimisticRoute {
-  fromKey: string;
-  route: PodcastRoute;
-}
-
-const stackTransitionName = "ios-podcasts-stack";
 const noEpisodes: readonly PodcastQueueItem[] = [];
 const NowPlayingSheet = lazy(function importNowPlayingSheet() {
   return import("./now-playing-sheet").then(function selectNowPlayingSheet(module) {
@@ -79,26 +75,22 @@ export function PodcastsApp({
   newEpisodes,
   newEpisodesShowIds,
   show,
+  showId,
 }: PodcastsAppProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const urlRoute = parsePodcastRoute(searchParams);
-  const urlRouteKey = getPodcastRouteKey(urlRoute);
-  const [optimisticRoute, setOptimisticRoute] = useState<OptimisticRoute | null>(null);
-  if (
-    optimisticRoute &&
-    optimisticRoute.fromKey !== urlRouteKey &&
-    getPodcastRouteKey(optimisticRoute.route) === urlRouteKey
-  ) {
-    setOptimisticRoute(null);
-  }
-  const route = optimisticRoute?.fromKey === urlRouteKey ? optimisticRoute.route : urlRoute;
+  const { goBack, navigate, route } = useIosNavigation({
+    createHref: function createRouteHref(nextRoute: PodcastRoute) {
+      return createPodcastHref(pathname, nextRoute);
+    },
+    getDepth: getPodcastRouteDepth,
+    parseRoute: parsePodcastRoute,
+  });
   const [isNavigating, startNavigation] = useTransition();
   const [openedItem, setOpenedItem] = useState<PodcastQueueItem | null>(null);
   const [visitedTabs, setVisitedTabs] = useState<ReadonlySet<PodcastTab>>(
     function createVisitedTabs() {
-      return new Set([urlRoute.tab]);
+      return new Set([route.tab]);
     },
   );
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
@@ -106,14 +98,18 @@ export function PodcastsApp({
   const hasNowPlayingOpened = useHasOpened(isNowPlayingOpen);
   const contentRef = useRef<HTMLDivElement>(null);
   const [previousTab, setPreviousTab] = useState<Exclude<PodcastTab, "search">>(
-    urlRoute.tab === "search" ? "home" : urlRoute.tab,
+    route.tab === "search" ? "home" : route.tab,
   );
   const [statusMessage, setStatusMessage] = useState("");
   const [now] = useState(function readCurrentTime() {
     return Date.now();
   });
-  const routeStackRef = useRef<PodcastRoute[]>([]);
-  const isLeavingByBackRef = useRef(false);
+  // Navigation handlers read the latest route from a ref so their identity stays stable across
+  // navigations; otherwise every mounted tab and row would re-render on each push.
+  const latestRef = useRef({ route });
+  useLayoutEffect(function rememberLatestRoute() {
+    latestRef.current = { route };
+  });
   const tabScrollRefs = useRef(new Map<PodcastTab, HTMLDivElement>());
   const followedPodcasts = useFollowedPodcasts();
   const player = usePodcastPlayerItems();
@@ -122,20 +118,6 @@ export function PodcastsApp({
       return podcast.id;
     }),
   );
-
-  useEffect(function trackBrowserHistory() {
-    function forgetHistoryEntry() {
-      if (isLeavingByBackRef.current) {
-        isLeavingByBackRef.current = false;
-        return;
-      }
-      routeStackRef.current.pop();
-    }
-    window.addEventListener("popstate", forgetHistoryEntry);
-    return function stopTrackingBrowserHistory() {
-      window.removeEventListener("popstate", forgetHistoryEntry);
-    };
-  }, []);
 
   const followedShowKey = followedShowIds.join(",");
   const newEpisodesShowKey = newEpisodesShowIds.join(",");
@@ -153,6 +135,48 @@ export function PodcastsApp({
       });
     },
     [followedShowKey, isNewTabActive, newEpisodesShowKey, pathname, router],
+  );
+
+  const knownPodcasts = new Map<string, Podcast>();
+  const knownItems = new Map<string, PodcastQueueItem>();
+  function rememberItem(item: { episode: PodcastEpisode; podcast: Podcast }) {
+    knownPodcasts.set(item.podcast.id, item.podcast);
+    knownItems.set(item.episode.id, { podcast: item.podcast, episode: item.episode });
+  }
+  for (const podcast of [...popular, ...searchResults, ...followedPodcasts])
+    knownPodcasts.set(podcast.id, podcast);
+  for (const item of player.queue) rememberItem(item);
+  if (player.current) rememberItem(player.current);
+  if (openedItem) rememberItem(openedItem);
+
+  const routePodcast = route.podcastId ? (knownPodcasts.get(route.podcastId) ?? null) : null;
+  const routeItem = route.episodeId ? (knownItems.get(route.episodeId) ?? null) : null;
+  // Screens push immediately with what the app already knows; a show's episodes then load
+  // through the Server Components for its URL, streaming into the screen's Suspense boundaries.
+  // Shows already streamed stay available, so a screen sliding away keeps its episodes and
+  // returning to a show does not load it again.
+  const [loadedShows, setLoadedShows] = useState<ReadonlyMap<string, Promise<PodcastShow | null>>>(
+    function createLoadedShows() {
+      return new Map(showId ? [[showId, show]] : []);
+    },
+  );
+  if (showId && loadedShows.get(showId) !== show) {
+    setLoadedShows(new Map(loadedShows).set(showId, show));
+  }
+  const routeShow = route.podcastId ? (loadedShows.get(route.podcastId) ?? null) : null;
+  const showDataHref =
+    route.podcastId !== null && routeShow === null && routeItem === null
+      ? createPodcastHref(pathname, route)
+      : null;
+
+  useEffect(
+    function loadShowForRoute() {
+      if (!showDataHref) return;
+      startNavigation(function requestShow() {
+        router.replace(showDataHref, { scroll: false });
+      });
+    },
+    [router, showDataHref],
   );
 
   // Like iOS 26, the tab bar shrinks while scrolling down and returns when scrolling up.
@@ -199,27 +223,6 @@ export function PodcastsApp({
     [statusMessage],
   );
 
-  const knownPodcasts = new Map<string, Podcast>();
-  const knownItems = new Map<string, PodcastQueueItem>();
-  function rememberItem(item: { episode: PodcastEpisode; podcast: Podcast }) {
-    knownPodcasts.set(item.podcast.id, item.podcast);
-    knownItems.set(item.episode.id, { podcast: item.podcast, episode: item.episode });
-  }
-  for (const podcast of [...popular, ...searchResults, ...followedPodcasts])
-    knownPodcasts.set(podcast.id, podcast);
-  for (const item of player.queue) rememberItem(item);
-  if (player.current) rememberItem(player.current);
-  if (openedItem) rememberItem(openedItem);
-  if (show) {
-    knownPodcasts.set(show.podcast.id, show.podcast);
-    for (const episode of show.episodes) rememberItem({ podcast: show.podcast, episode });
-  }
-
-  const serverShow = show && show.podcast.id === route.podcastId ? show : null;
-  const routePodcast = route.podcastId
-    ? (serverShow?.podcast ?? knownPodcasts.get(route.podcastId) ?? null)
-    : null;
-  const routeItem = route.episodeId ? (knownItems.get(route.episodeId) ?? null) : null;
   const isStackOpen = route.podcastId !== null;
   const mountedTabs = new Set([...visitedTabs, route.tab]);
   const tabTitles: Record<PodcastTab, string> = {
@@ -229,77 +232,28 @@ export function PodcastsApp({
     search: messages.Search,
   };
 
-  // Navigation handlers read the latest route from a ref so their identity stays stable across
-  // navigations; otherwise every mounted tab and row would re-render on each push.
-  const latestRef = useRef({ route, showId: show?.podcast.id ?? null, urlRouteKey });
-  useLayoutEffect(function rememberLatestRoute() {
-    latestRef.current = { route, showId: show?.podcast.id ?? null, urlRouteKey };
-  });
-
-  function navigate(nextRoute: PodcastRoute, direction: IosStackDirection) {
-    const latest = latestRef.current;
-    const href = createPodcastHref(pathname, nextRoute);
-    const needsServerData = nextRoute.podcastId !== null && nextRoute.podcastId !== latest.showId;
-    const fromKey = latest.urlRouteKey;
-    runIosStackTransition({
-      commit: function showNextRoute() {
-        setOptimisticRoute({ fromKey, route: nextRoute });
-      },
-      direction,
-      narrowScreensOnly: false,
-      transitionName: stackTransitionName,
-    });
-    routeStackRef.current.push(latest.route);
-    if (needsServerData) {
-      startNavigation(function loadNextRoute() {
-        router.push(href, { scroll: false });
-      });
-    } else {
-      window.history.pushState(null, "", href);
-    }
-  }
-
-  function goBack(fallbackRoute: PodcastRoute) {
-    const previousRoute = routeStackRef.current.pop();
-    const parentRoute = previousRoute ?? fallbackRoute;
-    const fromKey = latestRef.current.urlRouteKey;
-    runIosStackTransition({
-      commit: function showParentRoute() {
-        setOptimisticRoute({ fromKey, route: parentRoute });
-      },
-      direction: "back",
-      narrowScreensOnly: false,
-      transitionName: stackTransitionName,
-    });
-    if (previousRoute) {
-      isLeavingByBackRef.current = true;
-      window.history.back();
-      return;
-    }
-    window.history.replaceState(null, "", createPodcastHref(pathname, parentRoute));
-  }
-
   function openShow(podcast: Podcast) {
-    navigate({ ...latestRef.current.route, podcastId: podcast.id, episodeId: null }, "forward");
+    navigate({ ...latestRef.current.route, podcastId: podcast.id, episodeId: null });
   }
 
   function openEpisode(item: PodcastQueueItem) {
     setOpenedItem(item);
-    navigate(
-      { ...latestRef.current.route, podcastId: item.podcast.id, episodeId: item.episode.id },
-      "forward",
-    );
+    navigate({
+      ...latestRef.current.route,
+      podcastId: item.podcast.id,
+      episodeId: item.episode.id,
+    });
   }
 
   function goToShow(item: PodcastQueueItem) {
     const currentRoute = latestRef.current.route;
     setIsNowPlayingOpen(false);
     if (currentRoute.podcastId === item.podcast.id && currentRoute.episodeId === null) return;
-    navigate({ ...currentRoute, podcastId: item.podcast.id, episodeId: null }, "forward");
+    navigate({ ...currentRoute, podcastId: item.podcast.id, episodeId: null });
   }
 
   function openLibraryView(view: LibraryView) {
-    navigate({ ...createTabRoute("library"), libraryView: view }, "forward");
+    navigate({ ...createTabRoute("library"), libraryView: view });
   }
 
   function selectTab(tab: PodcastTab) {
@@ -321,20 +275,17 @@ export function PodcastsApp({
         : createTabRoute(tab);
     setVisitedTabs(new Set([...visitedTabs, tab]));
     if (tab !== "search") setPreviousTab(tab);
-    setOptimisticRoute({ fromKey: urlRouteKey, route: nextRoute });
-    routeStackRef.current = [];
-    const href = createPodcastHref(pathname, nextRoute);
+    navigate(nextRoute, { direction: "none", history: "root" });
     if (tab === "new" && followedShowIds.join(",") !== newEpisodesShowIds.join(",")) {
       startNavigation(function loadNewEpisodes() {
-        router.replace(href, { scroll: false });
+        router.replace(createPodcastHref(pathname, nextRoute), { scroll: false });
       });
-      return;
     }
-    window.history.replaceState(null, "", href);
   }
 
   function search(query: string) {
     const nextRoute = { ...createTabRoute("search"), query };
+    navigate(nextRoute, { direction: "none", history: "replace" });
     startNavigation(function loadSearchResults() {
       router.replace(createPodcastHref(pathname, nextRoute), { scroll: false });
     });
@@ -447,58 +398,60 @@ export function PodcastsApp({
     );
   }
 
+  function closeEpisode() {
+    goBack({ ...latestRef.current.route, episodeId: null });
+  }
+
+  function closeShow() {
+    goBack({ ...latestRef.current.route, podcastId: null, episodeId: null });
+  }
+
   function renderStackPage() {
     const { getEpisodeHref, getShowHref } = getTabHrefs(pathname, route.tab);
-    const parentLabel = route.libraryView ? messages.Library : tabTitles[route.tab];
+    const loadingPlaceholder = (
+      <PodcastStackPlaceholder title={messages.Episodes} message={messages["Loading episodes"]} />
+    );
+    const episodePageProps = {
+      getShowHref,
+      locale,
+      messages,
+      now,
+      onBack: closeEpisode,
+      onGoToShow: goToShow,
+      onShare: shareEpisode,
+    };
+    const showPageProps = {
+      backLabel: route.libraryView ? messages.Library : tabTitles[route.tab],
+      getEpisodeHref,
+      locale,
+      messages,
+      now,
+      onBack: closeShow,
+      onOpenEpisode: openEpisode,
+      onShare: shareEpisode,
+      onShareShow: shareShow,
+      show: routeShow,
+    };
+
     if (route.episodeId && routeItem) {
       return (
-        <PodcastEpisodePage
-          key={routeItem.episode.id}
-          item={routeItem}
-          showHref={getShowHref(routeItem.podcast)}
-          locale={locale}
-          messages={messages}
-          now={now}
-          onBack={function closeEpisode() {
-            goBack({ ...route, episodeId: null });
-          }}
-          onGoToShow={goToShow}
-          onShare={shareEpisode}
-        />
+        <PodcastEpisodePage key={routeItem.episode.id} item={routeItem} {...episodePageProps} />
       );
     }
-    if (routePodcast) {
-      return (
-        <PodcastShowPage
-          key={routePodcast.id}
-          podcast={routePodcast}
-          episodes={serverShow?.episodes ?? null}
-          isLoading={
-            serverShow === null && (isNavigating || route.podcastId !== urlRoute.podcastId)
-          }
-          backLabel={parentLabel}
-          getEpisodeHref={getEpisodeHref}
-          locale={locale}
-          messages={messages}
-          now={now}
-          onBack={function closeShow() {
-            goBack({ ...route, podcastId: null, episodeId: null });
-          }}
-          onOpenEpisode={openEpisode}
-          onShare={shareEpisode}
-          onShareShow={shareShow}
-        />
-      );
+    if (!route.episodeId && routePodcast) {
+      return <PodcastShowPage key={routePodcast.id} podcast={routePodcast} {...showPageProps} />;
     }
+    // A shared link to a show or episode the app has not seen in a list waits for its details.
+    if (!routeShow) return loadingPlaceholder;
     return (
-      <div data-ios-scroll className="flex h-full flex-col overflow-y-auto">
-        <IosNavigationBar title={messages.Episodes} titleDisplay="hidden" />
-        <Text className="px-8 pt-[20vh] text-center text-[17px] text-(--ios-secondary-label)">
-          {isNavigating
-            ? messages["Loading episodes"]
-            : messages["Episodes are unavailable right now. Please try another show."]}
-        </Text>
-      </div>
+      <Suspense fallback={loadingPlaceholder}>
+        <PodcastSharedDestination
+          episodeId={route.episodeId}
+          show={routeShow}
+          episodePageProps={episodePageProps}
+          showPageProps={showPageProps}
+        />
+      </Suspense>
     );
   }
 
@@ -506,7 +459,7 @@ export function PodcastsApp({
     <div className="relative size-full bg-black">
       <div
         data-active={isNowPlayingOpen && player.current !== null ? "" : undefined}
-        className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius,filter] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-active:translate-y-2.5 data-active:scale-[0.93] data-active:rounded-[38px] data-active:brightness-90 motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]"
+        className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-active:translate-y-2.5 data-active:scale-[0.93] data-active:rounded-[38px] motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]"
       >
         <PodcastsTabBar
           activeTab={route.tab}
@@ -522,34 +475,35 @@ export function PodcastsApp({
           onSelectTab={selectTab}
         />
         <div ref={contentRef} className="relative min-h-0 min-w-0 flex-1">
-          <div
-            style={{ viewTransitionName: stackTransitionName }}
-            className="absolute inset-0 overflow-hidden bg-(--ios-background)"
-          >
-            {tabOrder.map(function renderMountedTab(tab) {
-              if (!mountedTabs.has(tab)) return null;
-              const isVisible = tab === route.tab && !isStackOpen;
-              return (
-                <div
-                  key={tab}
-                  ref={function registerTabScroller(element) {
-                    if (element) tabScrollRefs.current.set(tab, element);
-                    else tabScrollRefs.current.delete(tab);
-                  }}
-                  inert={!isVisible}
-                  className={cn(
-                    "absolute inset-0",
-                    !isVisible && "invisible [content-visibility:hidden]",
-                  )}
-                >
-                  {renderTab(tab)}
-                </div>
-              );
-            })}
-            {isStackOpen ? (
+          <IosScreenTransition>
+            <div className="absolute inset-0 overflow-hidden bg-(--ios-background)">
+              {tabOrder.map(function renderMountedTab(tab) {
+                if (!mountedTabs.has(tab)) return null;
+                const isVisible = tab === route.tab && !isStackOpen;
+                return (
+                  <div
+                    key={tab}
+                    ref={function registerTabScroller(element) {
+                      if (element) tabScrollRefs.current.set(tab, element);
+                      else tabScrollRefs.current.delete(tab);
+                    }}
+                    inert={!isVisible}
+                    className={cn(
+                      "absolute inset-0",
+                      !isVisible && "invisible [content-visibility:hidden]",
+                    )}
+                  >
+                    {renderTab(tab)}
+                  </div>
+                );
+              })}
+            </div>
+          </IosScreenTransition>
+          {isStackOpen ? (
+            <IosScreenTransition>
               <div className="absolute inset-0 z-10 bg-(--ios-background)">{renderStackPage()}</div>
-            ) : null}
-          </div>
+            </IosScreenTransition>
+          ) : null}
           <PodcastMiniPlayer
             isTabBarMinimized={isTabBarMinimized && route.tab !== "search"}
             messages={messages}
@@ -560,17 +514,24 @@ export function PodcastsApp({
         </div>
       </div>
       {hasNowPlayingOpened ? (
-        <Suspense fallback={null}>
-          <NowPlayingSheet
-            open={isNowPlayingOpen}
-            onOpenChange={setIsNowPlayingOpen}
-            locale={locale}
-            messages={messages}
-            now={now}
-            onGoToShow={goToShow}
-            onShare={shareEpisode}
-          />
-        </Suspense>
+        <IosErrorBoundary
+          resetKey={isNowPlayingOpen}
+          onError={function closeNowPlaying() {
+            setIsNowPlayingOpen(false);
+          }}
+        >
+          <Suspense fallback={null}>
+            <NowPlayingSheet
+              open={isNowPlayingOpen}
+              onOpenChange={setIsNowPlayingOpen}
+              locale={locale}
+              messages={messages}
+              now={now}
+              onGoToShow={goToShow}
+              onShare={shareEpisode}
+            />
+          </Suspense>
+        </IosErrorBoundary>
       ) : null}
       <IosToast message={statusMessage} />
     </div>
