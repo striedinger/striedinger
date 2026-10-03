@@ -1,10 +1,12 @@
 "use client";
 
+import { SearchIcon } from "@workspace/icons/search-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
 import type { Podcast, PodcastMessages } from "./types";
 
+import { IosContentUnavailable } from "../../components/ios/ios-content-unavailable";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
 import { getPodcastCategories } from "./podcast-categories";
 import { PodcastChartRow } from "./podcast-chart-row";
@@ -78,14 +80,11 @@ export function PodcastsSearchTab({
               </ul>
             </>
           ) : isSearching || normalizedInput !== query ? null : (
-            <div className="flex flex-col items-center gap-1 px-8 pt-[14vh] text-center">
-              <Text className="text-[22px] leading-7 font-bold text-(--ios-label)">
-                {messages["No Results"]}
-              </Text>
-              <Text className="text-[15px] leading-5 text-(--ios-secondary-label)">
-                {messages["Check the spelling or try a new search."]}
-              </Text>
-            </div>
+            <IosContentUnavailable
+              icon={<SearchIcon />}
+              title={messages["No Results"]}
+              description={messages["Check the spelling or try a new search."]}
+            />
           )}
         </section>
       ) : (
@@ -103,14 +102,14 @@ export function PodcastsSearchTab({
                   <button
                     type="button"
                     className={cn(
-                      "flex aspect-[1.55] w-full items-end rounded-[22px] p-3.5 text-left text-[17px] leading-[21px] font-bold text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.25)] outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) focus-visible:ring-offset-2 active:scale-[0.97] motion-safe:transition-transform",
+                      "relative flex aspect-[1.55] w-full items-end overflow-hidden rounded-[22px] bg-linear-to-br from-white/0 p-3.5 text-left text-[17px] leading-[21px] font-bold text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.25)] outline-none before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-white/25 before:via-white/0 before:to-black/15 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-(--ios-tint) focus-visible:ring-offset-2 active:scale-[0.97] motion-safe:transition-transform",
                       category.colorClassName,
                     )}
                     onClick={function searchCategory() {
                       onSearchCategory(category.searchTerm);
                     }}
                   >
-                    {category.label}
+                    <span className="relative">{category.label}</span>
                   </button>
                 </li>
               );

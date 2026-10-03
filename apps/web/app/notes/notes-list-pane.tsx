@@ -7,6 +7,7 @@ import { ComposeIcon } from "@workspace/icons/compose-icon";
 import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { ListIcon } from "@workspace/icons/list-icon";
 import { PencilIcon } from "@workspace/icons/pencil-icon";
+import { SearchIcon } from "@workspace/icons/search-icon";
 import { SquareGridIcon } from "@workspace/icons/square-grid-icon";
 import { TrashIcon } from "@workspace/icons/trash-icon";
 import { Text } from "@workspace/ui/components/text";
@@ -16,6 +17,7 @@ import type { NoteSection } from "./note-dates";
 import type { Note, NotesMessages, NotesPreferences } from "./types";
 
 import { IosBarButton } from "../../components/ios/ios-bar-button";
+import { IosContentUnavailable } from "../../components/ios/ios-content-unavailable";
 import { IosListSection } from "../../components/ios/ios-list-section";
 import { IosMenu, type IosMenuSection } from "../../components/ios/ios-menu";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
@@ -195,9 +197,10 @@ export function NotesListPane({
           </Text>
         ) : null}
         {sections.length === 0 ? (
-          <Text className="px-4 pt-[18vh] text-center text-[22px] leading-7 font-bold text-(--ios-secondary-label)">
-            {searchQuery.trim() ? messages["No Results"] : messages["No Notes"]}
-          </Text>
+          <IosContentUnavailable
+            icon={searchQuery.trim() ? <SearchIcon /> : <ComposeIcon />}
+            title={searchQuery.trim() ? messages["No Results"] : messages["No Notes"]}
+          />
         ) : (
           <div className="flex flex-col gap-4 pt-1">
             {sections.map(function renderSection(section) {

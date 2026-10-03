@@ -3,7 +3,7 @@
 // round checklist buttons that fill with the Notes tint when checked.
 export const noteContentClassName = [
   "text-[17px] leading-[22px] tracking-[-0.43px] break-words whitespace-pre-wrap text-(--ios-label) caret-(--ios-tint) outline-none selection:bg-(--ios-tint)/30",
-  "[&_p]:min-h-[22px]",
+  "[&_p]:min-h-[22px] [&_h1+*]:mt-1 [&_h2]:mt-1.5 [&_h3]:mt-1",
   "[&_h1]:min-h-[34px] [&_h1]:text-[28px] [&_h1]:leading-[34px] [&_h1]:font-bold [&_h1]:tracking-[0.36px]",
   "[&_h2]:min-h-7 [&_h2]:text-[22px] [&_h2]:leading-7 [&_h2]:font-bold [&_h2]:tracking-[0.35px]",
   "[&_h3]:min-h-6 [&_h3]:text-[19px] [&_h3]:leading-6 [&_h3]:font-semibold",

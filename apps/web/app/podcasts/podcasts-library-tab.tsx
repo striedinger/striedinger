@@ -10,10 +10,10 @@ import type { LibraryView } from "./podcast-route";
 import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
 
 import { IosBarButton } from "../../components/ios/ios-bar-button";
+import { IosContentUnavailable } from "../../components/ios/ios-content-unavailable";
 import { IosListRow } from "../../components/ios/ios-list-row";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
 import { EpisodeList } from "./episode-list";
-import { LibraryEmptyMessage } from "./library-empty-message";
 import { clearEpisodeProgress, usePodcastLibrary } from "./podcast-library-store";
 import { PodcastTile } from "./podcast-tile";
 
@@ -147,7 +147,11 @@ export function PodcastsLibraryTab({
         library.followed.length > 0 ? (
           <div className="pt-2">{showsGrid}</div>
         ) : (
-          <LibraryEmptyMessage message={messages["Follow shows to see them here."]} />
+          <IosContentUnavailable
+            icon={<SquareStackFillIcon />}
+            title={messages.Shows}
+            description={messages["Follow shows to see them here."]}
+          />
         )
       ) : view === "saved" ? (
         library.saved.length > 0 ? (
@@ -164,7 +168,11 @@ export function PodcastsLibraryTab({
             onShare={onShare}
           />
         ) : (
-          <LibraryEmptyMessage message={messages["Save episodes to listen to them later."]} />
+          <IosContentUnavailable
+            icon={<BookmarkIcon />}
+            title={messages.Saved}
+            description={messages["Save episodes to listen to them later."]}
+          />
         )
       ) : recentItems.length > 0 ? (
         <EpisodeList
@@ -192,7 +200,11 @@ export function PodcastsLibraryTab({
           onShare={onShare}
         />
       ) : (
-        <LibraryEmptyMessage message={messages["Episodes you play will appear here."]} />
+        <IosContentUnavailable
+          icon={<GoBackwardIcon />}
+          title={messages["Recently Played"]}
+          description={messages["Episodes you play will appear here."]}
+        />
       )}
     </div>
   );

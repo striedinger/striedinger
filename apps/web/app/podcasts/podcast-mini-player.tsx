@@ -18,11 +18,12 @@ import {
 } from "./podcast-player-store";
 
 interface PodcastMiniPlayerProps {
+  isTabBarMinimized: boolean;
   messages: PodcastMessages;
   onOpen: () => void;
 }
 
-export function PodcastMiniPlayer({ messages, onOpen }: PodcastMiniPlayerProps) {
+export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: PodcastMiniPlayerProps) {
   const player = usePodcastPlayer();
   const item = player.current;
   if (!item) return null;
@@ -31,7 +32,10 @@ export function PodcastMiniPlayer({ messages, onOpen }: PodcastMiniPlayerProps) 
     <section
       aria-label={messages["Now Playing"]}
       className={cn(
-        "absolute inset-x-4 bottom-[calc(max(env(safe-area-inset-bottom),14px)+72px)] z-30 flex h-[52px] animate-in items-center gap-0.5 rounded-full pr-1.5 duration-300 fade-in slide-in-from-bottom-4 motion-reduce:animate-none md:bottom-4 md:left-1/2 md:w-[min(560px,calc(100%-32px))] md:-translate-x-1/2",
+        "absolute right-4 z-30 flex animate-in items-center gap-0.5 rounded-full pr-1.5 transition-[left,bottom,height] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] fade-in slide-in-from-bottom-4 motion-reduce:animate-none motion-reduce:transition-none md:bottom-4 md:left-1/2 md:h-[52px] md:w-[min(560px,calc(100%-32px))] md:-translate-x-1/2",
+        isTabBarMinimized
+          ? "bottom-[max(env(safe-area-inset-bottom),14px)] left-[90px] h-[62px]"
+          : "bottom-[calc(max(env(safe-area-inset-bottom),14px)+72px)] left-4 h-[52px]",
         iosGlassClassName,
       )}
     >

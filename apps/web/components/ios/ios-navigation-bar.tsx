@@ -99,7 +99,7 @@ export function IosNavigationBar({
         <div className="flex min-w-0 items-center justify-end gap-2">{trailing}</div>
       </div>
       {showsLargeTitle ? (
-        <div className="flex shrink-0 flex-col px-5 pt-0.5 pb-3">
+        <div className="-mt-1 flex shrink-0 flex-col px-4 pb-2.5">
           <Text
             as="h1"
             numberOfLines={1}

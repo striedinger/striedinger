@@ -45,7 +45,7 @@ export function EpisodeRow({
   showsPodcastTitle = false,
 }: EpisodeRowProps) {
   return (
-    <li className="relative flex flex-col gap-1 py-3.5 pr-4 [contain-intrinsic-size:auto_180px] [content-visibility:auto] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) has-[a:active]:bg-(--ios-fill)/40">
+    <li className="relative flex flex-col gap-1 py-3.5 pr-4 transition-colors duration-150 [contain-intrinsic-size:auto_180px] [content-visibility:auto] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) has-[a:active]:bg-(--ios-fill)/40 has-[a:hover]:bg-(--ios-fill)/20 motion-reduce:transition-none">
       <Text
         as="span"
         className="flex items-center gap-1.5 text-[12px] leading-4 font-semibold tracking-[0.02em] text-(--ios-secondary-label) uppercase"

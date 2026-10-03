@@ -25,7 +25,7 @@ const systemColorClasses = [
   "[--ios-tertiary-fill:rgb(118_118_128/0.12)] dark:[--ios-tertiary-fill:rgb(118_118_128/0.24)]",
   "[--ios-chrome:rgb(249_249_249/0.82)] dark:[--ios-chrome:rgb(22_22_22/0.82)]",
   "[--ios-menu:rgb(242_242_242/0.82)] dark:[--ios-menu:rgb(37_37_37/0.84)]",
-  "[--ios-glass:rgb(255_255_255/0.64)] dark:[--ios-glass:rgb(44_44_48/0.6)]",
+  "[--ios-glass:rgb(250_250_252/0.74)] dark:[--ios-glass:rgb(38_38_42/0.68)]",
   "[--ios-glass-strong:rgb(255_255_255/0.78)] dark:[--ios-glass-strong:rgb(44_44_48/0.78)]",
   "[--ios-glass-lens:rgb(120_120_128/0.16)] dark:[--ios-glass-lens:rgb(255_255_255/0.14)]",
   "[--ios-glass-edge:rgb(255_255_255/0.75)] dark:[--ios-glass-edge:rgb(255_255_255/0.16)]",
@@ -47,7 +47,7 @@ export function IosAppFrame({ children, className, ...props }: IosAppFrameProps)
       ref={setFrameElement}
       data-slot="ios-app-frame"
       className={cn(
-        "relative flex h-[calc(100dvh-3.5rem)] w-full overflow-hidden bg-(--ios-background) [font-family:-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',system-ui,'Helvetica_Neue',sans-serif] text-(--ios-label) antialiased [-webkit-tap-highlight-color:transparent]",
+        "relative flex h-[calc(100dvh-3.5rem)] w-full overflow-hidden bg-(--ios-background) [font-family:-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',var(--font-ios-fallback),system-ui,sans-serif] text-(--ios-label) antialiased [-webkit-tap-highlight-color:transparent] [font-feature-settings:'cv11','ss03'] [text-rendering:optimizeLegibility]",
         systemColorClasses,
         className,
       )}

@@ -21,10 +21,10 @@ import type { Note, NotesMessages } from "./types";
 
 import { IosAlert } from "../../components/ios/ios-alert";
 import { IosBarButton } from "../../components/ios/ios-bar-button";
-import { iosStrongGlassClassName } from "../../components/ios/ios-glass";
 import { IosGlassGroup } from "../../components/ios/ios-glass-group";
 import { IosMenu, type IosMenuSection } from "../../components/ios/ios-menu";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
+import { IosToast } from "../../components/ios/ios-toast";
 import { copyText } from "../../lib/copy-text";
 import { insertImage, startNewLineAtEnd, toggleChecklist, undoEditing } from "./note-commands";
 import { formatNoteHeaderDate } from "./note-dates";
@@ -444,16 +444,7 @@ export function NoteEditorPane({
           });
         }}
       />
-      <div
-        aria-live="polite"
-        className={cn(
-          "pointer-events-none absolute top-1/3 left-1/2 z-30 -translate-x-1/2 rounded-full px-5 py-3 text-[15px] font-semibold text-(--ios-label) transition-opacity duration-200 motion-reduce:transition-none",
-          iosStrongGlassClassName,
-          statusMessage ? "opacity-100" : "opacity-0",
-        )}
-      >
-        {statusMessage}
-      </div>
+      <IosToast message={statusMessage} />
       {note ? (
         <IosAlert
           open={isReadOnlyAlertOpen}

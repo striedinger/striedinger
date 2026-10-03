@@ -66,7 +66,7 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
                   key={section.id}
                   className={cn(
                     sectionIndex > 0 &&
-                      "border-t-[8px] border-(--ios-fill)/60 dark:border-black/40",
+                      "relative mt-1.5 pt-1.5 before:absolute before:inset-x-4 before:top-0 before:h-px before:scale-y-50 before:bg-(--ios-separator)",
                   )}
                 >
                   {section.title ? (

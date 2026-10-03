@@ -4,13 +4,14 @@ import { ComposeIcon } from "@workspace/icons/compose-icon";
 import { FolderIcon } from "@workspace/icons/folder-icon";
 import { FolderPlusIcon } from "@workspace/icons/folder-plus-icon";
 import { PencilIcon } from "@workspace/icons/pencil-icon";
+import { SearchIcon } from "@workspace/icons/search-icon";
 import { TrashIcon } from "@workspace/icons/trash-icon";
-import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
 import type { Note, NoteFolder, NotesMessages } from "./types";
 
 import { IosBarButton } from "../../components/ios/ios-bar-button";
+import { IosContentUnavailable } from "../../components/ios/ios-content-unavailable";
 import { IosListRow } from "../../components/ios/ios-list-row";
 import { IosListSection } from "../../components/ios/ios-list-section";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
@@ -112,9 +113,7 @@ export function FoldersPane({
               })}
             </IosListSection>
           ) : (
-            <Text className="px-4 pt-24 text-center text-[22px] leading-7 font-bold text-(--ios-secondary-label)">
-              {messages["No Results"]}
-            </Text>
+            <IosContentUnavailable icon={<SearchIcon />} title={messages["No Results"]} />
           )
         ) : (
           <IosListSection

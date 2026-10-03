@@ -6,7 +6,9 @@ import { IosAppFrame } from "../../components/ios/ios-app-frame";
 import { createPageMetadata } from "../../lib/seo";
 import { getPodcastTranslator } from "../../messages/podcasts/get-translator";
 import { getRequestLocale } from "../get-request-locale";
+import { podcastsFrameClassName } from "./podcasts-frame";
 import { PodcastsLoader } from "./podcasts-loader";
+import { PodcastsSkeleton } from "./podcasts-skeleton";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -27,8 +29,8 @@ interface PodcastsPageProps {
 
 export default function PodcastsPage({ searchParams }: PodcastsPageProps) {
   return (
-    <IosAppFrame className="[--ios-tint:#9440d8] dark:[--ios-tint:#c47bf5]">
-      <Suspense fallback={<div aria-busy="true" className="size-full bg-(--ios-background)" />}>
+    <IosAppFrame className={podcastsFrameClassName}>
+      <Suspense fallback={<PodcastsSkeleton />}>
         <PodcastsLoader searchParams={searchParams} />
       </Suspense>
     </IosAppFrame>

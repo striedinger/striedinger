@@ -11,6 +11,7 @@ import { groupNotes, sortNotes } from "./note-dates";
 import { NoteEditorPane } from "./note-editor-pane";
 import { NoteMoveSheet } from "./note-move-sheet";
 import { NotesListPane } from "./notes-list-pane";
+import { NotesSkeleton } from "./notes-skeleton";
 import { useKeyboardInset } from "./use-keyboard-inset";
 import { notesStackTransitionName, useNotesRoute } from "./use-notes-route";
 import {
@@ -362,7 +363,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
           />
         </>
       ) : (
-        <div aria-busy="true" className="size-full bg-(--ios-grouped-background)" />
+        <NotesSkeleton />
       )}
       <IosAlert
         open={folderNameDialog !== null}

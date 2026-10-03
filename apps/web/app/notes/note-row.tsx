@@ -98,7 +98,7 @@ export function NoteRow({
         <button
           type="button"
           aria-current={selected || undefined}
-          className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint)/80 dark:aria-current:bg-(--ios-tint)/35"
+          className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-(--ios-fill)/40 focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint)/25 motion-reduce:transition-none dark:aria-current:bg-(--ios-tint)/25"
           onClick={function selectNote() {
             onSelect(note);
           }}
@@ -114,7 +114,7 @@ export function NoteRow({
             <Text
               as="span"
               numberOfLines={1}
-              className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label) in-aria-current:text-(--ios-label)/70"
+              className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)"
             >
               <span className="mr-2 text-(--ios-label)/80 in-aria-current:text-(--ios-label)">
                 {formatNoteListDate(note.updatedAt, locale, now)}

@@ -20,7 +20,7 @@ export function PodcastChartRow({ detail, href, onOpen, podcast, rank }: Podcast
     <li className="relative">
       <PodcastLink
         href={href}
-        className="group flex items-center gap-3 py-2 pr-4 outline-none active:bg-(--ios-fill)/50"
+        className="group flex items-center gap-3 py-2 pr-4 transition-colors duration-150 outline-none hover:bg-(--ios-fill)/25 active:bg-(--ios-fill)/50 motion-reduce:transition-none"
         onOpen={function openPodcast() {
           onOpen(podcast);
         }}

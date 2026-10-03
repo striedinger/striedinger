@@ -3,12 +3,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { IosAppFrame } from "../../components/ios/ios-app-frame";
+import { iosFallbackFont } from "../../components/ios/ios-font";
 import { JsonLd } from "../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getNotesTranslator } from "../../messages/notes/get-translator";
 import { loadNotesMessages } from "../../messages/notes/load-messages";
 import { getRequestLocale } from "../get-request-locale";
 import { NotesApp } from "./notes-app";
+import { NotesSkeleton } from "./notes-skeleton";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
@@ -25,10 +27,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function NotesPage() {
   return (
-    <IosAppFrame className="[--ios-tint:#e1a400] dark:[--ios-tint:#ffd60a]">
-      <Suspense
-        fallback={<div aria-busy="true" className="size-full bg-(--ios-grouped-background)" />}
-      >
+    <IosAppFrame
+      className={`${iosFallbackFont.variable} [--ios-tint:#e1a400] dark:[--ios-tint:#ffd60a]`}
+    >
+      <Suspense fallback={<NotesSkeleton />}>
         <LocalizedNotesApp />
       </Suspense>
     </IosAppFrame>
@@ -59,14 +61,14 @@ async function LocalizedNotesApp() {
   });
 
   return (
-    <IosAppFrame className="[--ios-tint:#e1a400] dark:[--ios-tint:#ffd60a]">
+    <>
       <JsonLd value={structuredData} />
       <NotesApp
         locale={locale}
         messages={messages}
         welcomeNoteHtml={createWelcomeNoteHtml(messages)}
       />
-    </IosAppFrame>
+    </>
   );
 }
 

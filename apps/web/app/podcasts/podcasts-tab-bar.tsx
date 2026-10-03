@@ -16,6 +16,8 @@ import { IosSearchField } from "../../components/ios/ios-search-field";
 
 interface PodcastsTabBarProps {
   activeTab: PodcastTab;
+  hasAccessory: boolean;
+  isMinimized: boolean;
   messages: PodcastMessages;
   onSearchInputChange: (value: string) => void;
   onSearchSubmit: () => void;
@@ -31,6 +33,8 @@ interface PodcastsTabBarProps {
  */
 export function PodcastsTabBar({
   activeTab,
+  hasAccessory,
+  isMinimized,
   messages,
   onSearchInputChange,
   onSearchSubmit,
@@ -105,11 +109,20 @@ export function PodcastsTabBar({
           "m-0 h-[62px] min-w-0 flex-1 list-none gap-0.5 rounded-full p-1 md:flex md:h-auto md:flex-none md:flex-col md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none",
           iosGlassClassName,
           isSearching ? "hidden" : "flex",
+          isMinimized && "max-md:flex-none",
         )}
       >
         {tabs.map(function renderTab(tab) {
+          const isHiddenWhileMinimized = isMinimized && tab.id !== activeTab;
           return (
-            <li key={tab.id} className="flex min-w-0 flex-1 md:flex-none">
+            <li
+              key={tab.id}
+              className={cn(
+                "flex min-w-0 flex-1 md:flex-none",
+                isHiddenWhileMinimized && "max-md:hidden",
+                isMinimized && !isHiddenWhileMinimized && "max-md:w-[54px] max-md:flex-none",
+              )}
+            >
               <button
                 type="button"
                 aria-current={tab.id === activeTab ? "page" : undefined}
@@ -119,7 +132,7 @@ export function PodcastsTabBar({
                 }}
               >
                 {tab.icon}
-                <span className="truncate">{tab.label}</span>
+                <span className={cn("truncate", isMinimized && "max-md:sr-only")}>{tab.label}</span>
               </button>
             </li>
           );
@@ -144,7 +157,7 @@ export function PodcastsTabBar({
         className={cn(
           "size-[62px] shrink-0 items-center justify-center rounded-full text-(--ios-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-90 motion-safe:transition-transform md:hidden",
           iosGlassClassName,
-          isSearching ? "hidden" : "flex",
+          isSearching || (isMinimized && hasAccessory) ? "hidden" : "flex",
         )}
         onClick={function selectSearch() {
           onSelectTab("search");

@@ -20,6 +20,7 @@ import {
   runIosStackTransition,
   type IosStackDirection,
 } from "../../components/ios/ios-stack-transition";
+import { IosToast } from "../../components/ios/ios-toast";
 import { copyText } from "../../lib/copy-text";
 import { NowPlayingSheet } from "./now-playing-sheet";
 import { PodcastEpisodePage } from "./podcast-episode-page";
@@ -96,6 +97,8 @@ export function PodcastsApp({
     },
   );
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
+  const [isTabBarMinimized, setIsTabBarMinimized] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [previousTab, setPreviousTab] = useState<Exclude<PodcastTab, "search">>(
     urlRoute.tab === "search" ? "home" : urlRoute.tab,
   );
@@ -145,6 +148,33 @@ export function PodcastsApp({
     },
     [followedShowKey, isNewTabActive, newEpisodesShowKey, pathname, router],
   );
+
+  // Like iOS 26, the tab bar shrinks while scrolling down and returns when scrolling up.
+  useEffect(function minimizeTabBarWhileScrolling() {
+    const content = contentRef.current;
+    if (!content) return;
+    const scrollPositions = new WeakMap<HTMLElement, number>();
+    let frame = 0;
+    function handleScroll(event: Event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !target.hasAttribute("data-ios-scroll")) return;
+      const scroller: HTMLElement = target;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(function updateTabBar() {
+        const previousPosition = scrollPositions.get(scroller) ?? 0;
+        const position = scroller.scrollTop;
+        scrollPositions.set(scroller, position);
+        if (position < 80) setIsTabBarMinimized(false);
+        else if (position - previousPosition > 6) setIsTabBarMinimized(true);
+        else if (previousPosition - position > 6) setIsTabBarMinimized(false);
+      });
+    }
+    content.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    return function stopWatchingScroll() {
+      cancelAnimationFrame(frame);
+      content.removeEventListener("scroll", handleScroll, { capture: true });
+    };
+  }, []);
 
   useEffect(function pauseWhenLeavingPodcasts() {
     return pausePlayback;
@@ -268,6 +298,7 @@ export function PodcastsApp({
   }
 
   function selectTab(tab: PodcastTab) {
+    setIsTabBarMinimized(false);
     if (tab === route.tab) {
       if (route.podcastId || route.libraryView) {
         goBack({ ...createTabRoute(tab), query: route.query });
@@ -465,6 +496,8 @@ export function PodcastsApp({
       <Drawer.Indent className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform data-active:scale-[0.94] data-active:rounded-[12px] motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]">
         <PodcastsTabBar
           activeTab={route.tab}
+          hasAccessory={player.current !== null}
+          isMinimized={isTabBarMinimized && route.tab !== "search"}
           previousTab={previousTab}
           messages={messages}
           searchInput={searchInput.value}
@@ -474,7 +507,7 @@ export function PodcastsApp({
           }}
           onSelectTab={selectTab}
         />
-        <div className="relative min-h-0 min-w-0 flex-1">
+        <div ref={contentRef} className="relative min-h-0 min-w-0 flex-1">
           <div
             style={{ viewTransitionName: stackTransitionName }}
             className="absolute inset-0 overflow-hidden bg-(--ios-background)"
@@ -504,6 +537,7 @@ export function PodcastsApp({
             ) : null}
           </div>
           <PodcastMiniPlayer
+            isTabBarMinimized={isTabBarMinimized && route.tab !== "search"}
             messages={messages}
             onOpen={function openNowPlaying() {
               setIsNowPlayingOpen(true);
@@ -520,15 +554,7 @@ export function PodcastsApp({
         onGoToShow={goToShow}
         onShare={shareEpisode}
       />
-      <div
-        aria-live="polite"
-        className={cn(
-          "pointer-events-none absolute top-1/3 left-1/2 z-50 -translate-x-1/2 rounded-[14px] bg-(--ios-menu) px-5 py-3 text-[15px] font-semibold text-(--ios-label) shadow-[0_10px_40px_rgb(0_0_0/0.18)] backdrop-blur-2xl transition-opacity duration-200 motion-reduce:transition-none",
-          statusMessage ? "opacity-100" : "opacity-0",
-        )}
-      >
-        {statusMessage}
-      </div>
+      <IosToast message={statusMessage} />
     </Drawer.Provider>
   );
 }

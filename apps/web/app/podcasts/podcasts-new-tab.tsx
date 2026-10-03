@@ -1,10 +1,12 @@
 "use client";
 
+import { SquareGridFillIcon } from "@workspace/icons/square-grid-fill-icon";
+
 import type { PodcastMessages, PodcastQueueItem } from "./types";
 
+import { IosContentUnavailable } from "../../components/ios/ios-content-unavailable";
 import { IosNavigationBar } from "../../components/ios/ios-navigation-bar";
 import { EpisodeList } from "./episode-list";
-import { LibraryEmptyMessage } from "./library-empty-message";
 
 interface PodcastsNewTabProps {
   getEpisodeHref: (item: PodcastQueueItem) => string;
@@ -38,8 +40,10 @@ export function PodcastsNewTab({
     >
       <IosNavigationBar title={messages.New} />
       {!hasFollowedShows ? (
-        <LibraryEmptyMessage
-          message={messages["New episodes from shows you follow will appear here."]}
+        <IosContentUnavailable
+          icon={<SquareGridFillIcon />}
+          title={messages.New}
+          description={messages["New episodes from shows you follow will appear here."]}
         />
       ) : items.length > 0 ? (
         <div
@@ -60,8 +64,10 @@ export function PodcastsNewTab({
           />
         </div>
       ) : (
-        <LibraryEmptyMessage
-          message={
+        <IosContentUnavailable
+          icon={<SquareGridFillIcon />}
+          title={messages.New}
+          description={
             isLoading
               ? messages["Loading episodes"]
               : messages["New episodes from shows you follow will appear here."]

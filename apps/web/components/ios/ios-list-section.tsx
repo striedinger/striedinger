@@ -29,7 +29,7 @@ export function IosListSection({
           as="h2"
           className={cn(
             headerVariant === "prominent"
-              ? "px-2 pt-3 pb-2 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
+              ? "pt-3 pb-2 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
               : "px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)",
           )}
         >
