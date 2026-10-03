@@ -2,6 +2,7 @@
 
 import { LocationArrowIcon } from "@workspace/icons/location-arrow-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import Form from "next/form";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +10,7 @@ import { useState } from "react";
 import type { MtaLabels } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosSearchField } from "../../../components/ios/ios-search-field";
 import { useMtaNavigation } from "./mta-navigation-provider";
 
@@ -57,7 +59,12 @@ export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocation
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col items-center gap-2 px-4 pt-8 pb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),14px)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-t before:from-(--ios-grouped-background) before:from-30% before:to-transparent">
+    <div
+      className={cn(
+        "pointer-events-none fixed inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col items-center gap-2 px-4 pt-8 pb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),14px)]",
+        iosBottomScrollEdgeClassName,
+      )}
+    >
       {message ? (
         <Text
           role="alert"

@@ -7,6 +7,8 @@ import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } fr
 
 import type { DropLabels } from "./types";
 
+import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
+
 interface FileDropZoneProps {
   children: ReactNode;
   labels: DropLabels;
@@ -73,7 +75,10 @@ export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
       <div
         role="toolbar"
         aria-label={labels.addFiles}
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)] before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-t before:from-(--ios-grouped-background) before:from-30% before:to-transparent"
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)]",
+          iosBottomScrollEdgeClassName,
+        )}
       >
         <label
           htmlFor="drop-file-input"
