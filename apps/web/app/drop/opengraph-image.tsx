@@ -4,14 +4,14 @@ import {
   openGraphImageSize,
 } from "../../lib/tool-open-graph-image";
 import { getDropTranslator } from "../../messages/drop/get-translator";
-import { getRequestLocale } from "../get-request-locale";
+import { getRouteLocale } from "../get-request-locale";
 
 export const alt = "Drop - Private file sharing";
 export const size = openGraphImageSize;
 export const contentType = openGraphImageContentType;
 
 export default async function OpenGraphImage() {
-  const locale = await getRequestLocale();
+  const locale = await getRouteLocale();
   const translate = await getDropTranslator(locale);
 
   return createToolOpenGraphImage({

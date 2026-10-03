@@ -44,7 +44,6 @@ describe("SEO discovery routes", function () {
     expect(
       sitemapEntries.every(function hasDiscoveryMetadata(entry) {
         return (
-          entry.lastModified instanceof Date &&
           entry.images?.length === 1 &&
           Object.keys(entry.alternates?.languages ?? {}).length === supportedLocales.length + 1
         );

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { getTranslator } from "../messages/get-translator";
-import { getRequestLocale } from "./get-request-locale";
+import { getRouteLocale } from "./get-request-locale";
 
 export const alt = "Hugo Striedinger - Senior Software Engineer";
 export const size = {
@@ -11,7 +11,7 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  const locale = await getRequestLocale();
+  const locale = await getRouteLocale();
   const translate = await getTranslator(locale);
 
   return new ImageResponse(

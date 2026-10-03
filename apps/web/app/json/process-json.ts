@@ -5,6 +5,17 @@ import { parseJson } from "./parse-json";
 const maximumPreviewNodes = 10_000;
 const maximumPreviewDepth = 100;
 
+/** One validation request; the id lets the tool ignore replies for text that has changed. */
+export interface JsonWorkerRequest {
+  id: number;
+  input: string;
+}
+
+export interface JsonWorkerReply {
+  id: number;
+  response: JsonWorkerResponse;
+}
+
 export interface JsonWorkerResponse {
   formattedInput?: string;
   result: JsonParseResult;

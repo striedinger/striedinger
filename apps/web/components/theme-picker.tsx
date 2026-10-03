@@ -11,34 +11,43 @@ import {
 } from "@workspace/ui/components/select";
 import { Text } from "@workspace/ui/components/text";
 import { useSyncExternalStore } from "react";
+import { preload } from "react-dom";
 
 import type { Theme, ThemeId } from "../lib/themes";
 
 import { getTheme, sortedThemes } from "../lib/themes";
-import { getThemeSnapshot, setTheme, subscribeToTheme } from "./theme-store";
+import {
+  getThemeSnapshot,
+  getThemeStylesheetHref,
+  setTheme,
+  subscribeToTheme,
+} from "./theme-store";
 
 interface ThemePickerProps {
   label: string;
-  theme: ThemeId;
 }
 
 const themeItems = sortedThemes.map(function createThemeItem(theme) {
   return { label: theme.title, value: theme.id };
 });
 
+function getDefaultTheme(): ThemeId {
+  return "default";
+}
+
+/** Starts downloading a preset while it is highlighted, so choosing it applies at once. */
+function preloadThemeStylesheet(themeId: ThemeId) {
+  const href = getThemeStylesheetHref(themeId);
+  if (href) preload(href, { as: "style" });
+}
+
 function handleThemeChange(themeId: ThemeId | null) {
   if (themeId === null) return;
   setTheme(getTheme(themeId).id);
 }
 
-export function ThemePicker({ label, theme }: ThemePickerProps) {
-  const selectedTheme = useSyncExternalStore(
-    subscribeToTheme,
-    getThemeSnapshot,
-    function getServerTheme() {
-      return theme;
-    },
-  );
+export function ThemePicker({ label }: ThemePickerProps) {
+  const selectedTheme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getDefaultTheme);
 
   return (
     <Text as="div" size="sm">
@@ -59,7 +68,17 @@ export function ThemePicker({ label, theme }: ThemePickerProps) {
         >
           {sortedThemes.map(function renderThemeOption(themeOption) {
             return (
-              <SelectItem className="rounded-lg" key={themeOption.id} value={themeOption.id}>
+              <SelectItem
+                className="rounded-lg"
+                key={themeOption.id}
+                value={themeOption.id}
+                onPointerEnter={function warmTheme() {
+                  preloadThemeStylesheet(themeOption.id);
+                }}
+                onFocus={function warmFocusedTheme() {
+                  preloadThemeStylesheet(themeOption.id);
+                }}
+              >
                 <ThemeSwatch theme={themeOption} />
                 {themeOption.title}
               </SelectItem>

@@ -1,23 +1,33 @@
 import { Input } from "@workspace/ui/components/input";
 import { Text } from "@workspace/ui/components/text";
 import Form from "next/form";
+import { Suspense } from "react";
 
 import type { OgPreviewLabels } from "../../lib/og/labels";
 import type { PreviewState } from "../../lib/og/types";
 
-import { SocialCardPreview } from "../../components/social-card-preview";
-import { MetadataTable } from "./metadata-table";
+import { OgPreviewError } from "./og-preview-error";
+import { OgPreviewResults } from "./og-preview-results";
+import { OgPreviewResultsSkeleton } from "./og-preview-results-skeleton";
 import { OgSubmitButton } from "./og-submit-button";
 
 interface OgPreviewFormProps {
-  initialState: PreviewState;
+  /** The localized page URL the form submits to. */
+  action: string;
+  defaultUrl: string;
   labels: OgPreviewLabels;
+  /** The requested page's metadata, streaming in, or null before anything is requested. */
+  preview: Promise<PreviewState> | null;
 }
 
-export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
+/**
+ * The form stays mounted across submissions so focus, typed text, and the pending button
+ * survive; only the error and the card previews suspend while a URL is checked.
+ */
+export function OgPreviewForm({ action, defaultUrl, labels, preview }: OgPreviewFormProps) {
   return (
     <div className="flex flex-col gap-16">
-      <Form action="/og" className="flex flex-col gap-4" replace scroll={false}>
+      <Form action={action} className="flex flex-col gap-4" replace scroll={false}>
         <Text as="label" className="sr-only" htmlFor="preview-url">
           {labels.urlLabel}
         </Text>
@@ -30,7 +40,7 @@ export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
             inputMode="url"
             autoCapitalize="none"
             autoCorrect="off"
-            defaultValue={initialState.url}
+            defaultValue={defaultUrl}
             placeholder={labels.urlPlaceholder}
             required
             maxLength={2048}
@@ -42,38 +52,19 @@ export function OgPreviewForm({ initialState, labels }: OgPreviewFormProps) {
           {labels.security}
         </Text>
         <div id="preview-error" aria-live="polite">
-          {initialState.status === "error" ? (
-            <Text size="sm" tone="destructive">
-              {labels.errors[initialState.error]}
-            </Text>
+          {preview ? (
+            <Suspense key={defaultUrl} fallback={null}>
+              <OgPreviewError labels={labels} preview={preview} />
+            </Suspense>
           ) : null}
         </div>
       </Form>
 
       <div className="flex flex-col gap-12" aria-label={labels.previewRegion}>
-        {initialState.status === "success" ? (
-          <>
-            <Text size="sm" tone="muted">
-              {labels.previewing
-                .replace("{url}", initialState.url)
-                .replace("{duration}", String(initialState.durationMilliseconds))}
-            </Text>
-            <SocialCardPreview
-              metadata={initialState.metadata}
-              platform="twitter"
-              title={labels.twitter}
-            />
-            <SocialCardPreview
-              metadata={initialState.metadata}
-              platform="open-graph"
-              title={labels.openGraph}
-            />
-            <MetadataTable
-              heading={labels.metadata}
-              description={labels.metadataDescription}
-              tags={initialState.metadata.tags}
-            />
-          </>
+        {preview ? (
+          <Suspense key={defaultUrl} fallback={<OgPreviewResultsSkeleton />}>
+            <OgPreviewResults labels={labels} preview={preview} />
+          </Suspense>
         ) : null}
       </div>
     </div>

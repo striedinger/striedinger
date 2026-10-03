@@ -15,6 +15,8 @@ interface IosNavigationBarProps {
   subtitle?: string;
   title: string;
   titleDisplay?: IosNavigationBarTitleDisplay;
+  /** Use `h2` when several screens share a page, such as side-by-side panes. */
+  titleElement?: "h1" | "h2";
   trailing?: ReactNode;
 }
 
@@ -33,6 +35,7 @@ export function IosNavigationBar({
   subtitle,
   title,
   titleDisplay = "large",
+  titleElement = "h1",
   trailing,
 }: IosNavigationBarProps) {
   const barRef = useRef<HTMLDivElement>(null);
@@ -74,7 +77,7 @@ export function IosNavigationBar({
         <div className="flex min-w-0 items-center justify-start gap-2">{leading}</div>
         <div className="flex min-w-0 flex-col items-center justify-center">
           <Text
-            as={showsLargeTitle ? "span" : "h1"}
+            as={showsLargeTitle ? "span" : titleElement}
             aria-hidden={showsLargeTitle || undefined}
             numberOfLines={1}
             className={cn(
@@ -102,7 +105,7 @@ export function IosNavigationBar({
       {showsLargeTitle ? (
         <div className="-mt-1 flex shrink-0 flex-col px-4 pb-2.5">
           <Text
-            as="h1"
+            as={titleElement}
             numberOfLines={1}
             className="text-[34px] leading-[41px] font-bold tracking-[0.4px] text-(--ios-label)"
           >

@@ -169,6 +169,7 @@ export function NotesListPane({
         className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)]"
       >
         <IosNavigationBar
+          titleElement="h2"
           title={title}
           subtitle={countLabel}
           leading={

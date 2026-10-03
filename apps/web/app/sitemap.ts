@@ -24,8 +24,6 @@ const publicPaths = [
   "/notes",
 ] as const satisfies readonly SitePath[];
 
-const lastModified = new Date("2026-08-18");
-
 function createSitemapEntry(path: SitePath, locale: Locale): MetadataRoute.Sitemap[number] {
   const localizedPath = localizePath(path, locale);
   const url = createAbsoluteUrl(localizedPath);
@@ -41,7 +39,6 @@ function createSitemapEntry(path: SitePath, locale: Locale): MetadataRoute.Sitem
 
   return {
     url,
-    lastModified,
     images: [imageUrl],
     alternates: { languages },
   };

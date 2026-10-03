@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { Suspense } from "react";
@@ -15,7 +15,16 @@ const themeBootstrapScript = `(()=>{const prefix=${JSON.stringify(`${themeCookie
   themes.map(function selectThemeId(theme) {
     return theme.id;
   }),
-)};document.documentElement.dataset.theme=themes.includes(stored)?stored:"default"})()`;
+)};const theme=themes.includes(stored)?stored:"default";document.documentElement.dataset.theme=theme;if(theme!=="default")document.write('<link rel="stylesheet" href="/themes/'+theme+'.css" data-theme-stylesheet="'+theme+'">')})()`;
+
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+  themeColor: [
+    // The Editorial theme's page backgrounds, so browser chrome blends with the page.
+    { media: "(prefers-color-scheme: light)", color: "#fbf7f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1117" },
+  ],
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();

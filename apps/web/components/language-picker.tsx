@@ -10,6 +10,7 @@ import {
 } from "@workspace/ui/components/select";
 import { Text } from "@workspace/ui/components/text";
 import { useRouter } from "next/navigation";
+import { startTransition, useOptimistic } from "react";
 
 import { localizePath, stripLocaleFromPath } from "../lib/locale-path";
 
@@ -35,6 +36,8 @@ const localeItems = supportedLocales.map(function createLocaleItem(locale) {
 
 export function LanguagePicker({ label, locale }: LanguagePickerProps) {
   const router = useRouter();
+  // Shows the chosen language right away while the translated page loads.
+  const [displayedLocale, setDisplayedLocale] = useOptimistic(locale);
 
   function handleLanguageChange(selectedLocale: Locale | null) {
     if (selectedLocale === null || !isLocale(selectedLocale)) {
@@ -48,12 +51,15 @@ export function LanguagePicker({ label, locale }: LanguagePickerProps) {
 
     const currentUrl = new URL(window.location.href);
     currentUrl.pathname = localizePath(stripLocaleFromPath(currentUrl.pathname), selectedLocale);
-    router.push(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+    startTransition(function showSelectedLanguage() {
+      setDisplayedLocale(selectedLocale);
+      router.push(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+    });
   }
 
   return (
     <Text as="div" size="sm" className="flex justify-center">
-      <Select items={localeItems} value={locale} onValueChange={handleLanguageChange}>
+      <Select items={localeItems} value={displayedLocale} onValueChange={handleLanguageChange}>
         <SelectTrigger className="w-32 cursor-pointer rounded-xl px-3" size="sm" aria-label={label}>
           <SelectValue />
         </SelectTrigger>

@@ -4,15 +4,23 @@ import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import type { PdfCompressionMode, PdfOperationStage, PdfToolLabels } from "./types";
 
 import { PdfDropZone } from "./pdf-drop-zone";
-import { PdfPreview } from "./pdf-preview";
+
+// The preview pulls in pdf.js rendering, so it loads once a file is chosen.
+const PdfPreview = lazy(function importPdfPreview() {
+  return import("./pdf-preview").then(function selectPdfPreview(module) {
+    return { default: module.PdfPreview };
+  });
+});
 
 interface Result {
   blob: Blob;
+  /** The optimized document as a file, created once so the preview keeps a stable input. */
+  file: File;
   name: string;
   unlocked: boolean;
 }
@@ -31,13 +39,10 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result>();
 
-  const handlePasswordResult = useCallback(function handlePasswordResult(
-    documentRequiresPassword: boolean,
-    isValid: boolean,
-  ) {
+  function handlePasswordResult(documentRequiresPassword: boolean, isValid: boolean) {
     if (documentRequiresPassword) setRequiresPassword(true);
     setPasswordIsValid(isValid);
-  }, []);
+  }
 
   function selectFile(selectedFile: File) {
     setFile(selectedFile);
@@ -73,10 +78,12 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
               updateProgress,
             );
       const suffix = operation === "unlock" ? "unrestricted" : "optimized";
+      const name = `${file.name.replace(/\.pdf$/i, "")}-${suffix}.pdf`;
       setProgress(100);
       setResult({
         blob,
-        name: `${file.name.replace(/\.pdf$/i, "")}-${suffix}.pdf`,
+        file: new File([blob], name, { type: "application/pdf" }),
+        name,
         unlocked: operation === "unlock",
       });
     } catch (cause) {
@@ -86,12 +93,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
     }
   }
 
-  const previewFile = useMemo(
-    function createPreviewFile() {
-      return result ? new File([result.blob], result.name, { type: "application/pdf" }) : file;
-    },
-    [file, result],
-  );
+  const previewFile = result?.file ?? file;
   const savings = file && result ? Math.max(0, 1 - result.blob.size / file.size) : 0;
   const stageLabel =
     stage === "preparing"
@@ -132,13 +134,15 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
           </Button>
         </Surface>
 
-        <PdfPreview
-          key={`${previewFile!.name}-${previewFile!.size}-${previewFile!.lastModified}`}
-          file={previewFile!}
-          labels={labels}
-          password={result?.unlocked ? "" : password}
-          onPasswordResult={handlePasswordResult}
-        />
+        <Suspense fallback={<Surface className="h-96 animate-pulse motion-reduce:animate-none" />}>
+          <PdfPreview
+            key={`${previewFile!.name}-${previewFile!.size}-${previewFile!.lastModified}`}
+            file={previewFile!}
+            labels={labels}
+            password={result?.unlocked ? "" : password}
+            onPasswordResult={handlePasswordResult}
+          />
+        </Suspense>
 
         {isProcessing ? (
           <Surface className="p-5" aria-live="polite">

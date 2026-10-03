@@ -271,6 +271,7 @@ export function NoteEditorPane({
     >
       <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain">
         <IosNavigationBar
+          titleElement="h2"
           title={note ? note.title || messages["New Note"] : messages.Notes}
           titleDisplay="hidden"
           leading={

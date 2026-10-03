@@ -4,14 +4,14 @@ import {
   openGraphImageSize,
 } from "../../lib/tool-open-graph-image";
 import { getPdfTranslator } from "../../messages/pdf/get-translator";
-import { getRequestLocale } from "../get-request-locale";
+import { getRouteLocale } from "../get-request-locale";
 
 export const alt = "PDF Optimizer";
 export const size = openGraphImageSize;
 export const contentType = openGraphImageContentType;
 
 export default async function OpenGraphImage() {
-  const locale = await getRequestLocale();
+  const locale = await getRouteLocale();
   const translate = await getPdfTranslator(locale);
 
   return createToolOpenGraphImage({

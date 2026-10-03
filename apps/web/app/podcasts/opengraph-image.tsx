@@ -4,14 +4,14 @@ import {
   openGraphImageSize,
 } from "../../lib/tool-open-graph-image";
 import { getPodcastTranslator } from "../../messages/podcasts/get-translator";
-import { getRequestLocale } from "../get-request-locale";
+import { getRouteLocale } from "../get-request-locale";
 
 export const alt = "Podcasts";
 export const size = openGraphImageSize;
 export const contentType = openGraphImageContentType;
 
 export default async function OpenGraphImage() {
-  const locale = await getRequestLocale();
+  const locale = await getRouteLocale();
   const translate = await getPodcastTranslator(locale);
 
   return createToolOpenGraphImage({

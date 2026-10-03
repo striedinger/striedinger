@@ -4,7 +4,7 @@ import { CloseIcon } from "@workspace/icons/close-icon";
 import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
 
 import type { StockIdentity, StocksLabels, StockTimeframe } from "./types";
@@ -31,6 +31,7 @@ export function StockSearch({
   watchlist,
 }: StockSearchProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
   const [isOpen, setIsOpen] = useState(true);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -64,7 +65,7 @@ export function StockSearch({
     const parameters = new URLSearchParams({ symbol: selectedSymbol, timeframe });
     if (normalizedNextQuery) parameters.set("q", normalizedNextQuery);
     startSearchNavigation(function showServerSuggestions() {
-      router.replace(`/stocks?${parameters}`, { scroll: false });
+      router.replace(`${pathname}?${parameters}`, { scroll: false });
     });
   }
 

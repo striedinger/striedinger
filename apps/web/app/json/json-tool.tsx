@@ -6,9 +6,9 @@ import { Button } from "@workspace/ui/components/button";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { Textarea } from "@workspace/ui/components/textarea";
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { startTransition, useEffect, useRef, useState, type ChangeEvent } from "react";
 
-import type { JsonWorkerResponse } from "./process-json";
+import type { JsonWorkerReply, JsonWorkerRequest, JsonWorkerResponse } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
 
 import { JsonTree } from "./json-tree";
@@ -22,10 +22,22 @@ const maximumInputCharacters = 500_000;
 export function JsonTool({ labels }: JsonToolProps) {
   const [input, setInput] = useState("");
   const [validationResult, setValidationResult] = useState<JsonParseResult>({ status: "empty" });
+  // The preview keeps showing the last valid document while new text is checked, instead of
+  // emptying on every keystroke.
+  const [previewResult, setPreviewResult] = useState<JsonParseResult>({ status: "empty" });
+  const [isPreviewStale, setIsPreviewStale] = useState(false);
   const [treeVersion, setTreeVersion] = useState(0);
   const [defaultExpanded, setDefaultExpanded] = useState(true);
   const processedInput = useRef<string | undefined>(undefined);
-  const previewResult = validationResult;
+  const workerRef = useRef<Worker | null>(null);
+  const requestIdRef = useRef(0);
+
+  useEffect(function stopWorkerOnUnmount() {
+    return function terminateWorker() {
+      workerRef.current?.terminate();
+      workerRef.current = null;
+    };
+  }, []);
 
   useEffect(
     function validateAndFormatAfterIdle() {
@@ -37,8 +49,7 @@ export function JsonTool({ labels }: JsonToolProps) {
         return;
       }
 
-      let worker: Worker | undefined;
-      let cancelled = false;
+      const requestId = ++requestIdRef.current;
       const timeoutId = window.setTimeout(function validateAndFormatInput() {
         if (typeof Worker === "undefined") {
           void import("./process-json").then(function processWithoutWorker({ processJson }) {
@@ -47,28 +58,38 @@ export function JsonTool({ labels }: JsonToolProps) {
           });
           return;
         }
+        getWorker().postMessage({ id: requestId, input } satisfies JsonWorkerRequest);
+      }, 1_000);
 
+      // One worker is reused for every check; replies for text that has since changed are ignored.
+      function getWorker() {
+        if (workerRef.current) return workerRef.current;
         const jsonWorker = new Worker(new URL("./json-worker.ts", import.meta.url), {
           type: "module",
         });
-        worker = jsonWorker;
         jsonWorker.addEventListener(
           "message",
-          function handleWorkerResult(event: MessageEvent<JsonWorkerResponse>) {
-            applyValidationResult(event.data);
-            jsonWorker.terminate();
+          function handleWorkerResult(event: MessageEvent<JsonWorkerReply>) {
+            if (event.data.id === requestIdRef.current) applyValidationResult(event.data.response);
           },
         );
         jsonWorker.addEventListener("error", function handleWorkerError() {
-          if (!cancelled) setValidationResult({ status: "invalid", error: labels.tooComplex });
           jsonWorker.terminate();
+          workerRef.current = null;
+          applyValidationResult({ result: { status: "invalid", error: labels.tooComplex } });
         });
-        jsonWorker.postMessage(input);
-      }, 1_000);
+        workerRef.current = jsonWorker;
+        return jsonWorker;
+      }
 
       function applyValidationResult(response: JsonWorkerResponse) {
-        if (cancelled) return;
-        setValidationResult(response.result);
+        if (requestId !== requestIdRef.current) return;
+        // Rendering a large tree is interruptible, so typing stays responsive.
+        startTransition(function showValidationResult() {
+          setValidationResult(response.result);
+          if (response.result.status === "valid") setPreviewResult(response.result);
+          setIsPreviewStale(false);
+        });
 
         if (response.formattedInput && response.formattedInput !== input) {
           processedInput.current = response.formattedInput;
@@ -77,9 +98,7 @@ export function JsonTool({ labels }: JsonToolProps) {
       }
 
       return function cancelPendingValidation() {
-        cancelled = true;
         window.clearTimeout(timeoutId);
-        worker?.terminate();
       };
     },
     [input, labels.tooComplex],
@@ -88,11 +107,19 @@ export function JsonTool({ labels }: JsonToolProps) {
   function handleInputChange(event: ChangeEvent<HTMLTextAreaElement>) {
     const nextInput = event.currentTarget.value;
     setInput(nextInput);
+    if (!nextInput.trim()) {
+      requestIdRef.current++;
+      setValidationResult({ status: "empty" });
+      setPreviewResult({ status: "empty" });
+      setIsPreviewStale(false);
+      return;
+    }
     setValidationResult(
       nextInput.length > maximumInputCharacters
         ? { status: "invalid", error: labels.tooLarge, reason: "too-large" }
         : { status: "empty" },
     );
+    setIsPreviewStale(true);
   }
 
   function handleToggleAll() {
@@ -152,7 +179,11 @@ export function JsonTool({ labels }: JsonToolProps) {
           </Text>
         </div>
 
-        <Surface className="relative h-[32rem] min-h-[32rem] overflow-auto rounded-xl p-4 pt-12">
+        <Surface
+          className="relative h-[32rem] min-h-[32rem] overflow-auto rounded-xl p-4 pt-12 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none"
+          data-stale={isPreviewStale && previewResult.status === "valid" ? "" : undefined}
+          aria-busy={isPreviewStale}
+        >
           <Button
             type="button"
             variant="outline"

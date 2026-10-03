@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { BrowserDiagnosticsLabels, DiagnosticSection } from "./types";
 
 import { collectBrowserDiagnostics } from "./browser-diagnostics";
+import { DiagnosticSectionSkeleton } from "./diagnostic-section-skeleton";
 
 interface JavaScriptDiagnosticsProps {
   labels: BrowserDiagnosticsLabels;
@@ -16,6 +17,21 @@ interface JavaScriptDiagnosticsProps {
 export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
   const [sections, setSections] = useState<ReadonlyArray<DiagnosticSection> | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Placeholders reserve roughly the space of each section so details arrive without
+  // pushing the rest of the page down.
+  const placeholderSections = [
+    { title: labels.documentAndJavaScript, rowCount: 14 },
+    { title: labels.screenAndWindow, rowCount: 14 },
+    { title: labels.dateTimeAndInternationalization, rowCount: 8 },
+    { title: labels.navigator, rowCount: 14 },
+    { title: labels.clientHints, rowCount: 6 },
+    { title: labels.pluginsAndMimeTypes, rowCount: 3 },
+    { title: labels.batteryAndNetwork, rowCount: 5 },
+    { title: labels.mediaAndDeviceApis, rowCount: 8 },
+    { title: labels.storageApis, rowCount: 6 },
+    { title: labels.navigatorProperties, rowCount: 16 },
+  ];
 
   useEffect(
     function collectDetails() {
@@ -24,6 +40,7 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
       void collectBrowserDiagnostics(labels).then(function updateSections(nextSections) {
         if (!cancelled) {
           setSections(nextSections);
+          setIsRefreshing(false);
         }
 
         return undefined;
@@ -38,7 +55,7 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
   );
 
   function refreshDetails() {
-    setSections(null);
+    setIsRefreshing(true);
     setRefreshCount(function incrementRefreshCount(count) {
       return count + 1;
     });
@@ -47,12 +64,17 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex justify-end">
-        <Button type="button" variant="outline" onClick={refreshDetails} disabled={!sections}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={refreshDetails}
+          disabled={!sections || isRefreshing}
+        >
           {labels.refresh}
         </Button>
       </div>
 
-      <div className="flex flex-col gap-8" aria-live="polite" aria-busy={!sections}>
+      <div className="flex flex-col gap-8" aria-live="polite" aria-busy={!sections || isRefreshing}>
         {sections ? (
           sections.map(function renderSection(section) {
             return (
@@ -91,9 +113,20 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
             );
           })
         ) : (
-          <Surface className="p-6 shadow-none">
-            <Text tone="muted">{labels.collecting}</Text>
-          </Surface>
+          <>
+            <Text tone="muted" className="sr-only">
+              {labels.collecting}
+            </Text>
+            {placeholderSections.map(function renderPlaceholder(placeholder) {
+              return (
+                <DiagnosticSectionSkeleton
+                  key={placeholder.title}
+                  title={placeholder.title}
+                  rowCount={placeholder.rowCount}
+                />
+              );
+            })}
+          </>
         )}
       </div>
     </div>

@@ -8,6 +8,8 @@ import type { MtaLabels } from "./types";
 
 import { useMtaNavigation } from "./mta-navigation-provider";
 
+const refreshIntervalMilliseconds = 60_000;
+
 interface MtaRefreshControlsProps {
   initialUpdatedAt: string;
   labels: MtaLabels;
@@ -21,13 +23,31 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
     actions.refresh();
   });
 
-  useEffect(function refreshArrivalsEveryMinute() {
-    const intervalId = window.setInterval(function refreshArrivals() {
-      if (document.visibilityState !== "visible") return;
-      refresh();
-    }, 60_000);
+  const isStale = useEffectEvent(function isArrivalDataStale() {
+    return Date.now() - new Date(initialUpdatedAt).getTime() >= refreshIntervalMilliseconds;
+  });
+
+  // Arrivals refresh every minute while the page is visible, pause while it is hidden, and
+  // refresh right away on return if the minute has passed.
+  useEffect(function refreshArrivalsWhileVisible() {
+    let intervalId: number | undefined;
+    function startRefreshing() {
+      window.clearInterval(intervalId);
+      intervalId = window.setInterval(refresh, refreshIntervalMilliseconds);
+    }
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible") {
+        window.clearInterval(intervalId);
+        return;
+      }
+      if (isStale()) refresh();
+      startRefreshing();
+    }
+    if (document.visibilityState === "visible") startRefreshing();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return function stopRefreshing() {
       window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

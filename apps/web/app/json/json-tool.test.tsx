@@ -34,8 +34,10 @@ describe("JsonTool", function () {
     vi.useFakeTimers();
     class JsonWorker extends EventTarget {
       terminate = vi.fn<() => void>();
-      postMessage(input: string) {
-        this.dispatchEvent(new MessageEvent("message", { data: processJson(input) }));
+      postMessage({ id, input }: { id: number; input: string }) {
+        this.dispatchEvent(
+          new MessageEvent("message", { data: { id, response: processJson(input) } }),
+        );
       }
     }
     vi.stubGlobal("Worker", JsonWorker);

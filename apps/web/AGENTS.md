@@ -16,6 +16,8 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Request-cache locale and translation composition used by metadata, layouts, and pages.
 - Use `next/link` for internal application navigation.
 - Use native and React/Next view transitions as progressive enhancement. Keep navigation usable without them and disable or minimize their animation for reduced-motion users.
+- Keep the global stylesheet to the Editorial default theme. Other theme presets are published by `scripts/sync-theme-assets.mjs` as `/themes/<id>.css` and loaded only when selected, so do not import them into `globals.css`.
+- Read request-time data such as cookies only where a page needs it; shared layouts that can render without it stay static.
 
 ## Native app replicas
 

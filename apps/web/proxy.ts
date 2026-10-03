@@ -70,3 +70,10 @@ export function proxy(request: NextRequest) {
 
   return NextResponse.redirect(`instagram://extbrowser/?url=${targetUrl}`, 307);
 }
+
+// Static assets, framework chunks, and vendored runtimes never need locale or host handling.
+export const config = {
+  matcher: [
+    "/((?!_next/|vendor/|themes/|.*\\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|wasm|webp|woff2?)$).*)",
+  ],
+};

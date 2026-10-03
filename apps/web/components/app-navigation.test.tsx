@@ -44,13 +44,13 @@ const labels = {
 };
 
 describe("AppNavigation", function () {
-  it("opens route navigation and identifies the current page", function () {
+  it("opens route navigation and identifies the current page", async function () {
     navigationState.pathname = "/sudoku";
-    render(<AppNavigation labels={labels} locale="en" theme="default" />);
+    render(<AppNavigation labels={labels} locale="en" />);
 
     fireEvent.click(screen.getByRole("button", { name: labels.menu }));
 
-    expect(screen.getByRole("dialog", { name: labels.navigation })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: labels.navigation })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: labels.sudoku })).toHaveAttribute(
       "aria-current",
       "page",
@@ -59,15 +59,18 @@ describe("AppNavigation", function () {
     expect(screen.getByRole("combobox", { name: labels.theme })).toBeInTheDocument();
   });
 
-  it("keeps localized navigation on the active locale", function () {
+  it("keeps localized navigation on the active locale", async function () {
     navigationState.pathname = "/es/sudoku";
-    render(<AppNavigation labels={labels} locale="es" theme="default" />);
+    render(<AppNavigation labels={labels} locale="es" />);
 
     expect(screen.getByRole("link", { name: "Hugo Striedinger" })).toHaveAttribute("href", "/es");
 
     fireEvent.click(screen.getByRole("button", { name: labels.menu }));
 
-    expect(screen.getByRole("link", { name: labels.sudoku })).toHaveAttribute("href", "/es/sudoku");
+    expect(await screen.findByRole("link", { name: labels.sudoku })).toHaveAttribute(
+      "href",
+      "/es/sudoku",
+    );
     expect(screen.getByRole("link", { name: labels.sudoku })).toHaveAttribute(
       "aria-current",
       "page",

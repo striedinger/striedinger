@@ -34,6 +34,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
   const [items, setItems] = useState<OptimizerItem[]>([]);
   const [compressionMode, setCompressionMode] = useState<CompressionMode>("balanced");
   const [quality, setQuality] = useState(68);
+  const encodedQualityRef = useRef(68);
   const [maxDimension, setMaxDimension] = useState(2560);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("auto");
   const [notice, setNotice] = useState<string>();
@@ -141,6 +142,12 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
         }),
       );
     });
+  }
+
+  function requeueForSettledQuality() {
+    if (encodedQualityRef.current === quality) return;
+    encodedQualityRef.current = quality;
+    requeueItems();
   }
 
   function requeueItems() {
@@ -269,8 +276,10 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
               value={quality}
               onChange={function changeQuality(event) {
                 setQuality(Number(event.target.value));
-                requeueItems();
               }}
+              // Re-encode once the slider settles rather than for every step while dragging.
+              onPointerUp={requeueForSettledQuality}
+              onKeyUp={requeueForSettledQuality}
               className="accent-primary"
             />
             <Text size="sm" tone="muted">

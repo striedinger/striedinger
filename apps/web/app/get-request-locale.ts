@@ -10,6 +10,16 @@ export function getRequestLocale(): Promise<Locale> {
   return getCachedRequestLocale();
 }
 
+/**
+ * The locale named in the URL, or English for unprefixed URLs. Responses that are cached and
+ * shared across visitors, such as Open Graph images, use this instead of the visitor's
+ * cookie or browser language.
+ */
+export async function getRouteLocale(): Promise<Locale> {
+  const routeLocale = (await headers()).get(routeLocaleHeaderName);
+  return routeLocale && isLocale(routeLocale) ? routeLocale : "en";
+}
+
 async function resolveRequestLocale(): Promise<Locale> {
   const requestHeaders = await headers();
   const routeLocale = requestHeaders.get(routeLocaleHeaderName);

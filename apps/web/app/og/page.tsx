@@ -3,17 +3,17 @@ import type { Metadata } from "next";
 import { PageContainer } from "@workspace/ui/components/page-container";
 import { PageHeader } from "@workspace/ui/components/page-header";
 import { PageShell } from "@workspace/ui/components/page-shell";
-import { Suspense } from "react";
 
 import type { OgPreviewLabels } from "../../lib/og/labels";
 
 import { JsonLd } from "../../components/json-ld";
 import { ToolDetails } from "../../components/tool-details";
+import { localizePath } from "../../lib/locale-path";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../lib/seo";
 import { getOgTranslator } from "../../messages/og/get-translator";
 import { getRequestLocale } from "../get-request-locale";
-import { OgPreviewFormLoader } from "./og-preview-form-loader";
-import { OgPreviewFormSkeleton } from "./og-preview-form-skeleton";
+import { loadPreviewMetadata } from "./load-preview-metadata";
+import { OgPreviewForm } from "./og-preview-form";
 
 interface OpenGraphPreviewPageProps {
   searchParams: Promise<{
@@ -94,9 +94,12 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
           <div className="flex flex-col gap-12">
             <PageHeader title={labels.heading} description={labels.description} />
 
-            <Suspense key={initialUrl} fallback={<OgPreviewFormSkeleton />}>
-              <OgPreviewFormLoader initialUrl={initialUrl} labels={labels} />
-            </Suspense>
+            <OgPreviewForm
+              action={localizePath("/og", locale)}
+              defaultUrl={initialUrl}
+              labels={labels}
+              preview={initialUrl ? loadPreviewMetadata(initialUrl) : null}
+            />
           </div>
 
           <ToolDetails

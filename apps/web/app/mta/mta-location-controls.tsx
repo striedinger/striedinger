@@ -5,6 +5,7 @@ import { Input } from "@workspace/ui/components/input";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import Form from "next/form";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import type { MtaLabels } from "./types";
@@ -18,6 +19,7 @@ interface MtaLocationControlsProps {
 
 export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocationControlsProps) {
   const { actions } = useMtaNavigation();
+  const pathname = usePathname();
   const [locationState, setLocationState] = useState<"idle" | "loading" | "error">("idle");
 
   function detectLocation() {
@@ -53,7 +55,7 @@ export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocation
           </Text>
         </div>
         <Form
-          action="/mta"
+          action={pathname}
           className="flex flex-col gap-3 sm:flex-row"
           role="search"
           scroll={false}

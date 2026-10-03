@@ -5,7 +5,7 @@ import { ShareIcon } from "@workspace/icons/share-icon";
 import { Button } from "@workspace/ui/components/button";
 import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
@@ -42,6 +42,8 @@ export function StockDashboard({
   searchResults,
 }: StockDashboardProps) {
   const router = useRouter();
+  // Staying on the current path keeps a localized page (such as /es/stocks) in its language.
+  const pathname = usePathname();
   const [watchlist, setWatchlist] = useState<StockIdentity[]>(defaultStocks);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const [isNavigating, startNavigation] = useTransition();
@@ -75,7 +77,7 @@ export function StockDashboard({
                 timeframe,
               });
               startNavigation(function restoreServerSelection() {
-                router.replace(`/stocks?${parameters}`, { scroll: false });
+                router.replace(`${pathname}?${parameters}`, { scroll: false });
               });
             }
             if (restoredStocks !== validStocks) {
@@ -90,7 +92,7 @@ export function StockDashboard({
         window.clearTimeout(timeoutId);
       };
     },
-    [isSharedSelection, router, selectedStock.symbol, timeframe],
+    [isSharedSelection, pathname, router, selectedStock.symbol, timeframe],
   );
 
   useEffect(
@@ -123,8 +125,8 @@ export function StockDashboard({
   function navigateToSelection(symbol: string, nextTimeframe: StockTimeframe, replace = false) {
     const parameters = new URLSearchParams({ symbol, timeframe: nextTimeframe });
     startNavigation(function navigate() {
-      if (replace) router.replace(`/stocks?${parameters}`, { scroll: false });
-      else router.push(`/stocks?${parameters}`, { scroll: false });
+      if (replace) router.replace(`${pathname}?${parameters}`, { scroll: false });
+      else router.push(`${pathname}?${parameters}`, { scroll: false });
     });
   }
 

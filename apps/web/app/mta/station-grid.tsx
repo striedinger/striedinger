@@ -1,6 +1,5 @@
 import type { LiveStation, MtaLabels } from "./types";
 
-import { MasonryGrid } from "./masonry-grid";
 import { StationCard } from "./station-card";
 
 interface StationGridProps {
@@ -9,22 +8,21 @@ interface StationGridProps {
   stations: readonly LiveStation[];
 }
 
+/**
+ * Stations in distance order, flowing into two masonry-style columns on large screens. CSS
+ * columns size each card to its content, so cards never shift after rendering or refreshing,
+ * and reading order matches the visual order.
+ */
 export function StationGrid({ labels, locale, stations }: StationGridProps) {
-  const layoutKey = stations
-    .map(function createLayoutKey(station) {
-      return `${station.id}:${station.arrivals.length}`;
-    })
-    .join("|");
-
   return (
-    <MasonryGrid layoutKey={layoutKey}>
+    <div className="gap-4 lg:columns-2">
       {stations.map(function renderStation(station) {
         return (
-          <div key={station.id} data-masonry-item>
+          <div key={station.id} className="mb-4 break-inside-avoid">
             <StationCard labels={labels} locale={locale} station={station} />
           </div>
         );
       })}
-    </MasonryGrid>
+    </div>
   );
 }

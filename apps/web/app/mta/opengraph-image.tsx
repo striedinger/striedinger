@@ -4,14 +4,14 @@ import {
   openGraphImageSize,
 } from "../../lib/tool-open-graph-image";
 import { getMtaTranslator } from "../../messages/mta/get-translator";
-import { getRequestLocale } from "../get-request-locale";
+import { getRouteLocale } from "../get-request-locale";
 
 export const alt = "Trains near you - Live NYC subway arrivals";
 export const size = openGraphImageSize;
 export const contentType = openGraphImageContentType;
 
 export default async function OpenGraphImage() {
-  const locale = await getRequestLocale();
+  const locale = await getRouteLocale();
   const translate = await getMtaTranslator(locale);
 
   return createToolOpenGraphImage({

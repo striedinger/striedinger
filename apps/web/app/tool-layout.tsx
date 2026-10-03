@@ -6,7 +6,6 @@ import { AppNavigation } from "../components/app-navigation";
 import { AppNavigationSkeleton } from "../components/app-navigation-skeleton";
 import { getTranslator } from "../messages/get-translator";
 import { getRequestLocale } from "./get-request-locale";
-import { getRequestTheme } from "./get-request-theme";
 
 interface ToolLayoutProps {
   children: ReactNode;
@@ -24,13 +23,12 @@ export function ToolLayout({ children }: ToolLayoutProps) {
 }
 
 async function LocalizedAppNavigation() {
-  const [locale, theme] = await Promise.all([getRequestLocale(), getRequestTheme()]);
+  const locale = await getRequestLocale();
   const translate = await getTranslator(locale);
 
   return (
     <AppNavigation
       locale={locale}
-      theme={theme.id}
       labels={{
         chat: translate("Nearby Chat"),
         close: translate("Close navigation"),

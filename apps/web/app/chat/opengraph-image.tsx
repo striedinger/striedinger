@@ -4,7 +4,7 @@ import {
   openGraphImageSize,
 } from "../../lib/tool-open-graph-image";
 import { getTranslator } from "../../messages/get-translator";
-import { getRequestLocale } from "../get-request-locale";
+import { getRouteLocale } from "../get-request-locale";
 
 const descriptionKey =
   "Chat privately with nearby devices over a fast, encrypted, serverless peer-to-peer mesh.";
@@ -14,7 +14,7 @@ export const size = openGraphImageSize;
 export const contentType = openGraphImageContentType;
 
 export default async function OpenGraphImage() {
-  const locale = await getRequestLocale();
+  const locale = await getRouteLocale();
   const translate = await getTranslator(locale);
 
   return createToolOpenGraphImage({

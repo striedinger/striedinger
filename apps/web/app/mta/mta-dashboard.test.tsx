@@ -14,7 +14,7 @@ const navigationMocks = vi.hoisted(function createNavigationMocks() {
 });
 
 vi.mock("next/navigation", function mockNavigation() {
-  return { useRouter: () => navigationMocks };
+  return { usePathname: () => "/mta", useRouter: () => navigationMocks };
 });
 
 vi.mock("./mta-location-controls", function mockLocationControls() {

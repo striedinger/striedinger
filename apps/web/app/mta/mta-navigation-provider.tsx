@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, use, useMemo, useTransition, type ReactNode } from "react";
 
 interface NavigationState {
@@ -26,6 +26,8 @@ const MtaNavigationContext = createContext<MtaNavigationContextValue | null>(nul
 
 export function MtaNavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  // Staying on the current path keeps a localized page (such as /es/mta) in its language.
+  const pathname = usePathname();
   const [isNavigating, startNavigation] = useTransition();
   const value = useMemo<MtaNavigationContextValue>(
     function createNavigationContext() {
@@ -44,7 +46,7 @@ export function MtaNavigationProvider({ children }: { children: ReactNode }) {
             });
             if (route) parameters.set("train", route);
             startNavigation(function loadServerArrivals() {
-              router.push(`/mta?${parameters}`, { scroll: false });
+              router.push(`${pathname}?${parameters}`, { scroll: false });
             });
           },
           refresh() {
@@ -56,7 +58,7 @@ export function MtaNavigationProvider({ children }: { children: ReactNode }) {
         state: { isNavigating },
       };
     },
-    [isNavigating, router, startNavigation],
+    [isNavigating, pathname, router, startNavigation],
   );
 
   return <MtaNavigationContext value={value}>{children}</MtaNavigationContext>;

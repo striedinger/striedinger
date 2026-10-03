@@ -7,7 +7,7 @@ import type { Note, NoteFolder, NotesMessages } from "./types";
 
 import { IosAlert } from "../../components/ios/ios-alert";
 import { IosScreenTransition } from "../../components/ios/ios-screen-transition";
-import { useHasOpened } from "../../components/ios/use-has-opened";
+import { useHasOpened } from "../../components/use-has-opened";
 import { FoldersPane } from "./folders-pane";
 import { groupNotes, sortNotes } from "./note-dates";
 import { NoteEditorPane } from "./note-editor-pane";
@@ -240,6 +240,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
 
   return (
     <div ref={rootRef} className="flex size-full min-w-0">
+      <h1 className="sr-only">{messages.Notes}</h1>
       <input
         ref={keyboardWarmupRef}
         aria-hidden="true"

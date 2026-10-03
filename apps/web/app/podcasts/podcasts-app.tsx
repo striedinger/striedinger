@@ -16,7 +16,7 @@ import type {
 import { IosErrorBoundary } from "../../components/ios/ios-error-boundary";
 import { IosScreenTransition } from "../../components/ios/ios-screen-transition";
 import { IosToast } from "../../components/ios/ios-toast";
-import { useHasOpened } from "../../components/ios/use-has-opened";
+import { useHasOpened } from "../../components/use-has-opened";
 import { useIosNavigation } from "../../components/ios/use-ios-navigation";
 import { copyText } from "../../lib/copy-text";
 import { PodcastEpisodePage } from "./podcast-episode-page";

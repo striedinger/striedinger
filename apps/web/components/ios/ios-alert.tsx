@@ -4,7 +4,7 @@ import { lazy, Suspense } from "react";
 
 import type { IosAlertProps } from "./ios-alert-dialog";
 
-import { useHasOpened } from "./use-has-opened";
+import { useHasOpened } from "../use-has-opened";
 
 const IosAlertDialog = lazy(function importAlertDialog() {
   return import("./ios-alert-dialog").then(function selectAlertDialog(module) {
