@@ -5,9 +5,8 @@ import { messages } from "../../../messages/notes/en";
 import { NotesApp } from "./notes-app";
 
 vi.mock("next/navigation", async function mockNavigation() {
-  const { useHistoryPathname, useHistorySearchParams } =
-    await import("../../../test/history-navigation");
-  return { usePathname: useHistoryPathname, useSearchParams: useHistorySearchParams };
+  const { useHistoryPathname } = await import("../../../test/history-navigation");
+  return { usePathname: useHistoryPathname };
 });
 
 const welcomeNoteHtml = "<h1>Welcome to Notes</h1><p>Start writing</p>";

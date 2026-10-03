@@ -13,6 +13,7 @@ import { groupNotes, sortNotes } from "./note-dates";
 import { NoteEditorPane } from "./note-editor-pane";
 import { NotesListPane } from "./notes-list-pane";
 import { NotesSkeleton } from "./notes-skeleton";
+import { useCurrentTime } from "./use-current-time";
 import { useNotesRoute } from "./use-notes-route";
 import {
   allNotesFolderId,
@@ -32,7 +33,6 @@ interface FolderNameDialog {
   name: string;
 }
 
-const minuteMilliseconds = 60_000;
 const NoteMoveSheet = lazy(function importNoteMoveSheet() {
   return import("./note-move-sheet").then(function selectNoteMoveSheet(module) {
     return { default: module.NoteMoveSheet };
@@ -44,9 +44,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   const { goBack, navigate, route } = useNotesRoute();
   const keyboardWarmupRef = useRef<HTMLInputElement>(null);
   const previousNoteIdRef = useRef<string | null>(null);
-  const [now, setNow] = useState(function readCurrentTime() {
-    return Date.now();
-  });
+  const now = useCurrentTime();
   const [folderSearchQuery, setFolderSearchQuery] = useState("");
   const [listSearchQuery, setListSearchQuery] = useState("");
   const deferredFolderSearchQuery = useDeferredValue(folderSearchQuery);
@@ -56,15 +54,6 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
   const [isNameTakenOpen, setIsNameTakenOpen] = useState(false);
   const [folderPendingDeletion, setFolderPendingDeletion] = useState<NoteFolder | null>(null);
   const [noteIdToMove, setNoteIdToMove] = useState<string | null>(null);
-
-  useEffect(function refreshRelativeDates() {
-    const interval = window.setInterval(function updateCurrentTime() {
-      setNow(Date.now());
-    }, minuteMilliseconds);
-    return function stopRefreshingRelativeDates() {
-      window.clearInterval(interval);
-    };
-  }, []);
 
   const userFolders = store.folders.toSorted(function compareFolders(first, second) {
     return first.name.localeCompare(second.name, locale, { numeric: true, sensitivity: "base" });
@@ -373,7 +362,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
           </IosScreenTransition>
         </>
       ) : (
-        <NotesSkeleton />
+        <NotesSkeleton title={messages.Folders} />
       )}
       <IosAlert
         open={folderNameDialog !== null}

@@ -5,7 +5,9 @@ import { supportedLocales, type Locale } from "@workspace/i18n";
 import type { SitePath } from "../lib/locale-path";
 
 import { createLanguageAlternates, localizePath } from "../lib/locale-path";
+import { getPopularPodcasts } from "../lib/podcasts/apple-podcasts";
 import { siteUrl } from "../lib/seo";
+import { getShowHref } from "./[locale]/podcasts/podcast-route";
 
 const publicPaths = [
   "/",
@@ -24,10 +26,15 @@ const publicPaths = [
   "/notes",
 ] as const satisfies readonly SitePath[];
 
-function createSitemapEntry(path: SitePath, locale: Locale): MetadataRoute.Sitemap[number] {
+function createSitemapEntry(
+  path: SitePath,
+  locale: Locale,
+  image?: string,
+): MetadataRoute.Sitemap[number] {
   const localizedPath = localizePath(path, locale);
   const url = createAbsoluteUrl(localizedPath);
-  const imageUrl = localizedPath === "/" ? `${siteUrl}/opengraph-image` : `${url}/opengraph-image`;
+  const imageUrl =
+    image ?? (localizedPath === "/" ? `${siteUrl}/opengraph-image` : `${url}/opengraph-image`);
   const languages = Object.fromEntries(
     Object.entries(createLanguageAlternates(path)).map(function createAbsoluteAlternate([
       language,
@@ -44,10 +51,20 @@ function createSitemapEntry(path: SitePath, locale: Locale): MetadataRoute.Sitem
   };
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return publicPaths.flatMap(function createLocalizedEntries(path) {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Top shows have their own pages, which are worth indexing like the tools themselves.
+  const popularPodcasts = await getPopularPodcasts();
+  const pages = [
+    ...publicPaths.map(function createPage(path) {
+      return { path, image: undefined };
+    }),
+    ...popularPodcasts.map(function createShowPage(podcast) {
+      return { path: getShowHref(podcast), image: podcast.artworkUrl };
+    }),
+  ];
+  return pages.flatMap(function createLocalizedEntries({ path, image }) {
     return supportedLocales.map(function createLocaleEntry(locale) {
-      return createSitemapEntry(path, locale);
+      return createSitemapEntry(path, locale, image);
     });
   });
 }

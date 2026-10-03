@@ -1,13 +1,28 @@
 import { supportedLocales } from "@workspace/i18n";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import robots from "./robots";
 import sitemap from "./sitemap";
 
+vi.mock("../lib/podcasts/apple-podcasts", function mockApplePodcasts() {
+  return {
+    getPopularPodcasts: async () => [
+      {
+        artworkUrl: "https://example.com/art.jpg",
+        author: "Audiochuck",
+        genre: "True Crime",
+        id: "1322200189",
+        title: "Crime Junkie",
+        url: "https://podcasts.apple.com/podcast/id1322200189",
+      },
+    ],
+  };
+});
+
 describe("SEO discovery routes", function () {
-  it("advertises the canonical sitemap and every public page", function () {
+  it("advertises the canonical sitemap, every public page, and top shows", async function () {
     expect(robots().sitemap).toBe("https://striedinger.co/sitemap.xml");
-    const sitemapEntries = sitemap();
+    const sitemapEntries = await sitemap();
     const englishUrls = [
       "https://striedinger.co",
       "https://striedinger.co/chat",
@@ -23,6 +38,7 @@ describe("SEO discovery routes", function () {
       "https://striedinger.co/stocks",
       "https://striedinger.co/podcasts",
       "https://striedinger.co/notes",
+      "https://striedinger.co/podcasts/crime-junkie-1322200189",
     ];
 
     expect(sitemapEntries).toHaveLength(englishUrls.length * supportedLocales.length);

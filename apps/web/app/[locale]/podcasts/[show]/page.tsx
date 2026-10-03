@@ -6,6 +6,7 @@ import { getRequestLocale } from "../../../get-request-locale";
 import { getShowHref } from "../podcast-route";
 import { PodcastShowScreen } from "../podcast-show-screen";
 import { PodcastStackPlaceholder } from "../podcast-stack-placeholder";
+import { PodcastStructuredData } from "../podcast-structured-data";
 import { loadPodcastShowForSegment } from "../podcasts-data";
 import { createPodcastsMetadata } from "../podcasts-metadata";
 
@@ -31,8 +32,13 @@ export default function PodcastShowRoute({ params }: PodcastShowPageProps) {
     return loadPodcastShowForSegment(segment);
   });
   return (
-    <Suspense fallback={<PodcastStackPlaceholder />}>
-      <PodcastShowScreen show={show} />
-    </Suspense>
+    <>
+      <Suspense fallback={<PodcastStackPlaceholder />}>
+        <PodcastShowScreen show={show} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <PodcastStructuredData show={show} />
+      </Suspense>
+    </>
   );
 }

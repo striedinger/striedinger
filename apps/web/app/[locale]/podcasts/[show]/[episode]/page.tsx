@@ -6,6 +6,7 @@ import { getRequestLocale } from "../../../../get-request-locale";
 import { PodcastEpisodeScreen } from "../../podcast-episode-screen";
 import { getEpisodeHref, readSlugSegmentId } from "../../podcast-route";
 import { PodcastStackPlaceholder } from "../../podcast-stack-placeholder";
+import { PodcastStructuredData } from "../../podcast-structured-data";
 import { loadPodcastShowForSegment } from "../../podcasts-data";
 import { createPodcastsMetadata } from "../../podcasts-metadata";
 
@@ -39,9 +40,17 @@ export default function PodcastEpisodeRoute({ params }: PodcastEpisodePageProps)
   const show = params.then(function loadShow({ show: segment }) {
     return loadPodcastShowForSegment(segment);
   });
+  const episodeSegment = params.then(function readEpisodeSegment({ episode }) {
+    return episode;
+  });
   return (
-    <Suspense fallback={<PodcastStackPlaceholder />}>
-      <PodcastEpisodeScreen show={show} />
-    </Suspense>
+    <>
+      <Suspense fallback={<PodcastStackPlaceholder />}>
+        <PodcastEpisodeScreen show={show} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <PodcastStructuredData episodeSegment={episodeSegment} show={show} />
+      </Suspense>
+    </>
   );
 }

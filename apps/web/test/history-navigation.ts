@@ -5,7 +5,7 @@ let isHistoryPatched = false;
 
 /**
  * Mirrors how the Next.js App Router reacts to `history.pushState` and `replaceState`: the
- * hooks below re-render with the new URL, so shallow routing behaves as it does in the app.
+ * hook below re-renders with the new URL, so shallow routing behaves as it does in the app.
  */
 function patchHistory() {
   if (isHistoryPatched) return;
@@ -28,17 +28,8 @@ function subscribeToLocation(onChange: () => void) {
   };
 }
 
-function readSearch() {
-  return window.location.search;
-}
-
 function readPathname() {
   return window.location.pathname;
-}
-
-export function useHistorySearchParams() {
-  patchHistory();
-  return new URLSearchParams(useSyncExternalStore(subscribeToLocation, readSearch, readSearch));
 }
 
 export function useHistoryPathname() {

@@ -28,6 +28,7 @@ export function PodcastStackPlaceholder({ message }: PodcastStackPlaceholderProp
       <IosNavigationBar
         title={messages.Episodes}
         titleDisplay="hidden"
+        titleElement="h2"
         leading={
           <PodcastPageBarButton
             aria-label={messages.Back}

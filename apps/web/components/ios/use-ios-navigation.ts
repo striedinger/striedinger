@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   // Next.js runs this with React canary; stable React used by unit tests has no transition types.
   addTransitionType,
@@ -16,7 +16,6 @@ import { iosNavigationTypes, type IosNavigationDirection } from "./ios-navigatio
 
 interface RouteLocation {
   pathname: string;
-  searchParams: URLSearchParams;
 }
 
 interface IosNavigationOptions<Route> {
@@ -73,10 +72,10 @@ export function useIosNavigation<Route>({
   parseRoute,
   shouldAnimate = alwaysAnimate,
 }: IosNavigationOptions<Route>) {
+  // The pathname, unlike search parameters, is known while static pages prerender.
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [navigation, setNavigation] = useState<NavigationState<Route>>(function readInitialRoute() {
-    return { history: "none", route: parseRoute({ pathname, searchParams }) };
+    return { history: "none", route: parseRoute({ pathname }) };
   });
   const currentRouteRef = useRef(navigation.route);
   // How many entries the app pushed below the current one. Loading data through the router
@@ -116,10 +115,7 @@ export function useIosNavigation<Route>({
   useEffect(function followHistoryTraversal() {
     let pendingTimeout = 0;
     function showHistoryEntry(event: PopStateEvent) {
-      const route = readRoute({
-        pathname: window.location.pathname,
-        searchParams: new URLSearchParams(window.location.search),
-      });
+      const route = readRoute({ pathname: window.location.pathname });
       const isPop = readDepth(route) < readDepth(currentRouteRef.current);
       const shouldSlide = !event.hasUAVisualTransition && readShouldAnimate();
       historyDepthRef.current =
