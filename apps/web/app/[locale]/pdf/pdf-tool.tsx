@@ -1,14 +1,21 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { Surface } from "@workspace/ui/components/surface";
+import { DocIcon } from "@workspace/icons/doc-icon";
+import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
-import { lazy, Suspense, useState } from "react";
+import { cn } from "@workspace/ui/lib/utils";
+import { lazy, Suspense, useRef, useState } from "react";
 
 import type { PdfCompressionMode, PdfOperationStage, PdfToolLabels } from "./types";
 
+import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
+import { IosListSection } from "../../../components/ios/ios-list-section";
+import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import { formatBytes } from "./format-bytes";
 import { PdfDropZone } from "./pdf-drop-zone";
+import { PdfOptionsSection } from "./pdf-options-section";
+import { PdfStatusSection } from "./pdf-status-section";
 
 // The preview pulls in pdf.js rendering, so it loads once a file is chosen.
 const PdfPreview = lazy(function importPdfPreview() {
@@ -38,6 +45,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handlePasswordResult(documentRequiresPassword: boolean, isValid: boolean) {
     if (documentRequiresPassword) setRequiresPassword(true);
@@ -93,8 +101,19 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
     }
   }
 
+  function selectFiles(files: File[]) {
+    if (isProcessing) return;
+    const pdf = files.find(function findPdf(candidate) {
+      return candidate.type === "application/pdf" || /\.pdf$/i.test(candidate.name);
+    });
+    if (pdf) selectFile(pdf);
+  }
+
+  function openFilePicker() {
+    fileInputRef.current?.click();
+  }
+
   const previewFile = result?.file ?? file;
-  const savings = file && result ? Math.max(0, 1 - result.blob.size / file.size) : 0;
   const stageLabel =
     stage === "preparing"
       ? labels.processing
@@ -103,197 +122,154 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
         : stage === "compressing"
           ? labels.compress
           : labels.result;
-
-  if (!file) {
-    return <PdfDropZone labels={labels} onFile={selectFile} />;
-  }
+  const canCompress = !isProcessing && !(requiresPassword && !passwordIsValid);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
-      <div className="flex min-w-0 flex-col gap-4">
-        <Surface className="flex flex-wrap items-center justify-between gap-3 p-4">
-          <div className="min-w-0">
-            <Text weight="semibold" className="truncate">
-              {file.name}
+    <div className="flex flex-col gap-2 pb-16">
+      {file && previewFile ? (
+        <>
+          <IosListSection className="px-0 pt-2" label={labels.title}>
+            <li className="flex min-h-[64px] items-center gap-3 px-4 py-2.5">
+              <span
+                aria-hidden="true"
+                className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-(--ios-tint) text-white [&_svg]:size-5"
+              >
+                <DocIcon />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <Text
+                  as="span"
+                  numberOfLines={1}
+                  title={file.name}
+                  className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+                >
+                  {file.name}
+                </Text>
+                <Text
+                  as="span"
+                  className="text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label) tabular-nums"
+                >
+                  {formatBytes(file.size)}
+                </Text>
+              </span>
+              <button
+                type="button"
+                disabled={isProcessing}
+                className="shrink-0 rounded-full px-2 py-1 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-50 disabled:text-(--ios-tertiary-label)"
+                onClick={openFilePicker}
+              >
+                {labels.replaceFile}
+              </button>
+            </li>
+          </IosListSection>
+          <PdfStatusSection
+            isProcessing={isProcessing}
+            labels={labels}
+            onDownload={function downloadResult() {
+              if (result) download(result);
+            }}
+            originalSize={file.size}
+            progress={progress}
+            result={
+              result
+                ? { name: result.name, size: result.blob.size, unlocked: result.unlocked }
+                : undefined
+            }
+            stageLabel={stageLabel}
+          />
+          {error ? (
+            <Text
+              role="alert"
+              className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)"
+            >
+              {error}
             </Text>
-            <Text size="sm" tone="muted">
-              {formatBytes(file.size)}
-            </Text>
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={isProcessing}
-            onClick={function replaceFile() {
-              setFile(undefined);
+          ) : null}
+          <PdfOptionsSection
+            canRemoveRestrictions={
+              !isProcessing && !(requiresPassword && (!password || !passwordIsValid))
+            }
+            compressionMode={compressionMode}
+            labels={labels}
+            onCompressionModeChange={function changeMode(nextMode) {
+              setCompressionMode(nextMode);
               setResult(undefined);
             }}
-          >
-            {labels.replaceFile}
-          </Button>
-        </Surface>
-
-        <Suspense fallback={<Surface className="h-96 animate-pulse motion-reduce:animate-none" />}>
-          <PdfPreview
-            key={`${previewFile!.name}-${previewFile!.size}-${previewFile!.lastModified}`}
-            file={previewFile!}
-            labels={labels}
-            password={result?.unlocked ? "" : password}
-            onPasswordResult={handlePasswordResult}
-          />
-        </Suspense>
-
-        {isProcessing ? (
-          <Surface className="p-5" aria-live="polite">
-            <div className="flex items-center justify-between gap-3">
-              <Text size="sm" weight="semibold">
-                {stageLabel}…
-              </Text>
-              <Text size="sm" className="text-primary tabular-nums">
-                {Math.round(progress)}%
-              </Text>
-            </div>
-            <div
-              className="mt-3 h-2 overflow-hidden rounded-full bg-primary/10"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(progress)}
-            >
-              <div
-                className="h-full animate-pulse rounded-full bg-primary transition-[width] duration-500 motion-reduce:animate-none motion-reduce:transition-none"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <Text size="sm" tone="muted" className="mt-3">
-              {labels.fileStaysLocal}
-            </Text>
-          </Surface>
-        ) : null}
-
-        {result ? (
-          <Surface className="flex flex-wrap items-center justify-between gap-4 p-5">
-            <div>
-              <Text weight="semibold">
-                {result.unlocked ? labels.unlockComplete : labels.result}
-              </Text>
-              <Text size="sm" tone="muted">
-                {formatBytes(result.blob.size)}
-                {!result.unlocked && savings > 0
-                  ? ` · ${Math.round(savings * 100)}% ${labels.saved}`
-                  : ""}
-                {!result.unlocked && savings === 0 ? ` · ${labels.noSmallerResult}` : ""}
-              </Text>
-            </div>
-            <Button
-              type="button"
-              onClick={function downloadResult() {
-                download(result);
-              }}
-            >
-              {labels.download}
-            </Button>
-          </Surface>
-        ) : null}
-      </div>
-
-      <Surface className="flex flex-col gap-6 p-5 lg:sticky lg:top-20">
-        {requiresPassword ? (
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={function submitPassword(event) {
-              event.preventDefault();
+            onPasswordInputChange={setPasswordInput}
+            onPasswordSubmit={function submitPassword() {
               setPassword(passwordInput);
             }}
-          >
-            <label className="flex flex-col gap-2">
-              <Text size="sm" weight="semibold">
-                {labels.password}
-              </Text>
-              <Input
-                type="password"
-                value={passwordInput}
-                autoComplete="off"
-                onChange={function changePassword(event) {
-                  setPasswordInput(event.target.value);
-                }}
-              />
-            </label>
-            <Text size="sm" tone="muted">
-              {labels.passwordHelp}
-            </Text>
-            <Button type="submit" size="sm" disabled={!passwordInput}>
-              {labels.open}
-            </Button>
-          </form>
-        ) : null}
-
-        <label className="flex flex-col gap-2">
-          <Text size="sm" weight="semibold">
-            {labels.compressionMode}
-          </Text>
-          <select
-            value={compressionMode}
-            onChange={function changeMode(event) {
-              setCompressionMode(event.target.value as PdfCompressionMode);
+            onQualityChange={function changeQuality(nextQuality) {
+              setQuality(nextQuality);
               setResult(undefined);
             }}
-            className="h-9 rounded-md border border-input bg-surface-inset px-3 text-sm"
-          >
-            <option value="balanced">{labels.balanced}</option>
-            <option value="smallest">{labels.smallest}</option>
-            <option value="lossless">{labels.lossless}</option>
-          </select>
-        </label>
-        {compressionMode === "smallest" ? (
-          <label className="flex flex-col gap-2">
-            <Text size="sm" weight="semibold">
-              Quality: {quality}%
-            </Text>
-            <input
-              type="range"
-              min="35"
-              max="95"
-              value={quality}
-              className="accent-primary"
-              onChange={function changeQuality(event) {
-                setQuality(Number(event.target.value));
-                setResult(undefined);
-              }}
+            onRemoveRestrictions={function removeLock() {
+              void runOperation("unlock");
+            }}
+            passwordInput={passwordInput}
+            quality={quality}
+            requiresPassword={requiresPassword}
+          />
+          <Suspense fallback={<IosSkeleton className="mt-4 h-96 w-full rounded-[22px]" />}>
+            <PdfPreview
+              key={`${previewFile.name}-${previewFile.size}-${previewFile.lastModified}`}
+              file={previewFile}
+              labels={labels}
+              password={result?.unlocked ? "" : password}
+              onPasswordResult={handlePasswordResult}
             />
-          </label>
-        ) : null}
-        <Button
-          type="button"
-          disabled={isProcessing || (requiresPassword && !passwordIsValid)}
-          onClick={function compress() {
-            void runOperation("compress");
-          }}
-        >
-          {labels.compress}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isProcessing || (requiresPassword && (!password || !passwordIsValid))}
-          onClick={function removeLock() {
-            void runOperation("unlock");
-          }}
-        >
-          {labels.removeLock}
-        </Button>
-        {error ? (
-          <Text size="sm" className="text-destructive" role="alert">
-            {error}
-          </Text>
-        ) : null}
-        <div className="border-t border-border pt-5">
-          <Text size="sm" weight="semibold">
+          </Suspense>
+        </>
+      ) : (
+        <div className="flex flex-col pt-2">
+          <div className="rounded-[26px] border-2 border-dashed border-(--ios-separator) bg-(--ios-grouped-cell)">
+            <IosContentUnavailable
+              className="px-6 pt-12 pb-12"
+              icon={<DocIcon />}
+              title={labels.dropPrompt}
+              description={labels.supported}
+            />
+          </div>
+          <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
             {labels.fileStaysLocal}
           </Text>
         </div>
-      </Surface>
+      )}
+      <PdfDropZone label={labels.dropActive} onFiles={selectFiles} />
+      <input
+        ref={fileInputRef}
+        className="sr-only"
+        type="file"
+        accept=".pdf,application/pdf"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={function selectInputFile(event) {
+          selectFiles(Array.from(event.target.files ?? []));
+          event.target.value = "";
+        }}
+      />
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)]",
+          iosBottomScrollEdgeClassName,
+        )}
+      >
+        <button
+          type="button"
+          disabled={file ? !canCompress : false}
+          className="pointer-events-auto flex h-[50px] w-full max-w-sm items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 motion-reduce:transition-none [&_svg]:size-5"
+          onClick={
+            file
+              ? function compress() {
+                  void runOperation("compress");
+                }
+              : openFilePicker
+          }
+        >
+          {file ? null : <PlusIcon strokeWidth={2.8} />}
+          {file ? labels.compress : labels.chooseFile}
+        </button>
+      </div>
     </div>
   );
 }
@@ -307,10 +283,4 @@ function download(result: Result) {
   setTimeout(function releaseUrl() {
     URL.revokeObjectURL(url);
   }, 1_000);
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1_000) return `${bytes} B`;
-  if (bytes < 1_000_000) return `${(bytes / 1_000).toFixed(1)} KB`;
-  return `${(bytes / 1_000_000).toFixed(1)} MB`;
 }

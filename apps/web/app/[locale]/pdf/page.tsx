@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-
 import type { PdfToolLabels } from "./types";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getPdfTranslator } from "../../../messages/pdf/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -50,6 +46,7 @@ export default async function PdfPage() {
     passwordHelp: translate("Enter a password you are authorized to use. It is never stored."),
     preview: translate("Preview"),
     processing: translate("Preparing PDF"),
+    quality: translate("Quality"),
     removeLock: translate("Remove restrictions"),
     replaceFile: translate("Choose another"),
     result: translate("Optimized PDF"),
@@ -71,35 +68,9 @@ export default async function PdfPage() {
   });
 
   return (
-    <PageShell>
+    <IosToolScreen title={labels.title} contentWidth="48rem">
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="flex flex-col gap-12">
-          <PageHeader title={labels.title} description={labels.description} />
-          <PdfTool labels={labels} />
-          <ToolDetails
-            title={translate("About this tool")}
-            description={labels.description}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: labels.description,
-                items: [labels.balanced, labels.lossless, labels.smallest],
-              },
-              {
-                title: translate("Privacy and security"),
-                description: labels.fileStaysLocal,
-                items: [labels.supported, labels.passwordHelp],
-              },
-              {
-                title: translate("Features"),
-                description: labels.result,
-                items: [labels.preview, labels.removeLock, labels.download],
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <PdfTool labels={labels} />
+    </IosToolScreen>
   );
 }

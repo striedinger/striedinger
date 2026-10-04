@@ -103,18 +103,19 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
   );
 
   return (
-    <div className="flex min-h-[32rem] flex-col overflow-hidden rounded-xl border border-border bg-surface-inset lg:h-[min(75vh,56rem)]">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <Text size="sm" weight="semibold">
-          {labels.preview}
-        </Text>
+    <section aria-label={labels.preview} className="flex flex-col">
+      <Text
+        as="h2"
+        className="flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)"
+      >
+        {labels.preview}
         {pageSizes.length > 0 ? (
-          <Text size="sm" tone="muted">
+          <span className="font-normal tabular-nums">
             {pageSizes.length} {labels.pages}
-          </Text>
+          </span>
         ) : null}
-      </div>
-      <div className="relative flex min-h-0 flex-1 overflow-auto bg-muted/45 p-4 sm:p-6">
+      </Text>
+      <div className="relative flex min-h-96 flex-col rounded-[22px] bg-(--ios-grouped-cell) p-4 sm:p-6">
         {status === "ready" && document ? (
           <div className="flex w-full flex-col items-center gap-5">
             {pageSizes.map(function renderPage(size) {
@@ -135,16 +136,24 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
             className="absolute inset-0 flex flex-col items-center justify-center gap-3"
             aria-live="polite"
           >
-            <div className="size-9 animate-spin rounded-full border-4 border-primary/20 border-t-primary motion-reduce:animate-pulse" />
-            <Text size="sm" tone="muted">
+            <span
+              aria-hidden="true"
+              className="size-8 animate-spin rounded-full border-[3px] border-(--ios-fill) border-t-(--ios-secondary-label) motion-reduce:animate-pulse"
+            />
+            <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
               {labels.loadingPreview}
             </Text>
           </div>
         ) : null}
         {status === "error" ? (
-          <Text className="m-auto text-center text-destructive">{error}</Text>
+          <Text
+            role="alert"
+            className="m-auto max-w-xs text-center text-[15px] leading-5 tracking-[-0.23px] text-(--ios-red)"
+          >
+            {error}
+          </Text>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }

@@ -26,6 +26,7 @@ export const messages = defineMessages({
     "Enter a password you are authorized to use. It is never stored.",
   Preview: "Preview",
   "Preparing PDF": "Preparing PDF",
+  Quality: "Quality",
   "Remove restrictions": "Remove restrictions",
   "Choose another": "Choose another",
   "Optimized PDF": "Optimized PDF",

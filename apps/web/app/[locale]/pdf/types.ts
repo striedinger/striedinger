@@ -23,6 +23,7 @@ export interface PdfToolLabels {
   passwordHelp: string;
   preview: string;
   processing: string;
+  quality: string;
   removeLock: string;
   replaceFile: string;
   result: string;

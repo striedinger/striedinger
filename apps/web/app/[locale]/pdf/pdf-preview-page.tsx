@@ -2,6 +2,7 @@
 
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
+import { Text } from "@workspace/ui/components/text";
 import { useEffect, useRef, useState } from "react";
 
 interface PdfPreviewPageProps {
@@ -91,7 +92,7 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
   return (
     <div
       ref={containerRef}
-      className="relative w-full shrink-0 overflow-hidden bg-white shadow-lg [content-visibility:auto]"
+      className="relative w-full shrink-0 overflow-hidden rounded-[4px] bg-white shadow-[0_1px_3px_rgb(0_0_0/0.12),0_6px_18px_rgb(0_0_0/0.1)] [content-visibility:auto]"
       style={{ aspectRatio: `${width} / ${height}`, maxWidth: width }}
     >
       <canvas
@@ -100,12 +101,15 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
       />
       {status !== "ready" ? (
         <div className="absolute inset-0 flex items-center justify-center bg-white">
-          <div className="size-7 animate-spin rounded-full border-4 border-primary/15 border-t-primary motion-reduce:animate-pulse" />
+          <span className="size-7 animate-spin rounded-full border-[3px] border-black/10 border-t-black/45 motion-reduce:animate-pulse" />
         </div>
       ) : null}
-      <span className="absolute right-2 bottom-2 rounded-md border border-border bg-popover/90 px-2 py-1 text-xs text-popover-foreground tabular-nums shadow-xs backdrop-blur-sm">
+      <Text
+        as="span"
+        className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2.5 py-0.5 text-[12px] leading-4 font-medium text-white tabular-nums backdrop-blur-md"
+      >
         {pageNumber}
-      </span>
+      </Text>
     </div>
   );
 }

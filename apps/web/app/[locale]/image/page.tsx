@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 
 import type { ImageOptimizerLabels } from "./types";
 
-import { JsonLd } from "../../../components/json-ld";
 import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
+import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getImageTranslator } from "../../../messages/image/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
