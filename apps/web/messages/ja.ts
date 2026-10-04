@@ -40,7 +40,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "高速で暗号化されたサーバーレスのピアツーピアメッシュを介して、近くのデバイスとプライベートにチャットできます。",
   "Private chat for nearby devices. Messages disappear when you leave.":
     "近くのデバイス向けのプライベートチャットです。退出するとメッセージは消去されます。",
-  "Private · Local · Temporary": "プライベート · ローカル · 一時的",
   "Use a short pairing code to connect nearby browsers. WebRTC carries messages directly between peers.":
     "短いペアリングコードで近くのブラウザを接続します。WebRTC がピア間でメッセージを直接運びます。",
   "Messages are encrypted between connected devices and are not stored after the temporary session ends.":
@@ -88,11 +87,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Show code": "コードを表示",
   "One-time pairing code": "ワンタイムペアリングコード",
   "No messages yet": "まだメッセージはありません",
-  "Connect a device to start chatting.": "デバイスを接続してチャットを始めましょう。",
   Messages: "メッセージ",
   You: "あなた",
-  "1 device": "1 台のデバイス",
-  "{count} devices": "{count} 台のデバイス",
   "Nearby devices": "近くのデバイス",
   "Connect a device to join this chat.": "デバイスを接続してこのチャットに参加させましょう。",
   "Close devices": "デバイスを閉じる",

@@ -1,15 +1,17 @@
 "use client";
 
-import { UsersIcon } from "@workspace/icons/users-icon";
-import { Button } from "@workspace/ui/components/button";
 import { Text } from "@workspace/ui/components/text";
-import { Textarea } from "@workspace/ui/components/textarea";
+import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import type { ChatLabels, PairingState } from "./types";
 
+import { IosListSection } from "../../../components/ios/ios-list-section";
 import { copyText } from "../../../lib/copy-text";
+import { describeConnectedDevices } from "./device-status";
+import { PairingButton } from "./pairing-button";
 import { PairingCode } from "./pairing-code";
+import { PairingTextField } from "./pairing-text-field";
 
 type ConnectionPath = "choose" | "join";
 type DeliveryState = "copied" | "idle" | "shared";
@@ -26,6 +28,7 @@ export interface PairingPanelProps {
   peerCount: number;
 }
 
+/** The steps that pair this browser with another, laid out as iOS grouped content. */
 export function PairingPanel({
   connectionError,
   labels,
@@ -97,89 +100,63 @@ export function PairingPanel({
   const isBusy = pairingState === "creating" || pairingState === "connecting";
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
-      <div
-        className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-4 py-3"
-        aria-live="polite"
-      >
-        <span
-          className={`size-2.5 rounded-full ${peerCount > 0 ? "bg-success" : "bg-muted-foreground/50"}`}
-        />
-        <UsersIcon className="size-4 text-muted-foreground" />
-        <Text size="sm" weight="medium">
-          {peerCount === 0
-            ? labels.readyToConnect
-            : peerCount === 1
-              ? labels.oneDeviceConnected
-              : labels.devicesConnected.replace("{count}", String(peerCount))}
-        </Text>
-      </div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <IosListSection className="px-0">
+        <li className="flex min-h-11 items-center gap-3 px-4 py-[11px]">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "size-2.5 shrink-0 rounded-full",
+              peerCount > 0 ? "bg-(--ios-green)" : "bg-(--ios-tertiary-label)",
+            )}
+          />
+          <Text
+            aria-live="polite"
+            className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+          >
+            {describeConnectedDevices(labels, peerCount)}
+          </Text>
+        </li>
+      </IosListSection>
 
       {pairingState === "idle" ? (
         connectionPath === "choose" ? (
-          <div className="grid gap-3">
-            <Button
-              type="button"
-              size="lg"
-              className="h-12 rounded-xl"
-              onClick={handleCreateInvite}
-            >
-              {labels.inviteSomeone}
-            </Button>
-            <Button
-              type="button"
-              size="lg"
-              variant="outline"
-              className="h-12 rounded-xl"
+          <div className="flex flex-col gap-3">
+            <PairingButton onClick={handleCreateInvite}>{labels.inviteSomeone}</PairingButton>
+            <PairingButton
+              variant="tinted"
               onClick={function showJoinStep() {
                 setConnectionPath("join");
               }}
             >
               {labels.joinWithInvite}
-            </Button>
+            </PairingButton>
           </div>
         ) : (
           <form className="flex flex-col gap-3" onSubmit={handleAcceptInvite}>
-            <label htmlFor="invite-code">
-              <Text as="span" size="sm" weight="medium">
-                {labels.pasteInvite}
-              </Text>
-            </label>
-            <Textarea
+            <PairingTextField
               id="invite-code"
+              label={labels.pasteInvite}
+              onChange={setInviteCode}
               value={inviteCode}
-              onChange={function updateInviteCode(event) {
-                setInviteCode(event.currentTarget.value);
-              }}
-              placeholder="nearby1c.…"
-              autoCapitalize="off"
-              autoComplete="off"
-              spellCheck={false}
-              className="min-h-20 rounded-xl font-mono text-xs"
             />
-            <Button
-              type="submit"
-              variant="secondary"
-              className="h-12 rounded-xl"
-              disabled={!inviteCode.trim()}
-            >
+            <PairingButton type="submit" disabled={!inviteCode.trim()}>
               {labels.continue}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
+            </PairingButton>
+            <PairingButton
+              variant="plain"
               onClick={function showConnectionChoices() {
                 setConnectionPath("choose");
               }}
             >
               {labels.back}
-            </Button>
+            </PairingButton>
           </form>
         )
       ) : null}
 
       {pairingState === "answer" ? (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
           <PairingCode
             actionLabel={labels.sendInvite}
             code={pairingCode}
@@ -188,68 +165,57 @@ export function PairingPanel({
             labels={labels}
             onSend={handleSendCode}
           />
-          <form
-            className="flex flex-col gap-3 border-t border-border pt-5"
-            onSubmit={handleAcceptAnswer}
-          >
-            <label htmlFor="answer-code">
-              <Text as="span" size="sm" weight="medium">
-                {labels.pasteReply}
-              </Text>
-            </label>
-            <Textarea
+          <form className="flex flex-col gap-3" onSubmit={handleAcceptAnswer}>
+            <PairingTextField
               id="answer-code"
+              label={labels.pasteReply}
+              onChange={setAnswerCode}
               value={answerCode}
-              onChange={function updateAnswerCode(event) {
-                setAnswerCode(event.currentTarget.value);
-              }}
-              placeholder="nearby1c.…"
-              autoCapitalize="off"
-              autoComplete="off"
-              spellCheck={false}
-              className="min-h-20 rounded-xl font-mono text-xs"
             />
-            <Button type="submit" className="h-12 rounded-xl" disabled={!answerCode.trim()}>
+            <PairingButton type="submit" disabled={!answerCode.trim()}>
               {labels.connect}
-            </Button>
+            </PairingButton>
           </form>
         </div>
       ) : null}
 
       {pairingState === "share" ? (
-        <div className="flex flex-col gap-4">
-          <PairingCode
-            actionLabel={labels.sendReply}
-            code={pairingCode}
-            deliveryState={deliveryState}
-            instruction={labels.sendReplyInstruction}
-            labels={labels}
-            onSend={handleSendCode}
-          />
-          <Text size="sm" tone="muted">
-            {labels.keepPageOpen}
-          </Text>
-        </div>
+        <PairingCode
+          actionLabel={labels.sendReply}
+          code={pairingCode}
+          deliveryState={deliveryState}
+          footer={labels.keepPageOpen}
+          instruction={labels.sendReplyInstruction}
+          labels={labels}
+          onSend={handleSendCode}
+        />
       ) : null}
 
       {isBusy ? (
-        <div className="flex min-h-24 items-center justify-center" role="status">
-          <Text size="sm" tone="muted">
+        <div className="flex min-h-24 flex-col items-center justify-center gap-3" role="status">
+          <span
+            aria-hidden="true"
+            className="size-6 animate-spin rounded-full border-[2.5px] border-(--ios-fill) border-t-(--ios-secondary-label) motion-reduce:animate-none"
+          />
+          <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
             {pairingState === "creating" ? labels.preparingConnection : labels.connecting}
           </Text>
         </div>
       ) : null}
 
-      {pairingState !== "idle" ? (
-        <Button type="button" variant="ghost" onClick={handleCancel}>
-          {labels.cancelPairing}
-        </Button>
-      ) : null}
-
       {connectionError ? (
-        <Text size="sm" tone="destructive" role="alert">
+        <Text
+          role="alert"
+          className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)"
+        >
           {connectionError}
         </Text>
+      ) : null}
+
+      {pairingState !== "idle" ? (
+        <PairingButton variant="plain" onClick={handleCancel}>
+          {labels.cancelPairing}
+        </PairingButton>
       ) : null}
     </div>
   );

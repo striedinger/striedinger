@@ -2,8 +2,8 @@ import { Text } from "@workspace/ui/components/text";
 import { headers } from "next/headers";
 
 import { IosListSection } from "../../../components/ios/ios-list-section";
+import { IosValueRow } from "../../../components/ios/ios-value-row";
 import { CopyIpAddressButton } from "./copy-ip-address-button";
-import { DiagnosticValueRow } from "./diagnostic-value-row";
 import { collectRequestDiagnostics } from "./request-diagnostics";
 
 interface RequestDiagnosticsPanelLabels {
@@ -69,7 +69,7 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
             {diagnostics.ipAddress}
           </Text>
         </li>
-        <DiagnosticValueRow label={labels.ipVersion} value={diagnostics.ipVersion} />
+        <IosValueRow label={labels.ipVersion} value={diagnostics.ipVersion} />
         <li>
           <CopyIpAddressButton
             ipAddress={hasIpAddress ? diagnostics.ipAddress : null}
@@ -85,14 +85,14 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
         label={labels.locationHeading}
       >
         {diagnostics.location.map(function renderLocationRow(row) {
-          return <DiagnosticValueRow key={row.label} label={row.label} value={row.value} />;
+          return <IosValueRow key={row.label} label={row.label} value={row.value} />;
         })}
       </IosListSection>
 
       <IosListSection className="px-0" header={labels.requestHeading} label={labels.requestHeading}>
         {diagnostics.request.map(function renderRequestRow(row) {
           return (
-            <DiagnosticValueRow
+            <IosValueRow
               key={row.label}
               label={row.label}
               value={row.value}
@@ -111,7 +111,7 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
         {diagnostics.headers.length > 0 ? (
           diagnostics.headers.map(function renderHeaderRow(row) {
             return (
-              <DiagnosticValueRow
+              <IosValueRow
                 key={row.label}
                 label={row.label}
                 value={row.value}

@@ -1,0 +1,37 @@
+import { BubbleIcon } from "@workspace/icons/bubble-icon";
+import { LockIcon } from "@workspace/icons/lock-icon";
+import { Text } from "@workspace/ui/components/text";
+
+import type { ChatLabels } from "./types";
+
+interface ChatWelcomeProps {
+  alias: string;
+  labels: ChatLabels;
+}
+
+/** Introduces this device's temporary alias before any other device has joined. */
+export function ChatWelcome({ alias, labels }: ChatWelcomeProps) {
+  return (
+    <div className="flex flex-col items-center gap-2 px-4 pt-2 text-center">
+      <span
+        aria-hidden="true"
+        className="flex size-[72px] items-center justify-center rounded-full bg-(--ios-tint) text-white"
+      >
+        <BubbleIcon className="size-9" fill="currentColor" strokeWidth={1.5} />
+      </span>
+      <Text className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)">
+        {labels.youAre.replace("{name}", alias)}
+      </Text>
+      <Text className="max-w-sm text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+        {labels.privacyIntro}
+      </Text>
+      <Text
+        as="span"
+        className="inline-flex items-center gap-1.5 text-[13px] leading-[18px] font-semibold text-(--ios-green)"
+      >
+        <LockIcon className="size-3.5" />
+        {labels.localOnly}
+      </Text>
+    </div>
+  );
+}

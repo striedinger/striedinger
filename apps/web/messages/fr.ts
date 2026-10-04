@@ -40,7 +40,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Discutez en privé avec des appareils proches via un réseau pair à pair rapide, chiffré et sans serveur.",
   "Private chat for nearby devices. Messages disappear when you leave.":
     "Chat privé pour les appareils à proximité. Les messages disparaissent lorsque vous quittez la session.",
-  "Private · Local · Temporary": "Privé · Local · Temporaire",
   "Use a short pairing code to connect nearby browsers. WebRTC carries messages directly between peers.":
     "Utilisez un code court pour connecter des navigateurs proches. WebRTC transmet les messages directement entre pairs.",
   "Messages are encrypted between connected devices and are not stored after the temporary session ends.":
@@ -87,11 +86,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Show code": "Afficher le code",
   "One-time pairing code": "Code d’association à usage unique",
   "No messages yet": "Aucun message pour l’instant",
-  "Connect a device to start chatting.": "Connectez un appareil pour commencer à discuter.",
   Messages: "Messages",
   You: "Vous",
-  "1 device": "1 appareil",
-  "{count} devices": "{count} appareils",
   "Nearby devices": "Appareils à proximité",
   "Connect a device to join this chat.": "Connectez un appareil pour l’ajouter à cette discussion.",
   "Close devices": "Fermer les appareils",

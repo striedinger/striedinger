@@ -1,17 +1,17 @@
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
-export type DiagnosticStatus = "positive" | "negative" | "warning";
+export type IosValueStatus = "positive" | "negative" | "warning";
 
-interface DiagnosticValueRowProps {
+interface IosValueRowProps {
   label: string;
   monospaceLabel?: boolean;
   monospaceValue?: boolean;
-  status?: DiagnosticStatus;
+  status?: IosValueStatus;
   value: string;
 }
 
-const statusClassNames: Readonly<Record<DiagnosticStatus, string>> = {
+const statusClassNames: Readonly<Record<IosValueStatus, string>> = {
   negative: "bg-(--ios-red)",
   positive: "bg-(--ios-green)",
   warning: "bg-(--ios-orange)",
@@ -22,13 +22,13 @@ const statusClassNames: Readonly<Record<DiagnosticStatus, string>> = {
 const inlineCharacterLimit = 32;
 
 /** A read-only label and value row in an inset grouped list. */
-export function DiagnosticValueRow({
+export function IosValueRow({
   label,
   monospaceLabel = false,
   monospaceValue = false,
   status,
   value,
-}: DiagnosticValueRowProps) {
+}: IosValueRowProps) {
   const isStacked = value.includes("\n") || label.length + value.length > inlineCharacterLimit;
 
   return (

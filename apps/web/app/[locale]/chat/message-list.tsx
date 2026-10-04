@@ -1,89 +1,101 @@
 "use client";
 
 import { Text } from "@workspace/ui/components/text";
-import { useEffect, useRef, type UIEvent } from "react";
+import { useEffect, useRef, type ReactNode, type UIEvent } from "react";
 
 import type { ChatLabels, VisibleChatMessage } from "./types";
 
+import { getMessagePlacement } from "./message-grouping";
+import { MessageRow } from "./message-row";
+
 interface MessageListProps {
+  emptyDescription: string;
+  /** The navigation bar, which floats over the conversation as it scrolls underneath. */
+  header: ReactNode;
   labels: ChatLabels;
+  locale: string;
   messages: VisibleChatMessage[];
 }
 
-export function MessageList({ labels, messages }: MessageListProps) {
-  const listRef = useRef<HTMLOListElement>(null);
+/**
+ * The conversation's scroll view, newest message at the bottom. It follows new messages and
+ * the software keyboard while the reader is at the end, and stays put while they read back.
+ */
+export function MessageList({
+  emptyDescription,
+  header,
+  labels,
+  locale,
+  messages,
+}: MessageListProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const shouldFollowMessages = useRef(true);
 
   useEffect(
     function revealLatestMessage() {
-      const list = listRef.current;
-      if (list && shouldFollowMessages.current) list.scrollTo({ top: list.scrollHeight });
+      const scroller = scrollRef.current;
+      if (scroller && shouldFollowMessages.current)
+        scroller.scrollTo({ top: scroller.scrollHeight });
     },
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Scroll after new message DOM has committed.
     [messages],
   );
 
-  function updateFollowPreference(event: UIEvent<HTMLOListElement>) {
-    const list = event.currentTarget;
-    shouldFollowMessages.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-  }
+  useEffect(function followLatestMessageWhenResized() {
+    const scroller = scrollRef.current;
+    if (!scroller || typeof ResizeObserver === "undefined") return;
+    // The view shrinks when the keyboard opens; keep the latest message above it.
+    const observer = new ResizeObserver(function revealLatestMessageAfterResize() {
+      if (shouldFollowMessages.current) scroller.scrollTo({ top: scroller.scrollHeight });
+    });
+    observer.observe(scroller);
+    return function stopFollowingResize() {
+      observer.disconnect();
+    };
+  }, []);
 
-  if (messages.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-10 text-center">
-        <div className="flex max-w-sm flex-col gap-2">
-          <Text weight="medium">{labels.noMessages}</Text>
-          <Text size="sm" tone="muted">
-            {labels.connectToStart}
-          </Text>
-        </div>
-      </div>
-    );
+  function updateFollowPreference(event: UIEvent<HTMLDivElement>) {
+    const scroller = event.currentTarget;
+    shouldFollowMessages.current =
+      scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 80;
   }
 
   return (
-    <ol
-      ref={listRef}
-      className="flex min-h-0 flex-1 list-none flex-col gap-4 overflow-y-auto p-4 sm:p-6"
-      aria-label={labels.messages}
-      aria-relevant="additions"
-      role="log"
+    <div
+      ref={scrollRef}
+      data-ios-scroll
+      className="absolute inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] flex flex-col overflow-x-hidden overflow-y-auto overscroll-contain pb-[calc(max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),10px)+3.75rem)]"
       onScroll={updateFollowPreference}
     >
-      {messages.map(function renderMessage(message) {
-        return (
-          <li
-            key={message.id}
-            className={`flex flex-col gap-1 ${message.isOwn ? "items-end" : "items-start"}`}
-          >
-            <div className="flex items-baseline gap-2 px-1">
-              <Text as="span" size="xs" weight="semibold">
-                {message.isOwn ? labels.you : message.author}
-              </Text>
-              <Text
-                as="time"
-                size="xs"
-                tone="muted"
-                dateTime={new Date(message.sentAt).toISOString()}
-              >
-                {new Date(message.sentAt).toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </div>
-            <Text
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 break-words whitespace-pre-wrap ${
-                message.isOwn
-                  ? "rounded-br-md bg-primary text-primary-foreground"
-                  : "rounded-bl-md bg-secondary text-secondary-foreground"
-              }`}
-            >
-              {message.text}
-            </Text>
-          </li>
-        );
-      })}
-    </ol>
+      {header}
+      {messages.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-1 px-10 text-center">
+          <Text className="text-[17px] leading-[22px] font-semibold tracking-[-0.43px] text-(--ios-label)">
+            {labels.noMessages}
+          </Text>
+          <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+            {emptyDescription}
+          </Text>
+        </div>
+      ) : null}
+      <ol
+        className="m-0 mx-auto flex w-full max-w-(--ios-content-width) list-none flex-col px-4 py-0"
+        aria-label={labels.messages}
+        aria-relevant="additions"
+        role="log"
+      >
+        {messages.map(function renderMessage(message, index) {
+          return (
+            <MessageRow
+              key={message.id}
+              labels={labels}
+              locale={locale}
+              message={message}
+              placement={getMessagePlacement(messages, index)}
+            />
+          );
+        })}
+      </ol>
+    </div>
   );
 }

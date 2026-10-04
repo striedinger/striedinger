@@ -110,8 +110,8 @@ export function IosNavigationBar({
         <div className="-mt-1 flex shrink-0 flex-col px-[max(1rem,calc((100%-var(--ios-content-width,100%))/2+1rem))] pb-2.5">
           <Text
             as={titleElement}
-            numberOfLines={1}
-            className="text-[34px] leading-[41px] font-bold tracking-[0.4px] text-(--ios-label)"
+            numberOfLines={2}
+            className="text-[34px] leading-[41px] font-bold tracking-[0.4px] text-pretty text-(--ios-label)"
           >
             {title}
           </Text>

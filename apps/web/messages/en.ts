@@ -38,7 +38,6 @@ export const messages = defineMessages({
     "Chat privately with nearby devices over a fast, encrypted, serverless peer-to-peer mesh.",
   "Private chat for nearby devices. Messages disappear when you leave.":
     "Private chat for nearby devices. Messages disappear when you leave.",
-  "Private · Local · Temporary": "Private · Local · Temporary",
   "Use a short pairing code to connect nearby browsers. WebRTC carries messages directly between peers.":
     "Use a short pairing code to connect nearby browsers. WebRTC carries messages directly between peers.",
   "Messages are encrypted between connected devices and are not stored after the temporary session ends.":
@@ -85,11 +84,8 @@ export const messages = defineMessages({
   "Show code": "Show code",
   "One-time pairing code": "One-time pairing code",
   "No messages yet": "No messages yet",
-  "Connect a device to start chatting.": "Connect a device to start chatting.",
   Messages: "Messages",
   You: "You",
-  "1 device": "1 device",
-  "{count} devices": "{count} devices",
   "Nearby devices": "Nearby devices",
   "Connect a device to join this chat.": "Connect a device to join this chat.",
   "Close devices": "Close devices",

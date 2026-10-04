@@ -8,9 +8,9 @@ import type { BrowserDiagnosticsLabels, DiagnosticSection } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosListSection } from "../../../components/ios/ios-list-section";
+import { IosValueRow, type IosValueStatus } from "../../../components/ios/ios-value-row";
 import { collectBrowserDiagnostics } from "./browser-diagnostics";
 import { DiagnosticSectionSkeleton } from "./diagnostic-section-skeleton";
-import { DiagnosticValueRow, type DiagnosticStatus } from "./diagnostic-value-row";
 
 interface JavaScriptDiagnosticsProps {
   labels: BrowserDiagnosticsLabels;
@@ -63,7 +63,7 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
     });
   }
 
-  function getStatus(value: string): DiagnosticStatus | undefined {
+  function getStatus(value: string): IosValueStatus | undefined {
     if (value === labels.supported || value === labels.enabled) {
       return "positive";
     }
@@ -95,7 +95,7 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
                   const status = getStatus(diagnosticRow.value);
 
                   return (
-                    <DiagnosticValueRow
+                    <IosValueRow
                       key={diagnosticRow.label}
                       label={diagnosticRow.label}
                       value={diagnosticRow.value}

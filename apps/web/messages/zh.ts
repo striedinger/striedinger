@@ -40,7 +40,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "通过快速、加密且无需服务器的点对点网状网络与附近设备私密聊天。",
   "Private chat for nearby devices. Messages disappear when you leave.":
     "供附近设备使用的私密聊天。离开后消息即会消失。",
-  "Private · Local · Temporary": "私密 · 本地 · 临时",
   "Use a short pairing code to connect nearby browsers. WebRTC carries messages directly between peers.":
     "使用短配对码连接附近的浏览器。WebRTC 在对等设备之间直接传输消息。",
   "Messages are encrypted between connected devices and are not stored after the temporary session ends.":
@@ -86,11 +85,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Show code": "显示代码",
   "One-time pairing code": "一次性配对码",
   "No messages yet": "还没有消息",
-  "Connect a device to start chatting.": "连接设备即可开始聊天。",
   Messages: "消息",
   You: "你",
-  "1 device": "1 台设备",
-  "{count} devices": "{count} 台设备",
   "Nearby devices": "附近的设备",
   "Connect a device to join this chat.": "连接设备以加入此聊天。",
   "Close devices": "关闭设备面板",

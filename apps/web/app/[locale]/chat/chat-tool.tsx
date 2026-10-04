@@ -1,96 +1,116 @@
 "use client";
 
-import { LockIcon } from "@workspace/icons/lock-icon";
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { Text } from "@workspace/ui/components/text";
-import { useState, type FormEvent } from "react";
+import { UsersIcon } from "@workspace/icons/users-icon";
+import { lazy, Suspense, useState } from "react";
 
+import type { PairingPanelProps } from "./pairing-panel";
 import type { ChatLabels } from "./types";
 
-import { DeviceDrawer } from "./device-drawer";
+import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
+import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
+import { useHasOpened } from "../../../components/use-has-opened";
+import { ChatComposer } from "./chat-composer";
+import { ChatWelcome } from "./chat-welcome";
+import { describeConnectedDevices } from "./device-status";
 import { MessageList } from "./message-list";
+import { PairingPanel } from "./pairing-panel";
 import { useNearbyChat } from "./use-nearby-chat";
 
 interface ChatToolProps {
   labels: ChatLabels;
+  locale: string;
 }
 
-export function ChatTool({ labels }: ChatToolProps) {
-  const [draft, setDraft] = useState("");
-  const chat = useNearbyChat(labels);
+const DeviceDrawer = lazy(function importDeviceDrawer() {
+  return import("./device-drawer").then(function selectDeviceDrawer(module) {
+    return { default: module.DeviceDrawer };
+  });
+});
 
-  async function handleSend(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const didSend = await chat.sendMessage(draft, Date.now());
-    if (didSend) setDraft("");
+function preloadDeviceDrawer() {
+  void import("./device-drawer");
+}
+
+/**
+ * Nearby Chat as an iOS Messages screen. Until another device joins, the screen walks through
+ * pairing under a large title; afterwards it becomes the conversation, with further pairing
+ * in a bottom sheet.
+ */
+export function ChatTool({ labels, locale }: ChatToolProps) {
+  const chat = useNearbyChat(labels);
+  const [isDeviceDrawerOpen, setIsDeviceDrawerOpen] = useState(false);
+  const showsConversation = chat.peerCount > 0 || chat.messages.length > 0;
+  // Only one pairing panel may exist at a time, so the sheet closes with the conversation.
+  if (isDeviceDrawerOpen && !showsConversation) setIsDeviceDrawerOpen(false);
+  const showsDeviceDrawer = isDeviceDrawerOpen && showsConversation;
+  const hasDeviceDrawerOpened = useHasOpened(showsDeviceDrawer);
+  const pairingProps: PairingPanelProps = {
+    connectionError: chat.connectionError,
+    labels,
+    onAcceptAnswer: chat.acceptAnswer,
+    onAcceptInvite: chat.acceptInvite,
+    onCancel: chat.cancelPairing,
+    onCreateInvite: chat.createInvite,
+    pairingCode: chat.pairingCode,
+    pairingState: chat.pairingState,
+    peerCount: chat.peerCount,
+  };
+
+  function sendMessage(text: string) {
+    return chat.sendMessage(text, Date.now());
   }
 
   return (
-    <section
-      className="mx-auto flex h-[calc(100svh-11rem)] min-h-[32rem] w-full max-w-4xl min-w-0 flex-col overflow-hidden rounded-3xl border border-border/80 bg-card shadow-surface sm:h-[min(46rem,calc(100svh-12rem))]"
-      aria-labelledby="chat-room-title"
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex min-w-0 flex-col">
-          <Text as="h2" id="chat-room-title" size="lg" weight="semibold">
-            {labels.title}
-          </Text>
-          <Text size="xs" tone="muted" className="truncate">
-            {labels.youAre.replace("{name}", chat.alias)}
-          </Text>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <div className="hidden items-center gap-2 text-success sm:flex">
-            <LockIcon className="size-4" />
-            <Text as="span" size="xs" weight="medium" className="text-current">
-              {labels.localOnly}
-            </Text>
-          </div>
-          <DeviceDrawer
-            connectionError={chat.connectionError}
+    <>
+      {showsConversation ? (
+        <div className="relative size-full bg-(--ios-background) [--ios-bar-edge:var(--ios-background)] [--ios-content-width:48rem]">
+          <MessageList
+            emptyDescription={labels.youAre.replace("{name}", chat.alias)}
+            header={
+              <IosNavigationBar
+                title={labels.title}
+                subtitle={describeConnectedDevices(labels, chat.peerCount)}
+                titleDisplay="inline"
+                leading={<IosAppSwitcherButton />}
+                trailing={
+                  <IosBarButton
+                    aria-label={labels.nearbyDevices}
+                    aria-haspopup="dialog"
+                    onClick={function openDeviceDrawer() {
+                      setIsDeviceDrawerOpen(true);
+                    }}
+                    onFocus={preloadDeviceDrawer}
+                    onPointerEnter={preloadDeviceDrawer}
+                    onTouchStart={preloadDeviceDrawer}
+                  >
+                    <UsersIcon />
+                  </IosBarButton>
+                }
+              />
+            }
             labels={labels}
-            onAcceptAnswer={chat.acceptAnswer}
-            onAcceptInvite={chat.acceptInvite}
-            onCancel={chat.cancelPairing}
-            onCreateInvite={chat.createInvite}
-            pairingCode={chat.pairingCode}
-            pairingState={chat.pairingState}
-            peerCount={chat.peerCount}
+            locale={locale}
+            messages={chat.messages}
           />
+          <ChatComposer disabled={chat.peerCount === 0} labels={labels} onSend={sendMessage} />
         </div>
-      </div>
-
-      <MessageList labels={labels} messages={chat.messages} />
-
-      <form
-        className="flex gap-2 border-t border-border bg-card p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4"
-        onSubmit={handleSend}
-      >
-        <label htmlFor="chat-message" className="sr-only">
-          {labels.message}
-        </label>
-        <Input
-          id="chat-message"
-          value={draft}
-          onChange={function updateDraft(event) {
-            setDraft(event.currentTarget.value.slice(0, 2_000));
-          }}
-          placeholder={chat.peerCount > 0 ? labels.messageNearby : labels.connectToChat}
-          autoComplete="off"
-          disabled={chat.peerCount === 0}
-          maxLength={2_000}
-          className="h-12 rounded-xl"
-        />
-        <Button
-          type="submit"
-          size="lg"
-          disabled={chat.peerCount === 0 || !draft.trim()}
-          className="h-12 rounded-xl px-5"
-        >
-          {labels.send}
-        </Button>
-      </form>
-    </section>
+      ) : (
+        <IosToolScreen title={labels.title}>
+          <ChatWelcome alias={chat.alias} labels={labels} />
+          <PairingPanel {...pairingProps} />
+        </IosToolScreen>
+      )}
+      {hasDeviceDrawerOpened ? (
+        <Suspense fallback={null}>
+          <DeviceDrawer
+            {...pairingProps}
+            open={showsDeviceDrawer}
+            onOpenChange={setIsDeviceDrawerOpen}
+          />
+        </Suspense>
+      ) : null}
+    </>
   );
 }
