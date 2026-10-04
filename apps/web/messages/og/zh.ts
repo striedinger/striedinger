@@ -33,7 +33,4 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "请求的预览次数过多。请等待一分钟后重试。",
   "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.":
     "预览任意公开网址的 Open Graph 和 X 卡片，快速、安全地检查标题、描述、图片和原始社交元数据。",
-  "Test Open Graph and X metadata": "测试 Open Graph 和 X 元数据",
-  "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.":
-    "检查公开页面分享时的显示效果，包括标题、描述、预览图片、站点名称、卡片类型和检测到的社交标签。",
 };

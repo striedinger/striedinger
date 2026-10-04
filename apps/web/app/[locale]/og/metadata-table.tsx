@@ -1,4 +1,3 @@
-import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 
 import type { MetadataTag } from "../../../lib/og/types";
@@ -9,36 +8,44 @@ interface MetadataTableProps {
   tags: ReadonlyArray<MetadataTag>;
 }
 
+/** Every detected tag as an inset grouped list of name and value pairs. */
 export function MetadataTable({ description, heading, tags }: MetadataTableProps) {
   return (
-    <section className="flex flex-col gap-6" aria-labelledby="metadata-heading">
-      <div className="flex flex-col gap-2">
-        <Text as="h2" id="metadata-heading" size="xl" weight="semibold">
-          {heading}
-        </Text>
-        <Text size="sm" tone="muted">
-          {description}
-        </Text>
-      </div>
-      <Surface className="overflow-hidden shadow-none">
-        <dl className="divide-y divide-border/70">
-          {tags.map(function renderMetadataTag(tag, index) {
-            return (
-              <div
-                className="grid gap-1 px-4 py-3 sm:grid-cols-[10rem_1fr]"
-                key={`${tag.name}-${index}`}
+    <section className="flex flex-col" aria-labelledby="metadata-heading">
+      <Text
+        as="h2"
+        id="metadata-heading"
+        className="px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)"
+      >
+        {heading}
+      </Text>
+      <dl className="overflow-hidden rounded-[22px] bg-(--ios-grouped-cell)">
+        {tags.map(function renderMetadataTag(tag, index) {
+          return (
+            <div
+              className="relative flex flex-col gap-0.5 px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4"
+              key={`${tag.name}-${index}`}
+            >
+              <Text
+                as="dt"
+                family="mono"
+                className="min-w-0 text-[13px] leading-[22px] break-all text-(--ios-secondary-label)"
               >
-                <Text as="dt" family="mono" size="xs" tone="muted">
-                  {tag.name}
-                </Text>
-                <Text as="dd" size="sm" className="min-w-0 break-words">
-                  {tag.value}
-                </Text>
-              </div>
-            );
-          })}
-        </dl>
-      </Surface>
+                {tag.name}
+              </Text>
+              <Text
+                as="dd"
+                className="min-w-0 text-[15px] leading-[22px] tracking-[-0.23px] break-words text-(--ios-label)"
+              >
+                {tag.value}
+              </Text>
+            </div>
+          );
+        })}
+      </dl>
+      <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
+        {description}
+      </Text>
     </section>
   );
 }

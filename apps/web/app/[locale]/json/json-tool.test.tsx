@@ -76,6 +76,32 @@ describe("JsonTool", function () {
     expect(screen.getByText('"value":')).toBeInTheDocument();
   });
 
+  it("collapses and expands every value in the preview", async function () {
+    vi.useFakeTimers();
+    render(<JsonTool labels={labels} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: labels.inputLabel }), {
+      target: { value: '{"nested":{"value":1}}' },
+    });
+    await act(async function finishDebounce() {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    vi.useRealTimers();
+    await waitFor(function waitForPreview() {
+      expect(screen.getByText('"value":')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: labels.collapseAll }));
+    expect(screen.queryByText('"nested":')).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: labels.expandValue })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: labels.expandAll }));
+    expect(screen.getByText('"value":')).toBeInTheDocument();
+  });
+
   it("does not process input beyond the local safety limit", async function () {
     vi.useFakeTimers();
     render(<JsonTool labels={labels} />);

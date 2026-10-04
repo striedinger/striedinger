@@ -1,9 +1,8 @@
 "use client";
 
-import { ChevronDownIcon } from "@workspace/icons/chevron-down-icon";
-import { ChevronUpIcon } from "@workspace/icons/chevron-up-icon";
-import { Button } from "@workspace/ui/components/button";
+import { ChevronRightIcon } from "@workspace/icons/chevron-right-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 
 import type { JsonValue } from "./types";
@@ -30,17 +29,16 @@ export function JsonTreeNode({
 
   if (!isContainer) {
     return (
-      <div className="flex min-w-0 items-start gap-2 py-0.5">
+      <div className="flex min-w-0 items-start gap-2 pl-7">
         {name === undefined ? null : (
-          <Text as="span" family="mono" size="sm" tone="muted" className="shrink-0">
+          <Text as="span" family="mono" className={cn(codeClassName, "shrink-0", keyClassName)}>
             {JSON.stringify(name)}:
           </Text>
         )}
         <Text
           as="span"
           family="mono"
-          size="sm"
-          className={`break-all ${getPrimitiveClassName(value)}`}
+          className={cn(codeClassName, "break-all", getPrimitiveClassName(value))}
         >
           {JSON.stringify(value)}
         </Text>
@@ -64,30 +62,35 @@ export function JsonTreeNode({
 
   return (
     <div className="flex flex-col [contain-intrinsic-size:auto_24px] [content-visibility:auto]">
-      <div className="flex items-center gap-1 py-0.5">
-        <Button
+      <div className="flex items-center gap-1">
+        <button
           type="button"
-          variant="ghost"
-          size="icon-xs"
+          className="flex size-6 shrink-0 items-center justify-center rounded-full text-(--ios-tertiary-label) outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:bg-(--ios-fill)"
           aria-label={expanded ? collapseLabel : expandLabel}
           aria-expanded={expanded}
           onClick={handleExpandedChange}
         >
-          {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </Button>
+          <ChevronRightIcon
+            className={cn(
+              "size-3.5 transition-transform duration-200 motion-reduce:transition-none",
+              expanded && "rotate-90",
+            )}
+            strokeWidth={3}
+          />
+        </button>
         {name === undefined ? null : (
-          <Text as="span" family="mono" size="sm" tone="muted">
+          <Text as="span" family="mono" className={cn(codeClassName, keyClassName)}>
             {JSON.stringify(name)}:
           </Text>
         )}
-        <Text as="span" family="mono" size="sm">
+        <Text as="span" family="mono" className={cn(codeClassName, "text-(--ios-label)")}>
           {openingToken}
           {expanded || entries.length === 0 ? "" : ` … ${closingToken}`}
         </Text>
       </div>
 
       {expanded ? (
-        <div className="flex flex-col border-l border-border/70 pl-5">
+        <div className="ml-3 flex flex-col border-l border-(--ios-separator) pl-2">
           {entries.map(function renderEntry([entryName, entryValue]) {
             return (
               <JsonTreeNode
@@ -100,7 +103,7 @@ export function JsonTreeNode({
               />
             );
           })}
-          <Text as="span" family="mono" size="sm" className="py-0.5">
+          <Text as="span" family="mono" className={cn(codeClassName, "text-(--ios-label)")}>
             {closingToken}
           </Text>
         </div>
@@ -109,19 +112,22 @@ export function JsonTreeNode({
   );
 }
 
+const codeClassName = "text-[13px] leading-6";
+const keyClassName = "text-(--ios-secondary-label)";
+
 function getPrimitiveClassName(value: JsonValue): string {
   if (value === null) {
-    return "text-muted-foreground";
+    return "text-(--ios-tertiary-label)";
   }
 
   switch (typeof value) {
     case "string":
-      return "text-json-string";
+      return "text-(--ios-green)";
     case "number":
-      return "text-json-number";
+      return "text-(--ios-tint)";
     case "boolean":
-      return "text-json-boolean";
+      return "text-(--ios-orange)";
     default:
-      return "text-foreground";
+      return "text-(--ios-label)";
   }
 }

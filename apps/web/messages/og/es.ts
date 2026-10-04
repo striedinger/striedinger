@@ -37,7 +37,4 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Se solicitaron demasiadas vistas previas. Espera un minuto e inténtalo de nuevo.",
   "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.":
     "Previsualiza tarjetas de Open Graph y X para cualquier URL pública. Inspecciona títulos, descripciones, imágenes y metadatos sociales con una herramienta rápida y segura.",
-  "Test Open Graph and X metadata": "Prueba metadatos de Open Graph y X",
-  "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.":
-    "Comprueba cómo puede aparecer una página pública al compartirla, incluidos el título, la descripción, la imagen, el sitio, el tipo de tarjeta y las etiquetas sociales.",
 };

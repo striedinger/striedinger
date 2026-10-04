@@ -1,16 +1,14 @@
 "use client";
 
-import { ChevronDownIcon } from "@workspace/icons/chevron-down-icon";
-import { ChevronUpIcon } from "@workspace/icons/chevron-up-icon";
-import { Button } from "@workspace/ui/components/button";
-import { Surface } from "@workspace/ui/components/surface";
+import { BracesIcon } from "@workspace/icons/braces-icon";
+import { CheckCircleIcon } from "@workspace/icons/check-circle-icon";
 import { Text } from "@workspace/ui/components/text";
-import { Textarea } from "@workspace/ui/components/textarea";
 import { startTransition, useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import type { JsonWorkerReply, JsonWorkerRequest, JsonWorkerResponse } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
 
+import { JsonPane } from "./json-pane";
 import { JsonTree } from "./json-tree";
 
 interface JsonToolProps {
@@ -131,72 +129,71 @@ export function JsonTool({ labels }: JsonToolProps) {
     });
   }
 
+  const canToggleAll = previewResult.status === "valid" && previewResult.previewable !== false;
+  const isPreviewDimmed = isPreviewStale && previewResult.status === "valid";
+
   return (
-    <div className="grid gap-10 lg:grid-cols-2">
-      <section className="flex min-w-0 flex-col gap-5" aria-labelledby="json-input-heading">
-        <div className="flex h-8 items-center">
-          <Text as="h2" id="json-input-heading" size="xl" weight="semibold">
-            {labels.inputLabel}
-          </Text>
-        </div>
-
-        <Textarea
-          className="h-[32rem] min-h-[32rem] resize-none font-mono text-sm leading-6"
-          value={input}
-          onChange={handleInputChange}
-          placeholder={labels.placeholder}
-          aria-label={labels.inputLabel}
-          aria-invalid={validationResult.status === "invalid"}
-          maxLength={maximumInputCharacters}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
-        />
-
-        <div className="flex flex-col gap-2" aria-live="polite">
-          <Text size="sm" tone="muted">
-            {labels.privacy}
-          </Text>
-          {validationResult.status === "valid" ? (
-            <Text size="sm" className="text-json-string">
-              {labels.valid}
+    <div className="grid gap-6 lg:grid-cols-2 lg:gap-5">
+      <JsonPane
+        heading={labels.inputLabel}
+        headingId="json-input-heading"
+        footer={
+          <div className="flex flex-col gap-1" aria-live="polite">
+            {validationResult.status === "valid" ? (
+              <Text className="flex items-center gap-1.5 text-[13px] leading-[18px] font-semibold tracking-[-0.08px] text-(--ios-green) [&_svg]:size-4">
+                <CheckCircleIcon aria-hidden="true" />
+                {labels.valid}
+              </Text>
+            ) : null}
+            {validationResult.status === "invalid" ? (
+              <Text className="text-[13px] leading-[18px] tracking-[-0.08px] break-words text-(--ios-red)">
+                {validationResult.reason === "too-large"
+                  ? validationResult.error
+                  : labels.invalid.replace("{error}", validationResult.error)}
+              </Text>
+            ) : null}
+            <Text className="text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
+              {labels.privacy}
             </Text>
-          ) : null}
-          {validationResult.status === "invalid" ? (
-            <Text size="sm" tone="destructive">
-              {validationResult.reason === "too-large"
-                ? validationResult.error
-                : labels.invalid.replace("{error}", validationResult.error)}
-            </Text>
-          ) : null}
+          </div>
+        }
+      >
+        <div className="overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) transition-shadow duration-150 focus-within:ring-2 focus-within:ring-(--ios-tint)/35 motion-reduce:transition-none">
+          <textarea
+            className="block h-[22rem] w-full resize-none bg-transparent px-4 py-3.5 font-mono text-[14px] leading-[22px] text-(--ios-label) caret-(--ios-tint) outline-none placeholder:text-(--ios-tertiary-label) lg:h-[32rem]"
+            value={input}
+            onChange={handleInputChange}
+            placeholder={labels.placeholder}
+            aria-label={labels.inputLabel}
+            aria-invalid={validationResult.status === "invalid"}
+            maxLength={maximumInputCharacters}
+            spellCheck={false}
+            autoCapitalize="none"
+            autoCorrect="off"
+          />
         </div>
-      </section>
+      </JsonPane>
 
-      <section className="flex min-w-0 flex-col gap-5" aria-labelledby="json-preview-heading">
-        <div className="flex h-8 items-center">
-          <Text as="h2" id="json-preview-heading" size="xl" weight="semibold">
-            {labels.preview}
-          </Text>
-        </div>
-
-        <Surface
-          className="relative h-[32rem] min-h-[32rem] overflow-auto rounded-xl p-4 pt-12 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none"
-          data-stale={isPreviewStale && previewResult.status === "valid" ? "" : undefined}
+      <JsonPane
+        heading={labels.preview}
+        headingId="json-preview-heading"
+        action={
+          <button
+            type="button"
+            className="-my-1 rounded-full px-1 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-tint) outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-50 disabled:text-(--ios-tertiary-label)"
+            onClick={handleToggleAll}
+            disabled={!canToggleAll}
+          >
+            {defaultExpanded ? labels.collapseAll : labels.expandAll}
+          </button>
+        }
+      >
+        <div
+          className="h-[22rem] overflow-auto overscroll-contain rounded-[22px] bg-(--ios-grouped-cell) px-3 py-3 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none lg:h-[32rem]"
+          data-stale={isPreviewDimmed ? "" : undefined}
           aria-busy={isPreviewStale}
         >
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            className="absolute top-3 right-3 z-10 bg-card"
-            onClick={handleToggleAll}
-            disabled={previewResult.status !== "valid" || previewResult.previewable === false}
-            aria-label={defaultExpanded ? labels.collapseAll : labels.expandAll}
-            title={defaultExpanded ? labels.collapseAll : labels.expandAll}
-          >
-            {defaultExpanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-          </Button>
-          {previewResult.status === "valid" && previewResult.previewable !== false ? (
+          {canToggleAll ? (
             <JsonTree
               key={treeVersion}
               collapseLabel={labels.collapseValue}
@@ -204,17 +201,20 @@ export function JsonTool({ labels }: JsonToolProps) {
               expandLabel={labels.expandValue}
               value={previewResult.value}
             />
-          ) : previewResult.status === "valid" ? (
-            <Text size="sm" tone="muted">
-              {labels.tooComplex}
-            </Text>
           ) : (
-            <Text size="sm" tone="muted">
-              {labels.emptyPreview}
-            </Text>
+            <div className="flex size-full flex-col items-center justify-center gap-3 px-8 text-center">
+              <BracesIcon
+                aria-hidden="true"
+                className="size-11 text-(--ios-tertiary-label)"
+                strokeWidth={1.6}
+              />
+              <Text className="max-w-xs text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+                {previewResult.status === "valid" ? labels.tooComplex : labels.emptyPreview}
+              </Text>
+            </div>
           )}
-        </Surface>
-      </section>
+        </div>
+      </JsonPane>
     </div>
   );
 }

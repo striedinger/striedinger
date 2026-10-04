@@ -1,37 +1,24 @@
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Skeleton } from "@workspace/ui/components/skeleton";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
+import { getOgTranslator } from "../../../messages/og/get-translator";
+import { getRequestLocale } from "../../get-request-locale";
 
-import { PageHeaderSkeleton } from "../../../components/page-header-skeleton";
+export default async function OpenGraphLoading() {
+  const locale = await getRequestLocale();
+  const translate = await getOgTranslator(locale);
 
-export default function OpenGraphLoading() {
   return (
-    <PageShell aria-label="Loading Open Graph preview" aria-busy="true">
-      <PageContainer>
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-24">
-          <div className="flex flex-col gap-12">
-            <PageHeaderSkeleton />
-            <div className="flex flex-col gap-4" aria-hidden="true">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Skeleton className="h-11 flex-1 rounded-xl" />
-                <Skeleton className="h-11 w-full rounded-xl sm:w-36" />
-              </div>
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-4/5" />
-            </div>
+    <IosToolScreen title={translate("Open Graph Preview")} contentWidth="42rem">
+      <div aria-busy="true" className="flex flex-col gap-5">
+        <div className="flex flex-col">
+          <IosSkeleton className="h-[52px] w-full rounded-[22px]" />
+          <div className="flex flex-col gap-1.5 px-5 pt-2.5">
+            <IosSkeleton className="h-3 w-full" />
+            <IosSkeleton className="h-3 w-4/5" />
           </div>
-          <section
-            className="flex flex-col gap-6 border-t border-border/70 pt-12"
-            aria-hidden="true"
-          >
-            <Skeleton className="h-8 w-[min(100%,24rem)]" />
-            <div className="flex max-w-2xl flex-col gap-2">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-5/6" />
-            </div>
-          </section>
         </div>
-      </PageContainer>
-    </PageShell>
+        <IosSkeleton className="h-[50px] w-full rounded-full" />
+      </div>
+    </IosToolScreen>
   );
 }

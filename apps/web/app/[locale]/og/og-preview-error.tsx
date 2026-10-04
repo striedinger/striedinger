@@ -13,7 +13,7 @@ export async function OgPreviewError({ labels, preview }: OgPreviewErrorProps) {
   if (state.status !== "error") return null;
 
   return (
-    <Text size="sm" tone="destructive">
+    <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)">
       {labels.errors[state.error]}
     </Text>
   );

@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-
 import type { JsonToolLabels } from "./types";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getJsonTranslator } from "../../../messages/json/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -57,36 +53,9 @@ export default async function JsonPage() {
   });
 
   return (
-    <PageShell>
+    <IosToolScreen title={labels.title} contentWidth="64rem">
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="flex flex-col gap-12">
-          <PageHeader title={labels.title} description={labels.description} />
-
-          <JsonTool labels={labels} />
-          <ToolDetails
-            title={translate("About this tool")}
-            description={labels.description}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: labels.emptyPreview,
-                items: [labels.valid, labels.preview, labels.expandAll],
-              },
-              {
-                title: translate("Privacy and security"),
-                description: labels.privacy,
-                items: [labels.tooLarge, labels.tooComplex],
-              },
-              {
-                title: translate("Features"),
-                description: labels.description,
-                items: [labels.collapseAll, labels.expandValue, labels.collapseValue],
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <JsonTool labels={labels} />
+    </IosToolScreen>
   );
 }

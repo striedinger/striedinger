@@ -37,7 +37,4 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Muitas prévias foram solicitadas. Aguarde um minuto e tente novamente.",
   "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.":
     "Visualize cartões Open Graph e X para qualquer URL pública. Inspecione títulos, descrições, imagens e metadados sociais com rapidez e segurança.",
-  "Test Open Graph and X metadata": "Teste metadados Open Graph e X",
-  "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.":
-    "Confira como uma página pública pode aparecer ao ser compartilhada, incluindo título, descrição, imagem, site, tipo de cartão e tags sociais.",
 };

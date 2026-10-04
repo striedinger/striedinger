@@ -1,4 +1,4 @@
-import { Input } from "@workspace/ui/components/input";
+import { LinkIcon } from "@workspace/icons/link-icon";
 import { Text } from "@workspace/ui/components/text";
 import Form from "next/form";
 import { Suspense } from "react";
@@ -26,41 +26,49 @@ interface OgPreviewFormProps {
  */
 export function OgPreviewForm({ action, defaultUrl, labels, preview }: OgPreviewFormProps) {
   return (
-    <div className="flex flex-col gap-16">
-      <Form action={action} className="flex flex-col gap-4" replace scroll={false}>
-        <Text as="label" className="sr-only" htmlFor="preview-url">
-          {labels.urlLabel}
-        </Text>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Input
-            className="h-11 rounded-xl px-4 text-base shadow-sm"
-            id="preview-url"
-            name="url"
-            type="url"
-            inputMode="url"
-            autoCapitalize="none"
-            autoCorrect="off"
-            defaultValue={defaultUrl}
-            placeholder={labels.urlPlaceholder}
-            required
-            maxLength={2048}
-            aria-describedby="preview-security preview-error"
-          />
-          <OgSubmitButton label={labels.button} checkingLabel={labels.checking} />
+    <div className="flex flex-col gap-8">
+      <Form action={action} className="flex flex-col gap-5" replace scroll={false}>
+        <div className="flex flex-col">
+          <Text as="label" className="sr-only" htmlFor="preview-url">
+            {labels.urlLabel}
+          </Text>
+          <div className="flex min-h-[52px] items-center gap-3 rounded-[22px] bg-(--ios-grouped-cell) px-4 transition-shadow duration-150 focus-within:ring-2 focus-within:ring-(--ios-tint)/35 motion-reduce:transition-none">
+            <LinkIcon aria-hidden="true" className="size-5 shrink-0 text-(--ios-tertiary-label)" />
+            <input
+              className="min-w-0 flex-1 bg-transparent py-3.5 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) caret-(--ios-tint) outline-none placeholder:text-(--ios-tertiary-label)"
+              id="preview-url"
+              name="url"
+              type="url"
+              inputMode="url"
+              enterKeyHint="go"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              defaultValue={defaultUrl}
+              placeholder={labels.urlPlaceholder}
+              required
+              maxLength={2048}
+              aria-describedby="preview-security preview-error"
+            />
+          </div>
+          <div id="preview-error" aria-live="polite">
+            {preview ? (
+              <Suspense key={defaultUrl} fallback={null}>
+                <OgPreviewError labels={labels} preview={preview} />
+              </Suspense>
+            ) : null}
+          </div>
+          <Text
+            id="preview-security"
+            className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)"
+          >
+            {labels.security}
+          </Text>
         </div>
-        <Text id="preview-security" size="xs" tone="muted" className="leading-relaxed">
-          {labels.security}
-        </Text>
-        <div id="preview-error" aria-live="polite">
-          {preview ? (
-            <Suspense key={defaultUrl} fallback={null}>
-              <OgPreviewError labels={labels} preview={preview} />
-            </Suspense>
-          ) : null}
-        </div>
+        <OgSubmitButton label={labels.button} checkingLabel={labels.checking} />
       </Form>
 
-      <div className="flex flex-col gap-12" aria-label={labels.previewRegion}>
+      <div className="flex flex-col gap-3" aria-label={labels.previewRegion}>
         {preview ? (
           <Suspense key={defaultUrl} fallback={<OgPreviewResultsSkeleton />}>
             <OgPreviewResults labels={labels} preview={preview} />

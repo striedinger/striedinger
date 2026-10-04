@@ -34,7 +34,4 @@ export const messages = defineMessages({
     "Too many previews were requested. Please wait a minute and try again.",
   "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.":
     "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.",
-  "Test Open Graph and X metadata": "Test Open Graph and X metadata",
-  "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.":
-    "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.",
 });

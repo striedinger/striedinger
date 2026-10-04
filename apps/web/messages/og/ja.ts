@@ -36,7 +36,4 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "プレビューのリクエストが多すぎます。1分待ってから再度お試しください。",
   "Preview Open Graph and X cards for any public URL. Inspect titles, descriptions, images, and raw social metadata with a fast, secure online tester.":
     "公開URLのOpen GraphとXカードをプレビューし、タイトル、説明、画像、ソーシャルメタデータを高速かつ安全に確認できます。",
-  "Test Open Graph and X metadata": "Open GraphとXのメタデータをテスト",
-  "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.":
-    "公開ページを共有した際のタイトル、説明、画像、サイト名、カード形式、検出されたソーシャルタグを確認できます。",
 };

@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
 import { useFormStatus } from "react-dom";
 
 interface OgSubmitButtonProps {
@@ -12,13 +11,19 @@ export function OgSubmitButton({ checkingLabel, label }: OgSubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      className="h-11 shrink-0 rounded-xl px-5"
+    <button
       type="submit"
-      loading={pending}
-      loadingLabel={checkingLabel}
+      disabled={pending}
+      aria-busy={pending}
+      className="flex h-[50px] w-full items-center justify-center gap-2 rounded-full bg-(--ios-tint) px-6 text-[17px] leading-[22px] font-semibold tracking-[-0.43px] text-white transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 focus-visible:ring-offset-2 focus-visible:ring-offset-(--ios-grouped-background) active:scale-[0.97] disabled:opacity-70 disabled:active:scale-100 motion-reduce:transition-none"
     >
-      {label}
-    </Button>
+      {pending ? (
+        <span
+          aria-hidden="true"
+          className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white motion-reduce:animate-none"
+        />
+      ) : null}
+      {pending ? checkingLabel : label}
+    </button>
   );
 }

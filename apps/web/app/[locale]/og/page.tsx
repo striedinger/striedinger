@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-
 import type { OgPreviewLabels } from "../../../lib/og/labels";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { localizePath } from "../../../lib/locale-path";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getOgTranslator } from "../../../messages/og/get-translator";
@@ -87,46 +83,14 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
   });
 
   return (
-    <PageShell>
+    <IosToolScreen title={labels.heading} contentWidth="42rem">
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-24">
-          <div className="flex flex-col gap-12">
-            <PageHeader title={labels.heading} description={labels.description} />
-
-            <OgPreviewForm
-              action={localizePath("/og", locale)}
-              defaultUrl={initialUrl}
-              labels={labels}
-              preview={initialUrl ? loadPreviewMetadata(initialUrl) : null}
-            />
-          </div>
-
-          <ToolDetails
-            title={translate("Test Open Graph and X metadata")}
-            description={translate(
-              "Check how a public page may appear when shared, including its title, description, preview image, site name, card type, and detected social tags.",
-            )}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: labels.description,
-                items: [labels.openGraph, labels.twitter, labels.metadata],
-              },
-              {
-                title: translate("Privacy and security"),
-                description: labels.security,
-                items: [labels.errors["not-html"], labels.errors["too-large"]],
-              },
-              {
-                title: translate("Features"),
-                description: labels.metadataDescription,
-                items: [labels.previewRegion, labels.openGraph, labels.twitter],
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <OgPreviewForm
+        action={localizePath("/og", locale)}
+        defaultUrl={initialUrl}
+        labels={labels}
+        preview={initialUrl ? loadPreviewMetadata(initialUrl) : null}
+      />
+    </IosToolScreen>
   );
 }
