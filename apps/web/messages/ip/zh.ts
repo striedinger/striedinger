@@ -6,13 +6,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "IP Address Information": "IP 地址信息",
   "See the public IP address, approximate request location, and HTTP information visible to this website.":
     "查看此网站可见的公网 IP 地址、大致请求位置和 HTTP 信息。",
-  "The server reports the address and request metadata it receives from your connection.":
-    "服务器显示它从你的连接中收到的地址和请求元数据。",
   "This page does not use a third-party IP lookup service. Approximate location is shown only when the hosting platform provides it.":
     "此页面不使用第三方 IP 查询服务。仅当托管平台提供时才会显示大致位置。",
   "Loading request details…": "正在加载请求详细信息…",
   "Observed IP Address": "观察到的 IP 地址",
   "IP address": "IP 地址",
+  "Copy IP address": "复制 IP 地址",
   "IP version": "IP 版本",
   "Request Location": "请求位置",
   "Location values are approximate and may identify a network exit point instead of your physical location.":
@@ -35,6 +34,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "此可选测试会连接 Cloudflare 的公共 STUN 服务器，并列出浏览器公开的 ICE 地址。",
   "Run WebRTC test": "运行 WebRTC 测试",
   "Testing…": "正在测试…",
+  "ICE Candidates": "ICE 候选地址",
   "Candidate type": "候选类型",
   Address: "地址",
   "No ICE candidates were exposed.": "未公开任何 ICE 候选项。",

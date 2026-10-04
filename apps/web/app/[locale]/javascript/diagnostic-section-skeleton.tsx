@@ -1,31 +1,27 @@
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Surface } from "@workspace/ui/components/surface";
-import { Text } from "@workspace/ui/components/text";
+import { IosListSection } from "../../../components/ios/ios-list-section";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 
 interface DiagnosticSectionSkeletonProps {
   rowCount: number;
   title: string;
 }
 
-/** A section heading with placeholder rows sized like the details that replace them. */
+/** A grouped list with placeholder rows sized like the details that replace them. */
 export function DiagnosticSectionSkeleton({ rowCount, title }: DiagnosticSectionSkeletonProps) {
   return (
-    <section className="flex flex-col gap-4">
-      <Text as="h2" size="xl" weight="semibold">
-        {title}
-      </Text>
-      <Surface className="overflow-hidden shadow-none" aria-hidden="true">
-        <div className="divide-y divide-border/70">
-          {Array.from({ length: rowCount }, function renderRow(_, index) {
-            return (
-              <div key={index} className="grid gap-1 px-4 py-3 sm:grid-cols-[15rem_minmax(0,1fr)]">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-3/5" />
-              </div>
-            );
-          })}
-        </div>
-      </Surface>
-    </section>
+    <IosListSection className="px-0" header={title}>
+      {Array.from({ length: rowCount }, function renderRow(_, index) {
+        return (
+          <li
+            key={index}
+            aria-hidden="true"
+            className="relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+          >
+            <IosSkeleton className="h-4 w-36" />
+            <IosSkeleton className="h-4 w-20" />
+          </li>
+        );
+      })}
+    </IosListSection>
   );
 }

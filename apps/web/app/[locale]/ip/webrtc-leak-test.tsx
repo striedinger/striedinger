@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
-import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { useState } from "react";
 
 import type { WebRtcLabels } from "./types";
+
+import { IosListSection } from "../../../components/ios/ios-list-section";
 
 interface IceCandidateResult {
   address: string;
@@ -27,6 +27,10 @@ export function WebRtcLeakTest({ labels }: WebRtcLeakTestProps) {
   const [state, setState] = useState<TestState>({ status: "idle" });
 
   async function runTest() {
+    if (state.status === "testing") {
+      return;
+    }
+
     if (!("RTCPeerConnection" in window)) {
       setState({ status: "error", message: labels.notSupported });
       return;
@@ -42,88 +46,85 @@ export function WebRtcLeakTest({ labels }: WebRtcLeakTestProps) {
     }
   }
 
+  const isTesting = state.status === "testing";
+
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="webrtc-test-heading">
-      <div className="flex flex-col gap-2">
-        <Text as="h2" id="webrtc-test-heading" size="xl" weight="semibold">
-          {labels.heading}
-        </Text>
-        <Text size="sm" tone="muted">
-          {labels.description}
-        </Text>
+    <div className="flex flex-col gap-6">
+      <IosListSection
+        className="px-0"
+        header={labels.heading}
+        footer={labels.description}
+        label={labels.heading}
+      >
+        <li>
+          <button
+            type="button"
+            aria-disabled={isTesting}
+            aria-busy={isTesting}
+            className="flex min-h-[44px] w-full items-center px-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) transition-colors duration-150 outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-disabled:text-(--ios-secondary-label) motion-reduce:transition-none"
+            onClick={runTest}
+          >
+            {isTesting ? labels.testing : labels.runTest}
+          </button>
+        </li>
+      </IosListSection>
+
+      <div aria-live="polite">
+        {state.status === "success" ? (
+          <IosListSection className="px-0" header={labels.candidates} label={labels.candidates}>
+            {state.candidates.length === 0 ? (
+              <li className="flex min-h-[44px] items-center gap-2.5 px-4 py-[11px]">
+                <span
+                  aria-hidden="true"
+                  className="size-2 shrink-0 rounded-full bg-(--ios-green)"
+                />
+                <Text className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
+                  {labels.noCandidates}
+                </Text>
+              </li>
+            ) : null}
+            {state.candidates.map(function renderCandidate(candidate) {
+              return (
+                <li
+                  key={`${candidate.type}-${candidate.address}-${candidate.protocol}`}
+                  className="relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+                >
+                  <Text
+                    as="span"
+                    family="mono"
+                    className="min-w-0 text-[15px] leading-[22px] break-all text-(--ios-label)"
+                  >
+                    <span className="sr-only">{labels.address} </span>
+                    {candidate.address}
+                  </Text>
+                  <Text
+                    as="span"
+                    className="shrink-0 text-right text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)"
+                  >
+                    <span className="sr-only">{labels.candidateType} </span>
+                    {candidate.type}
+                    <span aria-hidden="true"> · </span>
+                    <span className="sr-only">{labels.protocol} </span>
+                    {candidate.protocol.toUpperCase()}
+                  </Text>
+                </li>
+              );
+            })}
+          </IosListSection>
+        ) : null}
+
+        {state.status === "error" ? (
+          <IosListSection className="px-0" label={labels.heading}>
+            <li className="flex min-h-[44px] items-center gap-2.5 px-4 py-[11px]">
+              <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-(--ios-red)" />
+              <Text className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
+                {state.message}
+              </Text>
+            </li>
+          </IosListSection>
+        ) : null}
       </div>
-
-      <div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={runTest}
-          loading={state.status === "testing"}
-          loadingLabel={labels.testing}
-        >
-          {labels.runTest}
-        </Button>
-      </div>
-
-      {state.status === "success" ? (
-        <Surface className="overflow-hidden shadow-none" aria-live="polite">
-          {state.candidates.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead className="border-b border-border/70 bg-muted/45">
-                  <tr>
-                    {[labels.candidateType, labels.address, labels.protocol].map(
-                      function renderHeading(heading) {
-                        return (
-                          <Text
-                            as="th"
-                            key={heading}
-                            scope="col"
-                            family="mono"
-                            size="xs"
-                            tone="muted"
-                            className="px-4 py-3"
-                          >
-                            {heading}
-                          </Text>
-                        );
-                      },
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/70">
-                  {state.candidates.map(function renderCandidate(candidate) {
-                    return (
-                      <tr key={`${candidate.type}-${candidate.address}-${candidate.protocol}`}>
-                        <Text as="td" family="mono" size="xs" className="px-4 py-3">
-                          {candidate.type}
-                        </Text>
-                        <Text as="td" family="mono" size="xs" className="px-4 py-3 break-all">
-                          {candidate.address}
-                        </Text>
-                        <Text as="td" family="mono" size="xs" className="px-4 py-3">
-                          {candidate.protocol}
-                        </Text>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Text className="p-5" tone="muted">
-              {labels.noCandidates}
-            </Text>
-          )}
-        </Surface>
-      ) : null}
-
-      {state.status === "error" ? (
-        <Surface className="p-5 shadow-none" aria-live="polite">
-          <Text tone="muted">{state.message}</Text>
-        </Surface>
-      ) : null}
-    </section>
+    </div>
   );
 }
 

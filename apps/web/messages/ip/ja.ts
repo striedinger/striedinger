@@ -6,13 +6,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "IP Address Information": "IP アドレス情報",
   "See the public IP address, approximate request location, and HTTP information visible to this website.":
     "このサイトから見える公開 IP アドレス、おおよそのリクエスト位置、HTTP 情報を確認します。",
-  "The server reports the address and request metadata it receives from your connection.":
-    "サーバーが接続から受信したアドレスとリクエストメタデータを表示します。",
   "This page does not use a third-party IP lookup service. Approximate location is shown only when the hosting platform provides it.":
     "このページは外部 IP 検索サービスを使用しません。おおよその位置はホスティング基盤が提供する場合のみ表示されます。",
   "Loading request details…": "リクエスト情報を読み込み中…",
   "Observed IP Address": "確認された IP アドレス",
   "IP address": "IP アドレス",
+  "Copy IP address": "IP アドレスをコピー",
   "IP version": "IP バージョン",
   "Request Location": "リクエスト位置",
   "Location values are approximate and may identify a network exit point instead of your physical location.":
@@ -35,6 +34,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "この任意テストは Cloudflare の公開 STUN サーバーに接続し、ブラウザーが公開する ICE アドレスを一覧表示します。",
   "Run WebRTC test": "WebRTC テストを実行",
   "Testing…": "テスト中…",
+  "ICE Candidates": "ICE 候補",
   "Candidate type": "候補タイプ",
   Address: "アドレス",
   "No ICE candidates were exposed.": "ICE 候補は公開されませんでした。",

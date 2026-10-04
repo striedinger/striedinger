@@ -6,8 +6,6 @@ export const messages = defineMessages({
     "Inspect the JavaScript, screen, navigator, media, network, and storage information exposed by your browser.",
   "Everything shown here is read locally in your browser and is not uploaded or stored.":
     "Everything shown here is read locally in your browser and is not uploaded or stored.",
-  "Values are collected after the page loads and may change when browser permissions, windows, displays, or network conditions change.":
-    "Values are collected after the page loads and may change when browser permissions, windows, displays, or network conditions change.",
   "JavaScript is disabled, so browser details cannot be collected.":
     "JavaScript is disabled, so browser details cannot be collected.",
   "Collecting browser details…": "Collecting browser details…",

@@ -1,14 +1,16 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
-import { Surface } from "@workspace/ui/components/surface";
+import { RefreshIcon } from "@workspace/icons/refresh-icon";
 import { Text } from "@workspace/ui/components/text";
 import { useEffect, useState } from "react";
 
 import type { BrowserDiagnosticsLabels, DiagnosticSection } from "./types";
 
+import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { IosListSection } from "../../../components/ios/ios-list-section";
 import { collectBrowserDiagnostics } from "./browser-diagnostics";
 import { DiagnosticSectionSkeleton } from "./diagnostic-section-skeleton";
+import { DiagnosticValueRow, type DiagnosticStatus } from "./diagnostic-value-row";
 
 interface JavaScriptDiagnosticsProps {
   labels: BrowserDiagnosticsLabels;
@@ -61,62 +63,54 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
     });
   }
 
+  function getStatus(value: string): DiagnosticStatus | undefined {
+    if (value === labels.supported || value === labels.enabled) {
+      return "positive";
+    }
+
+    return value === labels.notSupported ? "negative" : undefined;
+  }
+
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={refreshDetails}
-          disabled={!sections || isRefreshing}
-        >
+        <IosBarButton variant="plain" onClick={refreshDetails} disabled={!sections || isRefreshing}>
+          <RefreshIcon />
           {labels.refresh}
-        </Button>
+        </IosBarButton>
       </div>
 
-      <div className="flex flex-col gap-8" aria-live="polite" aria-busy={!sections || isRefreshing}>
+      <div className="flex flex-col gap-6" aria-live="polite" aria-busy={!sections || isRefreshing}>
         {sections ? (
-          sections.map(function renderSection(section) {
+          sections.map(function renderSection(section, sectionIndex) {
             return (
-              <section
+              <IosListSection
                 key={section.title}
-                className="flex flex-col gap-4 [contain-intrinsic-size:auto_20rem] [content-visibility:auto]"
+                className="px-0 [contain-intrinsic-size:auto_20rem] [content-visibility:auto]"
+                header={section.title}
+                footer={sectionIndex === 0 ? labels.privacy : undefined}
+                label={section.title}
               >
-                <Text as="h2" size="xl" weight="semibold">
-                  {section.title}
-                </Text>
-                <Surface className="overflow-hidden shadow-none">
-                  <dl className="divide-y divide-border/70">
-                    {section.rows.map(function renderRow(diagnosticRow) {
-                      return (
-                        <div
-                          key={diagnosticRow.label}
-                          className="grid gap-1 px-4 py-3 sm:grid-cols-[15rem_minmax(0,1fr)]"
-                        >
-                          <Text as="dt" family="mono" size="xs" tone="muted">
-                            {diagnosticRow.label}
-                          </Text>
-                          <Text
-                            as="dd"
-                            family="mono"
-                            size="xs"
-                            className="min-w-0 break-words whitespace-pre-wrap"
-                          >
-                            {diagnosticRow.value}
-                          </Text>
-                        </div>
-                      );
-                    })}
-                  </dl>
-                </Surface>
-              </section>
+                {section.rows.map(function renderRow(diagnosticRow) {
+                  const status = getStatus(diagnosticRow.value);
+
+                  return (
+                    <DiagnosticValueRow
+                      key={diagnosticRow.label}
+                      label={diagnosticRow.label}
+                      value={diagnosticRow.value}
+                      status={status}
+                      monospaceLabel={!diagnosticRow.label.includes(" ")}
+                      monospaceValue={!status}
+                    />
+                  );
+                })}
+              </IosListSection>
             );
           })
         ) : (
           <>
-            <Text tone="muted" className="sr-only">
-              {labels.collecting}
-            </Text>
+            <Text className="sr-only">{labels.collecting}</Text>
             {placeholderSections.map(function renderPlaceholder(placeholder) {
               return (
                 <DiagnosticSectionSkeleton

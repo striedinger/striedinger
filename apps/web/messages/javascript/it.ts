@@ -8,8 +8,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Esamina le informazioni su JavaScript, schermo, navigatore, contenuti multimediali, rete e archiviazione esposte dal browser.",
   "Everything shown here is read locally in your browser and is not uploaded or stored.":
     "Tutto ciò che viene mostrato è letto localmente nel browser e non viene caricato né archiviato.",
-  "Values are collected after the page loads and may change when browser permissions, windows, displays, or network conditions change.":
-    "I valori vengono raccolti dopo il caricamento e possono cambiare con permessi, finestre, schermi o condizioni di rete.",
   "JavaScript is disabled, so browser details cannot be collected.":
     "JavaScript è disattivato, quindi non è possibile raccogliere i dettagli del browser.",
   "Collecting browser details…": "Raccolta dei dettagli del browser…",

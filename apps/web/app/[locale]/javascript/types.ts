@@ -20,6 +20,7 @@ export interface BrowserDiagnosticsLabels {
   navigatorProperties: string;
   notSupported: string;
   pluginsAndMimeTypes: string;
+  privacy: string;
   refresh: string;
   screenAndWindow: string;
   storageApis: string;

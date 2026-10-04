@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Surface } from "@workspace/ui/components/surface";
-import { Text } from "@workspace/ui/components/text";
 import { Suspense } from "react";
 
 import type { WebRtcLabels } from "./types";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getIpTranslator } from "../../../messages/ip/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { RequestDiagnosticsPanel } from "./request-diagnostics-panel";
+import { RequestDiagnosticsSkeleton } from "./request-diagnostics-skeleton";
 import { WebRtcLeakTest } from "./webrtc-leak-test";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,9 +31,6 @@ export default async function IpAddressInformationPage() {
   const description = translate(
     "See the public IP address, approximate request location, and HTTP information visible to this website.",
   );
-  const requestBehavior = translate(
-    "The server reports the address and request metadata it receives from your connection.",
-  );
   const privacy = translate(
     "This page does not use a third-party IP lookup service. Approximate location is shown only when the hosting platform provides it.",
   );
@@ -49,6 +42,8 @@ export default async function IpAddressInformationPage() {
   );
   const requestLabels = {
     city: translate("City"),
+    copied: translate("Copied"),
+    copyIpAddress: translate("Copy IP address"),
     country: translate("Country"),
     forwardedAddresses: translate("Forwarded addresses"),
     headersDescription,
@@ -61,6 +56,7 @@ export default async function IpAddressInformationPage() {
     locationHeading: translate("Request Location"),
     longitude: translate("Longitude"),
     observedIpAddress: translate("Observed IP Address"),
+    privacy,
     protocol: translate("Protocol"),
     region: translate("Region"),
     requestHeading: translate("Request Details"),
@@ -69,6 +65,7 @@ export default async function IpAddressInformationPage() {
   };
   const webRtcLabels: WebRtcLabels = {
     address: translate("Address"),
+    candidates: translate("ICE Candidates"),
     candidateType: translate("Candidate type"),
     description: translate(
       "This optional test contacts Cloudflare's public STUN server and lists the ICE addresses exposed by your browser.",
@@ -97,46 +94,26 @@ export default async function IpAddressInformationPage() {
   });
 
   return (
-    <PageShell>
+    <>
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-12">
-          <PageHeader title={title} description={description} />
-
-          <Suspense
-            fallback={
-              <Surface className="p-6 shadow-none">
-                <Text tone="muted">{translate("Loading request details…")}</Text>
-              </Surface>
-            }
-          >
-            <RequestDiagnosticsPanel labels={requestLabels} />
-          </Suspense>
-
-          <WebRtcLeakTest labels={webRtcLabels} />
-
-          <ToolDetails
-            title={translate("About this tool")}
-            description={description}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: requestBehavior,
-                items: [
-                  requestLabels.observedIpAddress,
-                  requestLabels.locationHeading,
-                  requestLabels.headersHeading,
-                ],
-              },
-              {
-                title: translate("Privacy and security"),
-                description: privacy,
-                items: [locationDescription, headersDescription, webRtcLabels.description],
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <IosToolScreen title={title}>
+        <Suspense
+          fallback={
+            <RequestDiagnosticsSkeleton
+              labels={{
+                headersHeading: requestLabels.headersHeading,
+                loading: translate("Loading request details…"),
+                locationHeading: requestLabels.locationHeading,
+                observedIpAddress: requestLabels.observedIpAddress,
+                requestHeading: requestLabels.requestHeading,
+              }}
+            />
+          }
+        >
+          <RequestDiagnosticsPanel labels={requestLabels} />
+        </Suspense>
+        <WebRtcLeakTest labels={webRtcLabels} />
+      </IosToolScreen>
+    </>
   );
 }

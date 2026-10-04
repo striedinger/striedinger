@@ -8,8 +8,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "ブラウザーが公開する JavaScript、画面、ナビゲーター、メディア、ネットワーク、ストレージ情報を確認します。",
   "Everything shown here is read locally in your browser and is not uploaded or stored.":
     "ここに表示される情報はブラウザー内で読み取られ、アップロードも保存もされません。",
-  "Values are collected after the page loads and may change when browser permissions, windows, displays, or network conditions change.":
-    "値はページ読み込み後に収集され、権限、ウィンドウ、ディスプレイ、ネットワーク状態によって変わる場合があります。",
   "JavaScript is disabled, so browser details cannot be collected.":
     "JavaScript が無効なため、ブラウザー情報を収集できません。",
   "Collecting browser details…": "ブラウザー情報を収集中…",

@@ -6,13 +6,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "IP Address Information": "IP-Adressinformationen",
   "See the public IP address, approximate request location, and HTTP information visible to this website.":
     "Zeige die öffentliche IP-Adresse, den ungefähren Anfrageort und die für diese Website sichtbaren HTTP-Informationen an.",
-  "The server reports the address and request metadata it receives from your connection.":
-    "Der Server zeigt die Adresse und Anfragemetadaten an, die er von deiner Verbindung empfängt.",
   "This page does not use a third-party IP lookup service. Approximate location is shown only when the hosting platform provides it.":
     "Diese Seite verwendet keinen externen IP-Suchdienst. Ein ungefährer Ort wird nur angezeigt, wenn die Hosting-Plattform ihn bereitstellt.",
   "Loading request details…": "Anfragedetails werden geladen…",
   "Observed IP Address": "Beobachtete IP-Adresse",
   "IP address": "IP-Adresse",
+  "Copy IP address": "IP-Adresse kopieren",
   "IP version": "IP-Version",
   "Request Location": "Anfrageort",
   "Location values are approximate and may identify a network exit point instead of your physical location.":
@@ -35,6 +34,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Dieser optionale Test kontaktiert den öffentlichen STUN-Server von Cloudflare und listet die vom Browser offengelegten ICE-Adressen auf.",
   "Run WebRTC test": "WebRTC-Test starten",
   "Testing…": "Test läuft…",
+  "ICE Candidates": "ICE-Kandidaten",
   "Candidate type": "Kandidatentyp",
   Address: "Adresse",
   "No ICE candidates were exposed.": "Es wurden keine ICE-Kandidaten offengelegt.",

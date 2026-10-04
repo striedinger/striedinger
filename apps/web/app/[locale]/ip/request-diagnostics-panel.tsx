@@ -1,11 +1,15 @@
-import { Surface } from "@workspace/ui/components/surface";
 import { Text } from "@workspace/ui/components/text";
 import { headers } from "next/headers";
 
+import { IosListSection } from "../../../components/ios/ios-list-section";
+import { CopyIpAddressButton } from "./copy-ip-address-button";
+import { DiagnosticValueRow } from "./diagnostic-value-row";
 import { collectRequestDiagnostics } from "./request-diagnostics";
 
 interface RequestDiagnosticsPanelLabels {
   city: string;
+  copied: string;
+  copyIpAddress: string;
   country: string;
   forwardedAddresses: string;
   headersDescription: string;
@@ -18,6 +22,7 @@ interface RequestDiagnosticsPanelLabels {
   locationHeading: string;
   longitude: string;
   observedIpAddress: string;
+  privacy: string;
   protocol: string;
   region: string;
   requestHeading: string;
@@ -45,101 +50,84 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
     timeZone: labels.timeZone,
     unavailable: labels.unavailable,
   });
-  const sections = [
-    {
-      title: labels.locationHeading,
-      description: labels.locationDescription,
-      rows: diagnostics.location,
-    },
-    {
-      title: labels.requestHeading,
-      description: null,
-      rows: diagnostics.request,
-    },
-    {
-      title: labels.headersHeading,
-      description: labels.headersDescription,
-      rows: diagnostics.headers,
-    },
-  ];
+  const hasIpAddress = diagnostics.ipAddress !== labels.unavailable;
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-4" aria-labelledby="observed-ip-heading">
-        <Text as="h2" id="observed-ip-heading" size="xl" weight="semibold">
-          {labels.observedIpAddress}
-        </Text>
-        <Surface className="overflow-hidden p-6 shadow-none">
-          <Text family="mono" size="2xl" weight="semibold" className="break-all">
+    <div className="flex flex-col gap-6">
+      <IosListSection
+        className="px-0"
+        header={labels.observedIpAddress}
+        footer={labels.privacy}
+        label={labels.observedIpAddress}
+      >
+        <li className="relative px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-(--ios-separator)">
+          <Text
+            family={hasIpAddress ? "mono" : undefined}
+            className="text-center text-[22px] leading-7 font-semibold break-all text-(--ios-label)"
+          >
+            <span className="sr-only">{labels.ipAddress} </span>
             {diagnostics.ipAddress}
           </Text>
-          <dl className="mt-5 grid gap-3 border-t border-border/70 pt-5 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <Text as="dt" family="mono" size="xs" tone="muted">
-                {labels.ipAddress}
-              </Text>
-              <Text as="dd" family="mono" size="sm" className="break-all">
-                {diagnostics.ipAddress}
-              </Text>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Text as="dt" family="mono" size="xs" tone="muted">
-                {labels.ipVersion}
-              </Text>
-              <Text as="dd" family="mono" size="sm">
-                {diagnostics.ipVersion}
-              </Text>
-            </div>
-          </dl>
-        </Surface>
-      </section>
+        </li>
+        <DiagnosticValueRow label={labels.ipVersion} value={diagnostics.ipVersion} />
+        <li>
+          <CopyIpAddressButton
+            ipAddress={hasIpAddress ? diagnostics.ipAddress : null}
+            labels={{ copied: labels.copied, copyIpAddress: labels.copyIpAddress }}
+          />
+        </li>
+      </IosListSection>
 
-      {sections.map(function renderSection(section) {
-        return (
-          <section key={section.title} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Text as="h2" size="xl" weight="semibold">
-                {section.title}
-              </Text>
-              {section.description ? (
-                <Text size="sm" tone="muted">
-                  {section.description}
-                </Text>
-              ) : null}
-            </div>
-            <Surface className="overflow-hidden shadow-none">
-              {section.rows.length > 0 ? (
-                <dl className="divide-y divide-border/70">
-                  {section.rows.map(function renderRow(row) {
-                    return (
-                      <div
-                        key={row.label}
-                        className="grid gap-1 px-4 py-3 sm:grid-cols-[15rem_minmax(0,1fr)]"
-                      >
-                        <Text as="dt" family="mono" size="xs" tone="muted">
-                          {row.label}
-                        </Text>
-                        <Text
-                          as="dd"
-                          family="mono"
-                          size="xs"
-                          className="min-w-0 break-words whitespace-pre-wrap"
-                        >
-                          {row.value}
-                        </Text>
-                      </div>
-                    );
-                  })}
-                </dl>
-              ) : (
-                <Text className="p-5" tone="muted">
-                  {labels.unavailable}
-                </Text>
-              )}
-            </Surface>
-          </section>
-        );
-      })}
+      <IosListSection
+        className="px-0"
+        header={labels.locationHeading}
+        footer={labels.locationDescription}
+        label={labels.locationHeading}
+      >
+        {diagnostics.location.map(function renderLocationRow(row) {
+          return <DiagnosticValueRow key={row.label} label={row.label} value={row.value} />;
+        })}
+      </IosListSection>
+
+      <IosListSection className="px-0" header={labels.requestHeading} label={labels.requestHeading}>
+        {diagnostics.request.map(function renderRequestRow(row) {
+          return (
+            <DiagnosticValueRow
+              key={row.label}
+              label={row.label}
+              value={row.value}
+              monospaceValue={row.label === labels.forwardedAddresses}
+            />
+          );
+        })}
+      </IosListSection>
+
+      <IosListSection
+        className="px-0"
+        header={labels.headersHeading}
+        footer={labels.headersDescription}
+        label={labels.headersHeading}
+      >
+        {diagnostics.headers.length > 0 ? (
+          diagnostics.headers.map(function renderHeaderRow(row) {
+            return (
+              <DiagnosticValueRow
+                key={row.label}
+                label={row.label}
+                value={row.value}
+                monospaceLabel
+                monospaceValue
+              />
+            );
+          })
+        ) : (
+          <li className="px-4 py-[11px]">
+            <Text className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-secondary-label)">
+              {labels.unavailable}
+            </Text>
+          </li>
+        )}
+      </IosListSection>
     </div>
   );
 }

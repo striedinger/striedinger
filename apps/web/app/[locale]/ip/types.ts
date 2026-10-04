@@ -13,6 +13,7 @@ export interface RequestDiagnostics {
 
 export interface WebRtcLabels {
   address: string;
+  candidates: string;
   candidateType: string;
   description: string;
   failed: string;
