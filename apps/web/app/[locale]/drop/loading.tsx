@@ -4,7 +4,7 @@ export default function DropLoading() {
   return (
     <div
       aria-busy="true"
-      className="flex size-full flex-col items-center gap-5 bg-ios-grouped-background px-4 pt-[calc(4rem+env(safe-area-inset-top))]"
+      className="flex size-full flex-col items-center gap-5 bg-ios-grouped-background px-4 pt-safe-plus-16"
     >
       <IosSkeleton className="h-9 w-24 self-start" />
       <IosSkeleton className="size-44 rounded-full" />

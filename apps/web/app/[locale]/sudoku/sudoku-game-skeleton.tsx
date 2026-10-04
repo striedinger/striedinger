@@ -14,7 +14,7 @@ export function SudokuGameSkeleton() {
         <IosSkeleton className="h-full flex-1 rounded-ios-lg" />
         <IosSkeleton className="h-full flex-1 rounded-ios-lg" />
       </div>
-      <div className="[container-type:size] flex min-h-0 flex-1 items-center justify-center">
+      <div className="@container-size flex min-h-0 flex-1 items-center justify-center">
         <IosSkeleton className="aspect-square w-[min(100cqw,100cqh)] rounded-ios-xl" />
       </div>
       <div className="grid shrink-0 grid-cols-5 gap-2">

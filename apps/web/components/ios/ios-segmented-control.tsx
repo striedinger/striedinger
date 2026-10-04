@@ -46,7 +46,7 @@ export function IosSegmentedControl<Value extends string>({
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-0.5 left-0.5 rounded-ios-sm bg-ios-grouped-cell shadow-ios-raised transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none dark:bg-[#636366]"
+        className="absolute inset-y-0.5 left-0.5 rounded-ios-sm bg-ios-grouped-cell shadow-ios-raised transition-transform duration-300 ease-ios motion-reduce:transition-none dark:bg-ios-gray2-dark"
         style={{
           width: `calc((100% - 4px) / ${options.length})`,
           transform: `translateX(${selectedIndex * 100}%)`,

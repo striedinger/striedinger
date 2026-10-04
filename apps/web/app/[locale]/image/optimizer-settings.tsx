@@ -65,7 +65,7 @@ export function OptimizerSettings({
       </IosListSection>
       {isLossless ? null : (
         <IosListSection className="px-0" header={labels.quality} footer={labels.qualityHint}>
-          <li className="flex min-h-[52px] items-center gap-3 px-4">
+          <li className="flex min-h-13 items-center gap-3 px-4">
             <input
               type="range"
               min="35"

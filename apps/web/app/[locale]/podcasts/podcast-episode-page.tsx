@@ -76,7 +76,7 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
         accessory={
           <PodcastHero artworkUrl={item.podcast.artworkUrl}>
             <div className="flex max-w-xl flex-col items-center gap-1">
-              <Text className="text-[13px] leading-[18px] font-semibold tracking-[0.04em] text-white/65 uppercase">
+              <Text className="text-ios-footnote font-semibold tracking-[0.04em] text-white/65 uppercase">
                 {formatEpisodeDate(item.episode.publishedAt, locale, now)}
               </Text>
               <Text as="h2" className="text-ios-title2 font-bold text-white">
@@ -111,7 +111,7 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
         }
       />
       <div className="mx-auto w-full max-w-3xl px-5 pt-5">
-        <Text className="text-[17px] leading-[24px] tracking-[-0.43px] whitespace-pre-line text-ios-label">
+        <Text className="text-ios-body leading-[24px] whitespace-pre-line text-ios-label">
           {item.episode.description || messages["This episode is no longer available."]}
         </Text>
       </div>

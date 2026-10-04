@@ -28,7 +28,7 @@ export function NowPlayingSkipButton({
       )}
       <span
         aria-hidden="true"
-        className="absolute pt-1 text-[12px] leading-none font-bold tabular-nums"
+        className="absolute pt-1 text-ios-caption1 leading-none font-bold tabular-nums"
       >
         {seconds}
       </span>

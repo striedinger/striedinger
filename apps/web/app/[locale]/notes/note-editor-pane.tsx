@@ -399,7 +399,7 @@ export function NoteEditorPane({
         )}
       </div>
       <div
-        className="absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col md:top-[calc(3.5rem+env(safe-area-inset-top))] md:right-4 md:bottom-auto md:left-auto md:w-[380px] md:translate-y-0"
+        className="absolute inset-x-0 bottom-0 z-20 flex translate-y-above-keyboard flex-col md:top-safe-plus-14 md:right-4 md:bottom-auto md:left-auto md:w-95 md:translate-y-0"
         {...editingControlHandlers}
       >
         {isFormatOpen && isEditing ? (

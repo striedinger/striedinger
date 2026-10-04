@@ -51,7 +51,7 @@ export function MessageRow({ labels, locale, message, placement }: MessageRowPro
       </Text>
       <Text
         className={cn(
-          "max-w-[min(75%,30rem)] rounded-ios-lg px-3 py-[7px] text-ios-body break-words whitespace-pre-wrap",
+          "max-w-[min(75%,30rem)] rounded-ios-lg px-3 py-1.75 text-ios-body break-words whitespace-pre-wrap",
           message.isOwn ? "bg-ios-tint text-white" : "bg-ios-secondary-fill text-ios-label",
           message.isOwn
             ? [

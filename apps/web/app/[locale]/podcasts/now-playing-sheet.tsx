@@ -63,23 +63,23 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
   return (
     <Drawer.Root open={isOpen && item !== null} onOpenChange={onOpenChange}>
       <Drawer.Portal container={portalContainer}>
-        <Drawer.Backdrop className="fixed inset-0 z-40 bg-black opacity-[calc(0.4*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
+        <Drawer.Backdrop className="fixed inset-0 z-40 bg-black opacity-[calc(0.4*(1-var(--drawer-swipe-progress)))] transition-opacity duration-450 ease-ios data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-40 flex items-end justify-center">
           <Drawer.Popup
-            className="flex h-[calc(100dvh-env(safe-area-inset-top)-10px)] w-full [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-ios-sheet bg-[#2c2c2e] text-white shadow-ios-sheet transition-[transform,background-color] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none md:mb-3 md:h-[min(880px,calc(100dvh-24px))] md:max-w-[480px] md:rounded-ios-sheet"
+            className="flex h-[calc(100dvh-env(safe-area-inset-top)-10px)] w-full [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-ios-sheet bg-ios-gray5-dark text-white shadow-ios-sheet transition-[transform,background-color] duration-450 ease-ios outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none md:mb-3 md:h-[min(880px,calc(100dvh-24px))] md:max-w-120 md:rounded-ios-sheet"
             style={artworkColor ? { backgroundColor: artworkColor } : undefined}
           >
             {item ? (
-              <div className="flex min-h-0 flex-1 flex-col bg-linear-to-b from-white/8 to-black/30 px-7 pt-2 pb-[max(env(safe-area-inset-bottom),20px)]">
+              <div className="flex min-h-0 flex-1 flex-col bg-linear-to-b from-white/8 to-black/30 px-7 pt-2 pb-safe-min-6">
                 <Drawer.Close
                   aria-label={messages["Close Now Playing"]}
                   className="mx-auto flex h-6 w-16 shrink-0 items-start justify-center outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
-                  <span aria-hidden="true" className="mt-1 h-[5px] w-9 rounded-full bg-white/40" />
+                  <span aria-hidden="true" className="mt-1 h-1.25 w-9 rounded-full bg-white/40" />
                 </Drawer.Close>
                 <Drawer.Title className="sr-only">{messages["Now Playing"]}</Drawer.Title>
                 <Drawer.Description className="sr-only">{item.episode.title}</Drawer.Description>
-                <div className="[container-type:size] flex min-h-0 flex-1 flex-col justify-center py-4">
+                <div className="@container-size flex min-h-0 flex-1 flex-col justify-center py-4">
                   {showsQueue ? (
                     <div className="flex min-h-0 flex-1 flex-col gap-5">
                       <div className="flex items-center gap-3">
@@ -113,7 +113,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                       sizes="(min-width: 768px) 420px, 90vw"
                       priority
                       className={cn(
-                        "mx-auto w-[min(100cqw,100cqh)] max-w-[420px] shrink-0 rounded-ios-md shadow-ios-overlay transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none",
+                        "mx-auto w-[min(100cqw,100cqh)] max-w-105 shrink-0 rounded-ios-md shadow-ios-overlay transition-transform duration-500 ease-ios-bounce motion-reduce:transition-none",
                         player.isPlaying ? "scale-100" : "scale-[0.82]",
                       )}
                     />
@@ -122,7 +122,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                 <div className="flex shrink-0 flex-col gap-4">
                   <div className="flex items-start gap-3">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <Text className="text-[13px] leading-[18px] font-semibold tracking-[0.04em] text-white/55 uppercase">
+                      <Text className="text-ios-footnote font-semibold tracking-[0.04em] text-white/55 uppercase">
                         {formatEpisodeDate(item.episode.publishedAt, locale, now)}
                       </Text>
                       <Text numberOfLines={2} className="text-ios-title3 font-semibold text-white">
@@ -170,7 +170,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                     <button
                       type="button"
                       aria-label={player.isPlaying ? messages.Pause : messages.Play}
-                      className="flex size-[72px] items-center justify-center rounded-full text-white outline-none focus-visible:bg-white/10 active:scale-90 active:opacity-60 motion-safe:transition-transform"
+                      className="flex size-18 items-center justify-center rounded-full text-white outline-none focus-visible:bg-white/10 active:scale-90 active:opacity-60 motion-safe:transition-transform"
                       onClick={togglePlayback}
                     >
                       {player.isPlaying ? (
@@ -240,7 +240,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                           aria-pressed={isSleepTimerActive}
                           className="flex size-11 items-center justify-center rounded-full text-white/80 outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:opacity-60 aria-pressed:bg-white aria-pressed:text-black"
                         >
-                          <MoonIcon className="size-[22px]" />
+                          <MoonIcon className="size-5.5" />
                         </button>
                       }
                       sections={[
@@ -285,7 +285,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                         setShowsQueue(!showsQueue);
                       }}
                     >
-                      <ListBulletIcon className="size-[22px]" />
+                      <ListBulletIcon className="size-5.5" />
                     </button>
                   </div>
                 </div>

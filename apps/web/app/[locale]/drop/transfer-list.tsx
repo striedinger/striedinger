@@ -20,7 +20,7 @@ interface TransferListProps {
 }
 
 const accessoryClassName =
-  "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 disabled:text-ios-tertiary-label [&_svg]:size-[18px]";
+  "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 disabled:text-ios-tertiary-label [&_svg]:size-4.5";
 
 export function TransferList({ canRetry, items, labels, onRetry }: TransferListProps) {
   const countLabel =
@@ -79,12 +79,12 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
         return (
           <li
             key={`${item.direction}-${item.id}`}
-            className="relative flex min-h-[64px] items-center gap-3 py-2.5 pr-4 pl-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
+            className="relative flex min-h-16 items-center gap-3 py-2.5 pr-4 pl-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-16 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
           >
             <span
               aria-hidden="true"
               className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-ios-md text-white [&_svg]:size-[18px]",
+                "flex size-9 shrink-0 items-center justify-center rounded-ios-md text-white [&_svg]:size-4.5",
                 item.status === "error"
                   ? "bg-ios-red"
                   : item.status === "complete"

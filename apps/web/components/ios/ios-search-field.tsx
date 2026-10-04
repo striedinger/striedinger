@@ -55,10 +55,7 @@ export function IosSearchField({
           iosGlassClassName,
         )}
       >
-        <SearchIcon
-          className="pointer-events-none absolute left-3.5 size-[18px]"
-          strokeWidth={2.4}
-        />
+        <SearchIcon className="pointer-events-none absolute left-3.5 size-4.5" strokeWidth={2.4} />
         <input
           ref={inputRef}
           type="search"
@@ -99,7 +96,7 @@ export function IosSearchField({
               inputRef.current?.focus();
             }}
           >
-            <CircleXFillIcon className="size-[18px]" />
+            <CircleXFillIcon className="size-4.5" />
           </button>
         ) : null}
       </label>
@@ -114,7 +111,7 @@ export function IosSearchField({
           onPointerDown={keepInputFocus}
           onClick={cancelSearch}
         >
-          <CloseIcon className="size-[18px]" strokeWidth={2.4} />
+          <CloseIcon className="size-4.5" strokeWidth={2.4} />
         </button>
       ) : null}
     </div>

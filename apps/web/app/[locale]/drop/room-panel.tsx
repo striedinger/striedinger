@@ -50,7 +50,7 @@ export function RoomPanel({
             aria-live="polite"
             aria-atomic="true"
             aria-label={labels.roomCode}
-            className="block text-center text-[22px] leading-7 font-semibold tracking-[0.12em] break-all text-ios-label"
+            className="block text-center text-ios-title2 font-semibold tracking-[0.12em] break-all text-ios-label"
           >
             {roomCode ? formatRoomCode(roomCode) : labels.preparing}
           </Text>
@@ -59,7 +59,7 @@ export function RoomPanel({
           <button
             type="button"
             disabled={!roomCode}
-            className="flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
+            className="flex min-h-12 w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
             onClick={onCopy}
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
@@ -74,7 +74,7 @@ export function RoomPanel({
       ) : null}
       <form onSubmit={handleJoin}>
         <IosListSection header={labels.joinHint}>
-          <li className="flex min-h-[48px] items-center gap-2 pr-2 pl-4">
+          <li className="flex min-h-12 items-center gap-2 pr-2 pl-4">
             <label htmlFor="join-code" className="sr-only">
               {labels.joinHint}
             </label>
@@ -93,7 +93,7 @@ export function RoomPanel({
               autoCapitalize="characters"
               autoComplete="off"
               spellCheck={false}
-              className="min-w-0 flex-1 bg-transparent py-3 font-mono text-[17px] tracking-wide text-ios-label outline-none placeholder:text-ios-tertiary-label"
+              className="min-w-0 flex-1 bg-transparent py-3 font-mono text-ios-body tracking-wide text-ios-label outline-none placeholder:text-ios-tertiary-label"
             />
             <button
               type="submit"

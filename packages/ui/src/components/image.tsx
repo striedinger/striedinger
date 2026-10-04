@@ -51,7 +51,7 @@ function Image({ alt, className, imageClassName, onError, onLoad, src, ...props 
         <span
           data-slot="image-loading"
           aria-hidden="true"
-          className="absolute inset-0 animate-shimmer bg-[linear-gradient(100deg,transparent_20%,color-mix(in_oklab,var(--color-foreground)_8%,transparent)_50%,transparent_80%)] bg-[length:200%_100%] motion-reduce:animate-none"
+          className="absolute inset-0 animate-shimmer bg-[linear-gradient(100deg,transparent_20%,color-mix(in_oklab,var(--color-foreground)_8%,transparent)_50%,transparent_80%)] bg-size-[200%_100%] motion-reduce:animate-none"
         />
       ) : null}
       {status === "error" ? (

@@ -57,7 +57,7 @@ export function IosAlertDialog({
           <AlertDialog.Popup
             initialFocus={textField ? inputRef : true}
             className={cn(
-              "w-[min(300px,calc(100vw-48px))] rounded-ios-2xl p-[22px] text-left text-ios-label transition-[scale,opacity] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[1.12] data-starting-style:opacity-0 motion-reduce:transition-none",
+              "w-[min(300px,calc(100vw-48px))] rounded-ios-2xl p-5.5 text-left text-ios-label transition-[scale,opacity] duration-300 ease-ios-bounce outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[1.12] data-starting-style:opacity-0 motion-reduce:transition-none",
               iosStrongGlassClassName,
             )}
           >

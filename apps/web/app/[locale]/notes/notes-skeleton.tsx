@@ -16,7 +16,7 @@ export function NotesSkeleton({ title }: NotesSkeletonProps) {
   return (
     <div
       aria-busy="true"
-      className="relative flex size-full flex-col gap-5 bg-ios-grouped-background px-4 pt-[calc(4rem+env(safe-area-inset-top))] md:m-2 md:h-[calc(100%-1rem)] md:w-[304px] md:shrink-0 md:rounded-ios-2xl md:bg-ios-secondary-background md:shadow-ios-panel lg:w-[272px]"
+      className="relative flex size-full flex-col gap-5 bg-ios-grouped-background px-4 pt-safe-plus-16 md:m-2 md:h-[calc(100%-1rem)] md:w-76 md:shrink-0 md:rounded-ios-2xl md:bg-ios-secondary-background md:shadow-ios-panel lg:w-68"
     >
       {title ? (
         <Text
@@ -31,10 +31,10 @@ export function NotesSkeleton({ title }: NotesSkeletonProps) {
       )}
       <IosSkeleton className="mt-2 h-6 w-44" />
       <div className="flex flex-col gap-px overflow-hidden rounded-ios-xl">
-        <IosSkeleton className="h-[52px] rounded-none" />
-        <IosSkeleton className="h-[52px] rounded-none" />
+        <IosSkeleton className="h-13 rounded-none" />
+        <IosSkeleton className="h-13 rounded-none" />
       </div>
-      <div className="absolute inset-x-4 bottom-[max(env(safe-area-inset-bottom),14px)] flex gap-2.5">
+      <div className="absolute inset-x-4 bottom-safe-min-3.5 flex gap-2.5">
         <span className={`size-11 rounded-full ${iosGlassClassName}`} />
         <span className={`h-11 flex-1 rounded-full md:hidden ${iosGlassClassName}`} />
         <span className={`size-11 rounded-full md:hidden ${iosGlassClassName}`} />

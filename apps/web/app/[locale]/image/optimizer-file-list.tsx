@@ -19,7 +19,7 @@ interface OptimizerFileListProps {
 }
 
 const actionRowClassName =
-  "flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-ios-body transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed motion-reduce:transition-none [&_svg]:size-5";
+  "flex min-h-12 w-full items-center gap-3 px-4 text-left text-ios-body transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed motion-reduce:transition-none [&_svg]:size-5";
 
 /** The queued images as an inset grouped list, followed by actions for the whole batch. */
 export function OptimizerFileList({

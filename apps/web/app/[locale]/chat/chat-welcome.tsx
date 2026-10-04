@@ -15,7 +15,7 @@ export function ChatWelcome({ alias, labels }: ChatWelcomeProps) {
     <div className="flex flex-col items-center gap-2 px-4 pt-2 text-center">
       <span
         aria-hidden="true"
-        className="flex size-[72px] items-center justify-center rounded-full bg-ios-tint text-white"
+        className="flex size-18 items-center justify-center rounded-full bg-ios-tint text-white"
       >
         <BubbleIcon className="size-9" fill="currentColor" strokeWidth={1.5} />
       </span>

@@ -61,13 +61,13 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
         {/* Listening history lives in this browser, so the server renders a placeholder for it. */}
         {!isHydrated ? (
           <div aria-hidden="true" className="flex gap-3 overflow-hidden px-4">
-            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
-            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
+            <IosSkeleton className="h-39 w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
+            <IosSkeleton className="h-39 w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
           </div>
         ) : isNewListener && popular.length > 0 ? (
           <ul
             aria-label={messages["Top Shows"]}
-            className="m-0 flex snap-x snap-mandatory scroll-px-4 list-none gap-3 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="scrollbar-none m-0 flex snap-x snap-mandatory scroll-px-4 list-none gap-3 overflow-x-auto overscroll-x-contain px-4 [&::-webkit-scrollbar]:hidden"
           >
             {popular.slice(0, 5).map(function renderFeatured(podcast, index) {
               return (
@@ -109,7 +109,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
           <PodcastShelf title={messages["Your Shows"]}>
             {library.followed.map(function renderFollowedShow(podcast) {
               return (
-                <li key={podcast.id} className="w-[150px] shrink-0 snap-start md:w-[180px]">
+                <li key={podcast.id} className="w-37.5 shrink-0 snap-start md:w-45">
                   <PodcastTile podcast={podcast} sizes={tileSizes} />
                 </li>
               );

@@ -130,7 +130,7 @@ export function StockSearch({
       <div className={cn("relative flex h-11 items-center rounded-full", iosGlassClassName)}>
         <SearchIcon
           aria-hidden="true"
-          className="pointer-events-none absolute left-3.5 size-[18px] text-ios-secondary-label"
+          className="pointer-events-none absolute left-3.5 size-4.5 text-ios-secondary-label"
           strokeWidth={2.4}
         />
         <input
@@ -175,7 +175,7 @@ export function StockSearch({
           <button
             type="button"
             aria-label={labels.close}
-            className="absolute right-2 flex size-7 items-center justify-center rounded-full text-ios-tertiary-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-[18px]"
+            className="absolute right-2 flex size-7 items-center justify-center rounded-full text-ios-tertiary-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-4.5"
             onClick={function clearSearch() {
               setQuery("");
               setIsOpen(false);

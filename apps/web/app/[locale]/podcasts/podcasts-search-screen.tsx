@@ -45,7 +45,7 @@ export function PodcastsSearchScreen({ results }: PodcastsSearchScreenProps) {
                   <button
                     type="button"
                     className={cn(
-                      "relative flex aspect-[1.55] w-full items-end overflow-hidden rounded-ios-xl bg-linear-to-br from-white/0 p-3.5 text-left text-[17px] leading-[21px] font-bold text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.25)] outline-none before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-white/25 before:via-white/0 before:to-black/15 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-ios-tint focus-visible:ring-offset-2 active:scale-[0.97] motion-safe:transition-transform",
+                      "relative flex aspect-[1.55] w-full items-end overflow-hidden rounded-ios-xl bg-linear-to-br from-white/0 p-3.5 text-left text-ios-body leading-[21px] font-bold text-white shadow-ios-highlight outline-none before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-white/25 before:via-white/0 before:to-black/15 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-ios-tint focus-visible:ring-offset-2 active:scale-[0.97] motion-safe:transition-transform",
                       category.colorClassName,
                     )}
                     onClick={function searchCategory() {

@@ -20,7 +20,7 @@ export function SocialCardPreview({ metadata, platform, title }: SocialCardPrevi
   if (platform === "twitter") {
     return (
       <section
-        className="mx-auto flex w-full max-w-[550px] flex-col gap-4"
+        className="mx-auto flex w-full max-w-137.5 flex-col gap-4"
         aria-labelledby={`${platform}-preview-heading`}
       >
         <Text as="h2" id={`${platform}-preview-heading`} size="xl" weight="semibold">
@@ -56,7 +56,7 @@ export function SocialCardPreview({ metadata, platform, title }: SocialCardPrevi
 
   return (
     <section
-      className="mx-auto flex w-full max-w-[550px] flex-col gap-4"
+      className="mx-auto flex w-full max-w-137.5 flex-col gap-4"
       aria-labelledby={`${platform}-preview-heading`}
     >
       <div className="flex items-baseline justify-between gap-4">

@@ -25,7 +25,7 @@ export function IosToolScreen({
   return (
     <div
       data-ios-scroll
-      className="flex size-full flex-col overflow-y-auto overscroll-contain bg-ios-grouped-background pb-[max(env(safe-area-inset-bottom),24px)] [--ios-bar-edge:var(--ios-grouped-background)]"
+      className="flex size-full flex-col overflow-y-auto overscroll-contain bg-ios-grouped-background pb-safe-min-6 [--ios-bar-edge:var(--ios-grouped-background)]"
       style={{ "--ios-content-width": contentWidth } as CSSProperties}
     >
       <IosNavigationBar title={title} leading={<IosAppSwitcherButton />} trailing={trailing} />

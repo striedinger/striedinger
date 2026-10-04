@@ -73,8 +73,8 @@ export function IosNavigationBar({
         ref={barRef}
         data-scrolled={isScrolledUnder || undefined}
         className={cn(
-          "group/bar sticky top-0 z-20 grid h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-[max(1rem,calc((100%-var(--ios-content-width,100%))/2+1rem))] pt-[env(safe-area-inset-top)]",
-          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-[calc(100%+20px)] before:bg-linear-to-b before:from-[var(--ios-bar-edge,var(--ios-background))] before:from-35% before:to-transparent before:[mask-image:linear-gradient(to_bottom,black_55%,transparent)] before:opacity-0 before:transition-opacity before:duration-300 data-scrolled:before:opacity-100 data-scrolled:before:backdrop-blur-[3px] motion-reduce:before:transition-none",
+          "group/bar sticky top-0 z-20 grid h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-[max(1rem,calc((100%-var(--ios-content-width,100%))/2+1rem))] pt-safe-plus-0",
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-[calc(100%+20px)] before:bg-linear-to-b before:from-(--ios-bar-edge,var(--ios-background)) before:from-35% before:to-transparent before:mask-[linear-gradient(to_bottom,black_55%,transparent)] before:opacity-0 before:transition-opacity before:duration-300 data-scrolled:before:opacity-100 data-scrolled:before:backdrop-blur-[3px] motion-reduce:before:transition-none",
           className,
         )}
       >

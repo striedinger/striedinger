@@ -107,7 +107,7 @@ export function PodcastSlider({
     >
       <div
         ref={trackRef}
-        className="relative h-[5px] w-full overflow-hidden rounded-full bg-white/25 transition-[height] duration-200 group-focus-visible/slider:ring-2 group-focus-visible/slider:ring-white/60 group-data-dragging/slider:h-[9px] motion-reduce:transition-none"
+        className="relative h-1.25 w-full overflow-hidden rounded-full bg-white/25 transition-[height] duration-200 group-focus-visible/slider:ring-2 group-focus-visible/slider:ring-white/60 group-data-dragging/slider:h-2.25 motion-reduce:transition-none"
       >
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-white/80 group-data-dragging/slider:bg-white"

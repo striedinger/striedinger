@@ -20,8 +20,8 @@ export function IosAppIcon({ backgroundClassName, children, size }: IosAppIconPr
       className={cn(
         "flex shrink-0 items-center justify-center text-white",
         size === "home"
-          ? "size-[60px] rounded-ios-lg shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.12)] [&_svg]:size-[30px] [&_svg]:stroke-[2.2]"
-          : "size-[29px] rounded-ios-sm [&_svg]:size-[17px] [&_svg]:stroke-[2.4]",
+          ? "size-15 rounded-ios-lg shadow-ios-icon [&_svg]:size-7.5 [&_svg]:stroke-[2.2]"
+          : "size-7.25 rounded-ios-sm [&_svg]:size-4.25 [&_svg]:stroke-[2.4]",
         backgroundClassName,
       )}
     >

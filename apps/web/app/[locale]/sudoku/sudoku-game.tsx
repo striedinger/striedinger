@@ -200,7 +200,7 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
       </div>
 
       {/* The board is a square as large as the remaining space allows. */}
-      <div className="[container-type:size] flex min-h-0 flex-1 items-center justify-center">
+      <div className="@container-size flex min-h-0 flex-1 items-center justify-center">
         <div className="relative aspect-square w-[min(100cqw,100cqh)]">
           <div
             inert={startedAt === undefined || isComplete ? true : undefined}

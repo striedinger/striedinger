@@ -30,7 +30,7 @@ export function RestartGameDialog({
       <button
         type="button"
         aria-label={triggerLabel}
-        className="flex w-14 shrink-0 items-center justify-center rounded-ios-lg bg-ios-grouped-cell text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-[0.94] active:bg-ios-grouped-cell-pressed motion-safe:transition-transform [&_svg]:size-[22px]"
+        className="flex w-14 shrink-0 items-center justify-center rounded-ios-lg bg-ios-grouped-cell text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-[0.94] active:bg-ios-grouped-cell-pressed motion-safe:transition-transform [&_svg]:size-5.5"
         onClick={function openRestartAlert() {
           setIsOpen(true);
         }}

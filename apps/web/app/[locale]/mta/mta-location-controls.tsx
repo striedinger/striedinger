@@ -61,7 +61,7 @@ export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocation
   return (
     <div
       className={cn(
-        "pointer-events-none fixed inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col items-center gap-2 px-4 pt-8 pb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),14px)]",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-20 flex translate-y-above-keyboard flex-col items-center gap-2 px-4 pt-8 pb-safe-keyboard-min-3.5",
         iosBottomScrollEdgeClassName,
       )}
     >
@@ -86,13 +86,13 @@ export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocation
           cancelLabel={labels.cancel}
           clearLabel={labels.clearText}
           value={query}
-          containerClassName="min-w-0 flex-1 [&_label]:h-[52px]"
+          containerClassName="min-w-0 flex-1 [&_label]:h-13"
           onValueChange={setQuery}
         />
         <IosBarButton
           aria-label={locationState === "loading" ? labels.locating : labels.useLocation}
           disabled={locationState === "loading"}
-          className="size-[52px] text-ios-tint"
+          className="size-13 text-ios-tint"
           onClick={detectLocation}
         >
           <LocationArrowIcon

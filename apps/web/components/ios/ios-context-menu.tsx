@@ -107,7 +107,7 @@ export function IosContextMenu({ children, className, sections, style }: IosCont
       data-open={isOpen || undefined}
       style={style}
       className={cn(
-        "transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] select-none [-webkit-touch-callout:none] data-open:scale-[0.97] motion-reduce:transition-none",
+        "transition-transform duration-300 ease-ios-bounce select-none [-webkit-touch-callout:none] data-open:scale-[0.97] motion-reduce:transition-none",
         className,
       )}
       onPointerDown={startPress}

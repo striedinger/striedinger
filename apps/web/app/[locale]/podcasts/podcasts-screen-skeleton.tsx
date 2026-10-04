@@ -7,12 +7,12 @@ export function PodcastsScreenSkeleton() {
   return (
     <div
       aria-busy="true"
-      className="absolute inset-0 flex flex-col gap-6 bg-ios-background px-4 pt-[calc(4rem+env(safe-area-inset-top))]"
+      className="absolute inset-0 flex flex-col gap-6 bg-ios-background px-4 pt-safe-plus-16"
     >
       <IosSkeleton className="h-9 w-32" />
       <div className="flex gap-3 overflow-hidden">
-        <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
-        <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
+        <IosSkeleton className="h-39 w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
+        <IosSkeleton className="h-39 w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
       </div>
       <IosSkeleton className="h-7 w-40" />
       {placeholderRows.map(function renderRow(row) {

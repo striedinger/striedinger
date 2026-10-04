@@ -34,7 +34,7 @@ export function IosValueRow({
   return (
     <li
       className={cn(
-        "relative flex min-h-[44px] px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator",
+        "relative flex min-h-11 px-4 py-2.75 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator",
         isStacked ? "flex-col gap-0.5" : "items-center justify-between gap-4",
       )}
     >
@@ -42,8 +42,8 @@ export function IosValueRow({
         as="span"
         family={monospaceLabel ? "mono" : undefined}
         className={cn(
-          "min-w-0 [overflow-wrap:anywhere] text-ios-label",
-          monospaceLabel ? "text-[15px] leading-[22px]" : "text-ios-body",
+          "min-w-0 wrap-anywhere text-ios-label",
+          monospaceLabel ? "text-ios-subheadline leading-[22px]" : "text-ios-body",
         )}
       >
         {label}
@@ -52,7 +52,7 @@ export function IosValueRow({
         as="span"
         family={monospaceValue ? "mono" : undefined}
         className={cn(
-          "min-w-0 [overflow-wrap:anywhere] text-ios-secondary-label tabular-nums",
+          "min-w-0 wrap-anywhere text-ios-secondary-label tabular-nums",
           isStacked ? "text-ios-subheadline whitespace-pre-wrap" : "text-right text-ios-body",
         )}
       >

@@ -43,7 +43,7 @@ export function EpisodeRow({
       <IosContextMenu sections={menuSections} className="relative flex flex-col gap-1 py-3.5 pr-4">
         <Text
           as="span"
-          className="flex items-center gap-1.5 text-[12px] leading-4 font-semibold tracking-[0.02em] text-ios-secondary-label uppercase"
+          className="flex items-center gap-1.5 text-ios-caption1 font-semibold tracking-[0.02em] text-ios-secondary-label uppercase"
         >
           {showsPodcastTitle ? (
             <span className="truncate">{item.podcast.title}</span>

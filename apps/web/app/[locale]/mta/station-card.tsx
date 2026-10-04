@@ -50,7 +50,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           return (
             <li
               key={`${arrival.route}-${arrival.direction}-${arrival.arrivalAt}-${index}`}
-              className="relative flex min-h-[54px] items-center gap-3 py-2 pr-4 pl-4 before:absolute before:top-0 before:right-0 before:left-[52px] before:h-px before:scale-y-50 before:bg-ios-separator"
+              className="relative flex min-h-13.5 items-center gap-3 py-2 pr-4 pl-4 before:absolute before:top-0 before:right-0 before:left-13 before:h-px before:scale-y-50 before:bg-ios-separator"
             >
               <TrainIcon route={arrival.route} />
               <div className="min-w-0 flex-1">

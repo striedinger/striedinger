@@ -112,7 +112,7 @@ export function JsonTreeNode({
   );
 }
 
-const codeClassName = "text-[13px] leading-6";
+const codeClassName = "text-ios-footnote leading-6";
 const keyClassName = "text-ios-secondary-label";
 
 function getPrimitiveClassName(value: JsonValue): string {

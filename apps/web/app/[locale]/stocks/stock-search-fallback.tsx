@@ -20,7 +20,7 @@ export function StockSearchFallback({ labels, query }: StockSearchFallbackProps)
     >
       <SearchIcon
         aria-hidden="true"
-        className="pointer-events-none absolute left-3.5 size-[18px] text-ios-secondary-label"
+        className="pointer-events-none absolute left-3.5 size-4.5 text-ios-secondary-label"
         strokeWidth={2.4}
       />
       <input

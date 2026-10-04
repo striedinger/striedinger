@@ -14,7 +14,7 @@ interface OgPreviewResultsProps {
 // The shared social cards keep each platform's look; only their headings take the iOS
 // grouped-section header style so they line up with the rest of the screen.
 const socialCardsClassName =
-  "flex flex-col gap-6 [&_h2]:px-5 [&_h2]:text-[15px] [&_h2]:leading-5 [&_h2]:font-semibold [&_h2]:tracking-[-0.23px] [&_h2]:text-ios-secondary-label [&>section]:gap-1.5";
+  "flex flex-col gap-6 [&_h2]:px-5 [&_h2]:text-ios-subheadline [&_h2]:leading-5 [&_h2]:font-semibold [&_h2]:tracking-[-0.23px] [&_h2]:text-ios-secondary-label [&>section]:gap-1.5";
 
 export async function OgPreviewResults({ labels, preview }: OgPreviewResultsProps) {
   const state = await preview;

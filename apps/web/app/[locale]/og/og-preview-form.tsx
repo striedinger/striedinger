@@ -32,7 +32,7 @@ export function OgPreviewForm({ action, defaultUrl, labels, preview }: OgPreview
           <Text as="label" className="sr-only" htmlFor="preview-url">
             {labels.urlLabel}
           </Text>
-          <div className="flex min-h-[52px] items-center gap-3 rounded-ios-xl bg-ios-grouped-cell px-4 transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ios-tint/35 motion-reduce:transition-none">
+          <div className="flex min-h-13 items-center gap-3 rounded-ios-xl bg-ios-grouped-cell px-4 transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ios-tint/35 motion-reduce:transition-none">
             <LinkIcon aria-hidden="true" className="size-5 shrink-0 text-ios-tertiary-label" />
             <input
               className="min-w-0 flex-1 bg-transparent py-3.5 text-ios-body text-ios-label caret-ios-tint outline-none placeholder:text-ios-tertiary-label"

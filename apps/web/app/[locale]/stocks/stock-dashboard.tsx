@@ -262,7 +262,7 @@ export function StockDashboard({
 
         {latestPoint ? (
           <div className="flex items-baseline gap-3">
-            <Text className="text-[34px] leading-[41px] font-bold tracking-[0.37px] text-ios-label tabular-nums">
+            <Text className="text-ios-large-title font-bold tracking-[0.37px] text-ios-label tabular-nums">
               {priceFormatter.format(latestPoint.close)}
             </Text>
             <Text
@@ -294,7 +294,7 @@ export function StockDashboard({
         {!displayedSeries ? (
           <div
             role="alert"
-            className="flex aspect-[1.5/1] items-center justify-center rounded-ios-lg bg-ios-grouped-background p-6 text-center sm:aspect-[2.35/1]"
+            className="aspect-1.5/1 flex items-center justify-center rounded-ios-lg bg-ios-grouped-background p-6 text-center sm:aspect-[2.35/1]"
           >
             <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.dataUnavailable}
@@ -379,7 +379,7 @@ export function StockDashboard({
                   <button
                     type="button"
                     aria-pressed={isSelected}
-                    className="flex min-h-[58px] min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed"
+                    className="flex min-h-14.5 min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed"
                     onClick={function selectWatchlistStock() {
                       setShareStatus("idle");
                       if (!isSelected) navigateToSelection(stock.symbol, timeframe);

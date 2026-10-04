@@ -49,7 +49,7 @@ export function EpisodePlayButton({
       type="button"
       aria-label={`${isCurrent && isPlaying ? messages.Pause : messages.Play}: ${item.episode.title}`}
       className={cn(
-        "relative z-10 inline-flex h-[30px] items-center gap-1.5 rounded-full bg-ios-tertiary-fill pr-3 pl-2.5 text-[13px] leading-4 font-semibold tracking-[-0.08px] text-ios-tint outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint active:opacity-60",
+        "relative z-10 inline-flex h-7.5 items-center gap-1.5 rounded-full bg-ios-tertiary-fill pr-3 pl-2.5 text-ios-footnote leading-4 font-semibold text-ios-tint outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint active:opacity-60",
         className,
       )}
       onClick={function playOrPause() {

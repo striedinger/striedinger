@@ -76,7 +76,7 @@ export function IosAppFrame({ appSwitcher, children, className, ...props }: IosA
       ref={setFrameElement}
       data-slot="ios-app-frame"
       className={cn(
-        "relative flex h-dvh w-full touch-manipulation overflow-hidden bg-ios-background [font-family:-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',var(--font-ios-fallback),system-ui,sans-serif] text-ios-label antialiased [-webkit-tap-highlight-color:transparent] [font-feature-settings:'cv11','ss03'] [text-rendering:optimizeLegibility]",
+        "font-features-['cv11','ss03'] relative flex h-dvh w-full touch-manipulation overflow-hidden bg-ios-background font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',var(--font-ios-fallback),system-ui,sans-serif] text-ios-label antialiased [-webkit-tap-highlight-color:transparent] [text-rendering:optimizeLegibility]",
         systemColorClasses,
         className,
       )}

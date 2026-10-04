@@ -27,12 +27,12 @@ export function DeviceDrawer({ onOpenChange, open, ...pairingProps }: DeviceDraw
       }}
     >
       <Drawer.Portal container={portalContainer}>
-        <Drawer.Backdrop className="fixed inset-0 z-50 bg-black opacity-[calc(0.25*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
+        <Drawer.Backdrop className="fixed inset-0 z-50 bg-black opacity-[calc(0.25*(1-var(--drawer-swipe-progress)))] transition-opacity duration-450 ease-ios data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center">
-          <Drawer.Popup className="mb-[var(--keyboard-inset,0px)] flex max-h-[calc(85dvh-var(--keyboard-inset,0px))] w-full max-w-xl [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-ios-sheet bg-ios-grouped-background pb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),0px)] text-ios-label shadow-ios-sheet transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none">
+          <Drawer.Popup className="mb-(--keyboard-inset,0px) flex max-h-[calc(85dvh-var(--keyboard-inset,0px))] w-full max-w-xl [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-ios-sheet bg-ios-grouped-background pb-safe-keyboard-min-0 text-ios-label shadow-ios-sheet transition-transform duration-450 ease-ios outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none">
             <div
               aria-hidden="true"
-              className="mx-auto mt-1.5 h-[5px] w-9 shrink-0 rounded-full bg-ios-tertiary-label"
+              className="mx-auto mt-1.5 h-1.25 w-9 shrink-0 rounded-full bg-ios-tertiary-label"
             />
             <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 pt-1 pb-1">
               <Drawer.Close

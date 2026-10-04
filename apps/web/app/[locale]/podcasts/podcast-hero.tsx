@@ -16,14 +16,14 @@ export function PodcastHero({ artworkUrl, children }: PodcastHeroProps) {
 
   return (
     <div
-      className="-mt-[calc(3.5rem+env(safe-area-inset-top))] flex flex-col items-center gap-4 bg-[#3a3a3c] px-6 pt-[calc(5rem+env(safe-area-inset-top))] pb-6 text-center text-white transition-[background-color] duration-500 motion-reduce:transition-none"
+      className="-mt-[calc(3.5rem+env(safe-area-inset-top))] flex flex-col items-center gap-4 bg-ios-gray4-dark px-6 pt-safe-plus-20 pb-6 text-center text-white transition-[background-color] duration-500 motion-reduce:transition-none"
       style={artworkColor ? { backgroundColor: artworkColor } : undefined}
     >
       <PodcastArtwork
         src={artworkUrl}
         sizes="(min-width: 768px) 240px, 200px"
         priority
-        className="w-[200px] rounded-xl shadow-ios-overlay md:w-[240px]"
+        className="w-50 rounded-xl shadow-ios-overlay md:w-60"
       />
       {children}
     </div>

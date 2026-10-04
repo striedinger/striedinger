@@ -21,11 +21,11 @@ export function IosToolError({ error, reset }: ToolErrorProps) {
   return (
     <div
       role="alert"
-      className="flex size-full flex-col items-center justify-center gap-6 bg-ios-grouped-background px-8 pt-[env(safe-area-inset-top)] pb-[max(env(safe-area-inset-bottom),24px)] text-center"
+      className="flex size-full flex-col items-center justify-center gap-6 bg-ios-grouped-background px-8 pt-safe-plus-0 pb-safe-min-6 text-center"
     >
       <span
         aria-hidden="true"
-        className="flex size-16 items-center justify-center rounded-full bg-ios-red/12 text-[34px] leading-none font-bold text-ios-red"
+        className="flex size-16 items-center justify-center rounded-full bg-ios-red/12 text-ios-large-title leading-none font-bold text-ios-red"
       >
         !
       </span>

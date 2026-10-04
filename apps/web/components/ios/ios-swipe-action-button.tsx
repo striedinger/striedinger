@@ -24,7 +24,7 @@ export function IosSwipeActionButton({ action, hidden, onSelect }: IosSwipeActio
       aria-hidden={hidden || undefined}
       tabIndex={hidden ? -1 : 0}
       className={cn(
-        "flex min-w-0 flex-1 items-center justify-center text-white outline-none focus-visible:brightness-110 [&_svg]:size-[22px] [&_svg]:shrink-0",
+        "flex min-w-0 flex-1 items-center justify-center text-white outline-none focus-visible:brightness-110 [&_svg]:size-5.5 [&_svg]:shrink-0",
         action.colorClassName,
       )}
       onClick={onSelect}

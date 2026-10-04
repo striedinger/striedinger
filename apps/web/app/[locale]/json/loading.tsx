@@ -9,7 +9,7 @@ export default function JsonLoading() {
             <div className="flex min-h-9 items-end px-5 pb-1.5">
               <IosSkeleton className="h-4 w-24" />
             </div>
-            <IosSkeleton className="h-[22rem] w-full rounded-ios-xl lg:h-[32rem]" />
+            <IosSkeleton className="h-88 w-full rounded-ios-xl lg:h-128" />
             <div className="flex flex-col gap-1.5 px-5 pt-2.5">
               <IosSkeleton className="h-3 w-4/5" />
             </div>

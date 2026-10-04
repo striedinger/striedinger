@@ -40,7 +40,7 @@ export function PairingCode({
         {delivered ? completedLabel : actionLabel}
       </PairingButton>
       <details className="group overflow-hidden rounded-ios-xl bg-ios-grouped-cell">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-[11px] outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2.75 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed [&::-webkit-details-marker]:hidden">
           <Text as="span" className="text-ios-body text-ios-label">
             {labels.showCode}
           </Text>

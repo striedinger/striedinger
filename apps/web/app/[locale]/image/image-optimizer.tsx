@@ -225,7 +225,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
       <FileDropZone label={labels.dropActive} onFiles={addFiles} />
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)]",
+          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-safe-min-3.5",
           iosBottomScrollEdgeClassName,
         )}
       >

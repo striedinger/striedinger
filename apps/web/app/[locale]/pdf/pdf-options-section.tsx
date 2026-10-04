@@ -46,7 +46,7 @@ export function PdfOptionsSection({
           }}
         >
           <IosListSection className="px-0" header={labels.password} footer={labels.passwordHelp}>
-            <li className="flex min-h-[48px] items-center gap-2 pr-2 pl-4">
+            <li className="flex min-h-12 items-center gap-2 pr-2 pl-4">
               <label htmlFor="pdf-password" className="sr-only">
                 {labels.password}
               </label>
@@ -86,7 +86,7 @@ export function PdfOptionsSection({
           />
         </li>
         {compressionMode === "smallest" ? (
-          <li className="flex min-h-[52px] items-center gap-3 px-4">
+          <li className="flex min-h-13 items-center gap-3 px-4">
             <Text as="span" aria-hidden="true" className="text-ios-body text-ios-label">
               {labels.quality}
             </Text>
@@ -117,7 +117,7 @@ export function PdfOptionsSection({
           <button
             type="button"
             disabled={!canRemoveRestrictions}
-            className="flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
+            className="flex min-h-12 w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
             onClick={onRemoveRestrictions}
           >
             <LockIcon />

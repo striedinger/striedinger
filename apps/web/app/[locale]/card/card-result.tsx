@@ -17,7 +17,7 @@ interface CardResultProps {
 // The shared social card keeps the platform's look; its heading takes the grouped-section
 // header style so it lines up with the sections below.
 const socialCardClassName =
-  "flex flex-col [&_h2]:px-5 [&_h2]:text-[15px] [&_h2]:leading-5 [&_h2]:font-semibold [&_h2]:tracking-[-0.23px] [&_h2]:text-ios-secondary-label [&>section]:gap-1.5";
+  "flex flex-col [&_h2]:px-5 [&_h2]:text-ios-subheadline [&_h2]:leading-5 [&_h2]:font-semibold [&_h2]:tracking-[-0.23px] [&_h2]:text-ios-secondary-label [&>section]:gap-1.5";
 
 const errorMessages: Readonly<Record<PreviewErrorCode, string>> = {
   "invalid-url": "Enter a full URL starting with http:// or https://.",
@@ -52,10 +52,10 @@ export async function CardResult({ targetUrl }: CardResultProps) {
         <SocialCardPreview metadata={getCardMetadata(preview)} platform="twitter" title="Preview" />
       </div>
       <IosListSection header="Share this link" className="px-0">
-        <li className="relative px-4 py-[11px] after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-ios-separator">
+        <li className="relative px-4 py-2.75 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-ios-separator">
           <Text
             family="mono"
-            className="text-[15px] leading-[22px] [overflow-wrap:anywhere] text-ios-label"
+            className="text-ios-subheadline leading-[22px] wrap-anywhere text-ios-label"
           >
             {trackedUrl}
           </Text>

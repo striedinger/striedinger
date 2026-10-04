@@ -33,13 +33,13 @@ export function TrainFilter({
     <div
       role="group"
       aria-label={labels.filterByTrain}
-      className="flex snap-x scroll-px-4 gap-1.5 overflow-x-auto overscroll-x-contain px-4 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="scrollbar-none flex snap-x scroll-px-4 gap-1.5 overflow-x-auto overscroll-x-contain px-4 py-1 [&::-webkit-scrollbar]:hidden"
     >
       <button
         type="button"
         aria-pressed={selectedRoute === null}
         className={cn(
-          "h-9 shrink-0 snap-start rounded-full px-4 text-[15px] font-semibold tracking-[-0.23px] outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-95 motion-safe:transition-transform",
+          "h-9 shrink-0 snap-start rounded-full px-4 text-ios-subheadline font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-95 motion-safe:transition-transform",
           selectedRoute === null ? "bg-ios-tint text-white" : "bg-ios-grouped-cell text-ios-label",
         )}
         onClick={function selectAllTrains() {

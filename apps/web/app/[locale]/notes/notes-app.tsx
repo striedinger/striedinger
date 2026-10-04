@@ -240,7 +240,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
               className={cn(
                 !route.folderId && !route.noteId ? "flex" : "hidden",
                 route.folderId ? "md:hidden lg:flex" : "md:flex",
-                "w-full md:m-2 md:mr-0 md:w-[304px] md:shrink-0 lg:w-[272px]",
+                "w-full md:m-2 md:mr-0 md:w-76 md:shrink-0 lg:w-68",
               )}
               deletedCount={deletedNotes.length}
               folderCounts={folderCounts}
@@ -284,7 +284,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
               className={cn(
                 route.folderId && !route.noteId ? "flex" : "hidden",
                 route.folderId ? "md:flex" : "md:hidden lg:flex",
-                "w-full md:w-[340px] md:shrink-0 md:border-r-[0.5px] md:border-ios-separator lg:w-[320px]",
+                "w-full md:w-85 md:shrink-0 md:border-r-[0.5px] md:border-ios-separator lg:w-80",
               )}
               backButtonClassName="lg:hidden"
               backLabel={messages.Folders}

@@ -22,7 +22,7 @@ export function NotesToolbar({ children, className, label }: NotesToolbarProps) 
       role="toolbar"
       aria-label={label}
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] items-center gap-2.5 px-4 pt-8 pb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),14px)] max-md:[view-transition-class:ios-toolbar] max-md:[view-transition-name:notes-toolbar] [&>*]:pointer-events-auto",
+        "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex translate-y-above-keyboard items-center gap-2.5 px-4 pt-8 pb-safe-keyboard-min-3.5 max-md:[view-transition-class:ios-toolbar] max-md:[view-transition-name:notes-toolbar] [&>*]:pointer-events-auto",
         iosBottomScrollEdgeClassName,
         className,
       )}

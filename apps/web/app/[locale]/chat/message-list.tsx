@@ -64,7 +64,7 @@ export function MessageList({
     <div
       ref={scrollRef}
       data-ios-scroll
-      className="absolute inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] flex flex-col overflow-x-hidden overflow-y-auto overscroll-contain pb-[calc(max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),10px)+3.75rem)]"
+      className="absolute inset-x-0 top-0 bottom-(--keyboard-inset,0px) flex flex-col overflow-x-hidden overflow-y-auto overscroll-contain pb-[calc(max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),10px)+3.75rem)]"
       onScroll={updateFollowPreference}
     >
       {header}

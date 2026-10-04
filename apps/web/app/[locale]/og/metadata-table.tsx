@@ -29,13 +29,13 @@ export function MetadataTable({ description, heading, tags }: MetadataTableProps
               <Text
                 as="dt"
                 family="mono"
-                className="min-w-0 text-[13px] leading-[22px] break-all text-ios-secondary-label"
+                className="min-w-0 text-ios-footnote leading-[22px] break-all text-ios-secondary-label"
               >
                 {tag.name}
               </Text>
               <Text
                 as="dd"
-                className="min-w-0 text-[15px] leading-[22px] tracking-[-0.23px] break-words text-ios-label"
+                className="min-w-0 text-ios-subheadline leading-[22px] break-words text-ios-label"
               >
                 {tag.value}
               </Text>

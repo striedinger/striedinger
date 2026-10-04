@@ -54,12 +54,12 @@ export function PodcastsTabBar({
     return tab.id === previousTab;
   });
   const tabButtonClassName =
-    "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 text-[10px] leading-3 font-semibold tracking-[0.1px] text-ios-label outline-none select-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ios-tint aria-[current=page]:bg-ios-glass-lens aria-[current=page]:text-ios-tint md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-[17px] md:leading-[22px] md:font-normal md:tracking-[-0.43px] md:aria-[current=page]:bg-ios-tint md:aria-[current=page]:text-white dark:md:aria-[current=page]:text-black motion-reduce:transition-none [&_svg]:size-[24px] md:[&_svg]:size-[21px]";
+    "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-1 text-[10px] leading-3 font-semibold tracking-[0.1px] text-ios-label outline-none select-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ios-tint aria-[current=page]:bg-ios-glass-lens aria-[current=page]:text-ios-tint md:flex-none md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-ios-body md:leading-[22px] md:font-normal md:tracking-[-0.43px] md:aria-[current=page]:bg-ios-tint md:aria-[current=page]:text-white dark:md:aria-[current=page]:text-black motion-reduce:transition-none [&_svg]:size-6 md:[&_svg]:size-5.25";
 
   return (
     <nav
       aria-label={messages.Podcasts}
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 px-4 pb-[max(env(safe-area-inset-bottom),14px)] [view-transition-class:ios-anchored] [view-transition-name:podcasts-tab-bar] md:pointer-events-auto md:static md:m-3 md:mt-[max(env(safe-area-inset-top),12px)] md:mr-0 md:w-[280px] md:shrink-0 md:flex-col md:items-stretch md:gap-3 md:rounded-ios-2xl md:bg-ios-glass md:p-3 md:pb-3 md:shadow-[inset_0_0.5px_0_0.5px_var(--ios-glass-edge),0_8px_30px_var(--ios-glass-shadow)] md:backdrop-blur-[14px] [&>*]:pointer-events-auto"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 px-4 pb-safe-min-3.5 [view-transition-class:ios-anchored] [view-transition-name:podcasts-tab-bar] md:pointer-events-auto md:static md:m-3 md:mt-safe-min-3 md:mr-0 md:w-70 md:shrink-0 md:flex-col md:items-stretch md:gap-3 md:rounded-ios-2xl md:bg-ios-glass md:p-3 md:pb-3 md:shadow-[inset_0_0.5px_0_0.5px_var(--ios-glass-edge),0_8px_30px_var(--ios-glass-shadow)] md:backdrop-blur-[14px] [&>*]:pointer-events-auto"
     >
       <Text
         as="span"
@@ -73,7 +73,7 @@ export function PodcastsTabBar({
           type="button"
           aria-label={previousTabDetails.label}
           className={cn(
-            "flex size-[60px] shrink-0 animate-in items-center justify-center rounded-full text-ios-label duration-300 outline-none zoom-in-75 fade-in focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-reduce:animate-none md:hidden [&_svg]:size-[24px]",
+            "flex size-15 shrink-0 animate-in items-center justify-center rounded-full text-ios-label duration-300 outline-none zoom-in-75 fade-in focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-reduce:animate-none md:hidden [&_svg]:size-6",
             iosGlassClassName,
           )}
           onClick={function returnToPreviousTab() {
@@ -90,7 +90,7 @@ export function PodcastsTabBar({
         clearLabel={messages["Clear text"]}
         value={searchInput}
         containerClassName={cn(
-          "min-w-0 flex-1 md:flex md:flex-none [&_label]:h-[52px] md:[&_label]:h-11",
+          "min-w-0 flex-1 md:flex md:flex-none [&_label]:h-13 md:[&_label]:h-11",
           isSearching
             ? "flex animate-in duration-300 fade-in slide-in-from-right-8 motion-reduce:animate-none"
             : "hidden",
@@ -107,7 +107,7 @@ export function PodcastsTabBar({
       />
       <ul
         className={cn(
-          "m-0 h-[62px] min-w-0 flex-1 list-none gap-0.5 rounded-full p-1.5 md:flex md:h-auto md:flex-none md:flex-col md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none",
+          "m-0 h-15.5 min-w-0 flex-1 list-none gap-0.5 rounded-full p-1.5 md:flex md:h-auto md:flex-none md:flex-col md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none",
           iosGlassClassName,
           isSearching ? "hidden" : "flex",
           isMinimized && "max-md:flex-none",
@@ -121,7 +121,7 @@ export function PodcastsTabBar({
               className={cn(
                 "flex min-w-0 flex-1 md:flex-none",
                 isHiddenWhileMinimized && "max-md:hidden",
-                isMinimized && !isHiddenWhileMinimized && "max-md:w-[50px] max-md:flex-none",
+                isMinimized && !isHiddenWhileMinimized && "max-md:w-12.5 max-md:flex-none",
               )}
             >
               <button
@@ -156,7 +156,7 @@ export function PodcastsTabBar({
         type="button"
         aria-label={messages.Search}
         className={cn(
-          "size-[62px] shrink-0 items-center justify-center rounded-full text-ios-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-safe:transition-transform md:hidden",
+          "size-15.5 shrink-0 items-center justify-center rounded-full text-ios-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-safe:transition-transform md:hidden",
           iosGlassClassName,
           isSearching || (isMinimized && hasAccessory) ? "hidden" : "flex",
         )}
@@ -164,7 +164,7 @@ export function PodcastsTabBar({
           onSelectTab("search");
         }}
       >
-        <SearchIcon className="size-[24px]" strokeWidth={2.6} />
+        <SearchIcon className="size-6" strokeWidth={2.6} />
       </button>
     </nav>
   );

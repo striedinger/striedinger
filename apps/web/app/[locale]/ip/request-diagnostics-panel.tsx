@@ -122,7 +122,7 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
             );
           })
         ) : (
-          <li className="px-4 py-[11px]">
+          <li className="px-4 py-2.75">
             <Text className="text-ios-body text-ios-secondary-label">{labels.unavailable}</Text>
           </li>
         )}

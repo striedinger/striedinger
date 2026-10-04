@@ -316,7 +316,7 @@ export function DropTool({ labels }: DropToolProps) {
     <FileDropZone labels={labels} onFiles={handleFiles}>
       <div
         data-ios-scroll
-        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+7rem)] [--ios-bar-edge:var(--ios-grouped-background)] [--ios-content-width:42rem]"
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-safe-plus-28 [--ios-bar-edge:var(--ios-grouped-background)] [--ios-content-width:42rem]"
       >
         <IosNavigationBar
           title={labels.title}

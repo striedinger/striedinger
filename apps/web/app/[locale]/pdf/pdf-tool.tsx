@@ -130,7 +130,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
       {file && previewFile ? (
         <>
           <IosListSection className="px-0 pt-2" label={labels.title}>
-            <li className="flex min-h-[64px] items-center gap-3 px-4 py-2.5">
+            <li className="flex min-h-16 items-center gap-3 px-4 py-2.5">
               <span
                 aria-hidden="true"
                 className="flex size-9 shrink-0 items-center justify-center rounded-ios-md bg-ios-tint text-white [&_svg]:size-5"
@@ -245,7 +245,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
       />
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)]",
+          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-safe-min-3.5",
           iosBottomScrollEdgeClassName,
         )}
       >

@@ -43,7 +43,7 @@ export function TrainIcon({ route, size = "default" }: TrainIconProps) {
     <svg
       viewBox="0 0 32 32"
       aria-hidden="true"
-      className={`${size === "small" ? "size-[22px]" : "size-8"} shrink-0`}
+      className={`${size === "small" ? "size-5.5" : "size-8"} shrink-0`}
     >
       <circle cx="16" cy="16" r="16" fill={color} />
       <text

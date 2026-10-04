@@ -66,7 +66,7 @@ export function PdfStatusSection({
 
   return (
     <IosListSection className="px-0" header={title} label={title}>
-      <li className="flex min-h-[64px] items-center gap-3 px-4 py-2.5">
+      <li className="flex min-h-16 items-center gap-3 px-4 py-2.5">
         <span
           aria-hidden="true"
           className="flex size-9 shrink-0 items-center justify-center rounded-ios-md bg-ios-green text-white [&_svg]:size-5"

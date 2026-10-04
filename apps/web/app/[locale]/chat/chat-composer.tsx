@@ -34,7 +34,7 @@ export function ChatComposer({ disabled, labels, onSend }: ChatComposerProps) {
   return (
     <form
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] px-[max(1rem,calc((100%-var(--ios-content-width,100%))/2+1rem))] pt-6 pb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),10px)] [&>*]:pointer-events-auto",
+        "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex translate-y-above-keyboard px-[max(1rem,calc((100%-var(--ios-content-width,100%))/2+1rem))] pt-6 pb-safe-keyboard-min-3.5 [&>*]:pointer-events-auto",
         iosBottomScrollEdgeClassName,
       )}
       onSubmit={handleSubmit}
@@ -61,7 +61,7 @@ export function ChatComposer({ disabled, labels, onSend }: ChatComposerProps) {
           disabled={disabled}
           maxLength={maximumMessageLength}
           enterKeyHint="send"
-          className="[field-sizing:content] max-h-32 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-[7px] text-ios-body text-ios-label outline-none placeholder:text-ios-secondary-label disabled:cursor-not-allowed"
+          className="field-sizing-content max-h-32 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-1.75 text-ios-body text-ios-label outline-none placeholder:text-ios-secondary-label disabled:cursor-not-allowed"
         />
         <button
           type="submit"

@@ -59,7 +59,7 @@ export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndica
     <Text
       as="span"
       aria-live="polite"
-      className={`inline-flex min-w-[7rem] items-center gap-1.5 text-ios-footnote whitespace-nowrap text-ios-secondary-label transition-opacity duration-300 ${session ? "opacity-100" : "opacity-0"}`}
+      className={`inline-flex min-w-28 items-center gap-1.5 text-ios-footnote whitespace-nowrap text-ios-secondary-label transition-opacity duration-300 ${session ? "opacity-100" : "opacity-0"}`}
     >
       <span
         aria-hidden="true"

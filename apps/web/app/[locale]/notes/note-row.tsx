@@ -163,7 +163,7 @@ export function NoteRow({
           <button
             type="button"
             aria-current={selected || undefined}
-            className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-ios-fill/40 focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:bg-ios-tint/25 motion-reduce:transition-none md:rounded-ios-md md:px-3 dark:aria-current:bg-ios-tint/25"
+            className="flex w-full items-center gap-3 py-2.75 pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-ios-fill/40 focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:bg-ios-tint/25 motion-reduce:transition-none md:rounded-ios-md md:px-3 dark:aria-current:bg-ios-tint/25"
             onClick={function selectNote() {
               onSelect(note);
             }}
@@ -205,7 +205,7 @@ export function NoteRow({
                 alt=""
                 decoding="async"
                 loading="lazy"
-                className="size-[50px] shrink-0 rounded-md border-[0.5px] border-ios-separator object-cover"
+                className="size-12.5 shrink-0 rounded-md border-[0.5px] border-ios-separator object-cover"
               />
             ) : null}
           </button>

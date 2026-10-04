@@ -13,7 +13,7 @@ type PairingButtonProps = ComponentPropsWithRef<"button"> & {
 const variantClassNames: Readonly<Record<PairingButtonVariant, string>> = {
   filled: `${iosFilledButtonClassName} w-full disabled:bg-ios-fill disabled:text-ios-tertiary-label disabled:opacity-100 disabled:shadow-none`,
   tinted:
-    "h-[50px] bg-ios-tint/15 font-semibold text-ios-tint disabled:bg-ios-fill disabled:text-ios-tertiary-label",
+    "h-12.5 bg-ios-tint/15 font-semibold text-ios-tint disabled:bg-ios-fill disabled:text-ios-tertiary-label",
   plain: "h-11 text-ios-tint active:opacity-50 disabled:text-ios-tertiary-label",
 };
 

@@ -97,7 +97,7 @@ export function NoteFormatPanel({
     <section
       aria-label={messages.Format}
       className={cn(
-        "mx-2 mb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),8px)] flex flex-col gap-3 rounded-ios-2xl px-5 pt-4 pb-5 md:m-0 md:mt-2",
+        "mx-2 mb-safe-keyboard-min-2 flex flex-col gap-3 rounded-ios-2xl px-5 pt-4 pb-5 md:m-0 md:mt-2",
         iosStrongGlassClassName,
       )}
     >
@@ -108,13 +108,13 @@ export function NoteFormatPanel({
         <button
           type="button"
           aria-label={messages["Close Format"]}
-          className="flex size-[30px] items-center justify-center rounded-full bg-ios-fill text-ios-secondary-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint"
+          className="flex size-7.5 items-center justify-center rounded-full bg-ios-fill text-ios-secondary-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint"
           onClick={onClose}
         >
           <CloseIcon className="size-3.5" strokeWidth={3} />
         </button>
       </div>
-      <div className="-mx-4 flex snap-x gap-1 overflow-x-auto px-4 [scrollbar-width:none]">
+      <div className="scrollbar-none -mx-4 flex snap-x gap-1 overflow-x-auto px-4">
         {blockStyles.map(function renderBlockStyle(blockStyle) {
           const isActive = formatState.blockStyle === blockStyle.style;
           return (
@@ -161,7 +161,7 @@ export function NoteFormatPanel({
         })}
       </div>
       <div className="flex gap-2">
-        <div className="grid flex-[3] grid-cols-3 overflow-hidden rounded-ios-lg bg-ios-fill/60">
+        <div className="grid flex-3 grid-cols-3 overflow-hidden rounded-ios-lg bg-ios-fill/60">
           {listStyles.map(function renderListStyle(listStyle) {
             return (
               <NoteFormatIconButton
@@ -179,7 +179,7 @@ export function NoteFormatPanel({
             );
           })}
         </div>
-        <div className="grid flex-[2] grid-cols-2 overflow-hidden rounded-ios-lg bg-ios-fill/60">
+        <div className="grid flex-2 grid-cols-2 overflow-hidden rounded-ios-lg bg-ios-fill/60">
           <NoteFormatIconButton
             label={messages["Decrease Indent"]}
             disabled={!formatState.inList}

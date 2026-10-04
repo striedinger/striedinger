@@ -21,10 +21,10 @@ export function StockDashboardSkeleton() {
         </div>
         <IosSkeleton className="h-10 w-56" />
         <IosSkeleton className="h-9 rounded-ios-md" />
-        <IosSkeleton className="aspect-[1.5/1] w-full rounded-ios-lg sm:aspect-[2.35/1]" />
+        <IosSkeleton className="aspect-1.5/1 w-full rounded-ios-lg sm:aspect-[2.35/1]" />
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {stats.map(function renderStat(stat) {
-            return <IosSkeleton key={stat} className="h-[62px] rounded-ios-md" />;
+            return <IosSkeleton key={stat} className="h-15.5 rounded-ios-md" />;
           })}
         </div>
       </div>
@@ -32,7 +32,7 @@ export function StockDashboardSkeleton() {
         <IosSkeleton className="mx-4 h-7 w-32" />
         <div className="flex flex-col gap-px overflow-hidden rounded-ios-xl">
           {watchlistRows.map(function renderRow(row) {
-            return <IosSkeleton key={row} className="h-[58px] rounded-none" />;
+            return <IosSkeleton key={row} className="h-14.5 rounded-none" />;
           })}
         </div>
       </div>

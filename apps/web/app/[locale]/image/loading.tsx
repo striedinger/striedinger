@@ -11,7 +11,7 @@ export default function ImageLoading() {
         return (
           <div key={width} className="flex flex-col gap-2 pt-4">
             <IosSkeleton className={`mx-5 h-4 ${width}`} />
-            <IosSkeleton className="h-[60px] w-full rounded-ios-xl" />
+            <IosSkeleton className="h-15 w-full rounded-ios-xl" />
           </div>
         );
       })}

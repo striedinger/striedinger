@@ -32,10 +32,10 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
     <section
       aria-label={messages["Now Playing"]}
       className={cn(
-        "absolute right-4 z-30 flex animate-in items-center gap-1 rounded-full pr-2 transition-[left,bottom,height] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] [view-transition-class:ios-anchored] [view-transition-name:podcasts-mini-player] fade-in slide-in-from-bottom-4 motion-reduce:animate-none motion-reduce:transition-none md:bottom-4 md:left-[calc(50%+146px)] md:h-[52px] md:w-[min(560px,calc(100%-324px))] md:-translate-x-1/2",
+        "absolute right-4 z-30 flex animate-in items-center gap-1 rounded-full pr-2 transition-[left,bottom,height] duration-500 ease-ios [view-transition-class:ios-anchored] [view-transition-name:podcasts-mini-player] fade-in slide-in-from-bottom-4 motion-reduce:animate-none motion-reduce:transition-none md:bottom-4 md:left-[calc(50%+146px)] md:h-13 md:w-[min(560px,calc(100%-324px))] md:-translate-x-1/2",
         isTabBarMinimized
-          ? "bottom-[max(env(safe-area-inset-bottom),14px)] left-[90px] h-[62px]"
-          : "bottom-[calc(max(env(safe-area-inset-bottom),14px)+72px)] left-4 h-[52px]",
+          ? "bottom-safe-min-3.5 left-22.5 h-15.5"
+          : "bottom-[calc(max(env(safe-area-inset-bottom),14px)+72px)] left-4 h-13",
         iosGlassClassName,
       )}
     >
@@ -61,7 +61,7 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
           <Text
             as="span"
             numberOfLines={1}
-            className="text-[13px] leading-4 text-ios-secondary-label"
+            className="text-ios-footnote leading-4 text-ios-secondary-label"
           >
             {item.podcast.title}
           </Text>

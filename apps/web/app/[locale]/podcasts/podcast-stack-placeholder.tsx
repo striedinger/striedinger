@@ -48,7 +48,7 @@ export function PodcastStackPlaceholder({ message }: PodcastStackPlaceholderProp
       ) : (
         <>
           <div className="flex flex-col items-center gap-3 px-6 pt-2 pb-6">
-            <IosSkeleton className="size-[200px] rounded-xl md:size-[240px]" />
+            <IosSkeleton className="size-50 rounded-xl md:size-60" />
             <IosSkeleton className="mt-2 h-6 w-48" />
             <IosSkeleton className="h-4 w-32" />
             <IosSkeleton className="mt-2 h-12 w-full max-w-sm rounded-ios-md" />

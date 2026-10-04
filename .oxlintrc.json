@@ -53,7 +53,37 @@
     "react-hooks-js/set-state-in-render": "error",
     "react-hooks-js/unsupported-syntax": "error",
     "react-hooks-js/config": "error",
-    "react-hooks-js/gating": "error"
+    "react-hooks-js/gating": "error",
+    "tailwindcss/no-unknown-classes": "error",
+    "tailwindcss/no-duplicate-classes": "error",
+    "tailwindcss/no-conflicting-classes": "error",
+    "tailwindcss/enforce-canonical": "error",
+    "tailwindcss/no-unnecessary-arbitrary-value": "error",
+    "tailwindcss/prefer-theme-tokens": "error",
+    "tailwindcss/no-hardcoded-colors": "error",
+    "tailwindcss/no-restricted-classes": [
+      "error",
+      {
+        "patterns": [
+          {
+            "pattern": "^(?:\\S+:)?(?:-?(?:p|m)[trblxyse]?|gap(?:-[xy])?|size|[hw]|min-[hw]|max-[hw]|inset(?:-[xy])?|top|right|bottom|left|start|end|-?translate-[xy]|space-[xy]|basis)-\\[\\d+(?:\\.\\d+)?(?:px|rem)\\]$",
+            "message": "use the spacing scale, such as h-13 for 52px or size-5.5 for 22px"
+          },
+          {
+            "pattern": "^(?:\\S+:)?(?:pt|pb|mt|mb|top|bottom)-\\[(?:max\\(env\\(safe-area-inset-(?:top|bottom)\\),\\d+px\\)|calc\\(\\d+(?:\\.\\d+)?rem\\+env\\(safe-area-inset-top\\)\\)|calc\\(env\\(safe-area-inset-bottom\\)\\+\\d+(?:\\.\\d+)?rem\\)|env\\(safe-area-inset-(?:top|bottom)\\))\\]$",
+            "message": "use the safe-area utilities from ios-utilities.css, such as pb-safe-min-3.5 or pt-safe-plus-16"
+          },
+          {
+            "pattern": "^(?:\\S+:)?text-\\[(?:11|12|13|15|16|17|20|22|28|34)px\\]$",
+            "message": "use an iOS text style, such as text-ios-body or text-ios-footnote"
+          },
+          {
+            "pattern": "ease-\\[cubic-bezier\\(0\\.32,0\\.72,0,1\\)\\]",
+            "message": "use ease-ios"
+          }
+        ]
+      }
+    ]
   },
   "settings": {
     "next": {
@@ -71,6 +101,11 @@
       "components": {
         "Link": "a"
       }
+    },
+    "tailwindcss": {
+      "entryPoint": "apps/web/components/ios/ios-utilities.css",
+      "callees": ["cn"],
+      "rootFontSize": 16
     }
   },
   "ignorePatterns": [
@@ -102,6 +137,7 @@
     {
       "name": "react-hooks-js",
       "specifier": "eslint-plugin-react-hooks"
-    }
+    },
+    "oxlint-tailwindcss"
   ]
 }

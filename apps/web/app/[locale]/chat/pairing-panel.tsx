@@ -102,7 +102,7 @@ export function PairingPanel({
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <IosListSection className="px-0">
-        <li className="flex min-h-11 items-center gap-3 px-4 py-[11px]">
+        <li className="flex min-h-11 items-center gap-3 px-4 py-2.75">
           <span
             aria-hidden="true"
             className={cn(

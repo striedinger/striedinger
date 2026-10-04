@@ -54,10 +54,10 @@ export function UpNextCard({
   const menuSections = useEpisodeMenuSections({ extraActions, item });
 
   return (
-    <li className="flex w-[min(82vw,340px)] shrink-0 snap-start md:w-[340px]">
+    <li className="flex w-[min(82vw,340px)] shrink-0 snap-start md:w-85">
       <IosContextMenu
         sections={menuSections}
-        className="relative flex w-full flex-col overflow-hidden rounded-ios-xl bg-[#3a3a3c] p-4 text-white shadow-ios-floating [transition-property:transform,background-color]"
+        className="relative flex w-full flex-col overflow-hidden rounded-ios-xl bg-ios-gray4-dark p-4 text-white shadow-ios-floating [transition-property:transform,background-color]"
         style={artworkColor ? { backgroundColor: artworkColor } : undefined}
       >
         <div className="flex items-center gap-3">
@@ -65,13 +65,13 @@ export function UpNextCard({
           <span className="flex min-w-0 flex-col">
             <Text
               as="span"
-              className="text-[12px] leading-4 font-semibold tracking-[0.04em] text-white/70 uppercase"
+              className="text-ios-caption1 font-semibold tracking-[0.04em] text-white/70 uppercase"
             >
               {progress ? messages.Resume : messages["New Episode"]}
             </Text>
             <Text
               as="span"
-              className="text-[12px] leading-4 font-semibold tracking-[0.04em] text-white/70 uppercase"
+              className="text-ios-caption1 font-semibold tracking-[0.04em] text-white/70 uppercase"
             >
               {formatEpisodeDate(item.episode.publishedAt, locale, now)}
             </Text>

@@ -65,7 +65,7 @@ export function IosMenuPopup({
           <Menu.Popup
             finalFocus={finalFocus}
             className={cn(
-              "max-h-(--available-height) w-[260px] origin-(--transform-origin) overflow-y-auto overscroll-contain rounded-ios-2xl py-1.5 text-ios-label transition-[scale,opacity,filter] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-[0.8] data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[0.5] data-starting-style:opacity-0 data-starting-style:blur-[6px] motion-reduce:transition-none",
+              "max-h-(--available-height) w-65 origin-(--transform-origin) overflow-y-auto overscroll-contain rounded-ios-2xl py-1.5 text-ios-label transition-[scale,opacity,filter] duration-300 ease-ios-bounce outline-none data-ending-style:scale-[0.8] data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[0.5] data-starting-style:opacity-0 data-starting-style:blur-[6px] motion-reduce:transition-none",
               iosStrongGlassClassName,
             )}
           >
@@ -90,7 +90,7 @@ export function IosMenuPopup({
                         disabled={action.disabled}
                         onClick={action.onSelect}
                         className={cn(
-                          "relative mx-1.5 flex min-h-11 cursor-default items-center gap-3 rounded-ios-lg py-[11px] pr-3.5 text-ios-body outline-none select-none data-disabled:text-ios-tertiary-label data-highlighted:bg-ios-glass-lens [&_svg]:size-5 [&_svg]:shrink-0",
+                          "relative mx-1.5 flex min-h-11 cursor-default items-center gap-3 rounded-ios-lg py-2.75 pr-3.5 text-ios-body outline-none select-none data-disabled:text-ios-tertiary-label data-highlighted:bg-ios-glass-lens [&_svg]:size-5 [&_svg]:shrink-0",
                           hasCheckableActions ? "pl-10" : "pl-3.5",
                           action.destructive && "text-ios-red",
                         )}

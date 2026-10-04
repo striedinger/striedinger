@@ -17,7 +17,7 @@ interface OptimizerFileRowProps {
 }
 
 const accessoryClassName =
-  "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-[18px]";
+  "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-4.5";
 
 /** One image in the queue: a status glyph, its name, the size before and after, and actions. */
 export function OptimizerFileRow({ item, labels, onDownload, onRemove }: OptimizerFileRowProps) {
@@ -26,7 +26,7 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
   const stageLabel = item.stage ? labels[item.stage] : labels.balanced;
 
   return (
-    <li className="relative flex min-h-[64px] items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator">
+    <li className="relative flex min-h-16 items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-16 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator">
       <span
         aria-hidden="true"
         className={cn(

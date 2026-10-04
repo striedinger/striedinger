@@ -156,7 +156,7 @@ export function FoldersPane({
               return (
                 <li
                   key={folder.id}
-                  className="relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[52px] not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
+                  className="relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-13 not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
                 >
                   <IosSwipeActions
                     className="bg-ios-grouped-cell md:bg-transparent"

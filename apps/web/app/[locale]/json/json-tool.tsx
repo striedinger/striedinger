@@ -158,7 +158,7 @@ export function JsonTool({ labels }: JsonToolProps) {
       >
         <div className="overflow-hidden rounded-ios-xl bg-ios-grouped-cell transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ios-tint/35 motion-reduce:transition-none">
           <textarea
-            className="block h-[22rem] w-full resize-none bg-transparent px-4 py-3.5 font-mono text-[14px] leading-[22px] text-ios-label caret-ios-tint outline-none placeholder:text-ios-tertiary-label lg:h-[32rem]"
+            className="block h-88 w-full resize-none bg-transparent px-4 py-3.5 font-mono text-[14px] leading-[22px] text-ios-label caret-ios-tint outline-none placeholder:text-ios-tertiary-label lg:h-128"
             value={input}
             onChange={handleInputChange}
             placeholder={labels.placeholder}
@@ -187,7 +187,7 @@ export function JsonTool({ labels }: JsonToolProps) {
         }
       >
         <div
-          className="h-[22rem] overflow-auto overscroll-contain rounded-ios-xl bg-ios-grouped-cell px-3 py-3 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none lg:h-[32rem]"
+          className="h-88 overflow-auto overscroll-contain rounded-ios-xl bg-ios-grouped-cell px-3 py-3 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none lg:h-128"
           data-stale={isPreviewDimmed ? "" : undefined}
           aria-busy={isPreviewStale}
         >
