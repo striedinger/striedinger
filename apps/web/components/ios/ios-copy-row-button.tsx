@@ -29,7 +29,7 @@ export function IosCopyRowButton({ copiedLabel, label, value }: IosCopyRowButton
     <button
       type="button"
       disabled={!value}
-      className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) transition-colors duration-150 outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) disabled:text-(--ios-tertiary-label) motion-reduce:transition-none [&_svg]:size-5"
+      className="text-ios-body text-ios-tint focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label flex min-h-[44px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 outline-none select-none motion-reduce:transition-none [&_svg]:size-5"
       onClick={copyValue}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}

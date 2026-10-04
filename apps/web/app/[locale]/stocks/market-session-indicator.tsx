@@ -17,10 +17,10 @@ type MarketSession = "after-hours" | "closed" | "open" | "pre-market";
 
 const supportedUnitedStatesExchanges = ["NASDAQ", "NYSE", "AMEX", "ARCA", "CBOE", "OTC"];
 const sessionStyles: Record<MarketSession, string> = {
-  "after-hours": "bg-(--ios-purple)",
-  closed: "bg-(--ios-gray)",
-  open: "bg-(--ios-green)",
-  "pre-market": "bg-(--ios-orange)",
+  "after-hours": "bg-ios-purple",
+  closed: "bg-ios-gray",
+  open: "bg-ios-green",
+  "pre-market": "bg-ios-orange",
 };
 
 export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndicatorProps) {
@@ -59,7 +59,7 @@ export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndica
     <Text
       as="span"
       aria-live="polite"
-      className={`inline-flex min-w-[7rem] items-center gap-1.5 text-[13px] leading-[18px] whitespace-nowrap text-(--ios-secondary-label) transition-opacity duration-300 ${session ? "opacity-100" : "opacity-0"}`}
+      className={`text-ios-footnote text-ios-secondary-label inline-flex min-w-[7rem] items-center gap-1.5 whitespace-nowrap transition-opacity duration-300 ${session ? "opacity-100" : "opacity-0"}`}
     >
       <span
         aria-hidden="true"

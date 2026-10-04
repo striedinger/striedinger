@@ -7,7 +7,7 @@ export function PodcastsScreenSkeleton() {
   return (
     <div
       aria-busy="true"
-      className="absolute inset-0 flex flex-col gap-6 bg-(--ios-background) px-4 pt-[calc(4rem+env(safe-area-inset-top))]"
+      className="bg-ios-background absolute inset-0 flex flex-col gap-6 px-4 pt-[calc(4rem+env(safe-area-inset-top))]"
     >
       <IosSkeleton className="h-9 w-32" />
       <div className="flex gap-3 overflow-hidden">

@@ -102,13 +102,13 @@ const home: SwitcherDestination = {
 };
 
 const rowClassName =
-  "relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[57px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)";
+  "relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[57px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator";
 
 const rowLinkClassName =
-  "flex min-h-11 items-center gap-4 py-[7px] pr-4 pl-4 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:font-semibold";
+  "flex min-h-11 items-center gap-4 py-[7px] pr-4 pl-4 text-ios-body text-ios-label outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:font-semibold";
 
 const sectionHeaderClassName =
-  "px-4 pb-2 text-[20px] leading-[25px] font-bold tracking-[-0.45px] text-(--ios-label)";
+  "px-4 pb-2 text-[20px] leading-[25px] font-bold tracking-[-0.45px] text-ios-label";
 
 /**
  * A floating iOS 26 sheet that links to every app and tool: the native apps as home screen
@@ -146,7 +146,7 @@ export function IosAppSwitcherSheet({
           <span className="min-w-0 flex-1 truncate">{getName(destination)}</span>
           <ChevronRightIcon
             aria-hidden="true"
-            className="size-[14px] shrink-0 text-(--ios-tertiary-label)"
+            className="text-ios-tertiary-label size-[14px] shrink-0"
             strokeWidth={3}
           />
         </Link>
@@ -159,14 +159,14 @@ export function IosAppSwitcherSheet({
       <Drawer.Portal container={portalContainer}>
         <Drawer.Backdrop className="fixed inset-0 z-50 bg-black opacity-[calc(0.25*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center px-2 pb-[max(env(safe-area-inset-bottom),8px)]">
-          <Drawer.Popup className="flex max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] w-full max-w-xl [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-[38px] bg-(--ios-secondary-background) text-(--ios-label) shadow-[0_10px_50px_rgb(0_0_0/0.22),inset_0_0.5px_0_0.5px_var(--ios-glass-edge)] transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(calc(100%+env(safe-area-inset-bottom)+8px))] data-starting-style:[transform:translateY(calc(100%+env(safe-area-inset-bottom)+8px))] data-swiping:select-none motion-reduce:transition-none">
+          <Drawer.Popup className="bg-ios-secondary-background text-ios-label flex max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] w-full max-w-xl [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-[38px] shadow-[0_10px_50px_rgb(0_0_0/0.22),inset_0_0.5px_0_0.5px_var(--ios-glass-edge)] transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(calc(100%+env(safe-area-inset-bottom)+8px))] data-starting-style:[transform:translateY(calc(100%+env(safe-area-inset-bottom)+8px))] data-swiping:select-none motion-reduce:transition-none">
             <div
               aria-hidden="true"
-              className="mx-auto mt-1.5 h-[5px] w-9 shrink-0 rounded-full bg-(--ios-tertiary-label)"
+              className="bg-ios-tertiary-label mx-auto mt-1.5 h-[5px] w-9 shrink-0 rounded-full"
             />
             <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center px-4 pt-1 pb-1">
               <span />
-              <Drawer.Title className="text-[17px] leading-[22px] font-semibold tracking-[-0.43px]">
+              <Drawer.Title className="text-ios-body font-semibold">
                 {labels.navigation}
               </Drawer.Title>
               <Drawer.Close
@@ -181,7 +181,7 @@ export function IosAppSwitcherSheet({
                   <h2 id="ios-app-switcher-apps" className={sectionHeaderClassName}>
                     {labels.apps}
                   </h2>
-                  <ul className="m-0 grid list-none grid-cols-4 gap-x-2 gap-y-4 rounded-[26px] bg-(--ios-tertiary-background) px-2 py-4 sm:grid-cols-6">
+                  <ul className="bg-ios-tertiary-background m-0 grid list-none grid-cols-4 gap-x-2 gap-y-4 rounded-[26px] px-2 py-4 sm:grid-cols-6">
                     {apps.map(function renderApp(app) {
                       const isCurrent = app.href === currentHref;
                       return (
@@ -189,7 +189,7 @@ export function IosAppSwitcherSheet({
                           <Link
                             href={app.href}
                             aria-current={isCurrent ? "page" : undefined}
-                            className="group flex w-full flex-col items-center gap-1.5 rounded-[16px] outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/60"
+                            className="group focus-visible:ring-ios-tint/60 flex w-full flex-col items-center gap-1.5 rounded-[16px] outline-none select-none focus-visible:ring-2"
                             onClick={close}
                           >
                             <span className="transition-transform duration-150 group-active:scale-[0.9] motion-reduce:transition-none">
@@ -197,7 +197,7 @@ export function IosAppSwitcherSheet({
                                 {app.icon}
                               </IosAppIcon>
                             </span>
-                            <span className="max-w-full truncate text-[12px] leading-4 tracking-[0] text-(--ios-label) group-aria-current:font-semibold">
+                            <span className="text-ios-label max-w-full truncate text-[12px] leading-4 tracking-[0] group-aria-current:font-semibold">
                               {getName(app)}
                             </span>
                           </Link>
@@ -210,11 +210,11 @@ export function IosAppSwitcherSheet({
                   <h2 id="ios-app-switcher-tools" className={sectionHeaderClassName}>
                     {labels.tools}
                   </h2>
-                  <ul className="m-0 list-none overflow-hidden rounded-[26px] bg-(--ios-tertiary-background) p-0">
+                  <ul className="bg-ios-tertiary-background m-0 list-none overflow-hidden rounded-[26px] p-0">
                     {tools.map(renderRow)}
                   </ul>
                 </section>
-                <ul className="m-0 list-none overflow-hidden rounded-[26px] bg-(--ios-tertiary-background) p-0">
+                <ul className="bg-ios-tertiary-background m-0 list-none overflow-hidden rounded-[26px] p-0">
                   {renderRow(home)}
                 </ul>
               </nav>

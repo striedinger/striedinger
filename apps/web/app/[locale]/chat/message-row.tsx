@@ -36,7 +36,7 @@ export function MessageRow({ labels, locale, message, placement }: MessageRowPro
         <Text
           as="time"
           dateTime={sentAt.toISOString()}
-          className="self-center pt-2 pb-1 text-[11px] leading-[13px] font-medium text-(--ios-secondary-label)"
+          className="text-ios-caption2 text-ios-secondary-label self-center pt-2 pb-1 font-medium"
         >
           {getDateTimeFormat(locale, timestampFormatOptions).format(sentAt)}
         </Text>
@@ -44,19 +44,15 @@ export function MessageRow({ labels, locale, message, placement }: MessageRowPro
       <Text
         as="span"
         className={
-          showsSenderName
-            ? "px-3 pb-0.5 text-[11px] leading-[13px] text-(--ios-secondary-label)"
-            : "sr-only"
+          showsSenderName ? "text-ios-caption2 text-ios-secondary-label px-3 pb-0.5" : "sr-only"
         }
       >
         {message.isOwn ? labels.you : message.author}
       </Text>
       <Text
         className={cn(
-          "max-w-[min(75%,30rem)] rounded-[18px] px-3 py-[7px] text-[17px] leading-[22px] tracking-[-0.43px] break-words whitespace-pre-wrap",
-          message.isOwn
-            ? "bg-(--ios-tint) text-white"
-            : "bg-(--ios-secondary-fill) text-(--ios-label)",
+          "text-ios-body max-w-[min(75%,30rem)] rounded-[18px] px-3 py-[7px] break-words whitespace-pre-wrap",
+          message.isOwn ? "bg-ios-tint text-white" : "bg-ios-secondary-fill text-ios-label",
           message.isOwn
             ? [
                 placement.continuesGroup && "rounded-tr-[6px]",

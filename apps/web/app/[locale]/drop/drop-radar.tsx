@@ -38,7 +38,7 @@ export function DropRadar({ connectionError, labels, peerCount }: DropRadarProps
                 <span
                   key={delayClassName}
                   className={cn(
-                    "absolute inset-8 animate-ping rounded-full border border-(--ios-tint)/50 bg-(--ios-tint)/10 [animation-duration:2.4s] motion-reduce:hidden",
+                    "border-ios-tint/50 bg-ios-tint/10 absolute inset-8 animate-ping rounded-full border [animation-duration:2.4s] motion-reduce:hidden",
                     delayClassName,
                   )}
                 />
@@ -47,28 +47,24 @@ export function DropRadar({ connectionError, labels, peerCount }: DropRadarProps
         <span
           className={cn(
             "absolute inset-8 rounded-full transition-colors duration-500 motion-reduce:transition-none",
-            isConnected ? "bg-(--ios-tint)/15" : "bg-(--ios-fill)",
+            isConnected ? "bg-ios-tint/15" : "bg-ios-fill",
           )}
         />
         <span
           className={cn(
             "relative flex size-20 items-center justify-center rounded-full text-white shadow-[0_10px_30px_rgb(0_0_0/0.18)] transition-colors duration-500 motion-reduce:transition-none [&_svg]:size-8",
-            isConnected ? "bg-(--ios-green)" : "bg-(--ios-tint)",
+            isConnected ? "bg-ios-green" : "bg-ios-tint",
           )}
         >
           <LockIcon />
         </span>
       </div>
       <div className="flex flex-col gap-1" role="status" aria-live="polite" aria-atomic="true">
-        <Text className="text-[20px] leading-[25px] font-semibold tracking-[0.38px] text-(--ios-label)">
-          {status}
-        </Text>
-        <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
-          {labels.encrypted}
-        </Text>
+        <Text className="text-ios-title3 text-ios-label font-semibold">{status}</Text>
+        <Text className="text-ios-subheadline text-ios-secondary-label">{labels.encrypted}</Text>
       </div>
       {connectionError ? (
-        <Text role="alert" className="max-w-xs text-[15px] leading-5 text-(--ios-red)">
+        <Text role="alert" className="text-ios-subheadline text-ios-red max-w-xs">
           {labels.roomError}
         </Text>
       ) : null}

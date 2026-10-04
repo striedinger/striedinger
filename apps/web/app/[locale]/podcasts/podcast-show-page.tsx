@@ -81,14 +81,11 @@ export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
         accessory={
           <PodcastHero artworkUrl={podcast.artworkUrl}>
             <div className="flex max-w-xl flex-col items-center gap-0.5">
-              <Text
-                as="h2"
-                className="text-[22px] leading-7 font-bold tracking-[0.35px] text-white"
-              >
+              <Text as="h2" className="text-ios-title2 font-bold text-white">
                 {podcast.title}
               </Text>
-              <Text className="text-[17px] leading-[22px] text-white/75">{podcast.author}</Text>
-              <Text className="mt-0.5 text-[13px] leading-[18px] text-white/60">
+              <Text className="text-ios-body text-white/75">{podcast.author}</Text>
+              <Text className="text-ios-footnote mt-0.5 text-white/60">
                 {[podcast.genre, podcast.explicit ? messages.Explicit : ""]
                   .filter(Boolean)
                   .join(" · ")}
@@ -128,10 +125,7 @@ export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
         aria-label={messages.Episodes}
         className="mx-auto flex w-full max-w-4xl flex-col pt-5"
       >
-        <Text
-          as="h2"
-          className="px-4 pb-1 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-        >
+        <Text as="h2" className="text-ios-title2 text-ios-label px-4 pb-1 font-bold">
           {messages.Episodes}
         </Text>
         <Suspense fallback={<IosRevealTransition>{episodesSkeleton}</IosRevealTransition>}>

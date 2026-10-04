@@ -121,15 +121,12 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                       <Text className="text-[13px] leading-[18px] font-semibold tracking-[0.04em] text-white/55 uppercase">
                         {formatEpisodeDate(item.episode.publishedAt, locale, now)}
                       </Text>
-                      <Text
-                        numberOfLines={2}
-                        className="text-[20px] leading-[25px] font-semibold tracking-[0.38px] text-white"
-                      >
+                      <Text numberOfLines={2} className="text-ios-title3 font-semibold text-white">
                         {item.episode.title}
                       </Text>
                       <button
                         type="button"
-                        className="self-start text-left text-[17px] leading-[22px] text-white/60 outline-none hover:underline focus-visible:underline"
+                        className="text-ios-body self-start text-left text-white/60 outline-none hover:underline focus-visible:underline"
                         onClick={function openShow() {
                           goToShow(item);
                         }}

@@ -35,7 +35,7 @@ export function NowPlayingScrubber({ duration, messages }: NowPlayingScrubberPro
       />
       <div
         className={cn(
-          "flex justify-between text-[12px] leading-4 font-medium text-white/55 tabular-nums transition-colors duration-200",
+          "text-ios-caption1 flex justify-between font-medium text-white/55 tabular-nums transition-colors duration-200",
           scrubTime !== null && "text-white/90",
         )}
       >

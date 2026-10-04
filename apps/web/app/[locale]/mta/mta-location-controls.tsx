@@ -68,7 +68,7 @@ export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocation
       {message ? (
         <Text
           role="alert"
-          className="pointer-events-auto max-w-md rounded-[14px] bg-(--ios-menu) px-3.5 py-2 text-center text-[13px] leading-[18px] text-(--ios-red) shadow-[0_8px_24px_rgb(0_0_0/0.12)] backdrop-blur-[20px]"
+          className="bg-ios-menu text-ios-footnote text-ios-red pointer-events-auto max-w-md rounded-[14px] px-3.5 py-2 text-center shadow-[0_8px_24px_rgb(0_0_0/0.12)] backdrop-blur-[20px]"
         >
           {message}
         </Text>
@@ -92,7 +92,7 @@ export function MtaLocationControls({ initialSearchFailed, labels }: MtaLocation
         <IosBarButton
           aria-label={locationState === "loading" ? labels.locating : labels.useLocation}
           disabled={locationState === "loading"}
-          className="size-[52px] text-(--ios-tint)"
+          className="text-ios-tint size-[52px]"
           onClick={detectLocation}
         >
           <LocationArrowIcon

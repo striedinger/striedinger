@@ -6,3 +6,65 @@
 @source ".";
 @source "../*.tsx";
 @source "../../../../packages/ui/src";
+
+@theme inline {
+  /* Apple's system colors, defined per appearance on IosAppFrame. */
+  --color-ios-background: var(--ios-background);
+  --color-ios-secondary-background: var(--ios-secondary-background);
+  --color-ios-tertiary-background: var(--ios-tertiary-background);
+  --color-ios-grouped-background: var(--ios-grouped-background);
+  --color-ios-grouped-cell: var(--ios-grouped-cell);
+  --color-ios-grouped-cell-pressed: var(--ios-grouped-cell-pressed);
+  --color-ios-label: var(--ios-label);
+  --color-ios-secondary-label: var(--ios-secondary-label);
+  --color-ios-tertiary-label: var(--ios-tertiary-label);
+  --color-ios-separator: var(--ios-separator);
+  --color-ios-fill: var(--ios-fill);
+  --color-ios-secondary-fill: var(--ios-secondary-fill);
+  --color-ios-tertiary-fill: var(--ios-tertiary-fill);
+  --color-ios-chrome: var(--ios-chrome);
+  --color-ios-menu: var(--ios-menu);
+  --color-ios-glass: var(--ios-glass);
+  --color-ios-glass-strong: var(--ios-glass-strong);
+  --color-ios-glass-lens: var(--ios-glass-lens);
+  --color-ios-glass-edge: var(--ios-glass-edge);
+  --color-ios-glass-shadow: var(--ios-glass-shadow);
+  --color-ios-gray: var(--ios-gray);
+  --color-ios-red: var(--ios-red);
+  --color-ios-orange: var(--ios-orange);
+  --color-ios-purple: var(--ios-purple);
+  --color-ios-blue: var(--ios-blue);
+  --color-ios-green: var(--ios-green);
+  --color-ios-tint: var(--ios-tint);
+  /* Apple's text styles at the default Dynamic Type size. */
+  --text-ios-large-title: 34px;
+  --text-ios-large-title--line-height: 41px;
+  --text-ios-large-title--letter-spacing: 0.4px;
+  --text-ios-title1: 28px;
+  --text-ios-title1--line-height: 34px;
+  --text-ios-title1--letter-spacing: 0.36px;
+  --text-ios-title2: 22px;
+  --text-ios-title2--line-height: 28px;
+  --text-ios-title2--letter-spacing: 0.35px;
+  --text-ios-title3: 20px;
+  --text-ios-title3--line-height: 25px;
+  --text-ios-title3--letter-spacing: 0.38px;
+  --text-ios-body: 17px;
+  --text-ios-body--line-height: 22px;
+  --text-ios-body--letter-spacing: -0.43px;
+  --text-ios-callout: 16px;
+  --text-ios-callout--line-height: 21px;
+  --text-ios-callout--letter-spacing: -0.32px;
+  --text-ios-subheadline: 15px;
+  --text-ios-subheadline--line-height: 20px;
+  --text-ios-subheadline--letter-spacing: -0.23px;
+  --text-ios-footnote: 13px;
+  --text-ios-footnote--line-height: 18px;
+  --text-ios-footnote--letter-spacing: -0.08px;
+  --text-ios-caption1: 12px;
+  --text-ios-caption1--line-height: 16px;
+  --text-ios-caption1--letter-spacing: 0;
+  --text-ios-caption2: 11px;
+  --text-ios-caption2--line-height: 13px;
+  --text-ios-caption2--letter-spacing: 0.06px;
+}

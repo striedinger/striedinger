@@ -28,7 +28,7 @@ export function PodcastShowDescription({ messages, show }: PodcastShowDescriptio
       <Text
         as="span"
         numberOfLines={isExpanded ? undefined : 3}
-        className="text-[15px] leading-5 tracking-[-0.23px] text-white/80"
+        className="text-ios-subheadline text-white/80"
       >
         {description}
       </Text>

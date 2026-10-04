@@ -270,7 +270,7 @@ export function NoteEditorPane({
   return (
     <section
       aria-label={note?.title || messages["New Note"]}
-      className={cn("relative min-h-0 flex-col bg-(--ios-background)", className)}
+      className={cn("bg-ios-background relative min-h-0 flex-col", className)}
     >
       <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain">
         <IosNavigationBar
@@ -308,7 +308,7 @@ export function NoteEditorPane({
                     <IosBarButton
                       variant="plain"
                       aria-label={messages.Undo}
-                      className="text-(--ios-label)"
+                      className="text-ios-label"
                       {...editingControlHandlers}
                       onClick={undo}
                     >
@@ -318,7 +318,7 @@ export function NoteEditorPane({
                   <IosBarButton
                     variant="plain"
                     aria-label={messages["Share Note"]}
-                    className="text-(--ios-label)"
+                    className="text-ios-label"
                     onClick={function share() {
                       void shareNote();
                     }}
@@ -331,7 +331,7 @@ export function NoteEditorPane({
                       <IosBarButton
                         variant="plain"
                         aria-label={messages.More}
-                        className="text-(--ios-label)"
+                        className="text-ios-label"
                       >
                         <EllipsisIcon />
                       </IosBarButton>
@@ -352,7 +352,7 @@ export function NoteEditorPane({
                 ) : (
                   <IosBarButton
                     aria-label={messages["New Note"]}
-                    className="text-(--ios-tint) max-md:hidden"
+                    className="text-ios-tint max-md:hidden"
                     onClick={onCreateNote}
                   >
                     <ComposeIcon />
@@ -362,7 +362,7 @@ export function NoteEditorPane({
             ) : (
               <IosBarButton
                 aria-label={messages["New Note"]}
-                className="text-(--ios-tint) max-md:hidden"
+                className="text-ios-tint max-md:hidden"
                 onClick={onCreateNote}
               >
                 <ComposeIcon />
@@ -372,7 +372,7 @@ export function NoteEditorPane({
         />
         {note ? (
           <>
-            <Text className="shrink-0 pt-1 pb-3 text-center text-[13px] leading-[18px] text-(--ios-secondary-label)">
+            <Text className="text-ios-footnote text-ios-secondary-label shrink-0 pt-1 pb-3 text-center">
               {formatNoteHeaderDate(note.updatedAt, locale)}
             </Text>
             <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
@@ -393,7 +393,7 @@ export function NoteEditorPane({
             </div>
           </>
         ) : (
-          <Text className="m-auto px-6 pb-24 text-center text-[17px] text-(--ios-tertiary-label)">
+          <Text className="text-ios-tertiary-label m-auto px-6 pb-24 text-center text-[17px]">
             {messages["No Note Selected"]}
           </Text>
         )}
@@ -433,7 +433,7 @@ export function NoteEditorPane({
         {isEditing ? (
           <IosBarButton
             aria-label={messages["Hide Keyboard"]}
-            className="text-(--ios-tint)"
+            className="text-ios-tint"
             onClick={function hideKeyboard() {
               editorRef.current?.blur();
             }}
@@ -443,7 +443,7 @@ export function NoteEditorPane({
         ) : (
           <IosBarButton
             aria-label={messages["New Note"]}
-            className="text-(--ios-tint)"
+            className="text-ios-tint"
             onClick={onCreateNote}
           >
             <ComposeIcon />

@@ -34,23 +34,18 @@ export function PairingCode({
 
   return (
     <div className="flex flex-col gap-3">
-      <Text className="px-5 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
-        {instruction}
-      </Text>
+      <Text className="text-ios-subheadline text-ios-secondary-label px-5">{instruction}</Text>
       <PairingButton onClick={onSend} disabled={!code}>
         {delivered ? <CheckIcon strokeWidth={2.6} /> : <ShareUpIcon />}
         {delivered ? completedLabel : actionLabel}
       </PairingButton>
-      <details className="group overflow-hidden rounded-[22px] bg-(--ios-grouped-cell)">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-[11px] outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) [&::-webkit-details-marker]:hidden">
-          <Text
-            as="span"
-            className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
-          >
+      <details className="group bg-ios-grouped-cell overflow-hidden rounded-[22px]">
+        <summary className="focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-[11px] outline-none select-none [&::-webkit-details-marker]:hidden">
+          <Text as="span" className="text-ios-body text-ios-label">
             {labels.showCode}
           </Text>
           <ChevronDownIcon
-            className="size-4 shrink-0 text-(--ios-tertiary-label) transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+            className="text-ios-tertiary-label size-4 shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
             strokeWidth={3}
           />
         </summary>
@@ -60,14 +55,12 @@ export function PairingCode({
             readOnly
             rows={4}
             aria-label={labels.pairingCode}
-            className="w-full resize-none rounded-xl bg-(--ios-tertiary-fill) px-3 py-2.5 font-mono text-[13px] leading-[18px] break-all text-(--ios-label) outline-none"
+            className="bg-ios-tertiary-fill text-ios-footnote text-ios-label w-full resize-none rounded-xl px-3 py-2.5 font-mono break-all outline-none"
           />
         </div>
       </details>
       {footer ? (
-        <Text className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
-          {footer}
-        </Text>
+        <Text className="text-ios-footnote text-ios-secondary-label px-5">{footer}</Text>
       ) : null}
     </div>
   );

@@ -35,10 +35,7 @@ export function PodcastsSearchScreen({ results }: PodcastsSearchScreenProps) {
         </Suspense>
       ) : (
         <section aria-label={messages["Browse Categories"]} className="flex flex-col gap-3">
-          <Text
-            as="h2"
-            className="px-5 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-          >
+          <Text as="h2" className="text-ios-title2 text-ios-label px-5 font-bold">
             {messages["Browse Categories"]}
           </Text>
           <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 px-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -48,7 +45,7 @@ export function PodcastsSearchScreen({ results }: PodcastsSearchScreenProps) {
                   <button
                     type="button"
                     className={cn(
-                      "relative flex aspect-[1.55] w-full items-end overflow-hidden rounded-[22px] bg-linear-to-br from-white/0 p-3.5 text-left text-[17px] leading-[21px] font-bold text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.25)] outline-none before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-white/25 before:via-white/0 before:to-black/15 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-(--ios-tint) focus-visible:ring-offset-2 active:scale-[0.97] motion-safe:transition-transform",
+                      "focus-visible:ring-ios-tint relative flex aspect-[1.55] w-full items-end overflow-hidden rounded-[22px] bg-linear-to-br from-white/0 p-3.5 text-left text-[17px] leading-[21px] font-bold text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.25)] outline-none before:pointer-events-none before:absolute before:inset-0 before:bg-linear-to-br before:from-white/25 before:via-white/0 before:to-black/15 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.97] motion-safe:transition-transform",
                       category.colorClassName,
                     )}
                     onClick={function searchCategory() {

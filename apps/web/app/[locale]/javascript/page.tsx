@@ -70,7 +70,7 @@ export default async function JavaScriptInformationPage() {
       <JavaScriptDiagnostics labels={labels} />
 
       <noscript>
-        <Text className="rounded-[22px] bg-(--ios-grouped-cell) px-4 py-3 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
+        <Text className="bg-ios-grouped-cell text-ios-body text-ios-label rounded-[22px] px-4 py-3">
           {translate("JavaScript is disabled, so browser details cannot be collected.")}
         </Text>
       </noscript>

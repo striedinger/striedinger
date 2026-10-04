@@ -102,13 +102,13 @@ export function NoteFormatPanel({
       )}
     >
       <div className="flex items-center justify-between">
-        <Text as="h2" className="text-[20px] leading-[25px] font-bold text-(--ios-label)">
+        <Text as="h2" className="text-ios-title3 text-ios-label font-bold">
           {messages.Format}
         </Text>
         <button
           type="button"
           aria-label={messages["Close Format"]}
-          className="flex size-[30px] items-center justify-center rounded-full bg-(--ios-fill) text-(--ios-secondary-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)"
+          className="bg-ios-fill text-ios-secondary-label focus-visible:ring-ios-tint flex size-[30px] items-center justify-center rounded-full outline-none focus-visible:ring-2"
           onClick={onClose}
         >
           <CloseIcon className="size-3.5" strokeWidth={3} />
@@ -123,7 +123,7 @@ export function NoteFormatPanel({
               type="button"
               aria-pressed={isActive}
               className={cn(
-                "h-9 shrink-0 snap-start rounded-full px-3.5 whitespace-nowrap text-(--ios-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) aria-pressed:bg-(--ios-tint) aria-pressed:text-black",
+                "text-ios-label focus-visible:ring-ios-tint aria-pressed:bg-ios-tint h-9 shrink-0 snap-start rounded-full px-3.5 whitespace-nowrap outline-none focus-visible:ring-2 aria-pressed:text-black",
                 blockStyle.className,
               )}
               onClick={function selectBlockStyle() {
@@ -137,7 +137,7 @@ export function NoteFormatPanel({
           );
         })}
       </div>
-      <div className="grid grid-cols-4 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
+      <div className="bg-ios-fill/60 grid grid-cols-4 overflow-hidden rounded-[14px]">
         {inlineStyles.map(function renderInlineStyle(inlineStyle) {
           const isActive = formatState[inlineStyle.style];
           return (
@@ -146,7 +146,7 @@ export function NoteFormatPanel({
               type="button"
               aria-label={inlineStyle.label}
               aria-pressed={isActive}
-              className="h-11 text-[19px] text-(--ios-label) outline-none not-last:border-r-[0.5px] not-last:border-(--ios-separator) focus-visible:bg-(--ios-fill) aria-pressed:bg-(--ios-tint) aria-pressed:text-black"
+              className="text-ios-label not-last:border-ios-separator focus-visible:bg-ios-fill aria-pressed:bg-ios-tint h-11 text-[19px] outline-none not-last:border-r-[0.5px] aria-pressed:text-black"
               onClick={function toggleSelectedInlineStyle() {
                 runFormatCommand(function applyInlineStyle() {
                   toggleInlineStyle(inlineStyle.style);
@@ -161,7 +161,7 @@ export function NoteFormatPanel({
         })}
       </div>
       <div className="flex gap-2">
-        <div className="grid flex-[3] grid-cols-3 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
+        <div className="bg-ios-fill/60 grid flex-[3] grid-cols-3 overflow-hidden rounded-[14px]">
           {listStyles.map(function renderListStyle(listStyle) {
             return (
               <NoteFormatIconButton
@@ -179,7 +179,7 @@ export function NoteFormatPanel({
             );
           })}
         </div>
-        <div className="grid flex-[2] grid-cols-2 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
+        <div className="bg-ios-fill/60 grid flex-[2] grid-cols-2 overflow-hidden rounded-[14px]">
           <NoteFormatIconButton
             label={messages["Decrease Indent"]}
             disabled={!formatState.inList}
@@ -203,7 +203,7 @@ export function NoteFormatPanel({
             <IndentIncreaseIcon />
           </NoteFormatIconButton>
         </div>
-        <div className="grid flex-1 overflow-hidden rounded-[14px] bg-(--ios-fill)/60">
+        <div className="bg-ios-fill/60 grid flex-1 overflow-hidden rounded-[14px]">
           <NoteFormatIconButton
             label={messages["Block Quote"]}
             pressed={formatState.blockQuote}

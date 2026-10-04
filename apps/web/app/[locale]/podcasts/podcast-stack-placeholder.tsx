@@ -32,7 +32,7 @@ export function PodcastStackPlaceholder({ message }: PodcastStackPlaceholderProp
         leading={
           <PodcastPageBarButton
             aria-label={messages.Back}
-            className="bg-(--ios-fill) text-(--ios-label)"
+            className="bg-ios-fill text-ios-label"
             onClick={function goBack() {
               iosRouter.back(getTabHref("home"));
             }}
@@ -42,7 +42,7 @@ export function PodcastStackPlaceholder({ message }: PodcastStackPlaceholderProp
         }
       />
       {message ? (
-        <Text className="px-8 pt-[20vh] text-center text-[17px] text-(--ios-secondary-label)">
+        <Text className="text-ios-secondary-label px-8 pt-[20vh] text-center text-[17px]">
           {message}
         </Text>
       ) : (

@@ -167,7 +167,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
     <div className="flex flex-col gap-2 pb-16">
       {items.length === 0 ? (
         <div className="flex flex-col pt-2">
-          <div className="rounded-[26px] border-2 border-dashed border-(--ios-separator) bg-(--ios-grouped-cell)">
+          <div className="border-ios-separator bg-ios-grouped-cell rounded-[26px] border-2 border-dashed">
             <IosContentUnavailable
               className="px-6 pt-12 pb-12"
               icon={<PhotoIcon />}
@@ -175,7 +175,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
               description={labels.supported}
             />
           </div>
-          <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
+          <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">
             {labels.privacy}
           </Text>
         </div>
@@ -198,10 +198,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
         />
       )}
       {notice ? (
-        <Text
-          role="alert"
-          className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)"
-        >
+        <Text role="alert" className="text-ios-footnote text-ios-red px-5">
           {notice}
         </Text>
       ) : null}
@@ -233,7 +230,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
       >
         <label
           htmlFor="image-file-input"
-          className="pointer-events-auto flex h-[50px] w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-transform duration-150 select-none focus-within:ring-2 focus-within:ring-(--ios-tint)/50 active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-5"
+          className="bg-ios-tint focus-within:ring-ios-tint/50 pointer-events-auto flex h-[50px] w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-full text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-transform duration-150 select-none focus-within:ring-2 active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-5"
         >
           <PlusIcon strokeWidth={2.8} />
           {items.length === 0 ? labels.chooseFiles : labels.addMore}

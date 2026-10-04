@@ -16,11 +16,11 @@ interface NowPlayingQueueProps {
 export function NowPlayingQueue({ messages, queue }: NowPlayingQueueProps) {
   return (
     <section aria-label={messages["Up Next"]} className="flex min-h-0 flex-1 flex-col gap-2">
-      <Text as="h3" className="text-[17px] leading-[22px] font-semibold text-white">
+      <Text as="h3" className="text-ios-body font-semibold text-white">
         {messages["Up Next"]}
       </Text>
       {queue.length === 0 ? (
-        <Text className="text-[15px] leading-5 text-white/60">
+        <Text className="text-ios-subheadline text-white/60">
           {messages["Nothing is queued. Use Play Next or Play Last on any episode."]}
         </Text>
       ) : (
@@ -44,15 +44,11 @@ export function NowPlayingQueue({ messages, queue }: NowPlayingQueueProps) {
                     <Text
                       as="span"
                       numberOfLines={1}
-                      className="text-[15px] leading-5 font-medium text-white"
+                      className="text-ios-subheadline font-medium text-white"
                     >
                       {item.episode.title}
                     </Text>
-                    <Text
-                      as="span"
-                      numberOfLines={1}
-                      className="text-[13px] leading-[18px] text-white/60"
-                    >
+                    <Text as="span" numberOfLines={1} className="text-ios-footnote text-white/60">
                       {item.podcast.title}
                     </Text>
                   </span>

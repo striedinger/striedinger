@@ -106,7 +106,7 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
       ) : null}
       <Text
         as="span"
-        className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2.5 py-0.5 text-[12px] leading-4 font-medium text-white tabular-nums backdrop-blur-md"
+        className="text-ios-caption1 absolute right-2 bottom-2 rounded-full bg-black/55 px-2.5 py-0.5 font-medium text-white tabular-nums backdrop-blur-md"
       >
         {pageNumber}
       </Text>

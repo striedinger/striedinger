@@ -29,7 +29,7 @@ export function RequestDiagnosticsSkeleton({ labels }: RequestDiagnosticsSkeleto
       <IosListSection className="px-0" header={labels.observedIpAddress}>
         <li
           aria-hidden="true"
-          className="relative flex justify-center px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-(--ios-separator)"
+          className="after:bg-ios-separator relative flex justify-center px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50"
         >
           <IosSkeleton className="h-7 w-48" />
         </li>
@@ -52,7 +52,7 @@ function renderPlaceholderRows(rowCount: number) {
       <li
         key={index}
         aria-hidden="true"
-        className="relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+        className="not-last:after:bg-ios-separator relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50"
       >
         <IosSkeleton className="h-4 w-24" />
         <IosSkeleton className="h-4 w-32" />

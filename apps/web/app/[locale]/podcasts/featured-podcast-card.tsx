@@ -19,7 +19,7 @@ export function FeaturedPodcastCard({ podcast, priority }: FeaturedPodcastCardPr
     <li className="w-[min(86vw,420px)] shrink-0 snap-start">
       <PodcastLink
         podcast={podcast}
-        className="group flex h-full items-center gap-4 overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-[0.98] motion-reduce:transition-none"
+        className="group focus-visible:ring-ios-tint flex h-full items-center gap-4 overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 active:scale-[0.98] motion-reduce:transition-none"
         style={artworkColor ? { backgroundColor: artworkColor } : undefined}
       >
         <PodcastArtwork
@@ -35,14 +35,10 @@ export function FeaturedPodcastCard({ podcast, priority }: FeaturedPodcastCardPr
           >
             {podcast.genre}
           </Text>
-          <Text
-            as="span"
-            numberOfLines={2}
-            className="text-[20px] leading-[25px] font-bold text-white"
-          >
+          <Text as="span" numberOfLines={2} className="text-ios-title3 font-bold text-white">
             {podcast.title}
           </Text>
-          <Text as="span" numberOfLines={1} className="text-[15px] leading-5 text-white/70">
+          <Text as="span" numberOfLines={1} className="text-ios-subheadline text-white/70">
             {podcast.author}
           </Text>
         </span>

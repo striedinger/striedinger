@@ -284,7 +284,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
               className={cn(
                 route.folderId && !route.noteId ? "flex" : "hidden",
                 route.folderId ? "md:flex" : "md:hidden lg:flex",
-                "w-full md:w-[340px] md:shrink-0 md:border-r-[0.5px] md:border-(--ios-separator) lg:w-[320px]",
+                "md:border-ios-separator w-full md:w-[340px] md:shrink-0 md:border-r-[0.5px] lg:w-[320px]",
               )}
               backButtonClassName="lg:hidden"
               backLabel={messages.Folders}

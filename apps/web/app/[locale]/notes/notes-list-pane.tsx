@@ -163,7 +163,7 @@ export function NotesListPane({
     <section
       aria-label={title}
       className={cn(
-        "relative min-h-0 flex-col bg-(--ios-grouped-background) md:bg-(--ios-background)",
+        "bg-ios-grouped-background md:bg-ios-background relative min-h-0 flex-col",
         className,
       )}
     >
@@ -196,7 +196,7 @@ export function NotesListPane({
           }
         />
         {isRecentlyDeleted && noteCount > 0 ? (
-          <Text className="px-8 pb-2 text-center text-[13px] leading-[18px] text-(--ios-secondary-label)">
+          <Text className="text-ios-footnote text-ios-secondary-label px-8 pb-2 text-center">
             {messages["Notes are permanently deleted after 30 days."]}
           </Text>
         ) : null}
@@ -215,10 +215,7 @@ export function NotesListPane({
                   className="flex flex-col px-4"
                 >
                   {section.title ? (
-                    <Text
-                      as="h2"
-                      className="px-1 pb-2 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-                    >
+                    <Text as="h2" className="text-ios-title2 text-ios-label px-1 pb-2 font-bold">
                       {section.title}
                     </Text>
                   ) : null}
@@ -289,7 +286,7 @@ export function NotesListPane({
         {isRecentlyDeleted ? null : (
           <IosBarButton
             aria-label={messages["New Note"]}
-            className="text-(--ios-tint) md:hidden"
+            className="text-ios-tint md:hidden"
             onClick={onCreateNote}
           >
             <ComposeIcon />

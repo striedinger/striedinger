@@ -193,7 +193,7 @@ export function PodcastsChrome({ children, locale, messages }: PodcastsChromePro
         <div className="relative size-full bg-black">
           <div
             data-active={isNowPlayingVisible ? "" : undefined}
-            className="relative flex size-full origin-[center_top] flex-col overflow-hidden bg-(--ios-background) transition-[transform,border-radius] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-active:translate-y-2.5 data-active:scale-[0.93] data-active:rounded-[38px] motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]"
+            className="bg-ios-background relative flex size-full origin-[center_top] flex-col overflow-hidden transition-[transform,border-radius] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-active:translate-y-2.5 data-active:scale-[0.93] data-active:rounded-[38px] motion-reduce:transition-none md:flex-row md:data-active:scale-[0.97]"
           >
             <Suspense fallback={<PodcastsBarsPlaceholder messages={messages} />}>
               <PodcastsBars {...barsProps} />

@@ -83,7 +83,7 @@ export function PodcastsLibraryScreen({ view }: PodcastsLibraryScreenProps) {
         <EpisodeListSkeleton label={viewTitle} />
       ) : view === null ? (
         <div className="flex flex-col gap-6 pt-1">
-          <ul className="m-0 mx-4 list-none border-y-[0.5px] border-(--ios-separator) p-0 md:mx-6">
+          <ul className="border-ios-separator m-0 mx-4 list-none border-y-[0.5px] p-0 md:mx-6">
             <IosListRow
               icon={<SquareStackFillIcon />}
               label={messages.Shows}
@@ -107,21 +107,18 @@ export function PodcastsLibraryScreen({ view }: PodcastsLibraryScreenProps) {
             />
           </ul>
           <section aria-label={messages["Recently Updated"]} className="flex flex-col gap-3">
-            <Text
-              as="h2"
-              className="px-4 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-            >
+            <Text as="h2" className="text-ios-title2 text-ios-label px-4 font-bold">
               {messages["Recently Updated"]}
             </Text>
             {library.followed.length > 0 ? (
               showsGrid
             ) : (
-              <Text className="px-4 text-[15px] leading-5 text-(--ios-secondary-label)">
+              <Text className="text-ios-subheadline text-ios-secondary-label px-4">
                 {messages["Follow shows to see them here."]}
               </Text>
             )}
           </section>
-          <Text className="px-4 text-[13px] leading-[18px] text-(--ios-secondary-label)">
+          <Text className="text-ios-footnote text-ios-secondary-label px-4">
             {messages["Your library stays on this device."]}
           </Text>
         </div>

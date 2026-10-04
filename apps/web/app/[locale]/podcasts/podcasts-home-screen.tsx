@@ -118,10 +118,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
         ) : null}
         {popular.length > 0 ? (
           <section aria-label={messages["Top Shows"]} className="flex flex-col">
-            <Text
-              as="h2"
-              className="px-4 pb-1 text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-            >
+            <Text as="h2" className="text-ios-title2 text-ios-label px-4 pb-1 font-bold">
               {messages["Top Shows"]}
             </Text>
             <ol className="m-0 grid list-none grid-cols-1 p-0 pl-4 md:grid-cols-2 md:gap-x-6 xl:grid-cols-3">
@@ -138,7 +135,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
             </ol>
           </section>
         ) : null}
-        <Text className="px-4 text-[13px] leading-[18px] text-(--ios-secondary-label)">
+        <Text className="text-ios-footnote text-ios-secondary-label px-4">
           {
             messages[
               "Podcast discovery data is provided by Apple. Audio is streamed directly from each podcast publisher."

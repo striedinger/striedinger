@@ -81,18 +81,11 @@ export function UpNextCard({
           item={item}
           className="mt-3 outline-none after:absolute after:inset-0 focus-visible:underline"
         >
-          <Text
-            as="span"
-            numberOfLines={2}
-            className="text-[20px] leading-[25px] font-bold tracking-[0.38px] text-white"
-          >
+          <Text as="span" numberOfLines={2} className="text-ios-title3 font-bold text-white">
             {item.episode.title}
           </Text>
         </PodcastLink>
-        <Text
-          numberOfLines={2}
-          className="mt-1 min-h-10 text-[15px] leading-5 tracking-[-0.23px] text-white/70"
-        >
+        <Text numberOfLines={2} className="text-ios-subheadline mt-1 min-h-10 text-white/70">
           {item.episode.description}
         </Text>
         <div className="mt-auto flex items-center justify-between gap-2 pt-4">

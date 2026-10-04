@@ -12,9 +12,9 @@ interface IosValueRowProps {
 }
 
 const statusClassNames: Readonly<Record<IosValueStatus, string>> = {
-  negative: "bg-(--ios-red)",
-  positive: "bg-(--ios-green)",
-  warning: "bg-(--ios-orange)",
+  negative: "bg-ios-red",
+  positive: "bg-ios-green",
+  warning: "bg-ios-orange",
 };
 
 // Beyond this many characters a value moves beneath its label, as long entries do in
@@ -34,7 +34,7 @@ export function IosValueRow({
   return (
     <li
       className={cn(
-        "relative flex min-h-[44px] px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)",
+        "not-last:after:bg-ios-separator relative flex min-h-[44px] px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50",
         isStacked ? "flex-col gap-0.5" : "items-center justify-between gap-4",
       )}
     >
@@ -42,10 +42,8 @@ export function IosValueRow({
         as="span"
         family={monospaceLabel ? "mono" : undefined}
         className={cn(
-          "min-w-0 [overflow-wrap:anywhere] text-(--ios-label)",
-          monospaceLabel
-            ? "text-[15px] leading-[22px]"
-            : "text-[17px] leading-[22px] tracking-[-0.43px]",
+          "text-ios-label min-w-0 [overflow-wrap:anywhere]",
+          monospaceLabel ? "text-[15px] leading-[22px]" : "text-ios-body",
         )}
       >
         {label}
@@ -54,10 +52,8 @@ export function IosValueRow({
         as="span"
         family={monospaceValue ? "mono" : undefined}
         className={cn(
-          "min-w-0 [overflow-wrap:anywhere] text-(--ios-secondary-label) tabular-nums",
-          isStacked
-            ? "text-[15px] leading-5 tracking-[-0.23px] whitespace-pre-wrap"
-            : "text-right text-[17px] leading-[22px] tracking-[-0.43px]",
+          "text-ios-secondary-label min-w-0 [overflow-wrap:anywhere] tabular-nums",
+          isStacked ? "text-ios-subheadline whitespace-pre-wrap" : "text-ios-body text-right",
         )}
       >
         {status ? (

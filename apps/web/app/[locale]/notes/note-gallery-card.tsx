@@ -33,7 +33,7 @@ export function NoteGalleryCard({
           onSelect(note);
         }}
       >
-        <span className="relative block aspect-[0.85] w-full overflow-hidden rounded-[10px] border-[0.5px] border-(--ios-separator) bg-(--ios-grouped-cell) text-left shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-transform duration-150 group-focus-visible:ring-2 group-focus-visible:ring-(--ios-tint) group-active:scale-[0.97] group-aria-current:ring-[3px] group-aria-current:ring-(--ios-tint) motion-reduce:transition-none">
+        <span className="border-ios-separator bg-ios-grouped-cell group-focus-visible:ring-ios-tint group-aria-current:ring-ios-tint relative block aspect-[0.85] w-full overflow-hidden rounded-[10px] border-[0.5px] text-left shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-transform duration-150 group-focus-visible:ring-2 group-active:scale-[0.97] group-aria-current:ring-[3px] motion-reduce:transition-none">
           {note.thumbnail ? (
             // Note images are local data URLs, so next/image optimization does not apply.
             // oxlint-disable-next-line nextjs/no-img-element
@@ -49,14 +49,14 @@ export function NoteGalleryCard({
               <Text
                 as="span"
                 numberOfLines={2}
-                className="text-[11px] leading-[13px] font-bold text-(--ios-label)"
+                className="text-ios-caption2 text-ios-label font-bold"
               >
                 {title}
               </Text>
               <Text
                 as="span"
                 numberOfLines={6}
-                className="text-[9px] leading-[12px] text-(--ios-secondary-label)"
+                className="text-ios-secondary-label text-[9px] leading-[12px]"
               >
                 {note.preview}
               </Text>
@@ -66,11 +66,11 @@ export function NoteGalleryCard({
         <Text
           as="span"
           numberOfLines={1}
-          className="w-full text-[13px] leading-[18px] font-semibold tracking-[-0.08px] text-(--ios-label)"
+          className="text-ios-footnote text-ios-label w-full font-semibold"
         >
           {title}
         </Text>
-        <Text as="span" className="-mt-1.5 text-[12px] leading-4 text-(--ios-secondary-label)">
+        <Text as="span" className="text-ios-caption1 text-ios-secondary-label -mt-1.5">
           {formatNoteListDate(note.updatedAt, locale, now)}
         </Text>
       </button>

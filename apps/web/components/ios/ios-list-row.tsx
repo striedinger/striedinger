@@ -26,24 +26,24 @@ export function IosListRow({
   selected = false,
 }: IosListRowProps) {
   const rowClassName = cn(
-    "flex min-h-[52px] w-full items-center gap-3 py-3 pr-4 pl-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) transition-colors duration-150 outline-none select-none hover:bg-(--ios-fill)/40 focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint) aria-current:text-white motion-reduce:transition-none dark:aria-current:text-black",
+    "text-ios-body text-ios-label hover:bg-ios-fill/40 focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:bg-ios-tint flex min-h-[52px] w-full items-center gap-3 py-3 pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none aria-current:text-white motion-reduce:transition-none dark:aria-current:text-black",
     className,
   );
   const content = (
     <>
       {icon ? (
-        <span className="flex size-6 shrink-0 items-center justify-center text-(--ios-tint) in-aria-current:text-white [&_svg]:size-6">
+        <span className="text-ios-tint flex size-6 shrink-0 items-center justify-center in-aria-current:text-white [&_svg]:size-6">
           {icon}
         </span>
       ) : null}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {detail !== undefined ? (
-        <span className="shrink-0 text-(--ios-secondary-label) tabular-nums in-aria-current:text-white/80">
+        <span className="text-ios-secondary-label shrink-0 tabular-nums in-aria-current:text-white/80">
           {detail}
         </span>
       ) : null}
       <ChevronRightIcon
-        className="size-[15px] shrink-0 text-(--ios-tertiary-label) in-aria-current:text-white/70"
+        className="text-ios-tertiary-label size-[15px] shrink-0 in-aria-current:text-white/70"
         strokeWidth={3}
       />
     </>
@@ -52,7 +52,7 @@ export function IosListRow({
   return (
     <li
       className={cn(
-        "relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)",
+        "not-last:after:bg-ios-separator relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:h-px not-last:after:scale-y-50",
         icon ? "not-last:after:left-[52px]" : "not-last:after:left-4",
       )}
     >

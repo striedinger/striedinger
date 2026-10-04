@@ -18,7 +18,7 @@ export function PodcastShowEpisodes({ podcast, show }: PodcastShowEpisodesProps)
   const episodes = use(show)?.episodes ?? [];
   if (episodes.length === 0) {
     return (
-      <Text className="px-4 pt-4 text-[15px] text-(--ios-secondary-label)">
+      <Text className="text-ios-secondary-label px-4 pt-4 text-[15px]">
         {messages["Episodes are unavailable right now. Please try another show."]}
       </Text>
     );

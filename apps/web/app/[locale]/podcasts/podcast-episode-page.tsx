@@ -79,15 +79,12 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
               <Text className="text-[13px] leading-[18px] font-semibold tracking-[0.04em] text-white/65 uppercase">
                 {formatEpisodeDate(item.episode.publishedAt, locale, now)}
               </Text>
-              <Text
-                as="h2"
-                className="text-[22px] leading-7 font-bold tracking-[0.35px] text-white"
-              >
+              <Text as="h2" className="text-ios-title2 font-bold text-white">
                 {item.episode.title}
               </Text>
               <PodcastLink
                 podcast={item.podcast}
-                className="text-[17px] leading-[22px] text-white/75 underline-offset-2 outline-none hover:underline focus-visible:underline"
+                className="text-ios-body text-white/75 underline-offset-2 outline-none hover:underline focus-visible:underline"
               >
                 {item.podcast.title}
               </PodcastLink>
@@ -114,7 +111,7 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
         }
       />
       <div className="mx-auto w-full max-w-3xl px-5 pt-5">
-        <Text className="text-[17px] leading-[24px] tracking-[-0.43px] whitespace-pre-line text-(--ios-label)">
+        <Text className="text-ios-label text-[17px] leading-[24px] tracking-[-0.43px] whitespace-pre-line">
           {item.episode.description || messages["This episode is no longer available."]}
         </Text>
       </div>

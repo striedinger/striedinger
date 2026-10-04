@@ -106,7 +106,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
     <section aria-label={labels.preview} className="flex flex-col">
       <Text
         as="h2"
-        className="flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)"
+        className="text-ios-subheadline text-ios-secondary-label flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 font-semibold"
       >
         {labels.preview}
         {pageSizes.length > 0 ? (
@@ -115,7 +115,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           </span>
         ) : null}
       </Text>
-      <div className="relative flex min-h-96 flex-col rounded-[22px] bg-(--ios-grouped-cell) p-4 sm:p-6">
+      <div className="bg-ios-grouped-cell relative flex min-h-96 flex-col rounded-[22px] p-4 sm:p-6">
         {status === "ready" && document ? (
           <div className="flex w-full flex-col items-center gap-5">
             {pageSizes.map(function renderPage(size) {
@@ -138,9 +138,9 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           >
             <span
               aria-hidden="true"
-              className="size-8 animate-spin rounded-full border-[3px] border-(--ios-fill) border-t-(--ios-secondary-label) motion-reduce:animate-pulse"
+              className="border-ios-fill border-t-ios-secondary-label size-8 animate-spin rounded-full border-[3px] motion-reduce:animate-pulse"
             />
-            <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+            <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.loadingPreview}
             </Text>
           </div>
@@ -148,7 +148,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
         {status === "error" ? (
           <Text
             role="alert"
-            className="m-auto max-w-xs text-center text-[15px] leading-5 tracking-[-0.23px] text-(--ios-red)"
+            className="text-ios-subheadline text-ios-red m-auto max-w-xs text-center"
           >
             {error}
           </Text>

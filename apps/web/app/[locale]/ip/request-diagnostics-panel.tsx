@@ -60,10 +60,10 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
         footer={labels.privacy}
         label={labels.observedIpAddress}
       >
-        <li className="relative px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-(--ios-separator)">
+        <li className="after:bg-ios-separator relative px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50">
           <Text
             family={hasIpAddress ? "mono" : undefined}
-            className="text-center text-[22px] leading-7 font-semibold break-all text-(--ios-label)"
+            className="text-ios-title2 text-ios-label text-center font-semibold break-all"
           >
             <span className="sr-only">{labels.ipAddress} </span>
             {diagnostics.ipAddress}
@@ -123,9 +123,7 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
           })
         ) : (
           <li className="px-4 py-[11px]">
-            <Text className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-secondary-label)">
-              {labels.unavailable}
-            </Text>
+            <Text className="text-ios-body text-ios-secondary-label">{labels.unavailable}</Text>
           </li>
         )}
       </IosListSection>

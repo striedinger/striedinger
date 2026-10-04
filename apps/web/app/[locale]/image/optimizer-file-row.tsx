@@ -17,7 +17,7 @@ interface OptimizerFileRowProps {
 }
 
 const accessoryClassName =
-  "flex size-9 shrink-0 items-center justify-center rounded-full bg-(--ios-fill) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60 [&_svg]:size-[18px]";
+  "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-[18px]";
 
 /** One image in the queue: a status glyph, its name, the size before and after, and actions. */
 export function OptimizerFileRow({ item, labels, onDownload, onRemove }: OptimizerFileRowProps) {
@@ -26,16 +26,16 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
   const stageLabel = item.stage ? labels[item.stage] : labels.balanced;
 
   return (
-    <li className="relative flex min-h-[64px] items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)">
+    <li className="not-last:after:bg-ios-separator relative flex min-h-[64px] items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50">
       <span
         aria-hidden="true"
         className={cn(
           "flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-5",
           item.status === "error"
-            ? "bg-(--ios-red)"
+            ? "bg-ios-red"
             : item.status === "done"
-              ? "bg-(--ios-green)"
-              : "bg-(--ios-tint)",
+              ? "bg-ios-green"
+              : "bg-ios-tint",
         )}
       >
         {item.status === "done" ? <CheckIcon strokeWidth={3} /> : <PhotoIcon />}
@@ -45,7 +45,7 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
           as="span"
           numberOfLines={1}
           title={item.file.name}
-          className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+          className="text-ios-body text-ios-label"
         >
           {item.file.name}
         </Text>
@@ -56,10 +56,10 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progress}
-            className="h-1 overflow-hidden rounded-full bg-(--ios-fill)"
+            className="bg-ios-fill h-1 overflow-hidden rounded-full"
           >
             <span
-              className="block h-full rounded-full bg-(--ios-tint) transition-[width] duration-500 ease-out motion-reduce:transition-none"
+              className="bg-ios-tint block h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
               style={{ width: `${progress}%` }}
             />
           </span>
@@ -68,8 +68,8 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
           as="span"
           aria-live="polite"
           className={cn(
-            "text-[13px] leading-[18px] tracking-[-0.08px] tabular-nums",
-            item.status === "error" ? "text-(--ios-red)" : "text-(--ios-secondary-label)",
+            "text-ios-footnote tabular-nums",
+            item.status === "error" ? "text-ios-red" : "text-ios-secondary-label",
           )}
         >
           {item.status === "error" ? (
@@ -81,7 +81,7 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
               {item.status === "optimizing" ? ` · ${stageLabel}… ${progress}%` : null}
               {item.status === "done" ? " · " : null}
               {item.status === "done" && savings > 0 ? (
-                <span className="font-semibold text-(--ios-green)">
+                <span className="text-ios-green font-semibold">
                   {Math.round(savings * 100)}% {labels.saved}
                 </span>
               ) : null}
@@ -94,7 +94,7 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
         <button
           type="button"
           aria-label={`${labels.download} ${item.file.name}`}
-          className={cn(accessoryClassName, "text-(--ios-tint)")}
+          className={cn(accessoryClassName, "text-ios-tint")}
           onClick={function download() {
             onDownload(item);
           }}
@@ -105,7 +105,7 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
       <button
         type="button"
         aria-label={`${labels.remove} ${item.file.name}`}
-        className={cn(accessoryClassName, "text-(--ios-secondary-label)")}
+        className={cn(accessoryClassName, "text-ios-secondary-label")}
         onClick={function remove() {
           onRemove(item.id);
         }}

@@ -70,12 +70,8 @@ export function MessageList({
       {header}
       {messages.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-1 px-10 text-center">
-          <Text className="text-[17px] leading-[22px] font-semibold tracking-[-0.43px] text-(--ios-label)">
-            {labels.noMessages}
-          </Text>
-          <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
-            {emptyDescription}
-          </Text>
+          <Text className="text-ios-body text-ios-label font-semibold">{labels.noMessages}</Text>
+          <Text className="text-ios-subheadline text-ios-secondary-label">{emptyDescription}</Text>
         </div>
       ) : null}
       <ol

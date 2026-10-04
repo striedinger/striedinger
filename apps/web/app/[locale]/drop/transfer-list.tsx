@@ -20,7 +20,7 @@ interface TransferListProps {
 }
 
 const accessoryClassName =
-  "flex size-9 shrink-0 items-center justify-center rounded-full bg-(--ios-fill) text-(--ios-tint) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60 disabled:text-(--ios-tertiary-label) [&_svg]:size-[18px]";
+  "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 disabled:text-ios-tertiary-label [&_svg]:size-[18px]";
 
 export function TransferList({ canRetry, items, labels, onRetry }: TransferListProps) {
   const countLabel =
@@ -33,14 +33,14 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
       <section aria-label={labels.availableFiles} className="flex flex-col px-4">
         <Text
           as="h2"
-          className="px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)"
+          className="text-ios-subheadline text-ios-secondary-label px-5 pt-4 pb-1.5 font-semibold"
         >
           {labels.availableFiles}
         </Text>
-        <Text className="rounded-[22px] bg-(--ios-grouped-cell) px-4 py-6 text-center text-[15px] leading-5 text-(--ios-secondary-label)">
+        <Text className="bg-ios-grouped-cell text-ios-subheadline text-ios-secondary-label rounded-[22px] px-4 py-6 text-center">
           {labels.noFiles}
         </Text>
-        <Text className="px-5 pt-2 text-[13px] leading-[18px] text-(--ios-secondary-label)">
+        <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">
           {labels.privacy}
         </Text>
       </section>
@@ -79,17 +79,17 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
         return (
           <li
             key={`${item.direction}-${item.id}`}
-            className="relative flex min-h-[64px] items-center gap-3 py-2.5 pr-4 pl-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+            className="not-last:after:bg-ios-separator relative flex min-h-[64px] items-center gap-3 py-2.5 pr-4 pl-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50"
           >
             <span
               aria-hidden="true"
               className={cn(
                 "flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-[18px]",
                 item.status === "error"
-                  ? "bg-(--ios-red)"
+                  ? "bg-ios-red"
                   : item.status === "complete"
-                    ? "bg-(--ios-green)"
-                    : "bg-(--ios-tint)",
+                    ? "bg-ios-green"
+                    : "bg-ios-tint",
               )}
             >
               {item.direction === "incoming" ? (
@@ -105,7 +105,7 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
                 as="span"
                 numberOfLines={1}
                 title={item.name}
-                className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+                className="text-ios-body text-ios-label"
               >
                 {item.name}
               </Text>
@@ -117,10 +117,10 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
                   aria-valuemax={100}
                   aria-valuenow={Math.round(item.progress * 100)}
                   aria-valuetext={statusLabel}
-                  className="h-1 overflow-hidden rounded-full bg-(--ios-fill)"
+                  className="bg-ios-fill h-1 overflow-hidden rounded-full"
                 >
                   <span
-                    className="block h-full origin-left rounded-full bg-(--ios-tint) transition-transform duration-150 motion-reduce:transition-none"
+                    className="bg-ios-tint block h-full origin-left rounded-full transition-transform duration-150 motion-reduce:transition-none"
                     style={{ transform: `scaleX(${item.progress})` }}
                   />
                 </span>
@@ -128,8 +128,8 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
               <Text
                 as="span"
                 className={cn(
-                  "text-[13px] leading-[18px] tabular-nums",
-                  item.status === "error" ? "text-(--ios-red)" : "text-(--ios-secondary-label)",
+                  "text-ios-footnote tabular-nums",
+                  item.status === "error" ? "text-ios-red" : "text-ios-secondary-label",
                 )}
               >
                 {formatFileSize(item.size)} · {statusLabel}

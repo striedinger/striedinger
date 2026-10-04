@@ -65,14 +65,14 @@ export function FileDropZone({ label, onFiles }: FileDropZoneProps) {
     <div
       aria-hidden={!isDragging}
       className={cn(
-        "pointer-events-none absolute inset-3 z-30 flex flex-col items-center justify-center gap-3 rounded-[38px] border-2 border-dashed border-(--ios-tint) bg-(--ios-tint)/10 backdrop-blur-[6px] transition-opacity duration-200 motion-reduce:transition-none",
+        "border-ios-tint bg-ios-tint/10 pointer-events-none absolute inset-3 z-30 flex flex-col items-center justify-center gap-3 rounded-[38px] border-2 border-dashed backdrop-blur-[6px] transition-opacity duration-200 motion-reduce:transition-none",
         isDragging ? "opacity-100" : "opacity-0",
       )}
     >
-      <span className="flex size-16 items-center justify-center rounded-full bg-(--ios-tint) text-white [&_svg]:size-8">
+      <span className="bg-ios-tint flex size-16 items-center justify-center rounded-full text-white [&_svg]:size-8">
         <PlusIcon strokeWidth={2.6} />
       </span>
-      <Text className="text-[20px] leading-[25px] font-semibold text-(--ios-label)">{label}</Text>
+      <Text className="text-ios-title3 text-ios-label font-semibold">{label}</Text>
     </div>
   );
 }

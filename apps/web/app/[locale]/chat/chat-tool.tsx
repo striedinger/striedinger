@@ -65,7 +65,7 @@ export function ChatTool({ labels, locale }: ChatToolProps) {
   return (
     <>
       {showsConversation ? (
-        <div className="relative size-full bg-(--ios-background) [--ios-bar-edge:var(--ios-background)] [--ios-content-width:48rem]">
+        <div className="bg-ios-background relative size-full [--ios-bar-edge:var(--ios-background)] [--ios-content-width:48rem]">
           <MessageList
             emptyDescription={labels.youAre.replace("{name}", chat.alias)}
             header={

@@ -22,13 +22,10 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
   });
 
   return (
-    <article className="overflow-hidden rounded-[22px] bg-(--ios-grouped-cell)">
+    <article className="bg-ios-grouped-cell overflow-hidden rounded-[22px]">
       <header className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3">
         <div className="flex min-w-0 flex-col gap-2">
-          <Text
-            as="h3"
-            className="text-[17px] leading-[22px] font-semibold tracking-[-0.43px] text-(--ios-label)"
-          >
+          <Text as="h3" className="text-ios-body text-ios-label font-semibold">
             {station.name}
           </Text>
           <div className="flex flex-wrap gap-1" aria-label={station.routes.join(", ")}>
@@ -38,10 +35,10 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end">
-          <Text className="text-[15px] leading-5 font-semibold text-(--ios-label) tabular-nums">
+          <Text className="text-ios-subheadline text-ios-label font-semibold tabular-nums">
             {station.distance.toFixed(1)} mi
           </Text>
-          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label) tabular-nums">
+          <Text className="text-ios-footnote text-ios-secondary-label tabular-nums">
             {walkingMinutes} min {labels.walk}
           </Text>
         </div>
@@ -53,17 +50,14 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           return (
             <li
               key={`${arrival.route}-${arrival.direction}-${arrival.arrivalAt}-${index}`}
-              className="relative flex min-h-[54px] items-center gap-3 py-2 pr-4 pl-4 before:absolute before:top-0 before:right-0 before:left-[52px] before:h-px before:scale-y-50 before:bg-(--ios-separator)"
+              className="before:bg-ios-separator relative flex min-h-[54px] items-center gap-3 py-2 pr-4 pl-4 before:absolute before:top-0 before:right-0 before:left-[52px] before:h-px before:scale-y-50"
             >
               <TrainIcon route={arrival.route} />
               <div className="min-w-0 flex-1">
-                <Text
-                  numberOfLines={1}
-                  className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
-                >
+                <Text numberOfLines={1} className="text-ios-body text-ios-label">
                   {arrival.destination || `${arrival.route} ${labels.direction}`}
                 </Text>
-                <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
+                <Text className="text-ios-footnote text-ios-secondary-label">
                   {getDirectionLabel(arrival.direction, labels)}
                 </Text>
               </div>
@@ -72,8 +66,8 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
                   type="button"
                   aria-describedby={tooltipId}
                   className={cn(
-                    "rounded-md px-1 text-[17px] leading-[22px] font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50",
-                    isArriving ? "text-(--ios-green)" : "text-(--ios-label)",
+                    "text-ios-body focus-visible:ring-ios-tint/50 rounded-md px-1 font-semibold tabular-nums outline-none focus-visible:ring-2",
+                    isArriving ? "text-ios-green" : "text-ios-label",
                   )}
                 >
                   <time dateTime={arrival.arrivalAt}>
@@ -83,7 +77,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
                 <span
                   id={tooltipId}
                   role="tooltip"
-                  className="pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-[12px] bg-(--ios-menu) px-3 py-2 text-center text-[13px] leading-[18px] font-medium text-(--ios-label) shadow-[0_8px_30px_rgb(0_0_0/0.18)] backdrop-blur-[20px] group-focus-within:block group-hover:block"
+                  className="bg-ios-menu text-ios-footnote text-ios-label pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-[12px] px-3 py-2 text-center font-medium shadow-[0_8px_30px_rgb(0_0_0/0.18)] backdrop-blur-[20px] group-focus-within:block group-hover:block"
                 >
                   {arrivalFormat.format(new Date(arrival.arrivalAt))}
                 </span>
@@ -92,8 +86,8 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           );
         })}
         {station.arrivals.length === 0 ? (
-          <li className="relative px-4 py-3 before:absolute before:top-0 before:right-0 before:left-4 before:h-px before:scale-y-50 before:bg-(--ios-separator)">
-            <Text className="text-[15px] leading-5 text-(--ios-secondary-label)">
+          <li className="before:bg-ios-separator relative px-4 py-3 before:absolute before:top-0 before:right-0 before:left-4 before:h-px before:scale-y-50">
+            <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.noArrivals}
             </Text>
           </li>

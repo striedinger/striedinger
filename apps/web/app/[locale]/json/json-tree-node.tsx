@@ -65,7 +65,7 @@ export function JsonTreeNode({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className="flex size-6 shrink-0 items-center justify-center rounded-full text-(--ios-tertiary-label) outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:bg-(--ios-fill)"
+          className="text-ios-tertiary-label focus-visible:ring-ios-tint/50 active:bg-ios-fill flex size-6 shrink-0 items-center justify-center rounded-full outline-none select-none focus-visible:ring-2"
           aria-label={expanded ? collapseLabel : expandLabel}
           aria-expanded={expanded}
           onClick={handleExpandedChange}
@@ -83,14 +83,14 @@ export function JsonTreeNode({
             {JSON.stringify(name)}:
           </Text>
         )}
-        <Text as="span" family="mono" className={cn(codeClassName, "text-(--ios-label)")}>
+        <Text as="span" family="mono" className={cn(codeClassName, "text-ios-label")}>
           {openingToken}
           {expanded || entries.length === 0 ? "" : ` … ${closingToken}`}
         </Text>
       </div>
 
       {expanded ? (
-        <div className="ml-3 flex flex-col border-l border-(--ios-separator) pl-2">
+        <div className="border-ios-separator ml-3 flex flex-col border-l pl-2">
           {entries.map(function renderEntry([entryName, entryValue]) {
             return (
               <JsonTreeNode
@@ -103,7 +103,7 @@ export function JsonTreeNode({
               />
             );
           })}
-          <Text as="span" family="mono" className={cn(codeClassName, "text-(--ios-label)")}>
+          <Text as="span" family="mono" className={cn(codeClassName, "text-ios-label")}>
             {closingToken}
           </Text>
         </div>
@@ -113,21 +113,21 @@ export function JsonTreeNode({
 }
 
 const codeClassName = "text-[13px] leading-6";
-const keyClassName = "text-(--ios-secondary-label)";
+const keyClassName = "text-ios-secondary-label";
 
 function getPrimitiveClassName(value: JsonValue): string {
   if (value === null) {
-    return "text-(--ios-tertiary-label)";
+    return "text-ios-tertiary-label";
   }
 
   switch (typeof value) {
     case "string":
-      return "text-(--ios-green)";
+      return "text-ios-green";
     case "number":
-      return "text-(--ios-tint)";
+      return "text-ios-tint";
     case "boolean":
-      return "text-(--ios-orange)";
+      return "text-ios-orange";
     default:
-      return "text-(--ios-label)";
+      return "text-ios-label";
   }
 }

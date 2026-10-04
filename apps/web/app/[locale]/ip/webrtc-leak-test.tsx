@@ -61,7 +61,7 @@ export function WebRtcLeakTest({ labels }: WebRtcLeakTestProps) {
             type="button"
             aria-disabled={isTesting}
             aria-busy={isTesting}
-            className="flex min-h-[44px] w-full items-center px-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) transition-colors duration-150 outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-disabled:text-(--ios-secondary-label) motion-reduce:transition-none"
+            className="text-ios-body text-ios-tint focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-disabled:text-ios-secondary-label flex min-h-[44px] w-full items-center px-4 text-left transition-colors duration-150 outline-none select-none motion-reduce:transition-none"
             onClick={runTest}
           >
             {isTesting ? labels.testing : labels.runTest}
@@ -74,32 +74,27 @@ export function WebRtcLeakTest({ labels }: WebRtcLeakTestProps) {
           <IosListSection className="px-0" header={labels.candidates} label={labels.candidates}>
             {state.candidates.length === 0 ? (
               <li className="flex min-h-[44px] items-center gap-2.5 px-4 py-[11px]">
-                <span
-                  aria-hidden="true"
-                  className="size-2 shrink-0 rounded-full bg-(--ios-green)"
-                />
-                <Text className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
-                  {labels.noCandidates}
-                </Text>
+                <span aria-hidden="true" className="bg-ios-green size-2 shrink-0 rounded-full" />
+                <Text className="text-ios-body text-ios-label">{labels.noCandidates}</Text>
               </li>
             ) : null}
             {state.candidates.map(function renderCandidate(candidate) {
               return (
                 <li
                   key={`${candidate.type}-${candidate.address}-${candidate.protocol}`}
-                  className="relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+                  className="not-last:after:bg-ios-separator relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50"
                 >
                   <Text
                     as="span"
                     family="mono"
-                    className="min-w-0 text-[15px] leading-[22px] break-all text-(--ios-label)"
+                    className="text-ios-label min-w-0 text-[15px] leading-[22px] break-all"
                   >
                     <span className="sr-only">{labels.address} </span>
                     {candidate.address}
                   </Text>
                   <Text
                     as="span"
-                    className="shrink-0 text-right text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)"
+                    className="text-ios-subheadline text-ios-secondary-label shrink-0 text-right"
                   >
                     <span className="sr-only">{labels.candidateType} </span>
                     {candidate.type}
@@ -116,10 +111,8 @@ export function WebRtcLeakTest({ labels }: WebRtcLeakTestProps) {
         {state.status === "error" ? (
           <IosListSection className="px-0" label={labels.heading}>
             <li className="flex min-h-[44px] items-center gap-2.5 px-4 py-[11px]">
-              <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-(--ios-red)" />
-              <Text className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
-                {state.message}
-              </Text>
+              <span aria-hidden="true" className="bg-ios-red size-2 shrink-0 rounded-full" />
+              <Text className="text-ios-body text-ios-label">{state.message}</Text>
             </li>
           </IosListSection>
         ) : null}

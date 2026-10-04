@@ -81,7 +81,7 @@ export function FoldersPane({
     <section
       aria-label={messages.Folders}
       className={cn(
-        "relative min-h-0 flex-col bg-(--ios-grouped-background) md:overflow-hidden md:rounded-[26px] md:bg-(--ios-secondary-background) md:shadow-[inset_0_0_0_0.5px_var(--ios-separator),0_8px_30px_var(--ios-glass-shadow)]",
+        "bg-ios-grouped-background md:bg-ios-secondary-background relative min-h-0 flex-col md:overflow-hidden md:rounded-[26px] md:shadow-[inset_0_0_0_0.5px_var(--ios-separator),0_8px_30px_var(--ios-glass-shadow)]",
         className,
       )}
     >
@@ -156,16 +156,16 @@ export function FoldersPane({
               return (
                 <li
                   key={folder.id}
-                  className="relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[52px] not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
+                  className="not-last:after:bg-ios-separator relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[52px] not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50"
                 >
                   <IosSwipeActions
-                    className="bg-(--ios-grouped-cell) md:bg-transparent"
+                    className="bg-ios-grouped-cell md:bg-transparent"
                     trailingActions={[
                       {
                         id: "delete",
                         label: messages["Delete Folder"],
                         icon: <TrashIcon />,
-                        colorClassName: "bg-(--ios-red)",
+                        colorClassName: "bg-ios-red",
                         onSelect: function deleteFolder() {
                           onDeleteFolder(folder);
                         },
@@ -174,7 +174,7 @@ export function FoldersPane({
                         id: "rename",
                         label: messages["Rename Folder"],
                         icon: <PencilIcon />,
-                        colorClassName: "bg-(--ios-gray)",
+                        colorClassName: "bg-ios-gray",
                         onSelect: function renameFolder() {
                           onRenameFolder(folder);
                         },
@@ -216,7 +216,7 @@ export function FoldersPane({
       >
         <IosBarButton
           aria-label={messages["New Folder"]}
-          className="text-(--ios-tint)"
+          className="text-ios-tint"
           onClick={onCreateFolder}
         >
           <FolderPlusIcon />
@@ -233,7 +233,7 @@ export function FoldersPane({
         {/* Wide layouts search from the notes list and compose from the editor's toolbar. */}
         <IosBarButton
           aria-label={messages["New Note"]}
-          className="text-(--ios-tint) md:hidden"
+          className="text-ios-tint md:hidden"
           onClick={onCreateNote}
         >
           <ComposeIcon />

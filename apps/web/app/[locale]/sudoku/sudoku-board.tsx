@@ -46,7 +46,7 @@ export function SudokuBoard({
       tabIndex={-1}
       aria-label={label}
       onKeyDown={onKeyDown}
-      className="grid size-full grid-cols-9 grid-rows-9 overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_rgb(0_0_0/0.06)]"
+      className="bg-ios-grouped-cell grid size-full grid-cols-9 grid-rows-9 overflow-hidden rounded-[22px] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_rgb(0_0_0/0.06)]"
     >
       {values.map(function renderCell(value, cellIndex) {
         const row = Math.floor(cellIndex / 9);
@@ -78,19 +78,17 @@ export function SudokuBoard({
               onSelect(cellIndex);
             }}
             className={cn(
-              "flex min-w-0 touch-manipulation items-center justify-center border-(--ios-separator) transition-colors duration-100 outline-none select-none focus-visible:relative focus-visible:z-10 motion-reduce:transition-none",
+              "border-ios-separator flex min-w-0 touch-manipulation items-center justify-center transition-colors duration-100 outline-none select-none focus-visible:relative focus-visible:z-10 motion-reduce:transition-none",
               column < 8 &&
                 (column === 2 || column === 5
-                  ? "border-r-2 border-r-(--ios-label)/25"
+                  ? "border-r-ios-label/25 border-r-2"
                   : "border-r-[0.5px]"),
               row < 8 &&
-                (row === 2 || row === 5
-                  ? "border-b-2 border-b-(--ios-label)/25"
-                  : "border-b-[0.5px]"),
-              isRelated && !isSelected && "bg-(--ios-tint)/[0.07]",
-              isSameValue && "bg-(--ios-tint)/20",
-              isSelected && "bg-(--ios-tint) text-white",
-              isConflicting && !isSelected && "bg-(--ios-red)/12",
+                (row === 2 || row === 5 ? "border-b-ios-label/25 border-b-2" : "border-b-[0.5px]"),
+              isRelated && !isSelected && "bg-ios-tint/[0.07]",
+              isSameValue && "bg-ios-tint/20",
+              isSelected && "bg-ios-tint text-white",
+              isConflicting && !isSelected && "bg-ios-red/12",
             )}
           >
             <Text
@@ -102,10 +100,10 @@ export function SudokuBoard({
                 isSelected
                   ? "text-white"
                   : isConflicting
-                    ? "text-(--ios-red)"
+                    ? "text-ios-red"
                     : isFixed
-                      ? "text-(--ios-label)"
-                      : "text-(--ios-tint)",
+                      ? "text-ios-label"
+                      : "text-ios-tint",
               )}
             >
               {value || ""}

@@ -79,12 +79,12 @@ export function OptimizerSettings({
               // Re-encode once the slider settles rather than for every step while dragging.
               onPointerUp={onQualitySettle}
               onKeyUp={onQualitySettle}
-              className="h-7 min-w-0 flex-1 cursor-pointer accent-(--ios-tint)"
+              className="accent-ios-tint h-7 min-w-0 flex-1 cursor-pointer"
             />
             <Text
               as="span"
               aria-hidden="true"
-              className="w-11 text-right text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-secondary-label) tabular-nums"
+              className="text-ios-body text-ios-secondary-label w-11 text-right tabular-nums"
             >
               {quality}%
             </Text>

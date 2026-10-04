@@ -49,7 +49,7 @@ export function EpisodePlayButton({
       type="button"
       aria-label={`${isCurrent && isPlaying ? messages.Pause : messages.Play}: ${item.episode.title}`}
       className={cn(
-        "relative z-10 inline-flex h-[30px] items-center gap-1.5 rounded-full bg-(--ios-tertiary-fill) pr-3 pl-2.5 text-[13px] leading-4 font-semibold tracking-[-0.08px] text-(--ios-tint) outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:opacity-60",
+        "bg-ios-tertiary-fill text-ios-tint focus-visible:ring-ios-tint relative z-10 inline-flex h-[30px] items-center gap-1.5 rounded-full pr-3 pl-2.5 text-[13px] leading-4 font-semibold tracking-[-0.08px] outline-none select-none focus-visible:ring-2 active:opacity-60",
         className,
       )}
       onClick={function playOrPause() {
@@ -67,10 +67,10 @@ export function EpisodePlayButton({
       {progress && !isPlayed && progressRatio > 0 ? (
         <span
           aria-hidden="true"
-          className="relative h-1 w-7 overflow-hidden rounded-full bg-(--ios-tint)/25"
+          className="bg-ios-tint/25 relative h-1 w-7 overflow-hidden rounded-full"
         >
           <span
-            className="absolute inset-y-0 left-0 rounded-full bg-(--ios-tint)"
+            className="bg-ios-tint absolute inset-y-0 left-0 rounded-full"
             style={{ width: `${Math.min(100, Math.max(4, progressRatio * 100))}%` }}
           />
         </span>

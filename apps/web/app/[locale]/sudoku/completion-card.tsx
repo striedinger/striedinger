@@ -63,44 +63,37 @@ export function CompletionCard({
   return (
     <section
       aria-live="polite"
-      className="absolute inset-0 z-30 flex animate-in flex-col justify-center gap-[clamp(0.5rem,3cqh,1rem)] overflow-y-auto rounded-[22px] bg-(--ios-grouped-cell)/80 p-[clamp(1rem,5cqw,1.5rem)] backdrop-blur-[16px] duration-500 zoom-in-95 fade-in motion-reduce:animate-none"
+      className="bg-ios-grouped-cell/80 absolute inset-0 z-30 flex animate-in flex-col justify-center gap-[clamp(0.5rem,3cqh,1rem)] overflow-y-auto rounded-[22px] p-[clamp(1rem,5cqw,1.5rem)] backdrop-blur-[16px] duration-500 zoom-in-95 fade-in motion-reduce:animate-none"
     >
       <div className="flex flex-col gap-0.5">
-        <Text
-          as="h2"
-          className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)"
-        >
+        <Text as="h2" className="text-ios-title2 text-ios-label font-bold">
           {labels.completed}
         </Text>
-        <Text className="text-[15px] leading-5 text-(--ios-secondary-label)">
+        <Text className="text-ios-subheadline text-ios-secondary-label">
           {labels.difficulty[difficulty]} · {localizedDate}
         </Text>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-0.5 rounded-[16px] bg-(--ios-grouped-background) px-3.5 py-2.5">
-          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
-            {labels.time}
-          </Text>
+        <div className="bg-ios-grouped-background flex flex-col gap-0.5 rounded-[16px] px-3.5 py-2.5">
+          <Text className="text-ios-footnote text-ios-secondary-label">{labels.time}</Text>
           <Text
             family="rounded"
-            className="text-[clamp(22px,7cqw,34px)] leading-tight font-bold text-(--ios-label) tabular-nums"
+            className="text-ios-label text-[clamp(22px,7cqw,34px)] leading-tight font-bold tabular-nums"
           >
             {elapsedTime}
           </Text>
         </div>
-        <div className="flex flex-col gap-0.5 rounded-[16px] bg-(--ios-grouped-background) px-3.5 py-2.5">
-          <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
-            {labels.score}
-          </Text>
+        <div className="bg-ios-grouped-background flex flex-col gap-0.5 rounded-[16px] px-3.5 py-2.5">
+          <Text className="text-ios-footnote text-ios-secondary-label">{labels.score}</Text>
           <Text
             family="rounded"
-            className="text-[clamp(22px,7cqw,34px)] leading-tight font-bold text-(--ios-tint) tabular-nums"
+            className="text-ios-tint text-[clamp(22px,7cqw,34px)] leading-tight font-bold tabular-nums"
           >
             {score}/100
           </Text>
         </div>
       </div>
-      <Text className="text-[13px] leading-[18px] text-(--ios-secondary-label)">
+      <Text className="text-ios-footnote text-ios-secondary-label">
         {labels.scoreInputs
           .replace("{count}", String(inputCount))
           .replace("{minimum}", String(minimumInputCount))}
@@ -108,7 +101,7 @@ export function CompletionCard({
       <button
         type="button"
         disabled={shareState === "sharing"}
-        className="flex h-[50px] shrink-0 items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.98] disabled:opacity-60 motion-safe:transition-transform [&_svg]:size-5"
+        className="bg-ios-tint focus-visible:ring-ios-tint/50 flex h-[50px] shrink-0 items-center justify-center gap-2 rounded-full text-[17px] font-semibold tracking-[-0.43px] text-white outline-none focus-visible:ring-2 active:scale-[0.98] disabled:opacity-60 motion-safe:transition-transform [&_svg]:size-5"
         onClick={handleShare}
       >
         <ShareUpIcon />
@@ -118,8 +111,8 @@ export function CompletionCard({
         <Text
           className={
             shareState === "error"
-              ? "text-[13px] leading-[18px] text-(--ios-red)"
-              : "text-[13px] leading-[18px] text-(--ios-secondary-label)"
+              ? "text-ios-footnote text-ios-red"
+              : "text-ios-footnote text-ios-secondary-label"
           }
         >
           {statusMessage}

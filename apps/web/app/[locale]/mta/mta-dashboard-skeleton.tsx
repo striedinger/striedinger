@@ -26,7 +26,7 @@ export function MtaDashboardSkeleton() {
           return (
             <div
               key={station}
-              className="mb-4 flex flex-col gap-3 rounded-[22px] bg-(--ios-grouped-cell) p-4"
+              className="bg-ios-grouped-cell mb-4 flex flex-col gap-3 rounded-[22px] p-4"
             >
               <IosSkeleton className="h-5 w-40" />
               {arrivals.map(function renderArrival(arrival) {

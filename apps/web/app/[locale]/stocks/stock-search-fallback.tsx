@@ -20,7 +20,7 @@ export function StockSearchFallback({ labels, query }: StockSearchFallbackProps)
     >
       <SearchIcon
         aria-hidden="true"
-        className="pointer-events-none absolute left-3.5 size-[18px] text-(--ios-secondary-label)"
+        className="text-ios-secondary-label pointer-events-none absolute left-3.5 size-[18px]"
         strokeWidth={2.4}
       />
       <input
@@ -28,7 +28,7 @@ export function StockSearchFallback({ labels, query }: StockSearchFallbackProps)
         disabled
         defaultValue={query}
         placeholder={labels.searchPlaceholder}
-        className="size-full min-w-0 rounded-full bg-transparent pr-16 pl-10 text-[17px] text-(--ios-label) outline-none placeholder:text-(--ios-secondary-label)"
+        className="text-ios-label placeholder:text-ios-secondary-label size-full min-w-0 rounded-full bg-transparent pr-16 pl-10 text-[17px] outline-none"
       />
     </div>
   );

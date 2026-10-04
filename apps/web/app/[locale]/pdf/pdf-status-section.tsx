@@ -35,16 +35,10 @@ export function PdfStatusSection({
       <IosListSection className="px-0" footer={labels.fileStaysLocal} label={stageLabel}>
         <li aria-live="polite" className="flex flex-col gap-2.5 px-4 py-3.5">
           <span className="flex items-center justify-between gap-3">
-            <Text
-              as="span"
-              className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
-            >
+            <Text as="span" className="text-ios-body text-ios-label">
               {stageLabel}…
             </Text>
-            <Text
-              as="span"
-              className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-secondary-label) tabular-nums"
-            >
+            <Text as="span" className="text-ios-body text-ios-secondary-label tabular-nums">
               {roundedProgress}%
             </Text>
           </span>
@@ -54,10 +48,10 @@ export function PdfStatusSection({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={roundedProgress}
-            className="h-1 overflow-hidden rounded-full bg-(--ios-fill)"
+            className="bg-ios-fill h-1 overflow-hidden rounded-full"
           >
             <span
-              className="block h-full rounded-full bg-(--ios-tint) transition-[width] duration-500 motion-reduce:transition-none"
+              className="bg-ios-tint block h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none"
               style={{ width: `${progress}%` }}
             />
           </span>
@@ -75,7 +69,7 @@ export function PdfStatusSection({
       <li className="flex min-h-[64px] items-center gap-3 px-4 py-2.5">
         <span
           aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-(--ios-green) text-white [&_svg]:size-5"
+          className="bg-ios-green flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-5"
         >
           <CheckIcon strokeWidth={3} />
         </span>
@@ -84,18 +78,15 @@ export function PdfStatusSection({
             as="span"
             numberOfLines={1}
             title={result.name}
-            className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+            className="text-ios-body text-ios-label"
           >
             {result.name}
           </Text>
-          <Text
-            as="span"
-            className="text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label) tabular-nums"
-          >
+          <Text as="span" className="text-ios-footnote text-ios-secondary-label tabular-nums">
             {formatBytes(originalSize)} → {formatBytes(result.size)}
             {result.unlocked ? null : " · "}
             {!result.unlocked && savings > 0 ? (
-              <span className="font-semibold text-(--ios-green)">
+              <span className="text-ios-green font-semibold">
                 {Math.round(savings * 100)}% {labels.saved}
               </span>
             ) : null}
@@ -105,7 +96,7 @@ export function PdfStatusSection({
         <button
           type="button"
           aria-label={`${labels.download} ${result.name}`}
-          className="h-8 shrink-0 rounded-full bg-(--ios-tint) px-4 text-[15px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-70"
+          className="bg-ios-tint focus-visible:ring-ios-tint/50 h-8 shrink-0 rounded-full px-4 text-[15px] font-semibold text-white outline-none focus-visible:ring-2 active:opacity-70"
           onClick={onDownload}
         >
           {labels.download}

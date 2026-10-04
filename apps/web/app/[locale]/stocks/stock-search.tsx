@@ -130,7 +130,7 @@ export function StockSearch({
       <div className={cn("relative flex h-11 items-center rounded-full", iosGlassClassName)}>
         <SearchIcon
           aria-hidden="true"
-          className="pointer-events-none absolute left-3.5 size-[18px] text-(--ios-secondary-label)"
+          className="text-ios-secondary-label pointer-events-none absolute left-3.5 size-[18px]"
           strokeWidth={2.4}
         />
         <input
@@ -152,7 +152,7 @@ export function StockSearch({
           aria-activedescendant={activeIndex >= 0 ? `stock-suggestion-${activeIndex}` : undefined}
           aria-describedby="stock-search-help"
           placeholder={labels.searchPlaceholder}
-          className="size-full min-w-0 rounded-full bg-transparent pr-16 pl-10 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none placeholder:text-(--ios-secondary-label)"
+          className="text-ios-body text-ios-label placeholder:text-ios-secondary-label size-full min-w-0 rounded-full bg-transparent pr-16 pl-10 outline-none"
           onFocus={function openSuggestions() {
             setIsOpen(true);
           }}
@@ -168,14 +168,14 @@ export function StockSearch({
         {isSearching ? (
           <span
             aria-hidden="true"
-            className="absolute right-10 size-3.5 animate-spin rounded-full border-2 border-(--ios-secondary-label) border-r-transparent motion-reduce:animate-none"
+            className="border-ios-secondary-label absolute right-10 size-3.5 animate-spin rounded-full border-2 border-r-transparent motion-reduce:animate-none"
           />
         ) : null}
         {query ? (
           <button
             type="button"
             aria-label={labels.close}
-            className="absolute right-2 flex size-7 items-center justify-center rounded-full text-(--ios-tertiary-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60 [&_svg]:size-[18px]"
+            className="text-ios-tertiary-label focus-visible:ring-ios-tint/50 absolute right-2 flex size-7 items-center justify-center rounded-full outline-none focus-visible:ring-2 active:opacity-60 [&_svg]:size-[18px]"
             onClick={function clearSearch() {
               setQuery("");
               setIsOpen(false);
@@ -212,7 +212,7 @@ export function StockSearch({
                   type="button"
                   role="option"
                   aria-selected={isHighlighted}
-                  className="flex w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2.5 text-left outline-none aria-selected:bg-(--ios-fill)"
+                  className="aria-selected:bg-ios-fill flex w-full items-center justify-between gap-3 rounded-[14px] px-3 py-2.5 text-left outline-none"
                   onPointerEnter={function highlightSuggestion() {
                     setHighlightedIndex(index);
                   }}
@@ -221,16 +221,13 @@ export function StockSearch({
                   }}
                 >
                   <span className="min-w-0">
-                    <Text
-                      as="span"
-                      className="block text-[17px] leading-[22px] font-semibold text-(--ios-label)"
-                    >
+                    <Text as="span" className="text-ios-body text-ios-label block font-semibold">
                       {stock.symbol}
                     </Text>
                     <Text
                       as="span"
                       numberOfLines={1}
-                      className="block text-[13px] leading-[18px] text-(--ios-secondary-label)"
+                      className="text-ios-footnote text-ios-secondary-label block"
                     >
                       {stock.name} · {stock.exchange}
                     </Text>
@@ -239,7 +236,7 @@ export function StockSearch({
                     as="span"
                     className={cn(
                       "shrink-0 text-[15px] font-semibold",
-                      isAdded ? "text-(--ios-secondary-label)" : "text-(--ios-tint)",
+                      isAdded ? "text-ios-secondary-label" : "text-ios-tint",
                     )}
                   >
                     {isAdded ? labels.added : labels.add}

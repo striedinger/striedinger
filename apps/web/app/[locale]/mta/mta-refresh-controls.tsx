@@ -55,7 +55,7 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
 
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <Text className="hidden text-right text-[12px] leading-4 text-(--ios-secondary-label) sm:block">
+      <Text className="text-ios-caption1 text-ios-secondary-label hidden text-right sm:block">
         {labels.updated}{" "}
         {getDateTimeFormat(locale, {
           hour: "numeric",
@@ -65,7 +65,7 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
         <br />
         {labels.refreshes}
       </Text>
-      <Text className="text-[12px] leading-4 text-(--ios-secondary-label) tabular-nums sm:hidden">
+      <Text className="text-ios-caption1 text-ios-secondary-label tabular-nums sm:hidden">
         {getDateTimeFormat(locale, {
           hour: "numeric",
           minute: "2-digit",
@@ -75,7 +75,7 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
       <IosBarButton
         aria-label={labels.refresh}
         disabled={state.isNavigating}
-        className="text-(--ios-tint)"
+        className="text-ios-tint"
         onClick={actions.refresh}
       >
         <RefreshIcon className={state.isNavigating ? "animate-spin" : undefined} />

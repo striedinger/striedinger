@@ -19,7 +19,7 @@ interface OptimizerFileListProps {
 }
 
 const actionRowClassName =
-  "flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] transition-colors duration-150 outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) motion-reduce:transition-none [&_svg]:size-5";
+  "flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-ios-body transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed motion-reduce:transition-none [&_svg]:size-5";
 
 /** The queued images as an inset grouped list, followed by actions for the whole batch. */
 export function OptimizerFileList({
@@ -63,10 +63,10 @@ export function OptimizerFileList({
       </IosListSection>
       <IosListSection className="px-0">
         {completed.length > 1 ? (
-          <li className="relative after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:scale-y-50 after:bg-(--ios-separator)">
+          <li className="after:bg-ios-separator relative after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:scale-y-50">
             <button
               type="button"
-              className={cn(actionRowClassName, "text-(--ios-tint)")}
+              className={cn(actionRowClassName, "text-ios-tint")}
               onClick={function downloadAll() {
                 completed.forEach(onDownload);
               }}
@@ -79,7 +79,7 @@ export function OptimizerFileList({
         <li>
           <button
             type="button"
-            className={cn(actionRowClassName, "text-(--ios-red)")}
+            className={cn(actionRowClassName, "text-ios-red")}
             onClick={onClear}
           >
             <TrashIcon />

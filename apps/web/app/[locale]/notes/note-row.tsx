@@ -106,7 +106,7 @@ export function NoteRow({
       ];
 
   return (
-    <li className="relative bg-(--ios-grouped-cell) not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) md:bg-(--ios-background) md:not-last:after:right-3 md:not-last:after:left-3">
+    <li className="bg-ios-grouped-cell not-last:after:bg-ios-separator md:bg-ios-background relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 md:not-last:after:right-3 md:not-last:after:left-3">
       <IosSwipeActions
         className="bg-inherit"
         leadingActions={
@@ -116,7 +116,7 @@ export function NoteRow({
                   id: "recover",
                   label: messages.Recover,
                   icon: <FolderIcon />,
-                  colorClassName: "bg-(--ios-purple)",
+                  colorClassName: "bg-ios-purple",
                   onSelect: function recoverNote() {
                     onRecover(note);
                   },
@@ -127,7 +127,7 @@ export function NoteRow({
                   id: "pin",
                   label: note.pinned ? messages["Unpin Note"] : messages["Pin Note"],
                   icon: <PinIcon />,
-                  colorClassName: "bg-(--ios-orange)",
+                  colorClassName: "bg-ios-orange",
                   onSelect: function togglePinned() {
                     onTogglePinned(note);
                   },
@@ -139,7 +139,7 @@ export function NoteRow({
             id: "delete",
             label: messages["Delete Note"],
             icon: <TrashIcon />,
-            colorClassName: "bg-(--ios-red)",
+            colorClassName: "bg-ios-red",
             onSelect: function deleteNote() {
               onDelete(note);
             },
@@ -151,7 +151,7 @@ export function NoteRow({
                   id: "move",
                   label: messages["Move Note"],
                   icon: <FolderIcon />,
-                  colorClassName: "bg-(--ios-purple)",
+                  colorClassName: "bg-ios-purple",
                   onSelect: function moveNote() {
                     onMove(note);
                   },
@@ -163,7 +163,7 @@ export function NoteRow({
           <button
             type="button"
             aria-current={selected || undefined}
-            className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-(--ios-fill)/40 focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint)/25 motion-reduce:transition-none md:rounded-[12px] md:px-3 dark:aria-current:bg-(--ios-tint)/25"
+            className="hover:bg-ios-fill/40 focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:bg-ios-tint/25 dark:aria-current:bg-ios-tint/25 flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none motion-reduce:transition-none md:rounded-[12px] md:px-3"
             onClick={function selectNote() {
               onSelect(note);
             }}
@@ -172,16 +172,16 @@ export function NoteRow({
               <Text
                 as="span"
                 numberOfLines={1}
-                className="text-[17px] leading-[22px] font-semibold tracking-[-0.43px] text-(--ios-label)"
+                className="text-ios-body text-ios-label font-semibold"
               >
                 {title}
               </Text>
               <Text
                 as="span"
                 numberOfLines={1}
-                className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)"
+                className="text-ios-subheadline text-ios-secondary-label"
               >
-                <span className="mr-2 text-(--ios-label)/80 in-aria-current:text-(--ios-label)">
+                <span className="text-ios-label/80 in-aria-current:text-ios-label mr-2">
                   {formatNoteListDate(note.updatedAt, locale, now)}
                 </span>
                 {preview}
@@ -190,7 +190,7 @@ export function NoteRow({
                 <Text
                   as="span"
                   numberOfLines={1}
-                  className="flex items-center gap-1 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)"
+                  className="text-ios-subheadline text-ios-secondary-label flex items-center gap-1"
                 >
                   <FolderIcon className="size-4 shrink-0" />
                   {folderName}
@@ -205,7 +205,7 @@ export function NoteRow({
                 alt=""
                 decoding="async"
                 loading="lazy"
-                className="size-[50px] shrink-0 rounded-md border-[0.5px] border-(--ios-separator) object-cover"
+                className="border-ios-separator size-[50px] shrink-0 rounded-md border-[0.5px] object-cover"
               />
             ) : null}
           </button>

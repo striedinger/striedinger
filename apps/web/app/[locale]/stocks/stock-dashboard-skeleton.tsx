@@ -11,7 +11,7 @@ export function StockDashboardSkeleton() {
       className="flex flex-col gap-5 px-4 pb-4 lg:grid lg:grid-cols-[19rem_minmax(0,1fr)] lg:items-start lg:gap-6"
     >
       <IosSkeleton className="h-11 rounded-full lg:col-span-2" />
-      <div className="flex flex-col gap-4 rounded-[22px] bg-(--ios-grouped-cell) p-4 sm:p-5 lg:order-2">
+      <div className="bg-ios-grouped-cell flex flex-col gap-4 rounded-[22px] p-4 sm:p-5 lg:order-2">
         <div className="flex items-start justify-between">
           <div className="flex flex-col gap-2">
             <IosSkeleton className="h-8 w-24" />

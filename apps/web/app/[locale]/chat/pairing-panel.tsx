@@ -107,13 +107,10 @@ export function PairingPanel({
             aria-hidden="true"
             className={cn(
               "size-2.5 shrink-0 rounded-full",
-              peerCount > 0 ? "bg-(--ios-green)" : "bg-(--ios-tertiary-label)",
+              peerCount > 0 ? "bg-ios-green" : "bg-ios-tertiary-label",
             )}
           />
-          <Text
-            aria-live="polite"
-            className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
-          >
+          <Text aria-live="polite" className="text-ios-body text-ios-label">
             {describeConnectedDevices(labels, peerCount)}
           </Text>
         </li>
@@ -195,19 +192,16 @@ export function PairingPanel({
         <div className="flex min-h-24 flex-col items-center justify-center gap-3" role="status">
           <span
             aria-hidden="true"
-            className="size-6 animate-spin rounded-full border-[2.5px] border-(--ios-fill) border-t-(--ios-secondary-label) motion-reduce:animate-none"
+            className="border-ios-fill border-t-ios-secondary-label size-6 animate-spin rounded-full border-[2.5px] motion-reduce:animate-none"
           />
-          <Text className="text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+          <Text className="text-ios-subheadline text-ios-secondary-label">
             {pairingState === "creating" ? labels.preparingConnection : labels.connecting}
           </Text>
         </div>
       ) : null}
 
       {connectionError ? (
-        <Text
-          role="alert"
-          className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)"
-        >
+        <Text role="alert" className="text-ios-footnote text-ios-red px-5">
           {connectionError}
         </Text>
       ) : null}

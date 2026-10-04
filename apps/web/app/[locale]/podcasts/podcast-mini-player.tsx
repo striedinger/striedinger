@@ -42,7 +42,7 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
       <button
         type="button"
         aria-label={`${messages["Open Now Playing"]}: ${item.episode.title}`}
-        className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full pl-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)"
+        className="focus-visible:ring-ios-tint flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full pl-3 text-left outline-none focus-visible:ring-2"
         onClick={onOpen}
       >
         <PodcastArtwork
@@ -54,14 +54,14 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
           <Text
             as="span"
             numberOfLines={1}
-            className="text-[15px] leading-5 font-medium tracking-[-0.23px] text-(--ios-label)"
+            className="text-ios-subheadline text-ios-label font-medium"
           >
             {item.episode.title}
           </Text>
           <Text
             as="span"
             numberOfLines={1}
-            className="text-[13px] leading-4 text-(--ios-secondary-label)"
+            className="text-ios-secondary-label text-[13px] leading-4"
           >
             {item.podcast.title}
           </Text>
@@ -70,7 +70,7 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
       <button
         type="button"
         aria-label={player.isPlaying ? messages.Pause : messages.Play}
-        className="flex size-11 shrink-0 items-center justify-center rounded-full text-(--ios-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-90 active:opacity-60 motion-safe:transition-transform"
+        className="text-ios-label focus-visible:ring-ios-tint flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 active:scale-90 active:opacity-60 motion-safe:transition-transform"
         onClick={togglePlayback}
       >
         {player.isPlaying ? (
@@ -82,7 +82,7 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
       <button
         type="button"
         aria-label={messages["Skip Forward 30 Seconds"]}
-        className="relative flex size-11 shrink-0 items-center justify-center rounded-full text-(--ios-label) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint) active:scale-90 active:opacity-60 motion-safe:transition-transform"
+        className="text-ios-label focus-visible:ring-ios-tint relative flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 active:scale-90 active:opacity-60 motion-safe:transition-transform"
         onClick={skipForward}
       >
         <GoForwardIcon className="size-7" strokeWidth={2} />

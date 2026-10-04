@@ -31,21 +31,17 @@ export function PodcastTile({ className, detail, podcast, priority, sizes }: Pod
           src={podcast.artworkUrl}
           sizes={sizes}
           priority={priority}
-          className="w-full rounded-[10px] shadow-[0_2px_8px_rgb(0_0_0/0.08)] transition-transform duration-150 group-focus-visible:ring-2 group-focus-visible:ring-(--ios-tint) group-active:scale-[0.97] motion-reduce:transition-none"
+          className="group-focus-visible:ring-ios-tint w-full rounded-[10px] shadow-[0_2px_8px_rgb(0_0_0/0.08)] transition-transform duration-150 group-focus-visible:ring-2 group-active:scale-[0.97] motion-reduce:transition-none"
         />
         <span className="flex min-w-0 flex-col">
           <Text
             as="span"
             numberOfLines={1}
-            className="text-[15px] leading-5 font-medium tracking-[-0.23px] text-(--ios-label)"
+            className="text-ios-subheadline text-ios-label font-medium"
           >
             {podcast.title}
           </Text>
-          <Text
-            as="span"
-            numberOfLines={1}
-            className="text-[13px] leading-[18px] text-(--ios-secondary-label)"
-          >
+          <Text as="span" numberOfLines={1} className="text-ios-footnote text-ios-secondary-label">
             {detail ?? podcast.author}
           </Text>
         </span>

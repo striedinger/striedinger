@@ -51,7 +51,7 @@ export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
 
   return (
     <div
-      className="relative flex size-full flex-col bg-(--ios-grouped-background)"
+      className="bg-ios-grouped-background relative flex size-full flex-col"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -61,16 +61,14 @@ export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
       <div
         aria-hidden={!isDragging}
         className={cn(
-          "pointer-events-none absolute inset-3 z-30 flex flex-col items-center justify-center gap-3 rounded-[38px] border-2 border-dashed border-(--ios-tint) bg-(--ios-tint)/10 backdrop-blur-[6px] transition-opacity duration-200 motion-reduce:transition-none",
+          "border-ios-tint bg-ios-tint/10 pointer-events-none absolute inset-3 z-30 flex flex-col items-center justify-center gap-3 rounded-[38px] border-2 border-dashed backdrop-blur-[6px] transition-opacity duration-200 motion-reduce:transition-none",
           isDragging ? "opacity-100" : "opacity-0",
         )}
       >
-        <span className="flex size-16 items-center justify-center rounded-full bg-(--ios-tint) text-white [&_svg]:size-8">
+        <span className="bg-ios-tint flex size-16 items-center justify-center rounded-full text-white [&_svg]:size-8">
           <PlusIcon strokeWidth={2.6} />
         </span>
-        <Text className="text-[20px] leading-[25px] font-semibold text-(--ios-label)">
-          {labels.dropFiles}
-        </Text>
+        <Text className="text-ios-title3 text-ios-label font-semibold">{labels.dropFiles}</Text>
       </div>
       <div
         role="toolbar"
@@ -82,7 +80,7 @@ export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
       >
         <label
           htmlFor="drop-file-input"
-          className="pointer-events-auto flex h-[52px] w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-transform duration-150 select-none focus-within:ring-2 focus-within:ring-(--ios-tint)/50 active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-5"
+          className="bg-ios-tint focus-within:ring-ios-tint/50 pointer-events-auto flex h-[52px] w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-full text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-transform duration-150 select-none focus-within:ring-2 active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-5"
         >
           <PlusIcon strokeWidth={2.8} />
           {labels.selectFiles}

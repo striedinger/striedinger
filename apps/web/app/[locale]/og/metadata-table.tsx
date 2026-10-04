@@ -15,27 +15,27 @@ export function MetadataTable({ description, heading, tags }: MetadataTableProps
       <Text
         as="h2"
         id="metadata-heading"
-        className="px-5 pt-4 pb-1.5 text-[15px] leading-5 font-semibold tracking-[-0.23px] text-(--ios-secondary-label)"
+        className="text-ios-subheadline text-ios-secondary-label px-5 pt-4 pb-1.5 font-semibold"
       >
         {heading}
       </Text>
-      <dl className="overflow-hidden rounded-[22px] bg-(--ios-grouped-cell)">
+      <dl className="bg-ios-grouped-cell overflow-hidden rounded-[22px]">
         {tags.map(function renderMetadataTag(tag, index) {
           return (
             <div
-              className="relative flex flex-col gap-0.5 px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4"
+              className="not-last:after:bg-ios-separator relative flex flex-col gap-0.5 px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4"
               key={`${tag.name}-${index}`}
             >
               <Text
                 as="dt"
                 family="mono"
-                className="min-w-0 text-[13px] leading-[22px] break-all text-(--ios-secondary-label)"
+                className="text-ios-secondary-label min-w-0 text-[13px] leading-[22px] break-all"
               >
                 {tag.name}
               </Text>
               <Text
                 as="dd"
-                className="min-w-0 text-[15px] leading-[22px] tracking-[-0.23px] break-words text-(--ios-label)"
+                className="text-ios-label min-w-0 text-[15px] leading-[22px] tracking-[-0.23px] break-words"
               >
                 {tag.value}
               </Text>
@@ -43,9 +43,7 @@ export function MetadataTable({ description, heading, tags }: MetadataTableProps
           );
         })}
       </dl>
-      <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
-        {description}
-      </Text>
+      <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">{description}</Text>
     </section>
   );
 }

@@ -74,14 +74,11 @@ export function MtaDashboard({
               <Text
                 as="h2"
                 id="nearby-heading"
-                className="text-[13px] leading-[18px] font-semibold tracking-[-0.08px] text-(--ios-secondary-label) uppercase"
+                className="text-ios-footnote text-ios-secondary-label font-semibold uppercase"
               >
                 {labels.nearbyStops}
               </Text>
-              <Text
-                numberOfLines={1}
-                className="text-[20px] leading-[25px] font-semibold tracking-[0.38px] text-(--ios-label)"
-              >
+              <Text numberOfLines={1} className="text-ios-title3 text-ios-label font-semibold">
                 {locationName}
               </Text>
             </div>
@@ -101,13 +98,13 @@ export function MtaDashboard({
           {initialStations.length === 0 ? (
             <Text
               role="alert"
-              className="mx-4 rounded-[18px] bg-(--ios-grouped-cell) px-4 py-3 text-[15px] leading-5 text-(--ios-red)"
+              className="bg-ios-grouped-cell text-ios-subheadline text-ios-red mx-4 rounded-[18px] px-4 py-3"
             >
               {labels.arrivalError}
             </Text>
           ) : null}
           <StationGrid labels={labels} locale={locale} stations={displayedStations} />
-          <Text className="px-8 text-[12px] leading-4 text-(--ios-secondary-label)">
+          <Text className="text-ios-caption1 text-ios-secondary-label px-8">
             {labels.attribution}
           </Text>
         </section>

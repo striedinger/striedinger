@@ -132,7 +132,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
             <li className="flex min-h-[64px] items-center gap-3 px-4 py-2.5">
               <span
                 aria-hidden="true"
-                className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-(--ios-tint) text-white [&_svg]:size-5"
+                className="bg-ios-tint flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-5"
               >
                 <DocIcon />
               </span>
@@ -141,21 +141,18 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
                   as="span"
                   numberOfLines={1}
                   title={file.name}
-                  className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+                  className="text-ios-body text-ios-label"
                 >
                   {file.name}
                 </Text>
-                <Text
-                  as="span"
-                  className="text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label) tabular-nums"
-                >
+                <Text as="span" className="text-ios-footnote text-ios-secondary-label tabular-nums">
                   {formatBytes(file.size)}
                 </Text>
               </span>
               <button
                 type="button"
                 disabled={isProcessing}
-                className="shrink-0 rounded-full px-2 py-1 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-50 disabled:text-(--ios-tertiary-label)"
+                className="text-ios-body text-ios-tint focus-visible:ring-ios-tint/50 disabled:text-ios-tertiary-label shrink-0 rounded-full px-2 py-1 outline-none focus-visible:ring-2 active:opacity-50"
                 onClick={openFilePicker}
               >
                 {labels.replaceFile}
@@ -178,10 +175,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
             stageLabel={stageLabel}
           />
           {error ? (
-            <Text
-              role="alert"
-              className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)"
-            >
+            <Text role="alert" className="text-ios-footnote text-ios-red px-5">
               {error}
             </Text>
           ) : null}
@@ -222,7 +216,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
         </>
       ) : (
         <div className="flex flex-col pt-2">
-          <div className="rounded-[26px] border-2 border-dashed border-(--ios-separator) bg-(--ios-grouped-cell)">
+          <div className="border-ios-separator bg-ios-grouped-cell rounded-[26px] border-2 border-dashed">
             <IosContentUnavailable
               className="px-6 pt-12 pb-12"
               icon={<DocIcon />}
@@ -230,7 +224,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
               description={labels.supported}
             />
           </div>
-          <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
+          <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">
             {labels.fileStaysLocal}
           </Text>
         </div>
@@ -257,7 +251,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
         <button
           type="button"
           disabled={file ? !canCompress : false}
-          className="pointer-events-auto flex h-[50px] w-full max-w-sm items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 motion-reduce:transition-none [&_svg]:size-5"
+          className="bg-ios-tint focus-visible:ring-ios-tint/50 pointer-events-auto flex h-[50px] w-full max-w-sm items-center justify-center gap-2 rounded-full text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 motion-reduce:transition-none [&_svg]:size-5"
           onClick={
             file
               ? function compress() {

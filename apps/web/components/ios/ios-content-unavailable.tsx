@@ -26,15 +26,13 @@ export function IosContentUnavailable({
     >
       <span
         aria-hidden="true"
-        className="mb-2 flex text-(--ios-secondary-label) [&_svg]:size-14 [&_svg]:stroke-[1.6]"
+        className="text-ios-secondary-label mb-2 flex [&_svg]:size-14 [&_svg]:stroke-[1.6]"
       >
         {icon}
       </span>
-      <Text className="text-[22px] leading-7 font-bold tracking-[0.35px] text-(--ios-label)">
-        {title}
-      </Text>
+      <Text className="text-ios-title2 text-ios-label font-bold">{title}</Text>
       {description ? (
-        <Text className="max-w-xs text-[15px] leading-5 tracking-[-0.23px] text-(--ios-secondary-label)">
+        <Text className="text-ios-subheadline text-ios-secondary-label max-w-xs">
           {description}
         </Text>
       ) : null}
