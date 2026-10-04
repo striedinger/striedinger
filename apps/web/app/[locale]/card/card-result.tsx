@@ -4,13 +4,20 @@ import { headers } from "next/headers";
 import type { PageMetadata, PreviewErrorCode } from "../../../lib/og/types";
 import type { CardPreview } from "./card-preview";
 
+import { IosCopyRowButton } from "../../../components/ios/ios-copy-row-button";
+import { IosListSection } from "../../../components/ios/ios-list-section";
+import { IosValueRow } from "../../../components/ios/ios-value-row";
 import { SocialCardPreview } from "../../../components/social-card-preview";
 import { resolveCardPreview } from "./card-preview";
-import { CopyLinkButton } from "./copy-link-button";
 
 interface CardResultProps {
   targetUrl: string;
 }
+
+// The shared social card keeps the platform's look; its heading takes the grouped-section
+// header style so it lines up with the sections below.
+const socialCardClassName =
+  "flex flex-col [&_h2]:px-5 [&_h2]:text-[15px] [&_h2]:leading-5 [&_h2]:font-semibold [&_h2]:tracking-[-0.23px] [&_h2]:text-(--ios-secondary-label) [&>section]:gap-1.5";
 
 const errorMessages: Readonly<Record<PreviewErrorCode, string>> = {
   "invalid-url": "Enter a full URL starting with http:// or https://.",
@@ -30,62 +37,42 @@ export async function CardResult({ targetUrl }: CardResultProps) {
   }
 
   if (preview.status === "error") {
-    return <Text tone="destructive">{errorMessages[preview.error]}</Text>;
+    return (
+      <Text role="alert" className="px-5 text-[15px] leading-5 tracking-[-0.23px] text-(--ios-red)">
+        {errorMessages[preview.error]}
+      </Text>
+    );
   }
 
   const trackedUrl = await getTrackedUrl(preview);
 
   return (
-    <section className="flex flex-col gap-6">
-      <SocialCardPreview metadata={getCardMetadata(preview)} platform="twitter" title="Preview" />
-      <div className="flex flex-col gap-2">
-        <Text size="sm" weight="medium" tone="muted">
-          Share this link
-        </Text>
-        <div className="flex flex-wrap items-center gap-3">
-          <Text family="mono" size="sm" className="break-all">
+    <div className="flex flex-col gap-6">
+      <div className={socialCardClassName}>
+        <SocialCardPreview metadata={getCardMetadata(preview)} platform="twitter" title="Preview" />
+      </div>
+      <IosListSection header="Share this link" className="px-0">
+        <li className="relative px-4 py-[11px] after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-(--ios-separator)">
+          <Text
+            family="mono"
+            className="text-[15px] leading-[22px] [overflow-wrap:anywhere] text-(--ios-label)"
+          >
             {trackedUrl}
           </Text>
-          <CopyLinkButton url={trackedUrl} />
-        </div>
-      </div>
-      <dl className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <Text as="dt" size="sm" weight="medium" tone="muted">
-            Link
-          </Text>
-          <Text as="dd" family="mono" size="sm">
-            {preview.targetUrl}
-          </Text>
-        </div>
-        <div className="flex flex-col gap-1">
-          <Text as="dt" size="sm" weight="medium" tone="muted">
-            Title
-          </Text>
-          <Text as="dd" size="sm">
-            {preview.title}
-          </Text>
-        </div>
+        </li>
+        <li>
+          <IosCopyRowButton value={trackedUrl} label="Copy link" copiedLabel="Copied" />
+        </li>
+      </IosListSection>
+      <IosListSection header="Details" className="px-0">
+        <IosValueRow label="Link" value={preview.targetUrl} monospaceValue />
+        <IosValueRow label="Title" value={preview.title} />
         {preview.description ? (
-          <div className="flex flex-col gap-1">
-            <Text as="dt" size="sm" weight="medium" tone="muted">
-              Description
-            </Text>
-            <Text as="dd" size="sm">
-              {preview.description}
-            </Text>
-          </div>
+          <IosValueRow label="Description" value={preview.description} />
         ) : null}
-        <div className="flex flex-col gap-1">
-          <Text as="dt" size="sm" weight="medium" tone="muted">
-            Image
-          </Text>
-          <Text as="dd" family="mono" size="sm">
-            {preview.image || "None found"}
-          </Text>
-        </div>
-      </dl>
-    </section>
+        <IosValueRow label="Image" value={preview.image || "None found"} monospaceValue />
+      </IosListSection>
+    </div>
   );
 }
 

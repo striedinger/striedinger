@@ -6,10 +6,10 @@ import { Suspense } from "react";
 import type { OgPreviewLabels } from "../../../lib/og/labels";
 import type { PreviewState } from "../../../lib/og/types";
 
+import { IosSubmitButton } from "../../../components/ios/ios-submit-button";
 import { OgPreviewError } from "./og-preview-error";
 import { OgPreviewResults } from "./og-preview-results";
 import { OgPreviewResultsSkeleton } from "./og-preview-results-skeleton";
-import { OgSubmitButton } from "./og-submit-button";
 
 interface OgPreviewFormProps {
   /** The localized page URL the form submits to. */
@@ -65,7 +65,7 @@ export function OgPreviewForm({ action, defaultUrl, labels, preview }: OgPreview
             {labels.security}
           </Text>
         </div>
-        <OgSubmitButton label={labels.button} checkingLabel={labels.checking} />
+        <IosSubmitButton label={labels.button} checkingLabel={labels.checking} />
       </Form>
 
       <div className="flex flex-col gap-3" aria-label={labels.previewRegion}>

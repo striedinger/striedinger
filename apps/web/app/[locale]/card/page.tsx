@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
+import { LinkIcon } from "@workspace/icons/link-icon";
 import { Text } from "@workspace/ui/components/text";
+import Form from "next/form";
 import { Suspense } from "react";
 
+import { IosSubmitButton } from "../../../components/ios/ios-submit-button";
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { createCardMetadata, getCardParams, resolveCardPreview } from "./card-preview";
 import { CardResult } from "./card-result";
 
@@ -25,35 +24,35 @@ export default async function CardPage({ searchParams }: CardPageProps) {
   const { targetUrl } = getCardParams(await searchParams);
 
   return (
-    <PageShell>
-      <PageContainer>
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-12">
-          <PageHeader title="Link Card Maker" />
-
-          <form method="get" className="flex flex-col gap-4">
-            <label htmlFor="card-url" className="flex flex-col gap-2">
-              <Text as="span" size="sm" weight="medium">
-                Website
-              </Text>
-              <Input
-                id="card-url"
-                name="url"
-                type="url"
-                required
-                defaultValue={targetUrl}
-                placeholder="https://example.com/article"
-              />
-            </label>
-            <Button type="submit" className="self-start">
-              Create link
-            </Button>
-          </form>
-
-          <Suspense fallback={null}>
-            <CardResult targetUrl={targetUrl} />
-          </Suspense>
+    <IosToolScreen title="Link Card Maker">
+      <Form action="/card" className="flex flex-col gap-5">
+        <Text as="label" htmlFor="card-url" className="sr-only">
+          Website
+        </Text>
+        <div className="flex min-h-[52px] items-center gap-3 rounded-[22px] bg-(--ios-grouped-cell) px-4 transition-shadow duration-150 focus-within:ring-2 focus-within:ring-(--ios-tint)/35 motion-reduce:transition-none">
+          <LinkIcon aria-hidden="true" className="size-5 shrink-0 text-(--ios-tertiary-label)" />
+          <input
+            id="card-url"
+            name="url"
+            type="url"
+            inputMode="url"
+            enterKeyHint="go"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            required
+            maxLength={2048}
+            defaultValue={targetUrl}
+            placeholder="https://example.com/article"
+            className="min-w-0 flex-1 bg-transparent py-3.5 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) caret-(--ios-tint) outline-none placeholder:text-(--ios-tertiary-label)"
+          />
         </div>
-      </PageContainer>
-    </PageShell>
+        <IosSubmitButton label="Create link" checkingLabel="Creating…" />
+      </Form>
+
+      <Suspense key={targetUrl} fallback={null}>
+        <CardResult targetUrl={targetUrl} />
+      </Suspense>
+    </IosToolScreen>
   );
 }

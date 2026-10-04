@@ -2,12 +2,13 @@
 
 import { useFormStatus } from "react-dom";
 
-interface OgSubmitButtonProps {
+interface IosSubmitButtonProps {
   checkingLabel: string;
   label: string;
 }
 
-export function OgSubmitButton({ checkingLabel, label }: OgSubmitButtonProps) {
+/** A full-width filled capsule that submits its form and shows a spinner while pending. */
+export function IosSubmitButton({ checkingLabel, label }: IosSubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (

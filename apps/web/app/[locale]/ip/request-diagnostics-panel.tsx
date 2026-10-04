@@ -1,9 +1,9 @@
 import { Text } from "@workspace/ui/components/text";
 import { headers } from "next/headers";
 
+import { IosCopyRowButton } from "../../../components/ios/ios-copy-row-button";
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { IosValueRow } from "../../../components/ios/ios-value-row";
-import { CopyIpAddressButton } from "./copy-ip-address-button";
 import { collectRequestDiagnostics } from "./request-diagnostics";
 
 interface RequestDiagnosticsPanelLabels {
@@ -71,9 +71,10 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
         </li>
         <IosValueRow label={labels.ipVersion} value={diagnostics.ipVersion} />
         <li>
-          <CopyIpAddressButton
-            ipAddress={hasIpAddress ? diagnostics.ipAddress : null}
-            labels={{ copied: labels.copied, copyIpAddress: labels.copyIpAddress }}
+          <IosCopyRowButton
+            value={hasIpAddress ? diagnostics.ipAddress : null}
+            label={labels.copyIpAddress}
+            copiedLabel={labels.copied}
           />
         </li>
       </IosListSection>

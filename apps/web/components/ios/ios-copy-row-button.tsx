@@ -4,26 +4,21 @@ import { CheckIcon } from "@workspace/icons/check-icon";
 import { CopyIcon } from "@workspace/icons/copy-icon";
 import { useState } from "react";
 
-import { copyText } from "../../../lib/copy-text";
+import { copyText } from "../../lib/copy-text";
 
-interface CopyIpAddressButtonProps {
-  /** The address to copy, or `null` when the server could not observe one. */
-  ipAddress: string | null;
-  labels: {
-    copied: string;
-    copyIpAddress: string;
-  };
+interface IosCopyRowButtonProps {
+  copiedLabel: string;
+  label: string;
+  /** The text to copy, or `null` to disable the row. */
+  value: string | null;
 }
 
-/** A tinted list-row button that copies the observed address and briefly confirms it. */
-export function CopyIpAddressButton({ ipAddress, labels }: CopyIpAddressButtonProps) {
+/** A tinted list-row button that copies a value and briefly confirms it. */
+export function IosCopyRowButton({ copiedLabel, label, value }: IosCopyRowButtonProps) {
   const [copied, setCopied] = useState(false);
 
-  async function copyIpAddress() {
-    if (!ipAddress || !(await copyText(ipAddress))) {
-      return;
-    }
-
+  async function copyValue() {
+    if (!value || !(await copyText(value))) return;
     setCopied(true);
     window.setTimeout(function resetCopied() {
       setCopied(false);
@@ -33,12 +28,12 @@ export function CopyIpAddressButton({ ipAddress, labels }: CopyIpAddressButtonPr
   return (
     <button
       type="button"
-      disabled={!ipAddress}
+      disabled={!value}
       className="flex min-h-[44px] w-full items-center gap-3 px-4 text-left text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-tint) transition-colors duration-150 outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) disabled:text-(--ios-tertiary-label) motion-reduce:transition-none [&_svg]:size-5"
-      onClick={copyIpAddress}
+      onClick={copyValue}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
-      <span aria-live="polite">{copied ? labels.copied : labels.copyIpAddress}</span>
+      <span aria-live="polite">{copied ? copiedLabel : label}</span>
     </button>
   );
 }
