@@ -2,14 +2,7 @@
 
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import {
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-  type PointerEvent,
-} from "react";
+import { useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 
 import type { StockPoint, StocksLabels, StockTimeframe } from "./types";
 
@@ -62,30 +55,7 @@ export function StockChart({
     maximumFractionDigits: (points[lastIndex]?.close ?? 0) < 10 ? 3 : 2,
   });
   const dateFormat = getDateTimeFormat(locale, getDateFormat(timeframe));
-  const model = useMemo(
-    function createChartModel() {
-      const closes = points.map(function selectClose(point) {
-        return point.close;
-      });
-      const minimum = Math.min(...closes);
-      const maximum = Math.max(...closes);
-      const priceRange = maximum - minimum || 1;
-      function getY(price: number) {
-        return chartBottom - ((price - minimum) / priceRange) * (chartBottom - chartTop);
-      }
-      const coordinates = points.map(function createCoordinate(point, index) {
-        return { x: (index / Math.max(lastIndex, 1)) * chartWidth, y: getY(point.close) };
-      });
-      return {
-        baselineY: getY(points[0]?.close ?? minimum),
-        coordinates,
-        isPositive: (points[lastIndex]?.close ?? 0) >= (points[0]?.close ?? 0),
-        maximum,
-        minimum,
-      };
-    },
-    [lastIndex, points],
-  );
+  const model = createChartModel(points);
   const lineColor = model.isPositive ? "var(--ios-green)" : "var(--ios-red)";
   const range =
     selection && selection.second !== null
@@ -359,4 +329,28 @@ function getDateFormat(timeframe: StockTimeframe): Intl.DateTimeFormatOptions {
   }
   if (timeframe === "MAX" || timeframe === "5Y") return { month: "short", year: "numeric" };
   return { month: "short", day: "numeric", year: "numeric" };
+}
+
+/** Plots closing prices into the chart's coordinate space. */
+function createChartModel(points: readonly StockPoint[]) {
+  const lastIndex = points.length - 1;
+  const closes = points.map(function selectClose(point) {
+    return point.close;
+  });
+  const minimum = Math.min(...closes);
+  const maximum = Math.max(...closes);
+  const priceRange = maximum - minimum || 1;
+  function getY(price: number) {
+    return chartBottom - ((price - minimum) / priceRange) * (chartBottom - chartTop);
+  }
+  const coordinates = points.map(function createCoordinate(point, index) {
+    return { x: (index / Math.max(lastIndex, 1)) * chartWidth, y: getY(point.close) };
+  });
+  return {
+    baselineY: getY(points[0]?.close ?? minimum),
+    coordinates,
+    isPositive: (points[lastIndex]?.close ?? 0) >= (points[0]?.close ?? 0),
+    maximum,
+    minimum,
+  };
 }

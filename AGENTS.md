@@ -11,7 +11,7 @@ These guidelines apply to the entire monorepo. Update this file as the projectâ€
 - Use Tailwind CSS utilities for application styling; do not introduce CSS Modules for ordinary component styling.
 - Run the relevant package typechecks after changes and run a production build when changes affect Next.js compilation, routing, server actions, metadata, or shared styles.
 - Use Oxlint for repository-wide linting and Oxfmt for formatting, import ordering, Tailwind class ordering, and package manifest ordering. Do not introduce parallel ESLint or Prettier configurations.
-- Keep React Compiler enabled for the web app and treat compiler diagnostics as correctness failures. Prefer compiler-friendly React patterns over manual memoization added without profiling evidence.
+- Keep React Compiler enabled for the web app and treat compiler diagnostics as correctness failures. Prefer compiler-friendly React patterns over manual memoization added without profiling evidence. The compiler memoizes context values and derived data, so `react/jsx-no-constructed-context-values` is off; pass plain objects instead of wrapping them in `useMemo`.
 - Do not create commits or push branches unless the user explicitly requests that action.
 
 ## Testing

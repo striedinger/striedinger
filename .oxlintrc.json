@@ -26,6 +26,7 @@
     "react/no-array-index-key": "error",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
+    "react/jsx-no-constructed-context-values": "off",
     "react/jsx-key": "error",
     "jsx-a11y/alt-text": "error",
     "jsx-a11y/anchor-has-content": "error",

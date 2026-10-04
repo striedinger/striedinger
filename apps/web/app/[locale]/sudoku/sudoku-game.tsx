@@ -1,11 +1,12 @@
 "use client";
 
 import { Text } from "@workspace/ui/components/text";
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 
 import type { SudokuDifficulty, SudokuLabels, SudokuPuzzle } from "./types";
 
 import { IosSegmentedControl } from "../../../components/ios/ios-segmented-control";
+import { getDateTimeFormat } from "../../../lib/intl-cache";
 import { CompletionCard } from "./completion-card";
 import { triggerHapticFeedback } from "./haptics";
 import { NumberPad } from "./number-pad";
@@ -27,6 +28,8 @@ interface SudokuGameProps {
 }
 
 const difficulties: readonly SudokuDifficulty[] = ["easy", "medium", "hard"];
+// Daily puzzles are dated in UTC, so the date shows the same day everywhere.
+const puzzleDateFormat: Intl.DateTimeFormatOptions = { dateStyle: "long", timeZone: "UTC" };
 
 export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
   const [difficulty, setDifficulty] = useState<SudokuDifficulty>("easy");
@@ -49,14 +52,8 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
   const filledPlayerCells = countFilledPlayerCells(values, activePuzzle.puzzle);
   const liveScore = calculateLiveInputScore(minimumInputCount, filledPlayerCells, inputCount);
   const completedNumbers = getCompletedNumbers(values, activePuzzle.solution);
-  const localizedDate = useMemo(
-    function formatPuzzleDate() {
-      return new Intl.DateTimeFormat(locale, {
-        dateStyle: "long",
-        timeZone: "UTC",
-      }).format(new Date(`${activePuzzle.date}T00:00:00Z`));
-    },
-    [activePuzzle.date, locale],
+  const localizedDate = getDateTimeFormat(locale, puzzleDateFormat).format(
+    new Date(`${activePuzzle.date}T00:00:00Z`),
   );
 
   function handleDifficultyChange(nextDifficulty: SudokuDifficulty) {
