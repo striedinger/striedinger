@@ -8,12 +8,15 @@ interface NotesSkeletonProps {
   title?: string;
 }
 
-/** The Notes folder list with shimmering placeholders while notes load from the device. */
+/**
+ * The Notes folder list with shimmering placeholders while notes load from the device. On wide
+ * screens it takes the floating sidebar's shape so the layout does not jump once notes load.
+ */
 export function NotesSkeleton({ title }: NotesSkeletonProps) {
   return (
     <div
       aria-busy="true"
-      className="relative flex size-full flex-col gap-5 bg-(--ios-grouped-background) px-4 pt-[calc(4rem+env(safe-area-inset-top))]"
+      className="relative flex size-full flex-col gap-5 bg-(--ios-grouped-background) px-4 pt-[calc(4rem+env(safe-area-inset-top))] md:m-2 md:h-[calc(100%-1rem)] md:w-[304px] md:shrink-0 md:rounded-[26px] md:bg-(--ios-secondary-background) md:shadow-[inset_0_0_0_0.5px_var(--ios-separator),0_8px_30px_var(--ios-glass-shadow)] lg:w-[272px]"
     >
       {title ? (
         <Text
@@ -33,8 +36,8 @@ export function NotesSkeleton({ title }: NotesSkeletonProps) {
       </div>
       <div className="absolute inset-x-4 bottom-[max(env(safe-area-inset-bottom),14px)] flex gap-2.5">
         <span className={`size-11 rounded-full ${iosGlassClassName}`} />
-        <span className={`h-11 flex-1 rounded-full ${iosGlassClassName}`} />
-        <span className={`size-11 rounded-full ${iosGlassClassName}`} />
+        <span className={`h-11 flex-1 rounded-full md:hidden ${iosGlassClassName}`} />
+        <span className={`size-11 rounded-full md:hidden ${iosGlassClassName}`} />
       </div>
     </div>
   );

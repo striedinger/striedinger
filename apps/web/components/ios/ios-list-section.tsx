@@ -12,6 +12,8 @@ interface IosListSectionProps {
   header?: ReactNode;
   headerVariant?: IosListSectionHeaderVariant;
   label?: string;
+  /** Adjusts the inset grouped card, such as plain sidebar rows on wide screens. */
+  listClassName?: string;
 }
 
 export function IosListSection({
@@ -21,6 +23,7 @@ export function IosListSection({
   header,
   headerVariant = "default",
   label,
+  listClassName,
 }: IosListSectionProps) {
   return (
     <section aria-label={label} className={cn("flex flex-col px-4", className)}>
@@ -36,7 +39,12 @@ export function IosListSection({
           {header}
         </Text>
       ) : null}
-      <ul className="m-0 list-none overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) p-0">
+      <ul
+        className={cn(
+          "m-0 list-none overflow-hidden rounded-[22px] bg-(--ios-grouped-cell) p-0",
+          listClassName,
+        )}
+      >
         {children}
       </ul>
       {footer ? (

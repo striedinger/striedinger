@@ -162,11 +162,14 @@ export function NotesListPane({
   return (
     <section
       aria-label={title}
-      className={cn("relative min-h-0 flex-col bg-(--ios-grouped-background)", className)}
+      className={cn(
+        "relative min-h-0 flex-col bg-(--ios-grouped-background) md:bg-(--ios-background)",
+        className,
+      )}
     >
       <div
         data-ios-scroll
-        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)]"
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)] md:[--ios-bar-edge:var(--ios-background)]"
       >
         <IosNavigationBar
           titleElement="h2"
@@ -241,6 +244,8 @@ export function NotesListPane({
                   label={section.title || title}
                   header={section.title || undefined}
                   headerVariant="prominent"
+                  className="md:px-2.5"
+                  listClassName="md:overflow-visible md:rounded-none md:bg-transparent"
                 >
                   {section.notes.map(function renderNote(note) {
                     return (
@@ -268,7 +273,10 @@ export function NotesListPane({
           </div>
         )}
       </div>
-      <NotesToolbar label={title} className="[--ios-bar-edge:var(--ios-grouped-background)]">
+      <NotesToolbar
+        label={title}
+        className="[--ios-bar-edge:var(--ios-grouped-background)] md:[--ios-bar-edge:var(--ios-background)]"
+      >
         <IosSearchField
           aria-label={messages.Search}
           placeholder={messages.Search}
@@ -281,7 +289,7 @@ export function NotesListPane({
         {isRecentlyDeleted ? null : (
           <IosBarButton
             aria-label={messages["New Note"]}
-            className="text-(--ios-tint)"
+            className="text-(--ios-tint) md:hidden"
             onClick={onCreateNote}
           >
             <ComposeIcon />

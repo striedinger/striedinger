@@ -2,7 +2,6 @@
 
 import { CameraIcon } from "@workspace/icons/camera-icon";
 import { CheckIcon } from "@workspace/icons/check-icon";
-import { ChecklistIcon } from "@workspace/icons/checklist-icon";
 import { ChevronLeftIcon } from "@workspace/icons/chevron-left-icon";
 import { ComposeIcon } from "@workspace/icons/compose-icon";
 import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
@@ -10,7 +9,6 @@ import { FolderIcon } from "@workspace/icons/folder-icon";
 import { KeyboardDismissIcon } from "@workspace/icons/keyboard-dismiss-icon";
 import { PinIcon } from "@workspace/icons/pin-icon";
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
-import { TextFormatIcon } from "@workspace/icons/text-format-icon";
 import { TrashIcon } from "@workspace/icons/trash-icon";
 import { UndoIcon } from "@workspace/icons/undo-icon";
 import { Text } from "@workspace/ui/components/text";
@@ -29,6 +27,7 @@ import { copyText } from "../../../lib/copy-text";
 import { insertImage, startNewLineAtEnd, toggleChecklist, undoEditing } from "./note-commands";
 import { formatNoteHeaderDate } from "./note-dates";
 import { NoteEditor } from "./note-editor";
+import { NoteFormatControls } from "./note-format-controls";
 import { NoteFormatPanel } from "./note-format-panel";
 import { isSafeNoteImageSource, noteHtmlToPlainText } from "./note-html";
 import { prepareNoteImage } from "./note-image";
@@ -141,6 +140,10 @@ export function NoteEditorPane({
 
   function undo() {
     if (focusEditorAtSelection()) undoEditing();
+  }
+
+  function toggleFormat() {
+    setIsFormatOpen(!isFormatOpen);
   }
 
   function addChecklist() {
@@ -286,6 +289,20 @@ export function NoteEditorPane({
           trailing={
             note ? (
               <>
+                {/* Wide layouts keep every note control in the top toolbar, like iPad. */}
+                {isDeleted ? null : (
+                  <NoteFormatControls
+                    className="max-md:hidden"
+                    editingControlHandlers={editingControlHandlers}
+                    isEditing={isEditing}
+                    isFormatOpen={isFormatOpen}
+                    messages={messages}
+                    menuSide="bottom"
+                    photoMenuSections={photoMenuSections}
+                    onAddChecklist={addChecklist}
+                    onToggleFormat={toggleFormat}
+                  />
+                )}
                 <IosGlassGroup label={messages.More}>
                   {isEditing ? (
                     <IosBarButton
@@ -332,9 +349,25 @@ export function NoteEditorPane({
                   >
                     <CheckIcon strokeWidth={2.8} />
                   </IosBarButton>
-                ) : null}
+                ) : (
+                  <IosBarButton
+                    aria-label={messages["New Note"]}
+                    className="text-(--ios-tint) max-md:hidden"
+                    onClick={onCreateNote}
+                  >
+                    <ComposeIcon />
+                  </IosBarButton>
+                )}
               </>
-            ) : null
+            ) : (
+              <IosBarButton
+                aria-label={messages["New Note"]}
+                className="text-(--ios-tint) max-md:hidden"
+                onClick={onCreateNote}
+              >
+                <ComposeIcon />
+              </IosBarButton>
+            )
           }
         />
         {note ? (
@@ -366,7 +399,7 @@ export function NoteEditorPane({
         )}
       </div>
       <div
-        className="absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col"
+        className="absolute inset-x-0 bottom-0 z-20 flex translate-y-[calc(-1*var(--keyboard-inset,0px))] flex-col md:top-[calc(3.5rem+env(safe-area-inset-top))] md:right-4 md:bottom-auto md:left-auto md:w-[380px] md:translate-y-0"
         {...editingControlHandlers}
       >
         {isFormatOpen && isEditing ? (
@@ -382,42 +415,19 @@ export function NoteEditorPane({
       </div>
       <NotesToolbar
         label={messages.Format}
-        className={cn(isFormatOpen && isEditing && "pointer-events-none opacity-0")}
+        className={cn("md:hidden", isFormatOpen && isEditing && "pointer-events-none opacity-0")}
       >
         {note && !isDeleted ? (
-          <IosGlassGroup label={messages.Format}>
-            {isEditing ? (
-              <IosBarButton
-                variant="plain"
-                aria-label={messages.Format}
-                aria-pressed={isFormatOpen}
-                {...editingControlHandlers}
-                onClick={function toggleFormat() {
-                  setIsFormatOpen(!isFormatOpen);
-                }}
-              >
-                <TextFormatIcon />
-              </IosBarButton>
-            ) : null}
-            <IosBarButton
-              variant="plain"
-              aria-label={messages.Checklist}
-              {...(isEditing ? editingControlHandlers : undefined)}
-              onClick={addChecklist}
-            >
-              <ChecklistIcon />
-            </IosBarButton>
-            <IosMenu
-              side="top"
-              align="center"
-              sections={photoMenuSections}
-              trigger={
-                <IosBarButton variant="plain" aria-label={messages["Attach Photo"]}>
-                  <CameraIcon />
-                </IosBarButton>
-              }
-            />
-          </IosGlassGroup>
+          <NoteFormatControls
+            editingControlHandlers={editingControlHandlers}
+            isEditing={isEditing}
+            isFormatOpen={isFormatOpen}
+            messages={messages}
+            menuSide="top"
+            photoMenuSections={photoMenuSections}
+            onAddChecklist={addChecklist}
+            onToggleFormat={toggleFormat}
+          />
         ) : null}
         <span className="flex-1" />
         {isEditing ? (

@@ -106,7 +106,7 @@ export function NoteRow({
       ];
 
   return (
-    <li className="relative bg-(--ios-grouped-cell) not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)">
+    <li className="relative bg-(--ios-grouped-cell) not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator) md:bg-(--ios-background) md:not-last:after:right-3 md:not-last:after:left-3">
       <IosSwipeActions
         className="bg-inherit"
         leadingActions={
@@ -163,7 +163,7 @@ export function NoteRow({
           <button
             type="button"
             aria-current={selected || undefined}
-            className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-(--ios-fill)/40 focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint)/25 motion-reduce:transition-none dark:aria-current:bg-(--ios-tint)/25"
+            className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-(--ios-fill)/40 focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:bg-(--ios-tint)/25 motion-reduce:transition-none md:rounded-[12px] md:px-3 dark:aria-current:bg-(--ios-tint)/25"
             onClick={function selectNote() {
               onSelect(note);
             }}

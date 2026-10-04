@@ -97,7 +97,7 @@ export function NoteFormatPanel({
     <section
       aria-label={messages.Format}
       className={cn(
-        "mx-2 mb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),8px)] flex flex-col gap-3 rounded-[32px] px-5 pt-4 pb-5",
+        "mx-2 mb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),8px)] flex flex-col gap-3 rounded-[32px] px-5 pt-4 pb-5 md:m-0 md:mt-2",
         iosStrongGlassClassName,
       )}
     >

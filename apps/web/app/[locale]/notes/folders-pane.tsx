@@ -80,11 +80,14 @@ export function FoldersPane({
   return (
     <section
       aria-label={messages.Folders}
-      className={cn("relative min-h-0 flex-col bg-(--ios-grouped-background)", className)}
+      className={cn(
+        "relative min-h-0 flex-col bg-(--ios-grouped-background) md:overflow-hidden md:rounded-[26px] md:bg-(--ios-secondary-background) md:shadow-[inset_0_0_0_0.5px_var(--ios-separator),0_8px_30px_var(--ios-glass-shadow)]",
+        className,
+      )}
     >
       <div
         data-ios-scroll
-        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)]"
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-28 [--ios-bar-edge:var(--ios-grouped-background)] md:[--ios-bar-edge:var(--ios-secondary-background)]"
       >
         <IosNavigationBar
           title={messages.Folders}
@@ -125,7 +128,8 @@ export function FoldersPane({
             header={messages["On This Device"]}
             headerVariant="prominent"
             footer={messages["Your notes are stored only on this device."]}
-            className="pt-2"
+            className="pt-2 md:px-2.5"
+            listClassName={sidebarListClassName}
           >
             {folders.length > 0 ? (
               <IosListRow
@@ -155,7 +159,7 @@ export function FoldersPane({
                   className="relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[52px] not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)"
                 >
                   <IosSwipeActions
-                    className="bg-(--ios-grouped-cell)"
+                    className="bg-(--ios-grouped-cell) md:bg-transparent"
                     trailingActions={[
                       {
                         id: "delete",
@@ -208,7 +212,7 @@ export function FoldersPane({
       </div>
       <NotesToolbar
         label={messages.Folders}
-        className="[--ios-bar-edge:var(--ios-grouped-background)]"
+        className="[--ios-bar-edge:var(--ios-grouped-background)] md:[--ios-bar-edge:var(--ios-secondary-background)]"
       >
         <IosBarButton
           aria-label={messages["New Folder"]}
@@ -223,12 +227,13 @@ export function FoldersPane({
           cancelLabel={messages.Cancel}
           clearLabel={messages["Clear text"]}
           value={searchQuery}
-          containerClassName="min-w-0 flex-1"
+          containerClassName="min-w-0 flex-1 md:hidden"
           onValueChange={onSearchQueryChange}
         />
+        {/* Wide layouts search from the notes list and compose from the editor's toolbar. */}
         <IosBarButton
           aria-label={messages["New Note"]}
-          className="text-(--ios-tint)"
+          className="text-(--ios-tint) md:hidden"
           onClick={onCreateNote}
         >
           <ComposeIcon />
@@ -237,3 +242,8 @@ export function FoldersPane({
     </section>
   );
 }
+
+// Beside the notes list, folders appear as sidebar rows: no grouped card, separators, or
+// chevrons, and the selected folder is a rounded tinted capsule.
+const sidebarListClassName =
+  "md:flex md:flex-col md:gap-0.5 md:overflow-visible md:rounded-none md:bg-transparent md:[&_button]:min-h-11 md:[&_button]:rounded-[12px] md:[&_button]:py-2.5 md:[&_button>svg:last-child]:hidden md:[&>li]:after:hidden";
