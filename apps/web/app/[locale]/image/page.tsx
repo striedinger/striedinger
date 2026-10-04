@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-
 import type { ImageOptimizerLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getImageTranslator } from "../../../messages/image/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -28,7 +24,7 @@ export default async function ImageOptimizerPage() {
   const labels: ImageOptimizerLabels = {
     addMore: translate("Add more"),
     avif: "AVIF",
-    auto: translate("Auto (smallest)"),
+    autoFormat: translate("Auto"),
     autoTarget: translate("Auto size target"),
     balanced: translate("Optimizing"),
     balancedMode: translate("Balanced"),
@@ -39,6 +35,7 @@ export default async function ImageOptimizerPage() {
     compressionMode: translate("Compression mode"),
     decoding: translate("Decoding image"),
     description: translate("Compress images privately in your browser. Nothing is uploaded."),
+    dimensionHint: translate("Resize the longest side, in pixels."),
     download: translate("Download"),
     downloadAll: translate("Download all"),
     dropActive: translate("Drop files to start"),
@@ -48,14 +45,14 @@ export default async function ImageOptimizerPage() {
     jpeg: "JPEG",
     losslessMode: translate("Lossless"),
     maxDimension: translate("Maximum dimension"),
-    original: translate("original"),
-    output: translate("output"),
+    originalDimensions: translate("Original"),
     preparing: translate("Preparing file"),
     png: "PNG",
     privacy: translate("Files stay on this device. Processing happens entirely in your browser."),
     quality: translate("Quality"),
     qualityHint: translate("Lower values create smaller files."),
     queue: translate("Files"),
+    remove: translate("Remove"),
     saved: translate("smaller"),
     smallerFilesKept: translate("No smaller result at this quality"),
     smallestMode: translate("Smallest file"),
@@ -76,35 +73,9 @@ export default async function ImageOptimizerPage() {
   });
 
   return (
-    <PageShell>
+    <IosToolScreen title={labels.title} contentWidth="42rem">
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="flex flex-col gap-12">
-          <PageHeader title={labels.title} description={labels.description} />
-          <ImageOptimizer labels={labels} />
-          <ToolDetails
-            title={translate("About this tool")}
-            description={labels.description}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: labels.qualityHint,
-                items: [labels.supported, labels.autoTarget, labels.comparing],
-              },
-              {
-                title: translate("Privacy and security"),
-                description: labels.privacy,
-                items: [labels.tooManyFiles, labels.unsupported],
-              },
-              {
-                title: translate("Features"),
-                description: labels.compressionMode,
-                items: [labels.balancedMode, labels.smallestMode, labels.losslessMode],
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <ImageOptimizer labels={labels} />
+    </IosToolScreen>
   );
 }

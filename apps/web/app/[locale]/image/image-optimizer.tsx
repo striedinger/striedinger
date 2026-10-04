@@ -1,16 +1,20 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
-import { Surface } from "@workspace/ui/components/surface";
+import { PhotoIcon } from "@workspace/icons/photo-icon";
+import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 import type { CompressionMode, ImageOptimizerLabels, OptimizerItem, OutputFormat } from "./types";
 
+import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
+import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { FileDropZone } from "./file-drop-zone";
 import { targetRatioForMode } from "./optimization-settings";
 import { optimizeImage } from "./optimize-image";
-import { OptimizerFileRow } from "./optimizer-file-row";
+import { OptimizerFileList } from "./optimizer-file-list";
+import { OptimizerSettings } from "./optimizer-settings";
 
 const MAX_FILES = 20;
 
@@ -24,10 +28,6 @@ function download(item: OptimizerItem) {
   setTimeout(function releaseUrl() {
     URL.revokeObjectURL(url);
   }, 1_000);
-}
-
-function openAdditionalFilePicker() {
-  document.getElementById("image-add-more")?.click();
 }
 
 export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
@@ -124,10 +124,6 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
     [compressionMode, items, labels.unsupported, maxDimension, outputFormat, quality],
   );
 
-  const completed = items.filter(function completedItems(item) {
-    return item.output;
-  });
-
   function addFiles(files: File[]) {
     const accepted = files.filter(function acceptFile(file) {
       return file.type.startsWith("image/") || /\.(?:heic|heif)$/i.test(file.name);
@@ -158,192 +154,106 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
     });
   }
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-      <Surface className="overflow-hidden p-2">
-        {items.length === 0 ? (
-          <FileDropZone labels={labels} onFiles={addFiles} />
-        ) : (
-          <>
-            <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-3">
-              <div>
-                <Text weight="semibold">{labels.queue}</Text>
-                <Text size="sm" tone="muted">
-                  {items.length} / {MAX_FILES}
-                </Text>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={openAdditionalFilePicker}
-                >
-                  {labels.addMore}
-                </Button>
-                <input
-                  id="image-add-more"
-                  className="sr-only"
-                  type="file"
-                  accept="image/*,.heic,.heif"
-                  multiple
-                  onChange={function selectMore(event) {
-                    addFiles(Array.from(event.target.files ?? []));
-                    event.target.value = "";
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={function clear() {
-                    setItems([]);
-                  }}
-                >
-                  {labels.clearAll}
-                </Button>
-              </div>
-            </div>
-            <ul>
-              <>
-                {items.map(function renderItem(item) {
-                  return (
-                    <OptimizerFileRow
-                      key={item.id}
-                      item={item}
-                      labels={labels}
-                      onDownload={download}
-                      onRemove={function remove(id) {
-                        setItems(function removeItem(current) {
-                          return current.filter(function keep(entry) {
-                            return entry.id !== id;
-                          });
-                        });
-                      }}
-                    />
-                  );
-                })}
-              </>
-            </ul>
-            {completed.length > 1 ? (
-              <div className="border-t border-border p-4">
-                <Button
-                  type="button"
-                  onClick={function downloadAll() {
-                    completed.forEach(download);
-                  }}
-                >
-                  {labels.downloadAll}
-                </Button>
-              </div>
-            ) : null}
-          </>
-        )}
-      </Surface>
+  function changeCompressionMode(nextMode: CompressionMode) {
+    setCompressionMode(nextMode);
+    if (nextMode === "lossless") {
+      setMaxDimension(0);
+      setOutputFormat("auto");
+    }
+    requeueItems();
+  }
 
-      <Surface className="flex flex-col gap-6 p-5 lg:sticky lg:top-20">
-        <label className="flex flex-col gap-2">
-          <Text size="sm" weight="semibold">
-            {labels.compressionMode}
-          </Text>
-          <select
-            value={compressionMode}
-            onChange={function changeCompressionMode(event) {
-              const nextMode = event.target.value as CompressionMode;
-              setCompressionMode(nextMode);
-              if (nextMode === "lossless") {
-                setMaxDimension(0);
-                setOutputFormat("auto");
-              }
-              requeueItems();
-            }}
-            className="h-9 rounded-md border border-input bg-surface-inset px-3 text-sm"
-          >
-            <option value="balanced">{labels.balancedMode}</option>
-            <option value="smallest">{labels.smallestMode}</option>
-            <option value="lossless">{labels.losslessMode}</option>
-          </select>
-        </label>
-        {compressionMode !== "lossless" ? (
-          <label className="flex flex-col gap-2">
-            <Text size="sm" weight="semibold">
-              {labels.quality}: {quality}%
-            </Text>
-            <input
-              type="range"
-              min="35"
-              max="95"
-              value={quality}
-              onChange={function changeQuality(event) {
-                setQuality(Number(event.target.value));
-              }}
-              // Re-encode once the slider settles rather than for every step while dragging.
-              onPointerUp={requeueForSettledQuality}
-              onKeyUp={requeueForSettledQuality}
-              className="accent-primary"
+  return (
+    <div className="flex flex-col gap-2 pb-16">
+      {items.length === 0 ? (
+        <div className="flex flex-col pt-2">
+          <div className="rounded-[26px] border-2 border-dashed border-(--ios-separator) bg-(--ios-grouped-cell)">
+            <IosContentUnavailable
+              className="px-6 pt-12 pb-12"
+              icon={<PhotoIcon />}
+              title={labels.dropPrompt}
+              description={labels.supported}
             />
-            <Text size="sm" tone="muted">
-              {labels.qualityHint}
-            </Text>
-            {outputFormat === "auto" ? (
-              <Text size="sm" tone="muted">
-                {labels.autoTarget}: ~{autoSavingsTarget}% {labels.saved}
-              </Text>
-            ) : null}
-          </label>
-        ) : null}
-        <label className="flex flex-col gap-2">
-          <Text size="sm" weight="semibold">
-            {labels.maxDimension}
-          </Text>
-          <select
-            value={maxDimension}
-            disabled={compressionMode === "lossless"}
-            onChange={function changeDimension(event) {
-              setMaxDimension(Number(event.target.value));
-              requeueItems();
-            }}
-            className="h-9 rounded-md border border-input bg-surface-inset px-3 text-sm"
-          >
-            <option value="0">Original dimensions</option>
-            <option value="1280">Email · 1280 px</option>
-            <option value="1920">Web · 1920 px</option>
-            <option value="2560">Retina web · 2560 px</option>
-            <option value="3840">Ultra HD · 3840 px</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-2">
-          <Text size="sm" weight="semibold">
-            {labels.format}
-          </Text>
-          <select
-            value={outputFormat}
-            onChange={function changeFormat(event) {
-              setOutputFormat(event.target.value as OutputFormat);
-              requeueItems();
-            }}
-            className="h-9 rounded-md border border-input bg-surface-inset px-3 text-sm"
-          >
-            <option value="auto">{labels.auto}</option>
-            <option value="image/avif">{labels.avif}</option>
-            <option value="image/webp">{labels.webp}</option>
-            <option value="image/jpeg" disabled={compressionMode === "lossless"}>
-              {labels.jpeg}
-            </option>
-            <option value="image/png">{labels.png}</option>
-          </select>
-        </label>
-        <div className="border-t border-border pt-5">
-          <Text size="sm" weight="semibold">
+          </div>
+          <Text className="px-5 pt-2 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-secondary-label)">
             {labels.privacy}
           </Text>
         </div>
-        {notice ? (
-          <Text size="sm" className="text-destructive" role="alert">
-            {notice}
-          </Text>
-        ) : null}
-      </Surface>
+      ) : (
+        <OptimizerFileList
+          items={items}
+          labels={labels}
+          maxFiles={MAX_FILES}
+          onClear={function clear() {
+            setItems([]);
+          }}
+          onDownload={download}
+          onRemove={function remove(id) {
+            setItems(function removeItem(current) {
+              return current.filter(function keep(entry) {
+                return entry.id !== id;
+              });
+            });
+          }}
+        />
+      )}
+      {notice ? (
+        <Text
+          role="alert"
+          className="px-5 text-[13px] leading-[18px] tracking-[-0.08px] text-(--ios-red)"
+        >
+          {notice}
+        </Text>
+      ) : null}
+      <OptimizerSettings
+        autoSavingsTarget={autoSavingsTarget}
+        compressionMode={compressionMode}
+        labels={labels}
+        maxDimension={maxDimension}
+        onCompressionModeChange={changeCompressionMode}
+        onMaxDimensionChange={function changeDimension(nextMaxDimension) {
+          setMaxDimension(nextMaxDimension);
+          requeueItems();
+        }}
+        onOutputFormatChange={function changeFormat(nextOutputFormat) {
+          setOutputFormat(nextOutputFormat);
+          requeueItems();
+        }}
+        onQualityChange={setQuality}
+        onQualitySettle={requeueForSettledQuality}
+        outputFormat={outputFormat}
+        quality={quality}
+      />
+      <FileDropZone label={labels.dropActive} onFiles={addFiles} />
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-[max(env(safe-area-inset-bottom),14px)]",
+          iosBottomScrollEdgeClassName,
+        )}
+      >
+        <label
+          htmlFor="image-file-input"
+          className="pointer-events-auto flex h-[50px] w-full max-w-sm cursor-pointer items-center justify-center gap-2 rounded-full bg-(--ios-tint) text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-transform duration-150 select-none focus-within:ring-2 focus-within:ring-(--ios-tint)/50 active:scale-[0.97] motion-reduce:transition-none [&_svg]:size-5"
+        >
+          <PlusIcon strokeWidth={2.8} />
+          {items.length === 0 ? labels.chooseFiles : labels.addMore}
+          <input
+            id="image-file-input"
+            className="sr-only"
+            type="file"
+            accept="image/*,.heic,.heif"
+            multiple
+            aria-describedby="image-file-limits"
+            onChange={function selectFiles(event) {
+              addFiles(Array.from(event.target.files ?? []));
+              event.target.value = "";
+            }}
+          />
+        </label>
+        <span id="image-file-limits" className="sr-only">
+          {labels.supported}
+        </span>
+      </div>
     </div>
   );
 }

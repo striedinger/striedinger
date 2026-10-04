@@ -1,82 +1,82 @@
 "use client";
 
-import type { DragEvent } from "react";
-
-import { Button } from "@workspace/ui/components/button";
+import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useRef, useState } from "react";
-
-import type { ImageOptimizerLabels } from "./types";
-
-function handleDragOver(event: DragEvent<HTMLDivElement>) {
-  event.preventDefault();
-}
+import { useEffect, useEffectEvent, useState } from "react";
 
 interface FileDropZoneProps {
-  labels: ImageOptimizerLabels;
+  label: string;
   onFiles: (files: File[]) => void;
 }
 
-export function FileDropZone({ labels, onFiles }: FileDropZoneProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+/**
+ * Lets images be dropped anywhere on the screen, like dragging files onto an iPad app, and
+ * outlines the whole screen while files are dragged over it.
+ */
+export function FileDropZone({ label, onFiles }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const receiveFiles = useEffectEvent(onFiles);
 
-  function handleDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    setIsDragging(false);
-    onFiles(Array.from(event.dataTransfer.files));
-  }
+  useEffect(function acceptFilesDroppedOnScreen() {
+    let dragDepth = 0;
+
+    function handleDragEnter(event: DragEvent) {
+      if (!carriesFiles(event)) return;
+      event.preventDefault();
+      dragDepth += 1;
+      setIsDragging(true);
+    }
+
+    function handleDragOver(event: DragEvent) {
+      if (!carriesFiles(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    }
+
+    function handleDragLeave(event: DragEvent) {
+      if (!carriesFiles(event)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) setIsDragging(false);
+    }
+
+    function handleDrop(event: DragEvent) {
+      if (!carriesFiles(event)) return;
+      event.preventDefault();
+      dragDepth = 0;
+      setIsDragging(false);
+      const files = Array.from(event.dataTransfer?.files ?? []);
+      if (files.length > 0) receiveFiles(files);
+    }
+
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("drop", handleDrop);
+    return function stopAcceptingFiles() {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, []);
 
   return (
     <div
-      onDragEnter={function handleDragEnter(event) {
-        event.preventDefault();
-        setIsDragging(true);
-      }}
-      onDragLeave={function handleDragLeave(event) {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsDragging(false);
-      }}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      aria-hidden={!isDragging}
       className={cn(
-        "flex min-h-64 flex-col items-center justify-center gap-5 rounded-xl border-2 border-dashed border-border bg-surface-inset px-6 py-12 text-center transition-[border-color,background-color,transform] duration-150 motion-reduce:transform-none motion-reduce:transition-none",
-        isDragging && "scale-[1.01] border-primary bg-accent/60",
+        "pointer-events-none absolute inset-3 z-30 flex flex-col items-center justify-center gap-3 rounded-[38px] border-2 border-dashed border-(--ios-tint) bg-(--ios-tint)/10 backdrop-blur-[6px] transition-opacity duration-200 motion-reduce:transition-none",
+        isDragging ? "opacity-100" : "opacity-0",
       )}
     >
-      <div
-        className="flex size-14 items-center justify-center rounded-2xl border border-border bg-card text-3xl text-primary shadow-sm"
-        aria-hidden="true"
-      >
-        ↓
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Text size="lg" weight="semibold">
-          {isDragging ? labels.dropActive : labels.dropPrompt}
-        </Text>
-        <Text size="sm" tone="muted">
-          {labels.supported}
-        </Text>
-      </div>
-      <Button
-        type="button"
-        onClick={function openFilePicker() {
-          inputRef.current?.click();
-        }}
-      >
-        {labels.chooseFiles}
-      </Button>
-      <input
-        ref={inputRef}
-        className="sr-only"
-        type="file"
-        accept="image/*,.heic,.heif"
-        multiple
-        onChange={function selectFiles(event) {
-          onFiles(Array.from(event.target.files ?? []));
-          event.target.value = "";
-        }}
-      />
+      <span className="flex size-16 items-center justify-center rounded-full bg-(--ios-tint) text-white [&_svg]:size-8">
+        <PlusIcon strokeWidth={2.6} />
+      </span>
+      <Text className="text-[20px] leading-[25px] font-semibold text-(--ios-label)">{label}</Text>
     </div>
   );
+}
+
+function carriesFiles(event: DragEvent) {
+  return event.dataTransfer?.types.includes("Files") ?? false;
 }

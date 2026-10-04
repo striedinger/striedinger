@@ -40,10 +40,8 @@ export interface ChatLabels {
   connectionFailed: string;
   connectToChat: string;
   connectToJoin: string;
-  connectToStart: string;
   continue: string;
   copied: string;
-  deviceCount: string;
   devicesConnected: string;
   invalidAnswer: string;
   invalidInvite: string;
@@ -57,12 +55,12 @@ export interface ChatLabels {
   messages: string;
   nearbyDevices: string;
   noMessages: string;
-  oneDevice: string;
   oneDeviceConnected: string;
   pairingCode: string;
   pasteInvite: string;
   pasteReply: string;
   preparingConnection: string;
+  privacyIntro: string;
   readyToConnect: string;
   send: string;
   sendInvite: string;

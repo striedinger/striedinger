@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 
-import { LockIcon } from "@workspace/icons/lock-icon";
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageHeader } from "@workspace/ui/components/page-header";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Text } from "@workspace/ui/components/text";
-
 import type { ChatLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
-import { ToolDetails } from "../../../components/tool-details";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getTranslator } from "../../../messages/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -53,10 +46,8 @@ export default async function ChatPage() {
     ),
     connectToChat: translate("Connect a device to chat"),
     connectToJoin: translate("Connect a device to join this chat."),
-    connectToStart: translate("Connect a device to start chatting."),
     continue: translate("Continue"),
     copied: translate("Copied"),
-    deviceCount: translate("{count} devices"),
     devicesConnected: translate("{count} devices connected"),
     invalidAnswer: translate("That answer is invalid. Ask the other device to create it again."),
     invalidInvite: translate("That invite is invalid or could not be opened."),
@@ -70,12 +61,12 @@ export default async function ChatPage() {
     messages: translate("Messages"),
     nearbyDevices: translate("Nearby devices"),
     noMessages: translate("No messages yet"),
-    oneDevice: translate("1 device"),
     oneDeviceConnected: translate("1 device connected"),
     pairingCode: translate("One-time pairing code"),
     pasteInvite: translate("Paste the invite you received"),
     pasteReply: translate("Paste their reply"),
     preparingConnection: translate("Preparing a private connection…"),
+    privacyIntro: translate("Private chat for nearby devices. Messages disappear when you leave."),
     readyToConnect: translate("Ready to connect"),
     send: translate("Send"),
     sendInvite: translate("Send invite"),
@@ -99,49 +90,9 @@ export default async function ChatPage() {
   });
 
   return (
-    <PageShell className="py-4 sm:py-8">
+    <>
       <JsonLd value={structuredData} />
-      <PageContainer>
-        <div className="flex flex-col gap-4 sm:gap-6">
-          <PageHeader
-            variant="compact"
-            title={labels.title}
-            description={translate(
-              "Private chat for nearby devices. Messages disappear when you leave.",
-            )}
-            eyebrow={
-              <Text
-                as="span"
-                size="sm"
-                weight="medium"
-                className="hidden w-fit items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-secondary-foreground sm:inline-flex"
-              >
-                <LockIcon className="size-3.5" />
-                {translate("Private · Local · Temporary")}
-              </Text>
-            }
-          />
-          <ChatTool labels={labels} />
-          <ToolDetails
-            title={translate("About this tool")}
-            description={description}
-            sections={[
-              {
-                title: translate("How it works"),
-                description: pairingDescription,
-              },
-              {
-                title: translate("Privacy and security"),
-                description: privacyDescription,
-              },
-              {
-                title: translate("Features"),
-                description: temporaryDescription,
-              },
-            ]}
-          />
-        </div>
-      </PageContainer>
-    </PageShell>
+      <ChatTool labels={labels} locale={locale} />
+    </>
   );
 }

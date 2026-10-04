@@ -20,7 +20,7 @@ export interface OptimizerItem {
 export interface ImageOptimizerLabels {
   addMore: string;
   avif: string;
-  auto: string;
+  autoFormat: string;
   autoTarget: string;
   balanced: string;
   balancedMode: string;
@@ -31,6 +31,7 @@ export interface ImageOptimizerLabels {
   compressionMode: string;
   decoding: string;
   description: string;
+  dimensionHint: string;
   download: string;
   downloadAll: string;
   dropActive: string;
@@ -40,14 +41,14 @@ export interface ImageOptimizerLabels {
   jpeg: string;
   losslessMode: string;
   maxDimension: string;
-  original: string;
-  output: string;
+  originalDimensions: string;
   preparing: string;
   png: string;
   privacy: string;
   quality: string;
   qualityHint: string;
   queue: string;
+  remove: string;
   saved: string;
   smallerFilesKept: string;
   smallestMode: string;

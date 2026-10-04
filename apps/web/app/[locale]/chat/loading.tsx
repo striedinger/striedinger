@@ -1,41 +1,27 @@
-import { PageContainer } from "@workspace/ui/components/page-container";
-import { PageShell } from "@workspace/ui/components/page-shell";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Surface } from "@workspace/ui/components/surface";
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
+import { getTranslator } from "../../../messages/get-translator";
+import { getRequestLocale } from "../../get-request-locale";
 
-import { PageHeaderSkeleton } from "../../../components/page-header-skeleton";
+export default async function ChatLoading() {
+  const locale = await getRequestLocale();
+  const translate = await getTranslator(locale);
 
-export default function ChatLoading() {
   return (
-    <PageShell className="py-4 sm:py-8" aria-label="Loading nearby chat" aria-busy="true">
-      <PageContainer>
-        <div className="flex flex-col gap-4 sm:gap-6">
-          <PageHeaderSkeleton compact eyebrow />
-          <Surface
-            className="mx-auto flex h-[calc(100svh-11rem)] min-h-[32rem] w-full max-w-4xl flex-col overflow-hidden rounded-3xl sm:h-[min(46rem,calc(100svh-12rem))]"
-            aria-hidden="true"
-          >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-6 sm:py-4">
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-              <Skeleton className="h-11 w-28 rounded-xl" />
-            </div>
-            <div className="flex flex-1 items-center justify-center p-6">
-              <div className="flex w-full max-w-sm flex-col items-center gap-3">
-                <Skeleton className="h-6 w-40" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            </div>
-            <div className="flex gap-2 border-t border-border p-3 sm:p-4">
-              <Skeleton className="h-12 flex-1 rounded-xl" />
-              <Skeleton className="h-12 w-20 rounded-xl" />
-            </div>
-          </Surface>
+    <IosToolScreen title={translate("Nearby Chat")}>
+      <div aria-busy="true" className="flex flex-col gap-6">
+        <div className="flex flex-col items-center gap-2 pt-2">
+          <IosSkeleton className="size-[72px] rounded-full" />
+          <IosSkeleton className="h-7 w-52" />
+          <IosSkeleton className="h-4 w-72 max-w-full" />
+          <IosSkeleton className="h-4 w-20" />
         </div>
-      </PageContainer>
-    </PageShell>
+        <IosSkeleton className="h-11 w-full rounded-[22px]" />
+        <div className="flex flex-col gap-3">
+          <IosSkeleton className="h-[50px] w-full rounded-full" />
+          <IosSkeleton className="h-[50px] w-full rounded-full" />
+        </div>
+      </div>
+    </IosToolScreen>
   );
 }

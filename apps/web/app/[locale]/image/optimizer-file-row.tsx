@@ -1,7 +1,11 @@
 "use client";
 
-import { Button } from "@workspace/ui/components/button";
+import { CheckIcon } from "@workspace/icons/check-icon";
+import { CloseIcon } from "@workspace/icons/close-icon";
+import { DownloadIcon } from "@workspace/icons/download-icon";
+import { PhotoIcon } from "@workspace/icons/photo-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 
 import type { ImageOptimizerLabels, OptimizerItem } from "./types";
 
@@ -12,84 +16,102 @@ interface OptimizerFileRowProps {
   onRemove: (id: string) => void;
 }
 
+const accessoryClassName =
+  "flex size-9 shrink-0 items-center justify-center rounded-full bg-(--ios-fill) outline-none focus-visible:ring-2 focus-visible:ring-(--ios-tint)/50 active:opacity-60 [&_svg]:size-[18px]";
+
+/** One image in the queue: a status glyph, its name, the size before and after, and actions. */
 export function OptimizerFileRow({ item, labels, onDownload, onRemove }: OptimizerFileRowProps) {
   const savings = item.output ? Math.max(0, 1 - item.output.size / item.file.size) : 0;
-  const progress = item.progress ?? 0;
+  const progress = Math.round(item.progress ?? 0);
   const stageLabel = item.stage ? labels[item.stage] : labels.balanced;
 
   return (
-    <li className="grid gap-4 border-t border-border/70 px-4 py-4 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5">
-      <div className="min-w-0">
-        <Text weight="medium" className="truncate">
+    <li className="relative flex min-h-[64px] items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-5",
+          item.status === "error"
+            ? "bg-(--ios-red)"
+            : item.status === "done"
+              ? "bg-(--ios-green)"
+              : "bg-(--ios-tint)",
+        )}
+      >
+        {item.status === "done" ? <CheckIcon strokeWidth={3} /> : <PhotoIcon />}
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <Text
+          as="span"
+          numberOfLines={1}
+          title={item.file.name}
+          className="text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)"
+        >
           {item.file.name}
         </Text>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Text size="sm" tone="muted">
-            {formatBytes(item.file.size)} {labels.original}
-          </Text>
-          {item.output ? (
-            <Text size="sm" tone="muted">
-              → {formatBytes(item.output.size)} {labels.output}
-            </Text>
-          ) : null}
-          {item.status === "optimizing" ? (
-            <Text size="sm" className="text-primary tabular-nums" aria-live="polite">
-              {stageLabel}… {Math.round(progress)}%
-            </Text>
-          ) : null}
-          {item.status === "done" ? (
-            <Text size="sm" className="text-success">
-              {savings > 0
-                ? `${Math.round(savings * 100)}% ${labels.saved}`
-                : labels.smallerFilesKept}
-            </Text>
-          ) : null}
-          {item.error ? (
-            <Text size="sm" className="text-destructive">
-              {labels.error}: {item.error}
-            </Text>
-          ) : null}
-        </div>
         {item.status === "optimizing" ? (
-          <div
-            className="mt-3 h-1.5 overflow-hidden rounded-full bg-primary/10"
+          <span
             role="progressbar"
             aria-label={`${stageLabel} ${item.file.name}`}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={Math.round(progress)}
+            aria-valuenow={progress}
+            className="h-1 overflow-hidden rounded-full bg-(--ios-fill)"
           >
-            <div
-              className="h-full animate-pulse rounded-full bg-primary transition-[width] duration-500 ease-out motion-reduce:animate-none motion-reduce:transition-none"
+            <span
+              className="block h-full rounded-full bg-(--ios-tint) transition-[width] duration-500 ease-out motion-reduce:transition-none"
               style={{ width: `${progress}%` }}
             />
-          </div>
+          </span>
         ) : null}
-      </div>
-      <div className="flex gap-2">
-        {item.output ? (
-          <Button
-            type="button"
-            size="sm"
-            onClick={function download() {
-              onDownload(item);
-            }}
-          >
-            {labels.download}
-          </Button>
-        ) : null}
-        <Button
+        <Text
+          as="span"
+          aria-live="polite"
+          className={cn(
+            "text-[13px] leading-[18px] tracking-[-0.08px] tabular-nums",
+            item.status === "error" ? "text-(--ios-red)" : "text-(--ios-secondary-label)",
+          )}
+        >
+          {item.status === "error" ? (
+            `${labels.error}: ${item.error}`
+          ) : (
+            <>
+              {formatBytes(item.file.size)}
+              {item.output ? ` → ${formatBytes(item.output.size)}` : null}
+              {item.status === "optimizing" ? ` · ${stageLabel}… ${progress}%` : null}
+              {item.status === "done" ? " · " : null}
+              {item.status === "done" && savings > 0 ? (
+                <span className="font-semibold text-(--ios-green)">
+                  {Math.round(savings * 100)}% {labels.saved}
+                </span>
+              ) : null}
+              {item.status === "done" && savings === 0 ? labels.smallerFilesKept : null}
+            </>
+          )}
+        </Text>
+      </span>
+      {item.output ? (
+        <button
           type="button"
-          size="sm"
-          variant="ghost"
-          aria-label={`Remove ${item.file.name}`}
-          onClick={function remove() {
-            onRemove(item.id);
+          aria-label={`${labels.download} ${item.file.name}`}
+          className={cn(accessoryClassName, "text-(--ios-tint)")}
+          onClick={function download() {
+            onDownload(item);
           }}
         >
-          ×
-        </Button>
-      </div>
+          <DownloadIcon />
+        </button>
+      ) : null}
+      <button
+        type="button"
+        aria-label={`${labels.remove} ${item.file.name}`}
+        className={cn(accessoryClassName, "text-(--ios-secondary-label)")}
+        onClick={function remove() {
+          onRemove(item.id);
+        }}
+      >
+        <CloseIcon strokeWidth={2.6} />
+      </button>
     </li>
   );
 }
