@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import type { PdfToolLabels } from "./types";
 
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getPdfTranslator } from "../../../messages/pdf/get-translator";
@@ -68,9 +67,9 @@ export default async function PdfPage() {
   });
 
   return (
-    <IosToolScreen title={labels.title} contentWidth="48rem">
+    <>
       <JsonLd value={structuredData} />
       <PdfTool labels={labels} />
-    </IosToolScreen>
+    </>
   );
 }

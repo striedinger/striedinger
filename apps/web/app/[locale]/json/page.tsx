@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import type { JsonToolLabels } from "./types";
 
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getJsonTranslator } from "../../../messages/json/get-translator";
@@ -53,9 +52,9 @@ export default async function JsonPage() {
   });
 
   return (
-    <IosToolScreen title={labels.title} contentWidth="64rem">
+    <>
       <JsonLd value={structuredData} />
       <JsonTool labels={labels} />
-    </IosToolScreen>
+    </>
   );
 }

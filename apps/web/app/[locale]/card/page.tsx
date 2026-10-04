@@ -6,7 +6,6 @@ import Form from "next/form";
 import { Suspense } from "react";
 
 import { IosSubmitButton } from "../../../components/ios/ios-submit-button";
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { createCardMetadata, getCardParams, resolveCardPreview } from "./card-preview";
 import { CardResult } from "./card-result";
 
@@ -24,7 +23,7 @@ export default async function CardPage({ searchParams }: CardPageProps) {
   const { targetUrl } = getCardParams(await searchParams);
 
   return (
-    <IosToolScreen title="Link Card Maker">
+    <>
       <Form action="/card" className="flex flex-col gap-5">
         <Text as="label" htmlFor="card-url" className="sr-only">
           Website
@@ -53,6 +52,6 @@ export default async function CardPage({ searchParams }: CardPageProps) {
       <Suspense key={targetUrl} fallback={null}>
         <CardResult targetUrl={targetUrl} />
       </Suspense>
-    </IosToolScreen>
+    </>
   );
 }

@@ -1,29 +1,21 @@
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
-import { getJsonTranslator } from "../../../messages/json/get-translator";
-import { getRequestLocale } from "../../get-request-locale";
 
-export default async function JsonLoading() {
-  const locale = await getRequestLocale();
-  const translate = await getJsonTranslator(locale);
-
+export default function JsonLoading() {
   return (
-    <IosToolScreen title={translate("JSON Validator and Formatter")} contentWidth="64rem">
-      <div aria-busy="true" className="grid gap-6 lg:grid-cols-2 lg:gap-5">
-        {["input", "preview"].map(function renderPanePlaceholder(name) {
-          return (
-            <div key={name} className="flex min-w-0 flex-col">
-              <div className="flex min-h-9 items-end px-5 pb-1.5">
-                <IosSkeleton className="h-4 w-24" />
-              </div>
-              <IosSkeleton className="h-[22rem] w-full rounded-[22px] lg:h-[32rem]" />
-              <div className="flex flex-col gap-1.5 px-5 pt-2.5">
-                <IosSkeleton className="h-3 w-4/5" />
-              </div>
+    <div aria-busy="true" className="grid gap-6 lg:grid-cols-2 lg:gap-5">
+      {["input", "preview"].map(function renderPanePlaceholder(name) {
+        return (
+          <div key={name} className="flex min-w-0 flex-col">
+            <div className="flex min-h-9 items-end px-5 pb-1.5">
+              <IosSkeleton className="h-4 w-24" />
             </div>
-          );
-        })}
-      </div>
-    </IosToolScreen>
+            <IosSkeleton className="h-[22rem] w-full rounded-[22px] lg:h-[32rem]" />
+            <div className="flex flex-col gap-1.5 px-5 pt-2.5">
+              <IosSkeleton className="h-3 w-4/5" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

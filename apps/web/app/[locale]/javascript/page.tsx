@@ -4,7 +4,6 @@ import { Text } from "@workspace/ui/components/text";
 
 import type { BrowserDiagnosticsLabels } from "./types";
 
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getJavaScriptTranslator } from "../../../messages/javascript/get-translator";
@@ -68,15 +67,13 @@ export default async function JavaScriptInformationPage() {
   return (
     <>
       <JsonLd value={structuredData} />
-      <IosToolScreen title={title}>
-        <JavaScriptDiagnostics labels={labels} />
+      <JavaScriptDiagnostics labels={labels} />
 
-        <noscript>
-          <Text className="rounded-[22px] bg-(--ios-grouped-cell) px-4 py-3 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
-            {translate("JavaScript is disabled, so browser details cannot be collected.")}
-          </Text>
-        </noscript>
-      </IosToolScreen>
+      <noscript>
+        <Text className="rounded-[22px] bg-(--ios-grouped-cell) px-4 py-3 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label)">
+          {translate("JavaScript is disabled, so browser details cannot be collected.")}
+        </Text>
+      </noscript>
     </>
   );
 }

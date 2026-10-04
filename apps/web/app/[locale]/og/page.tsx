@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import type { OgPreviewLabels } from "../../../lib/og/labels";
 
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { localizePath } from "../../../lib/locale-path";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
@@ -83,7 +82,7 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
   });
 
   return (
-    <IosToolScreen title={labels.heading} contentWidth="42rem">
+    <>
       <JsonLd value={structuredData} />
       <OgPreviewForm
         action={localizePath("/og", locale)}
@@ -91,6 +90,6 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
         labels={labels}
         preview={initialUrl ? loadPreviewMetadata(initialUrl) : null}
       />
-    </IosToolScreen>
+    </>
   );
 }

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import type { ImageOptimizerLabels } from "./types";
 
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getImageTranslator } from "../../../messages/image/get-translator";
@@ -73,9 +72,9 @@ export default async function ImageOptimizerPage() {
   });
 
   return (
-    <IosToolScreen title={labels.title} contentWidth="42rem">
+    <>
       <JsonLd value={structuredData} />
       <ImageOptimizer labels={labels} />
-    </IosToolScreen>
+    </>
   );
 }

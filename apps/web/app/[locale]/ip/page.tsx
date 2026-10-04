@@ -4,7 +4,6 @@ import { Suspense } from "react";
 
 import type { WebRtcLabels } from "./types";
 
-import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getIpTranslator } from "../../../messages/ip/get-translator";
@@ -96,24 +95,22 @@ export default async function IpAddressInformationPage() {
   return (
     <>
       <JsonLd value={structuredData} />
-      <IosToolScreen title={title}>
-        <Suspense
-          fallback={
-            <RequestDiagnosticsSkeleton
-              labels={{
-                headersHeading: requestLabels.headersHeading,
-                loading: translate("Loading request details…"),
-                locationHeading: requestLabels.locationHeading,
-                observedIpAddress: requestLabels.observedIpAddress,
-                requestHeading: requestLabels.requestHeading,
-              }}
-            />
-          }
-        >
-          <RequestDiagnosticsPanel labels={requestLabels} />
-        </Suspense>
-        <WebRtcLeakTest labels={webRtcLabels} />
-      </IosToolScreen>
+      <Suspense
+        fallback={
+          <RequestDiagnosticsSkeleton
+            labels={{
+              headersHeading: requestLabels.headersHeading,
+              loading: translate("Loading request details…"),
+              locationHeading: requestLabels.locationHeading,
+              observedIpAddress: requestLabels.observedIpAddress,
+              requestHeading: requestLabels.requestHeading,
+            }}
+          />
+        }
+      >
+        <RequestDiagnosticsPanel labels={requestLabels} />
+      </Suspense>
+      <WebRtcLeakTest labels={webRtcLabels} />
     </>
   );
 }
