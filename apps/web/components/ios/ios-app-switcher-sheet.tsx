@@ -105,7 +105,7 @@ const rowClassName =
   "relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[57px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-(--ios-separator)";
 
 const rowLinkClassName =
-  "flex min-h-11 items-center gap-4 py-[7px] pr-4 pl-4 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed)";
+  "flex min-h-11 items-center gap-4 py-[7px] pr-4 pl-4 text-[17px] leading-[22px] tracking-[-0.43px] text-(--ios-label) outline-none select-none focus-visible:bg-(--ios-fill) active:bg-(--ios-grouped-cell-pressed) aria-current:font-semibold";
 
 const sectionHeaderClassName =
   "px-4 pb-2 text-[20px] leading-[25px] font-bold tracking-[-0.45px] text-(--ios-label)";
@@ -134,7 +134,12 @@ export function IosAppSwitcherSheet({
   function renderRow(destination: SwitcherDestination) {
     return (
       <li key={destination.href} className={rowClassName}>
-        <Link href={destination.href} className={rowLinkClassName} onClick={close}>
+        <Link
+          href={destination.href}
+          aria-current={destination.href === currentHref ? "page" : undefined}
+          className={rowLinkClassName}
+          onClick={close}
+        >
           <IosAppIcon size="settings" backgroundClassName={destination.background}>
             {destination.icon}
           </IosAppIcon>

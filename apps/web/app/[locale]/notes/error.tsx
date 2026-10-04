@@ -1,3 +1,3 @@
 "use client";
 
-export { ToolError as default } from "../../../components/tool-error";
+export { IosToolError as default } from "../../../components/ios/ios-tool-error";

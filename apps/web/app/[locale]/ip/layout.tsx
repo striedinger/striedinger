@@ -1,7 +1,14 @@
 import type { ReactNode } from "react";
 
-import { ToolLayout } from "../tool-layout";
+import { NativeToolLayout, nativeToolViewport } from "../native-tool-layout";
 
-export default function IpAddressLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <ToolLayout>{children}</ToolLayout>;
+export const viewport = nativeToolViewport;
+
+/** IP Address Information runs full screen like an installed iOS app. */
+export default function IpLayout({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <NativeToolLayout href="/ip" tintClassName="[--ios-tint:#0a84c7] dark:[--ios-tint:#40c8e0]">
+      {children}
+    </NativeToolLayout>
+  );
 }

@@ -1,7 +1,14 @@
 import type { ReactNode } from "react";
 
-import { ToolLayout } from "../tool-layout";
+import { NativeToolLayout, nativeToolViewport } from "../native-tool-layout";
 
-export default function OpenGraphLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <ToolLayout>{children}</ToolLayout>;
+export const viewport = nativeToolViewport;
+
+/** Open Graph Preview runs full screen like an installed iOS app. */
+export default function OgLayout({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <NativeToolLayout href="/og" tintClassName="[--ios-tint:#5856d6] dark:[--ios-tint:#5e5ce6]">
+      {children}
+    </NativeToolLayout>
+  );
 }
