@@ -51,7 +51,7 @@ export function IosSearchField({
     <div role="search" className={cn("flex items-center gap-2", containerClassName)}>
       <label
         className={cn(
-          "text-ios-secondary-label relative flex h-11 min-w-0 flex-1 items-center rounded-full",
+          "relative flex h-11 min-w-0 flex-1 items-center rounded-full text-ios-secondary-label",
           iosGlassClassName,
         )}
       >
@@ -68,7 +68,7 @@ export function IosSearchField({
           spellCheck={false}
           value={value}
           className={cn(
-            "text-ios-body text-ios-label placeholder:text-ios-secondary-label size-full min-w-0 appearance-none rounded-full bg-transparent pr-10 pl-10 outline-none [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
+            "size-full min-w-0 appearance-none rounded-full bg-transparent pr-10 pl-10 text-ios-body text-ios-label outline-none placeholder:text-ios-secondary-label [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none",
             className,
           )}
           onChange={function updateQuery(event) {
@@ -92,7 +92,7 @@ export function IosSearchField({
           <button
             type="button"
             aria-label={clearLabel}
-            className="text-ios-tertiary-label focus-visible:text-ios-secondary-label absolute right-1 flex size-9 items-center justify-center rounded-full outline-none"
+            className="absolute right-1 flex size-9 items-center justify-center rounded-full text-ios-tertiary-label outline-none focus-visible:text-ios-secondary-label"
             onPointerDown={keepInputFocus}
             onClick={function clearQuery() {
               onValueChange("");
@@ -108,7 +108,7 @@ export function IosSearchField({
           type="button"
           aria-label={cancelLabel}
           className={cn(
-            "text-ios-label focus-visible:ring-ios-tint flex size-11 shrink-0 animate-in items-center justify-center rounded-full duration-200 outline-none zoom-in-75 fade-in focus-visible:ring-2 active:scale-90 motion-reduce:animate-none",
+            "flex size-11 shrink-0 animate-in items-center justify-center rounded-full text-ios-label duration-200 outline-none zoom-in-75 fade-in focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-reduce:animate-none",
             iosGlassClassName,
           )}
           onPointerDown={keepInputFocus}

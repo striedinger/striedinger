@@ -22,7 +22,7 @@
     "sortSideEffects": false
   },
   "sortTailwindcss": {
-    "stylesheet": "./packages/ui/src/styles/globals.css",
+    "stylesheet": "./apps/web/components/ios/ios-utilities.css",
     "functions": ["cn"]
   },
   "sortPackageJson": {

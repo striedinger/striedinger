@@ -57,7 +57,7 @@ export function IosAlertDialog({
           <AlertDialog.Popup
             initialFocus={textField ? inputRef : true}
             className={cn(
-              "text-ios-label w-[min(300px,calc(100vw-48px))] rounded-[34px] p-[22px] text-left transition-[scale,opacity] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[1.12] data-starting-style:opacity-0 motion-reduce:transition-none",
+              "w-[min(300px,calc(100vw-48px))] rounded-ios-2xl p-[22px] text-left text-ios-label transition-[scale,opacity] duration-300 ease-[cubic-bezier(0.34,1.3,0.64,1)] outline-none data-ending-style:scale-95 data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-[1.12] data-starting-style:opacity-0 motion-reduce:transition-none",
               iosStrongGlassClassName,
             )}
           >
@@ -91,7 +91,7 @@ export function IosAlertDialog({
                       onChange={function updateValue(event) {
                         textField.onValueChange(event.currentTarget.value);
                       }}
-                      className="bg-ios-tertiary-fill text-ios-label placeholder:text-ios-tertiary-label focus:ring-ios-tint/70 mt-3 h-11 w-full rounded-full px-4 text-[16px] outline-none focus:ring-2"
+                      className="mt-3 h-11 w-full rounded-full bg-ios-tertiary-fill px-4 text-ios-callout text-ios-label outline-none placeholder:text-ios-tertiary-label focus:ring-2 focus:ring-ios-tint/70"
                     />
                   </>
                 ) : null}
@@ -120,7 +120,7 @@ export function IosAlertDialog({
                             }
                       }
                       className={cn(
-                        "bg-ios-fill text-ios-body text-ios-label focus-visible:ring-ios-tint h-12 truncate rounded-full px-3 font-medium transition-transform duration-150 outline-none focus-visible:ring-2 active:scale-95 disabled:opacity-40 motion-reduce:transition-none",
+                        "h-12 truncate rounded-full bg-ios-fill px-3 text-ios-body font-medium text-ios-label transition-transform duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-95 disabled:opacity-40 motion-reduce:transition-none",
                         action.role === "destructive" && "text-ios-red",
                         action.preferred && "bg-ios-tint font-semibold text-white dark:text-black",
                       )}

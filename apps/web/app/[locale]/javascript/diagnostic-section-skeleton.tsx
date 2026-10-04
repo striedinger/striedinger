@@ -15,7 +15,7 @@ export function DiagnosticSectionSkeleton({ rowCount, title }: DiagnosticSection
           <li
             key={index}
             aria-hidden="true"
-            className="not-last:after:bg-ios-separator relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50"
+            className="relative flex min-h-[44px] items-center justify-between gap-4 px-4 py-[11px] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
           >
             <IosSkeleton className="h-4 w-36" />
             <IosSkeleton className="h-4 w-20" />

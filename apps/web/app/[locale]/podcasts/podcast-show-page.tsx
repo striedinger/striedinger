@@ -85,7 +85,7 @@ export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
                 {podcast.title}
               </Text>
               <Text className="text-ios-body text-white/75">{podcast.author}</Text>
-              <Text className="text-ios-footnote mt-0.5 text-white/60">
+              <Text className="mt-0.5 text-ios-footnote text-white/60">
                 {[podcast.genre, podcast.explicit ? messages.Explicit : ""]
                   .filter(Boolean)
                   .join(" · ")}
@@ -102,7 +102,7 @@ export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
               <button
                 type="button"
                 aria-pressed={isFollowed}
-                className="flex h-12 items-center justify-center gap-1.5 rounded-[12px] bg-white/20 px-4 text-[17px] font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
+                className="flex h-12 items-center justify-center gap-1.5 rounded-ios-md bg-white/20 px-4 text-ios-body font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
                 onClick={function toggleFollow() {
                   toggleFollowedPodcast(podcast);
                 }}
@@ -125,7 +125,7 @@ export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
         aria-label={messages.Episodes}
         className="mx-auto flex w-full max-w-4xl flex-col pt-5"
       >
-        <Text as="h2" className="text-ios-title2 text-ios-label px-4 pb-1 font-bold">
+        <Text as="h2" className="px-4 pb-1 text-ios-title2 font-bold text-ios-label">
           {messages.Episodes}
         </Text>
         <Suspense fallback={<IosRevealTransition>{episodesSkeleton}</IosRevealTransition>}>

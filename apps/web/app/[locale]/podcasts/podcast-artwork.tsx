@@ -29,7 +29,7 @@ export function PodcastArtwork({
   return (
     <span
       className={cn(
-        "bg-ios-tertiary-fill relative block aspect-square shrink-0 overflow-hidden rounded-lg after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-black/10 dark:after:border-white/10",
+        "relative block aspect-square shrink-0 overflow-hidden rounded-lg bg-ios-tertiary-fill after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-black/10 dark:after:border-white/10",
         className,
       )}
     >

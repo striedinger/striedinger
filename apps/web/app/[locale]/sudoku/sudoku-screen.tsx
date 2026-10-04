@@ -17,7 +17,7 @@ export function SudokuScreen({ children, title }: SudokuScreenProps) {
   return (
     <div
       data-ios-scroll
-      className="bg-ios-grouped-background flex size-full flex-col overflow-y-auto overscroll-contain [--ios-bar-edge:var(--ios-grouped-background)] [--ios-content-width:36rem]"
+      className="flex size-full flex-col overflow-y-auto overscroll-contain bg-ios-grouped-background [--ios-bar-edge:var(--ios-grouped-background)] [--ios-content-width:36rem]"
     >
       <IosNavigationBar title={title} leading={<IosAppSwitcherButton />} />
       <div className="mx-auto flex min-h-[26rem] w-full max-w-(--ios-content-width) flex-1 flex-col px-4 pb-[max(env(safe-area-inset-bottom),12px)]">

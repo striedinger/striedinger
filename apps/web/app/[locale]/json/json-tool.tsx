@@ -140,13 +140,13 @@ export function JsonTool({ labels }: JsonToolProps) {
         footer={
           <div className="flex flex-col gap-1" aria-live="polite">
             {validationResult.status === "valid" ? (
-              <Text className="text-ios-footnote text-ios-green flex items-center gap-1.5 font-semibold [&_svg]:size-4">
+              <Text className="flex items-center gap-1.5 text-ios-footnote font-semibold text-ios-green [&_svg]:size-4">
                 <CheckCircleIcon aria-hidden="true" />
                 {labels.valid}
               </Text>
             ) : null}
             {validationResult.status === "invalid" ? (
-              <Text className="text-ios-footnote text-ios-red break-words">
+              <Text className="text-ios-footnote break-words text-ios-red">
                 {validationResult.reason === "too-large"
                   ? validationResult.error
                   : labels.invalid.replace("{error}", validationResult.error)}
@@ -156,9 +156,9 @@ export function JsonTool({ labels }: JsonToolProps) {
           </div>
         }
       >
-        <div className="bg-ios-grouped-cell focus-within:ring-ios-tint/35 overflow-hidden rounded-[22px] transition-shadow duration-150 focus-within:ring-2 motion-reduce:transition-none">
+        <div className="overflow-hidden rounded-ios-xl bg-ios-grouped-cell transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ios-tint/35 motion-reduce:transition-none">
           <textarea
-            className="text-ios-label caret-ios-tint placeholder:text-ios-tertiary-label block h-[22rem] w-full resize-none bg-transparent px-4 py-3.5 font-mono text-[14px] leading-[22px] outline-none lg:h-[32rem]"
+            className="block h-[22rem] w-full resize-none bg-transparent px-4 py-3.5 font-mono text-[14px] leading-[22px] text-ios-label caret-ios-tint outline-none placeholder:text-ios-tertiary-label lg:h-[32rem]"
             value={input}
             onChange={handleInputChange}
             placeholder={labels.placeholder}
@@ -178,7 +178,7 @@ export function JsonTool({ labels }: JsonToolProps) {
         action={
           <button
             type="button"
-            className="text-ios-subheadline text-ios-tint focus-visible:ring-ios-tint/50 disabled:text-ios-tertiary-label -my-1 rounded-full px-1 outline-none select-none focus-visible:ring-2 active:opacity-50"
+            className="-my-1 rounded-full px-1 text-ios-subheadline text-ios-tint outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-50 disabled:text-ios-tertiary-label"
             onClick={handleToggleAll}
             disabled={!canToggleAll}
           >
@@ -187,7 +187,7 @@ export function JsonTool({ labels }: JsonToolProps) {
         }
       >
         <div
-          className="bg-ios-grouped-cell h-[22rem] overflow-auto overscroll-contain rounded-[22px] px-3 py-3 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none lg:h-[32rem]"
+          className="h-[22rem] overflow-auto overscroll-contain rounded-ios-xl bg-ios-grouped-cell px-3 py-3 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none lg:h-[32rem]"
           data-stale={isPreviewDimmed ? "" : undefined}
           aria-busy={isPreviewStale}
         >
@@ -203,10 +203,10 @@ export function JsonTool({ labels }: JsonToolProps) {
             <div className="flex size-full flex-col items-center justify-center gap-3 px-8 text-center">
               <BracesIcon
                 aria-hidden="true"
-                className="text-ios-tertiary-label size-11"
+                className="size-11 text-ios-tertiary-label"
                 strokeWidth={1.6}
               />
-              <Text className="text-ios-subheadline text-ios-secondary-label max-w-xs">
+              <Text className="max-w-xs text-ios-subheadline text-ios-secondary-label">
                 {previewResult.status === "valid" ? labels.tooComplex : labels.emptyPreview}
               </Text>
             </div>

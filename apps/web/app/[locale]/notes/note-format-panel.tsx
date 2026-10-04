@@ -47,10 +47,10 @@ export function NoteFormatPanel({
 }: NoteFormatPanelProps) {
   const [formatState, setFormatState] = useState<NoteFormatState>(emptyFormatState);
   const blockStyles: ReadonlyArray<{ className: string; label: string; style: NoteBlockStyle }> = [
-    { style: "h1", label: messages.Title, className: "text-[22px] font-bold" },
+    { style: "h1", label: messages.Title, className: "text-ios-title2 font-bold" },
     { style: "h2", label: messages.Heading, className: "text-[18px] font-bold" },
-    { style: "h3", label: messages.Subheading, className: "text-[16px] font-semibold" },
-    { style: "p", label: messages.Body, className: "text-[15px]" },
+    { style: "h3", label: messages.Subheading, className: "text-ios-callout font-semibold" },
+    { style: "p", label: messages.Body, className: "text-ios-subheadline" },
     { style: "pre", label: messages.Monostyled, className: "font-mono text-[14px]" },
   ];
   const inlineStyles: ReadonlyArray<{ className: string; label: string; style: NoteInlineStyle }> =
@@ -97,18 +97,18 @@ export function NoteFormatPanel({
     <section
       aria-label={messages.Format}
       className={cn(
-        "mx-2 mb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),8px)] flex flex-col gap-3 rounded-[32px] px-5 pt-4 pb-5 md:m-0 md:mt-2",
+        "mx-2 mb-[max(calc(env(safe-area-inset-bottom)-var(--keyboard-inset,0px)),8px)] flex flex-col gap-3 rounded-ios-2xl px-5 pt-4 pb-5 md:m-0 md:mt-2",
         iosStrongGlassClassName,
       )}
     >
       <div className="flex items-center justify-between">
-        <Text as="h2" className="text-ios-title3 text-ios-label font-bold">
+        <Text as="h2" className="text-ios-title3 font-bold text-ios-label">
           {messages.Format}
         </Text>
         <button
           type="button"
           aria-label={messages["Close Format"]}
-          className="bg-ios-fill text-ios-secondary-label focus-visible:ring-ios-tint flex size-[30px] items-center justify-center rounded-full outline-none focus-visible:ring-2"
+          className="flex size-[30px] items-center justify-center rounded-full bg-ios-fill text-ios-secondary-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint"
           onClick={onClose}
         >
           <CloseIcon className="size-3.5" strokeWidth={3} />
@@ -123,7 +123,7 @@ export function NoteFormatPanel({
               type="button"
               aria-pressed={isActive}
               className={cn(
-                "text-ios-label focus-visible:ring-ios-tint aria-pressed:bg-ios-tint h-9 shrink-0 snap-start rounded-full px-3.5 whitespace-nowrap outline-none focus-visible:ring-2 aria-pressed:text-black",
+                "h-9 shrink-0 snap-start rounded-full px-3.5 whitespace-nowrap text-ios-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint aria-pressed:bg-ios-tint aria-pressed:text-black",
                 blockStyle.className,
               )}
               onClick={function selectBlockStyle() {
@@ -137,7 +137,7 @@ export function NoteFormatPanel({
           );
         })}
       </div>
-      <div className="bg-ios-fill/60 grid grid-cols-4 overflow-hidden rounded-[14px]">
+      <div className="grid grid-cols-4 overflow-hidden rounded-ios-lg bg-ios-fill/60">
         {inlineStyles.map(function renderInlineStyle(inlineStyle) {
           const isActive = formatState[inlineStyle.style];
           return (
@@ -146,7 +146,7 @@ export function NoteFormatPanel({
               type="button"
               aria-label={inlineStyle.label}
               aria-pressed={isActive}
-              className="text-ios-label not-last:border-ios-separator focus-visible:bg-ios-fill aria-pressed:bg-ios-tint h-11 text-[19px] outline-none not-last:border-r-[0.5px] aria-pressed:text-black"
+              className="h-11 text-[19px] text-ios-label outline-none not-last:border-r-[0.5px] not-last:border-ios-separator focus-visible:bg-ios-fill aria-pressed:bg-ios-tint aria-pressed:text-black"
               onClick={function toggleSelectedInlineStyle() {
                 runFormatCommand(function applyInlineStyle() {
                   toggleInlineStyle(inlineStyle.style);
@@ -161,7 +161,7 @@ export function NoteFormatPanel({
         })}
       </div>
       <div className="flex gap-2">
-        <div className="bg-ios-fill/60 grid flex-[3] grid-cols-3 overflow-hidden rounded-[14px]">
+        <div className="grid flex-[3] grid-cols-3 overflow-hidden rounded-ios-lg bg-ios-fill/60">
           {listStyles.map(function renderListStyle(listStyle) {
             return (
               <NoteFormatIconButton
@@ -179,7 +179,7 @@ export function NoteFormatPanel({
             );
           })}
         </div>
-        <div className="bg-ios-fill/60 grid flex-[2] grid-cols-2 overflow-hidden rounded-[14px]">
+        <div className="grid flex-[2] grid-cols-2 overflow-hidden rounded-ios-lg bg-ios-fill/60">
           <NoteFormatIconButton
             label={messages["Decrease Indent"]}
             disabled={!formatState.inList}
@@ -203,7 +203,7 @@ export function NoteFormatPanel({
             <IndentIncreaseIcon />
           </NoteFormatIconButton>
         </div>
-        <div className="bg-ios-fill/60 grid flex-1 overflow-hidden rounded-[14px]">
+        <div className="grid flex-1 overflow-hidden rounded-ios-lg bg-ios-fill/60">
           <NoteFormatIconButton
             label={messages["Block Quote"]}
             pressed={formatState.blockQuote}

@@ -33,7 +33,7 @@ export function PodcastShowDescription({ messages, show }: PodcastShowDescriptio
         {description}
       </Text>
       {isExpanded ? null : (
-        <Text as="span" className="text-[13px] font-semibold text-white uppercase">
+        <Text as="span" className="text-ios-footnote font-semibold text-white uppercase">
           {messages["Show More"]}
         </Text>
       )}

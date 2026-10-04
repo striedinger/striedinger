@@ -61,8 +61,8 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
         {/* Listening history lives in this browser, so the server renders a placeholder for it. */}
         {!isHydrated ? (
           <div aria-hidden="true" className="flex gap-3 overflow-hidden px-4">
-            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-[24px]" />
-            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-[24px]" />
+            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
+            <IosSkeleton className="h-[156px] w-[min(86vw,420px)] shrink-0 rounded-ios-xl" />
           </div>
         ) : isNewListener && popular.length > 0 ? (
           <ul
@@ -118,7 +118,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
         ) : null}
         {popular.length > 0 ? (
           <section aria-label={messages["Top Shows"]} className="flex flex-col">
-            <Text as="h2" className="text-ios-title2 text-ios-label px-4 pb-1 font-bold">
+            <Text as="h2" className="px-4 pb-1 text-ios-title2 font-bold text-ios-label">
               {messages["Top Shows"]}
             </Text>
             <ol className="m-0 grid list-none grid-cols-1 p-0 pl-4 md:grid-cols-2 md:gap-x-6 xl:grid-cols-3">
@@ -135,7 +135,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
             </ol>
           </section>
         ) : null}
-        <Text className="text-ios-footnote text-ios-secondary-label px-4">
+        <Text className="px-4 text-ios-footnote text-ios-secondary-label">
           {
             messages[
               "Podcast discovery data is provided by Apple. Audio is streamed directly from each podcast publisher."

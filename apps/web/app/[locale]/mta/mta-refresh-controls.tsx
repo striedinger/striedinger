@@ -55,7 +55,7 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
 
   return (
     <div className="flex shrink-0 items-center gap-2">
-      <Text className="text-ios-caption1 text-ios-secondary-label hidden text-right sm:block">
+      <Text className="hidden text-right text-ios-caption1 text-ios-secondary-label sm:block">
         {labels.updated}{" "}
         {getDateTimeFormat(locale, {
           hour: "numeric",

@@ -11,7 +11,7 @@ interface NumberPadProps {
 
 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 const keyClassName =
-  "flex h-[clamp(2.75rem,6.5dvh,3.5rem)] min-w-0 touch-manipulation items-center justify-center rounded-[14px] bg-ios-grouped-cell text-ios-tint shadow-[0_1px_0_rgb(0_0_0/0.08)] outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-[0.94] active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label disabled:shadow-none motion-safe:transition-transform";
+  "flex h-[clamp(2.75rem,6.5dvh,3.5rem)] min-w-0 touch-manipulation items-center justify-center rounded-ios-lg bg-ios-grouped-cell text-ios-tint shadow-[0_1px_0_rgb(0_0_0/0.08)] outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-[0.94] active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label disabled:shadow-none motion-safe:transition-transform";
 
 /** A keypad of large rounded keys, like the iOS number pad, laid out in two rows of five. */
 export function NumberPad({

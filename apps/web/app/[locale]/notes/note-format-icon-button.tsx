@@ -21,7 +21,7 @@ export function NoteFormatIconButton({
       aria-label={label}
       aria-pressed={pressed}
       disabled={disabled}
-      className="text-ios-label not-last:border-ios-separator focus-visible:bg-ios-fill disabled:text-ios-tertiary-label aria-pressed:bg-ios-tint flex h-11 items-center justify-center outline-none not-last:border-r-[0.5px] aria-pressed:text-black [&_svg]:size-[22px]"
+      className="flex h-11 items-center justify-center text-ios-label outline-none not-last:border-r-[0.5px] not-last:border-ios-separator focus-visible:bg-ios-fill disabled:text-ios-tertiary-label aria-pressed:bg-ios-tint aria-pressed:text-black [&_svg]:size-[22px]"
       onClick={onClick}
     >
       {children}

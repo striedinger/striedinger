@@ -22,7 +22,7 @@ export async function OgPreviewResults({ labels, preview }: OgPreviewResultsProp
 
   return (
     <>
-      <Text className="text-ios-footnote text-ios-secondary-label px-5 break-all">
+      <Text className="px-5 text-ios-footnote break-all text-ios-secondary-label">
         {labels.previewing
           .replace("{url}", state.url)
           .replace("{duration}", String(state.durationMilliseconds))}

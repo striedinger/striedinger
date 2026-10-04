@@ -15,27 +15,27 @@ export function MetadataTable({ description, heading, tags }: MetadataTableProps
       <Text
         as="h2"
         id="metadata-heading"
-        className="text-ios-subheadline text-ios-secondary-label px-5 pt-4 pb-1.5 font-semibold"
+        className="px-5 pt-4 pb-1.5 text-ios-subheadline font-semibold text-ios-secondary-label"
       >
         {heading}
       </Text>
-      <dl className="bg-ios-grouped-cell overflow-hidden rounded-[22px]">
+      <dl className="overflow-hidden rounded-ios-xl bg-ios-grouped-cell">
         {tags.map(function renderMetadataTag(tag, index) {
           return (
             <div
-              className="not-last:after:bg-ios-separator relative flex flex-col gap-0.5 px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4"
+              className="relative flex flex-col gap-0.5 px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator sm:grid sm:grid-cols-[11rem_1fr] sm:gap-4"
               key={`${tag.name}-${index}`}
             >
               <Text
                 as="dt"
                 family="mono"
-                className="text-ios-secondary-label min-w-0 text-[13px] leading-[22px] break-all"
+                className="min-w-0 text-[13px] leading-[22px] break-all text-ios-secondary-label"
               >
                 {tag.name}
               </Text>
               <Text
                 as="dd"
-                className="text-ios-label min-w-0 text-[15px] leading-[22px] tracking-[-0.23px] break-words"
+                className="min-w-0 text-[15px] leading-[22px] tracking-[-0.23px] break-words text-ios-label"
               >
                 {tag.value}
               </Text>
@@ -43,7 +43,7 @@ export function MetadataTable({ description, heading, tags }: MetadataTableProps
           );
         })}
       </dl>
-      <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">{description}</Text>
+      <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">{description}</Text>
     </section>
   );
 }

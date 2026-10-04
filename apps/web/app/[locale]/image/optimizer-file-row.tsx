@@ -26,11 +26,11 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
   const stageLabel = item.stage ? labels[item.stage] : labels.balanced;
 
   return (
-    <li className="not-last:after:bg-ios-separator relative flex min-h-[64px] items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50">
+    <li className="relative flex min-h-[64px] items-center gap-3 px-4 py-2.5 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator">
       <span
         aria-hidden="true"
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-5",
+          "flex size-9 shrink-0 items-center justify-center rounded-ios-md text-white [&_svg]:size-5",
           item.status === "error"
             ? "bg-ios-red"
             : item.status === "done"
@@ -56,10 +56,10 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progress}
-            className="bg-ios-fill h-1 overflow-hidden rounded-full"
+            className="h-1 overflow-hidden rounded-full bg-ios-fill"
           >
             <span
-              className="bg-ios-tint block h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+              className="block h-full rounded-full bg-ios-tint transition-[width] duration-500 ease-out motion-reduce:transition-none"
               style={{ width: `${progress}%` }}
             />
           </span>
@@ -81,7 +81,7 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
               {item.status === "optimizing" ? ` · ${stageLabel}… ${progress}%` : null}
               {item.status === "done" ? " · " : null}
               {item.status === "done" && savings > 0 ? (
-                <span className="text-ios-green font-semibold">
+                <span className="font-semibold text-ios-green">
                   {Math.round(savings * 100)}% {labels.saved}
                 </span>
               ) : null}

@@ -92,7 +92,7 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
   return (
     <div
       ref={containerRef}
-      className="relative w-full shrink-0 overflow-hidden rounded-[4px] bg-white shadow-[0_1px_3px_rgb(0_0_0/0.12),0_6px_18px_rgb(0_0_0/0.1)] [content-visibility:auto]"
+      className="relative w-full shrink-0 overflow-hidden rounded-ios-xs bg-white shadow-ios-raised [content-visibility:auto]"
       style={{ aspectRatio: `${width} / ${height}`, maxWidth: width }}
     >
       <canvas
@@ -106,7 +106,7 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
       ) : null}
       <Text
         as="span"
-        className="text-ios-caption1 absolute right-2 bottom-2 rounded-full bg-black/55 px-2.5 py-0.5 font-medium text-white tabular-nums backdrop-blur-md"
+        className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2.5 py-0.5 text-ios-caption1 font-medium text-white tabular-nums backdrop-blur-md"
       >
         {pageNumber}
       </Text>

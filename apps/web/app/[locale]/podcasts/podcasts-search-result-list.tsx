@@ -41,12 +41,12 @@ export function PodcastsSearchResultList({ results }: PodcastsSearchResultListPr
       className={cn("flex flex-col transition-opacity duration-150", isPending && "opacity-60")}
     >
       {resolvedResults.failed ? (
-        <Text className="text-ios-secondary-label px-8 pt-[14vh] text-center text-[17px]">
+        <Text className="px-8 pt-[14vh] text-center text-ios-body text-ios-secondary-label">
           {messages["Search is unavailable right now. Please try again."]}
         </Text>
       ) : resolvedResults.results.length > 0 ? (
         <>
-          <Text as="h2" className="text-ios-title2 text-ios-label px-5 pb-1 font-bold">
+          <Text as="h2" className="px-5 pb-1 text-ios-title2 font-bold text-ios-label">
             {messages["Top Results"]}
           </Text>
           <ul className="m-0 grid list-none grid-cols-1 p-0 pl-4 md:grid-cols-2 md:gap-x-6">

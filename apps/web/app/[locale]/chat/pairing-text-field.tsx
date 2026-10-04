@@ -23,7 +23,7 @@ export function PairingTextField({ id, label, onChange, value }: PairingTextFiel
           autoCapitalize="off"
           autoComplete="off"
           spellCheck={false}
-          className="text-ios-callout text-ios-label placeholder:text-ios-tertiary-label min-h-24 w-full resize-none bg-transparent px-4 py-3 font-mono break-all outline-none"
+          className="min-h-24 w-full resize-none bg-transparent px-4 py-3 font-mono text-ios-callout break-all text-ios-label outline-none placeholder:text-ios-tertiary-label"
         />
       </li>
     </IosListSection>

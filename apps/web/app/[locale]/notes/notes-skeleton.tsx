@@ -16,13 +16,13 @@ export function NotesSkeleton({ title }: NotesSkeletonProps) {
   return (
     <div
       aria-busy="true"
-      className="bg-ios-grouped-background md:bg-ios-secondary-background relative flex size-full flex-col gap-5 px-4 pt-[calc(4rem+env(safe-area-inset-top))] md:m-2 md:h-[calc(100%-1rem)] md:w-[304px] md:shrink-0 md:rounded-[26px] md:shadow-[inset_0_0_0_0.5px_var(--ios-separator),0_8px_30px_var(--ios-glass-shadow)] lg:w-[272px]"
+      className="relative flex size-full flex-col gap-5 bg-ios-grouped-background px-4 pt-[calc(4rem+env(safe-area-inset-top))] md:m-2 md:h-[calc(100%-1rem)] md:w-[304px] md:shrink-0 md:rounded-ios-2xl md:bg-ios-secondary-background md:shadow-ios-panel lg:w-[272px]"
     >
       {title ? (
         <Text
           as="span"
           aria-hidden="true"
-          className="text-ios-large-title text-ios-label h-9 font-bold"
+          className="h-9 text-ios-large-title font-bold text-ios-label"
         >
           {title}
         </Text>
@@ -30,7 +30,7 @@ export function NotesSkeleton({ title }: NotesSkeletonProps) {
         <IosSkeleton className="h-9 w-36" />
       )}
       <IosSkeleton className="mt-2 h-6 w-44" />
-      <div className="flex flex-col gap-px overflow-hidden rounded-[22px]">
+      <div className="flex flex-col gap-px overflow-hidden rounded-ios-xl">
         <IosSkeleton className="h-[52px] rounded-none" />
         <IosSkeleton className="h-[52px] rounded-none" />
       </div>

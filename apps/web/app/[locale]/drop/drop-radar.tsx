@@ -38,7 +38,7 @@ export function DropRadar({ connectionError, labels, peerCount }: DropRadarProps
                 <span
                   key={delayClassName}
                   className={cn(
-                    "border-ios-tint/50 bg-ios-tint/10 absolute inset-8 animate-ping rounded-full border [animation-duration:2.4s] motion-reduce:hidden",
+                    "absolute inset-8 animate-ping rounded-full border border-ios-tint/50 bg-ios-tint/10 [animation-duration:2.4s] motion-reduce:hidden",
                     delayClassName,
                   )}
                 />
@@ -52,7 +52,7 @@ export function DropRadar({ connectionError, labels, peerCount }: DropRadarProps
         />
         <span
           className={cn(
-            "relative flex size-20 items-center justify-center rounded-full text-white shadow-[0_10px_30px_rgb(0_0_0/0.18)] transition-colors duration-500 motion-reduce:transition-none [&_svg]:size-8",
+            "relative flex size-20 items-center justify-center rounded-full text-white shadow-ios-floating transition-colors duration-500 motion-reduce:transition-none [&_svg]:size-8",
             isConnected ? "bg-ios-green" : "bg-ios-tint",
           )}
         >
@@ -60,11 +60,11 @@ export function DropRadar({ connectionError, labels, peerCount }: DropRadarProps
         </span>
       </div>
       <div className="flex flex-col gap-1" role="status" aria-live="polite" aria-atomic="true">
-        <Text className="text-ios-title3 text-ios-label font-semibold">{status}</Text>
+        <Text className="text-ios-title3 font-semibold text-ios-label">{status}</Text>
         <Text className="text-ios-subheadline text-ios-secondary-label">{labels.encrypted}</Text>
       </div>
       {connectionError ? (
-        <Text role="alert" className="text-ios-subheadline text-ios-red max-w-xs">
+        <Text role="alert" className="max-w-xs text-ios-subheadline text-ios-red">
           {labels.roomError}
         </Text>
       ) : null}

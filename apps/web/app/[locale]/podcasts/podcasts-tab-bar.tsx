@@ -59,12 +59,12 @@ export function PodcastsTabBar({
   return (
     <nav
       aria-label={messages.Podcasts}
-      className="md:bg-ios-glass pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 px-4 pb-[max(env(safe-area-inset-bottom),14px)] [view-transition-class:ios-anchored] [view-transition-name:podcasts-tab-bar] md:pointer-events-auto md:static md:m-3 md:mt-[max(env(safe-area-inset-top),12px)] md:mr-0 md:w-[280px] md:shrink-0 md:flex-col md:items-stretch md:gap-3 md:rounded-[30px] md:p-3 md:pb-3 md:shadow-[inset_0_0.5px_0_0.5px_var(--ios-glass-edge),0_8px_30px_var(--ios-glass-shadow)] md:backdrop-blur-[14px] [&>*]:pointer-events-auto"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 px-4 pb-[max(env(safe-area-inset-bottom),14px)] [view-transition-class:ios-anchored] [view-transition-name:podcasts-tab-bar] md:pointer-events-auto md:static md:m-3 md:mt-[max(env(safe-area-inset-top),12px)] md:mr-0 md:w-[280px] md:shrink-0 md:flex-col md:items-stretch md:gap-3 md:rounded-ios-2xl md:bg-ios-glass md:p-3 md:pb-3 md:shadow-[inset_0_0.5px_0_0.5px_var(--ios-glass-edge),0_8px_30px_var(--ios-glass-shadow)] md:backdrop-blur-[14px] [&>*]:pointer-events-auto"
     >
       <Text
         as="span"
         aria-hidden="true"
-        className="text-ios-title1 text-ios-label hidden px-2 pt-1 font-bold md:block"
+        className="hidden px-2 pt-1 text-ios-title1 font-bold text-ios-label md:block"
       >
         {messages.Podcasts}
       </Text>
@@ -73,7 +73,7 @@ export function PodcastsTabBar({
           type="button"
           aria-label={previousTabDetails.label}
           className={cn(
-            "text-ios-label focus-visible:ring-ios-tint flex size-[60px] shrink-0 animate-in items-center justify-center rounded-full duration-300 outline-none zoom-in-75 fade-in focus-visible:ring-2 active:scale-90 motion-reduce:animate-none md:hidden [&_svg]:size-[24px]",
+            "flex size-[60px] shrink-0 animate-in items-center justify-center rounded-full text-ios-label duration-300 outline-none zoom-in-75 fade-in focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-reduce:animate-none md:hidden [&_svg]:size-[24px]",
             iosGlassClassName,
           )}
           onClick={function returnToPreviousTab() {
@@ -156,7 +156,7 @@ export function PodcastsTabBar({
         type="button"
         aria-label={messages.Search}
         className={cn(
-          "text-ios-label focus-visible:ring-ios-tint size-[62px] shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 active:scale-90 motion-safe:transition-transform md:hidden",
+          "size-[62px] shrink-0 items-center justify-center rounded-full text-ios-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 motion-safe:transition-transform md:hidden",
           iosGlassClassName,
           isSearching || (isMinimized && hasAccessory) ? "hidden" : "flex",
         )}

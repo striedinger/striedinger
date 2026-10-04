@@ -19,14 +19,14 @@ export function FeaturedPodcastCard({ podcast, priority }: FeaturedPodcastCardPr
     <li className="w-[min(86vw,420px)] shrink-0 snap-start">
       <PodcastLink
         podcast={podcast}
-        className="group focus-visible:ring-ios-tint flex h-full items-center gap-4 overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 active:scale-[0.98] motion-reduce:transition-none"
+        className="group flex h-full items-center gap-4 overflow-hidden rounded-ios-xl bg-[#3a3a3c] p-4 text-white transition-[background-color,transform] duration-500 outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-[0.98] motion-reduce:transition-none"
         style={artworkColor ? { backgroundColor: artworkColor } : undefined}
       >
         <PodcastArtwork
           src={podcast.artworkUrl}
           sizes="120px"
           priority={priority}
-          className="w-[120px] rounded-[10px] shadow-[0_6px_16px_rgb(0_0_0/0.3)]"
+          className="w-[120px] rounded-ios-md shadow-ios-floating"
         />
         <span className="flex min-w-0 flex-col gap-1">
           <Text

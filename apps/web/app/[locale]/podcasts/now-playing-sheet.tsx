@@ -66,7 +66,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
         <Drawer.Backdrop className="fixed inset-0 z-40 bg-black opacity-[calc(0.4*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-40 flex items-end justify-center">
           <Drawer.Popup
-            className="flex h-[calc(100dvh-env(safe-area-inset-top)-10px)] w-full [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-[38px] bg-[#2c2c2e] text-white shadow-[0_-8px_40px_rgb(0_0_0/0.3)] transition-[transform,background-color] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none md:mb-3 md:h-[min(880px,calc(100dvh-24px))] md:max-w-[480px] md:rounded-[38px]"
+            className="flex h-[calc(100dvh-env(safe-area-inset-top)-10px)] w-full [transform:translateY(var(--drawer-swipe-movement-y))] flex-col overflow-hidden rounded-t-ios-sheet bg-[#2c2c2e] text-white shadow-ios-sheet transition-[transform,background-color] duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] outline-none data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] data-swiping:select-none motion-reduce:transition-none md:mb-3 md:h-[min(880px,calc(100dvh-24px))] md:max-w-[480px] md:rounded-ios-sheet"
             style={artworkColor ? { backgroundColor: artworkColor } : undefined}
           >
             {item ? (
@@ -92,11 +92,15 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                           <Text
                             as="span"
                             numberOfLines={1}
-                            className="text-[15px] font-semibold text-white"
+                            className="text-ios-subheadline font-semibold text-white"
                           >
                             {item.episode.title}
                           </Text>
-                          <Text as="span" numberOfLines={1} className="text-[13px] text-white/60">
+                          <Text
+                            as="span"
+                            numberOfLines={1}
+                            className="text-ios-footnote text-white/60"
+                          >
                             {item.podcast.title}
                           </Text>
                         </span>
@@ -109,7 +113,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                       sizes="(min-width: 768px) 420px, 90vw"
                       priority
                       className={cn(
-                        "mx-auto w-[min(100cqw,100cqh)] max-w-[420px] shrink-0 rounded-[12px] shadow-[0_18px_40px_rgb(0_0_0/0.4)] transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none",
+                        "mx-auto w-[min(100cqw,100cqh)] max-w-[420px] shrink-0 rounded-ios-md shadow-ios-overlay transition-transform duration-500 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none",
                         player.isPlaying ? "scale-100" : "scale-[0.82]",
                       )}
                     />
@@ -126,7 +130,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                       </Text>
                       <button
                         type="button"
-                        className="text-ios-body self-start text-left text-white/60 outline-none hover:underline focus-visible:underline"
+                        className="self-start text-left text-ios-body text-white/60 outline-none hover:underline focus-visible:underline"
                         onClick={function openShow() {
                           goToShow(item);
                         }}
@@ -149,7 +153,10 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                   </div>
                   <NowPlayingScrubber duration={player.duration} messages={messages} />
                   {player.hasError ? (
-                    <Text role="alert" className="-mt-2 text-center text-[13px] text-white/75">
+                    <Text
+                      role="alert"
+                      className="-mt-2 text-center text-ios-footnote text-white/75"
+                    >
                       {messages["This episode can’t be played right now."]}
                     </Text>
                   ) : null}
@@ -201,7 +208,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                         <button
                           type="button"
                           aria-label={`${messages["Playback Speed"]}: ${formatPlaybackRate(player.playbackRate, locale)}`}
-                          className="flex h-8 min-w-11 items-center justify-center rounded-full px-2 text-[15px] font-semibold text-white/80 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:opacity-60"
+                          className="flex h-8 min-w-11 items-center justify-center rounded-full px-2 text-ios-subheadline font-semibold text-white/80 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:opacity-60"
                         >
                           {formatPlaybackRate(player.playbackRate, locale)}
                         </button>

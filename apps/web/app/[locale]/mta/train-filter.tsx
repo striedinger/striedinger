@@ -39,7 +39,7 @@ export function TrainFilter({
         type="button"
         aria-pressed={selectedRoute === null}
         className={cn(
-          "focus-visible:ring-ios-tint/50 h-9 shrink-0 snap-start rounded-full px-4 text-[15px] font-semibold tracking-[-0.23px] outline-none focus-visible:ring-2 active:scale-95 motion-safe:transition-transform",
+          "h-9 shrink-0 snap-start rounded-full px-4 text-[15px] font-semibold tracking-[-0.23px] outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-95 motion-safe:transition-transform",
           selectedRoute === null ? "bg-ios-tint text-white" : "bg-ios-grouped-cell text-ios-label",
         )}
         onClick={function selectAllTrains() {
@@ -57,9 +57,9 @@ export function TrainFilter({
             aria-label={`${labels.filterByTrain}: ${route}`}
             aria-pressed={isSelected}
             className={cn(
-              "focus-visible:ring-ios-tint/50 flex size-9 shrink-0 snap-start items-center justify-center rounded-full outline-none focus-visible:ring-2 active:scale-90 motion-safe:transition-[transform,opacity]",
+              "flex size-9 shrink-0 snap-start items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-90 motion-safe:transition-[transform,opacity]",
               isSelected
-                ? "ring-ios-label ring-offset-ios-grouped-background ring-2 ring-offset-2"
+                ? "ring-2 ring-ios-label ring-offset-2 ring-offset-ios-grouped-background"
                 : selectedRoute && "opacity-45",
             )}
             onClick={function selectTrainRoute() {

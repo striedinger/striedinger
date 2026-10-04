@@ -40,13 +40,13 @@ export function IosSegmentedControl<Value extends string>({
       role="group"
       aria-label={label}
       className={cn(
-        "bg-ios-tertiary-fill relative grid h-9 auto-cols-fr grid-flow-col rounded-[10px] p-0.5",
+        "relative grid h-9 auto-cols-fr grid-flow-col rounded-ios-md bg-ios-tertiary-fill p-0.5",
         className,
       )}
     >
       <span
         aria-hidden="true"
-        className="bg-ios-grouped-cell absolute inset-y-0.5 left-0.5 rounded-[8px] shadow-[0_3px_8px_rgb(0_0_0/0.12),0_3px_1px_rgb(0_0_0/0.04)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none dark:bg-[#636366]"
+        className="absolute inset-y-0.5 left-0.5 rounded-ios-sm bg-ios-grouped-cell shadow-ios-raised transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none dark:bg-[#636366]"
         style={{
           width: `calc((100% - 4px) / ${options.length})`,
           transform: `translateX(${selectedIndex * 100}%)`,
@@ -61,7 +61,7 @@ export function IosSegmentedControl<Value extends string>({
             aria-pressed={isSelected}
             disabled={disabled}
             className={cn(
-              "text-ios-footnote text-ios-label focus-visible:ring-ios-tint/60 relative z-10 min-w-0 truncate rounded-[8px] px-2 outline-none select-none focus-visible:ring-2 disabled:cursor-default",
+              "relative z-10 min-w-0 truncate rounded-ios-sm px-2 text-ios-footnote text-ios-label outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/60 disabled:cursor-default",
               isSelected ? "font-semibold" : "font-medium",
               disabled && !isSelected && "text-ios-tertiary-label",
             )}

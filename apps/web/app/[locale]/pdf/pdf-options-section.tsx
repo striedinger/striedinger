@@ -59,12 +59,12 @@ export function PdfOptionsSection({
                 onChange={function changePassword(event) {
                   onPasswordInputChange(event.target.value);
                 }}
-                className="text-ios-body text-ios-label placeholder:text-ios-tertiary-label min-w-0 flex-1 bg-transparent py-3 outline-none"
+                className="min-w-0 flex-1 bg-transparent py-3 text-ios-body text-ios-label outline-none placeholder:text-ios-tertiary-label"
               />
               <button
                 type="submit"
                 disabled={!passwordInput}
-                className="bg-ios-tint focus-visible:ring-ios-tint/50 disabled:bg-ios-fill disabled:text-ios-tertiary-label h-8 shrink-0 rounded-full px-4 text-[15px] font-semibold text-white outline-none focus-visible:ring-2 active:opacity-70"
+                className="h-8 shrink-0 rounded-full bg-ios-tint px-4 text-ios-subheadline font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-70 disabled:bg-ios-fill disabled:text-ios-tertiary-label"
               >
                 {labels.open}
               </button>
@@ -73,7 +73,7 @@ export function PdfOptionsSection({
         </form>
       ) : null}
       <IosListSection className="px-0" header={labels.compressionMode}>
-        <li className="not-last:after:bg-ios-separator relative px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50">
+        <li className="relative px-4 py-3 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator">
           <IosSegmentedControl
             label={labels.compressionMode}
             value={compressionMode}
@@ -100,12 +100,12 @@ export function PdfOptionsSection({
               onChange={function changeQuality(event) {
                 onQualityChange(Number(event.target.value));
               }}
-              className="accent-ios-tint h-7 min-w-0 flex-1 cursor-pointer"
+              className="h-7 min-w-0 flex-1 cursor-pointer accent-ios-tint"
             />
             <Text
               as="span"
               aria-hidden="true"
-              className="text-ios-body text-ios-secondary-label w-11 text-right tabular-nums"
+              className="w-11 text-right text-ios-body text-ios-secondary-label tabular-nums"
             >
               {quality}%
             </Text>
@@ -117,7 +117,7 @@ export function PdfOptionsSection({
           <button
             type="button"
             disabled={!canRemoveRestrictions}
-            className="text-ios-body text-ios-tint focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label flex min-h-[48px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 outline-none select-none motion-reduce:transition-none [&_svg]:size-5"
+            className="flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
             onClick={onRemoveRestrictions}
           >
             <LockIcon />

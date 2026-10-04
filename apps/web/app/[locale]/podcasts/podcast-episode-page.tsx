@@ -91,7 +91,7 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
             </div>
             <button
               type="button"
-              className="flex h-12 w-full max-w-sm items-center justify-center gap-2 rounded-[12px] bg-white text-[17px] font-semibold text-black outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
+              className="flex h-12 w-full max-w-sm items-center justify-center gap-2 rounded-ios-md bg-white text-ios-body font-semibold text-black outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
               onClick={function playOrPause() {
                 if (isCurrent) togglePlayback();
                 else playEpisode(item, { fromStart: isPlayed });
@@ -105,13 +105,13 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
               {playLabel}
             </button>
             {timeLabel ? (
-              <Text className="text-[13px] text-white/65 tabular-nums">{timeLabel}</Text>
+              <Text className="text-ios-footnote text-white/65 tabular-nums">{timeLabel}</Text>
             ) : null}
           </PodcastHero>
         }
       />
       <div className="mx-auto w-full max-w-3xl px-5 pt-5">
-        <Text className="text-ios-label text-[17px] leading-[24px] tracking-[-0.43px] whitespace-pre-line">
+        <Text className="text-[17px] leading-[24px] tracking-[-0.43px] whitespace-pre-line text-ios-label">
           {item.episode.description || messages["This episode is no longer available."]}
         </Text>
       </div>

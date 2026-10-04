@@ -36,7 +36,7 @@ export function MessageRow({ labels, locale, message, placement }: MessageRowPro
         <Text
           as="time"
           dateTime={sentAt.toISOString()}
-          className="text-ios-caption2 text-ios-secondary-label self-center pt-2 pb-1 font-medium"
+          className="self-center pt-2 pb-1 text-ios-caption2 font-medium text-ios-secondary-label"
         >
           {getDateTimeFormat(locale, timestampFormatOptions).format(sentAt)}
         </Text>
@@ -44,14 +44,14 @@ export function MessageRow({ labels, locale, message, placement }: MessageRowPro
       <Text
         as="span"
         className={
-          showsSenderName ? "text-ios-caption2 text-ios-secondary-label px-3 pb-0.5" : "sr-only"
+          showsSenderName ? "px-3 pb-0.5 text-ios-caption2 text-ios-secondary-label" : "sr-only"
         }
       >
         {message.isOwn ? labels.you : message.author}
       </Text>
       <Text
         className={cn(
-          "text-ios-body max-w-[min(75%,30rem)] rounded-[18px] px-3 py-[7px] break-words whitespace-pre-wrap",
+          "max-w-[min(75%,30rem)] rounded-ios-lg px-3 py-[7px] text-ios-body break-words whitespace-pre-wrap",
           message.isOwn ? "bg-ios-tint text-white" : "bg-ios-secondary-fill text-ios-label",
           message.isOwn
             ? [

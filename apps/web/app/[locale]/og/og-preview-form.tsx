@@ -32,10 +32,10 @@ export function OgPreviewForm({ action, defaultUrl, labels, preview }: OgPreview
           <Text as="label" className="sr-only" htmlFor="preview-url">
             {labels.urlLabel}
           </Text>
-          <div className="bg-ios-grouped-cell focus-within:ring-ios-tint/35 flex min-h-[52px] items-center gap-3 rounded-[22px] px-4 transition-shadow duration-150 focus-within:ring-2 motion-reduce:transition-none">
-            <LinkIcon aria-hidden="true" className="text-ios-tertiary-label size-5 shrink-0" />
+          <div className="flex min-h-[52px] items-center gap-3 rounded-ios-xl bg-ios-grouped-cell px-4 transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ios-tint/35 motion-reduce:transition-none">
+            <LinkIcon aria-hidden="true" className="size-5 shrink-0 text-ios-tertiary-label" />
             <input
-              className="text-ios-body text-ios-label caret-ios-tint placeholder:text-ios-tertiary-label min-w-0 flex-1 bg-transparent py-3.5 outline-none"
+              className="min-w-0 flex-1 bg-transparent py-3.5 text-ios-body text-ios-label caret-ios-tint outline-none placeholder:text-ios-tertiary-label"
               id="preview-url"
               name="url"
               type="url"
@@ -60,7 +60,7 @@ export function OgPreviewForm({ action, defaultUrl, labels, preview }: OgPreview
           </div>
           <Text
             id="preview-security"
-            className="text-ios-footnote text-ios-secondary-label px-5 pt-2"
+            className="px-5 pt-2 text-ios-footnote text-ios-secondary-label"
           >
             {labels.security}
           </Text>

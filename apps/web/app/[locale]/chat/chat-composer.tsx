@@ -41,7 +41,7 @@ export function ChatComposer({ disabled, labels, onSend }: ChatComposerProps) {
     >
       <div
         className={cn(
-          "flex min-h-11 w-full items-end gap-2 rounded-[22px] py-1 pr-1 pl-4",
+          "flex min-h-11 w-full items-end gap-2 rounded-ios-xl py-1 pr-1 pl-4",
           iosGlassClassName,
         )}
       >
@@ -61,14 +61,14 @@ export function ChatComposer({ disabled, labels, onSend }: ChatComposerProps) {
           disabled={disabled}
           maxLength={maximumMessageLength}
           enterKeyHint="send"
-          className="text-ios-body text-ios-label placeholder:text-ios-secondary-label [field-sizing:content] max-h-32 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-[7px] outline-none disabled:cursor-not-allowed"
+          className="[field-sizing:content] max-h-32 min-h-9 min-w-0 flex-1 resize-none bg-transparent py-[7px] text-ios-body text-ios-label outline-none placeholder:text-ios-secondary-label disabled:cursor-not-allowed"
         />
         <button
           type="submit"
           aria-label={labels.send}
           disabled={!canSend}
           onPointerDown={keepFieldFocused}
-          className="bg-ios-tint focus-visible:ring-ios-tint/60 disabled:bg-ios-fill disabled:text-ios-tertiary-label flex size-9 shrink-0 items-center justify-center rounded-full text-white transition-[transform,background-color,color] duration-150 outline-none focus-visible:ring-2 active:scale-90 disabled:active:scale-100 motion-reduce:transition-none"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-tint text-white transition-[transform,background-color,color] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/60 active:scale-90 disabled:bg-ios-fill disabled:text-ios-tertiary-label disabled:active:scale-100 motion-reduce:transition-none"
         >
           <ArrowUpIcon className="size-5" strokeWidth={2.6} />
         </button>

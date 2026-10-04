@@ -30,7 +30,7 @@ export function NowPlayingQueue({ messages, queue }: NowPlayingQueueProps) {
               <li key={item.episode.id} className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] p-2 text-left outline-none focus-visible:bg-white/10 active:bg-white/10"
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-ios-md p-2 text-left outline-none focus-visible:bg-white/10 active:bg-white/10"
                   onClick={function playQueuedEpisode() {
                     playEpisode(item);
                   }}

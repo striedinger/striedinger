@@ -270,7 +270,7 @@ export function NoteEditorPane({
   return (
     <section
       aria-label={note?.title || messages["New Note"]}
-      className={cn("bg-ios-background relative min-h-0 flex-col", className)}
+      className={cn("relative min-h-0 flex-col bg-ios-background", className)}
     >
       <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain">
         <IosNavigationBar
@@ -372,7 +372,7 @@ export function NoteEditorPane({
         />
         {note ? (
           <>
-            <Text className="text-ios-footnote text-ios-secondary-label shrink-0 pt-1 pb-3 text-center">
+            <Text className="shrink-0 pt-1 pb-3 text-center text-ios-footnote text-ios-secondary-label">
               {formatNoteHeaderDate(note.updatedAt, locale)}
             </Text>
             <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
@@ -393,7 +393,7 @@ export function NoteEditorPane({
             </div>
           </>
         ) : (
-          <Text className="text-ios-tertiary-label m-auto px-6 pb-24 text-center text-[17px]">
+          <Text className="m-auto px-6 pb-24 text-center text-ios-body text-ios-tertiary-label">
             {messages["No Note Selected"]}
           </Text>
         )}

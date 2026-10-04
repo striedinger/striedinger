@@ -57,7 +57,7 @@ export function UpNextCard({
     <li className="flex w-[min(82vw,340px)] shrink-0 snap-start md:w-[340px]">
       <IosContextMenu
         sections={menuSections}
-        className="relative flex w-full flex-col overflow-hidden rounded-[24px] bg-[#3a3a3c] p-4 text-white shadow-[0_4px_16px_rgb(0_0_0/0.12)] [transition-property:transform,background-color]"
+        className="relative flex w-full flex-col overflow-hidden rounded-ios-xl bg-[#3a3a3c] p-4 text-white shadow-ios-floating [transition-property:transform,background-color]"
         style={artworkColor ? { backgroundColor: artworkColor } : undefined}
       >
         <div className="flex items-center gap-3">
@@ -85,14 +85,14 @@ export function UpNextCard({
             {item.episode.title}
           </Text>
         </PodcastLink>
-        <Text numberOfLines={2} className="text-ios-subheadline mt-1 min-h-10 text-white/70">
+        <Text numberOfLines={2} className="mt-1 min-h-10 text-ios-subheadline text-white/70">
           {item.episode.description}
         </Text>
         <div className="mt-auto flex items-center justify-between gap-2 pt-4">
           <button
             type="button"
             aria-label={`${isCurrent && isPlaying ? messages.Pause : messages.Play}: ${item.episode.title}`}
-            className="relative z-10 inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[13px] font-semibold text-black outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
+            className="relative z-10 inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-ios-footnote font-semibold text-black outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
             style={artworkColor ? { color: artworkColor } : undefined}
             onClick={function playOrPause() {
               if (isCurrent) togglePlayback();

@@ -106,7 +106,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
     <section aria-label={labels.preview} className="flex flex-col">
       <Text
         as="h2"
-        className="text-ios-subheadline text-ios-secondary-label flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 font-semibold"
+        className="flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 text-ios-subheadline font-semibold text-ios-secondary-label"
       >
         {labels.preview}
         {pageSizes.length > 0 ? (
@@ -115,7 +115,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           </span>
         ) : null}
       </Text>
-      <div className="bg-ios-grouped-cell relative flex min-h-96 flex-col rounded-[22px] p-4 sm:p-6">
+      <div className="relative flex min-h-96 flex-col rounded-ios-xl bg-ios-grouped-cell p-4 sm:p-6">
         {status === "ready" && document ? (
           <div className="flex w-full flex-col items-center gap-5">
             {pageSizes.map(function renderPage(size) {
@@ -138,7 +138,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           >
             <span
               aria-hidden="true"
-              className="border-ios-fill border-t-ios-secondary-label size-8 animate-spin rounded-full border-[3px] motion-reduce:animate-pulse"
+              className="size-8 animate-spin rounded-full border-[3px] border-ios-fill border-t-ios-secondary-label motion-reduce:animate-pulse"
             />
             <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.loadingPreview}
@@ -148,7 +148,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
         {status === "error" ? (
           <Text
             role="alert"
-            className="text-ios-subheadline text-ios-red m-auto max-w-xs text-center"
+            className="m-auto max-w-xs text-center text-ios-subheadline text-ios-red"
           >
             {error}
           </Text>

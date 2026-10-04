@@ -14,10 +14,10 @@ export function EpisodeListSkeleton({ label }: EpisodeListSkeletonProps) {
             key={placeholder}
             className="flex animate-pulse flex-col gap-2 motion-reduce:animate-none"
           >
-            <span className="bg-ios-tertiary-fill h-3 w-16 rounded" />
-            <span className="bg-ios-tertiary-fill h-4 w-4/5 rounded" />
-            <span className="bg-ios-tertiary-fill h-3 w-full rounded" />
-            <span className="bg-ios-tertiary-fill h-7 w-24 rounded-full" />
+            <span className="h-3 w-16 rounded bg-ios-tertiary-fill" />
+            <span className="h-4 w-4/5 rounded bg-ios-tertiary-fill" />
+            <span className="h-3 w-full rounded bg-ios-tertiary-fill" />
+            <span className="h-7 w-24 rounded-full bg-ios-tertiary-fill" />
           </div>
         );
       })}

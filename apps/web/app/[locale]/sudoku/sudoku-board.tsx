@@ -46,7 +46,7 @@ export function SudokuBoard({
       tabIndex={-1}
       aria-label={label}
       onKeyDown={onKeyDown}
-      className="bg-ios-grouped-cell grid size-full grid-cols-9 grid-rows-9 overflow-hidden rounded-[22px] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_rgb(0_0_0/0.06)]"
+      className="grid size-full grid-cols-9 grid-rows-9 overflow-hidden rounded-ios-xl bg-ios-grouped-cell shadow-ios-raised"
     >
       {values.map(function renderCell(value, cellIndex) {
         const row = Math.floor(cellIndex / 9);
@@ -78,13 +78,13 @@ export function SudokuBoard({
               onSelect(cellIndex);
             }}
             className={cn(
-              "border-ios-separator flex min-w-0 touch-manipulation items-center justify-center transition-colors duration-100 outline-none select-none focus-visible:relative focus-visible:z-10 motion-reduce:transition-none",
+              "flex min-w-0 touch-manipulation items-center justify-center border-ios-separator transition-colors duration-100 outline-none select-none focus-visible:relative focus-visible:z-10 motion-reduce:transition-none",
               column < 8 &&
                 (column === 2 || column === 5
-                  ? "border-r-ios-label/25 border-r-2"
+                  ? "border-r-2 border-r-ios-label/25"
                   : "border-r-[0.5px]"),
               row < 8 &&
-                (row === 2 || row === 5 ? "border-b-ios-label/25 border-b-2" : "border-b-[0.5px]"),
+                (row === 2 || row === 5 ? "border-b-2 border-b-ios-label/25" : "border-b-[0.5px]"),
               isRelated && !isSelected && "bg-ios-tint/[0.07]",
               isSameValue && "bg-ios-tint/20",
               isSelected && "bg-ios-tint text-white",

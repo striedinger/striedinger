@@ -33,14 +33,14 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
       <section aria-label={labels.availableFiles} className="flex flex-col px-4">
         <Text
           as="h2"
-          className="text-ios-subheadline text-ios-secondary-label px-5 pt-4 pb-1.5 font-semibold"
+          className="px-5 pt-4 pb-1.5 text-ios-subheadline font-semibold text-ios-secondary-label"
         >
           {labels.availableFiles}
         </Text>
-        <Text className="bg-ios-grouped-cell text-ios-subheadline text-ios-secondary-label rounded-[22px] px-4 py-6 text-center">
+        <Text className="rounded-ios-xl bg-ios-grouped-cell px-4 py-6 text-center text-ios-subheadline text-ios-secondary-label">
           {labels.noFiles}
         </Text>
-        <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">
+        <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">
           {labels.privacy}
         </Text>
       </section>
@@ -79,12 +79,12 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
         return (
           <li
             key={`${item.direction}-${item.id}`}
-            className="not-last:after:bg-ios-separator relative flex min-h-[64px] items-center gap-3 py-2.5 pr-4 pl-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50"
+            className="relative flex min-h-[64px] items-center gap-3 py-2.5 pr-4 pl-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[64px] not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
           >
             <span
               aria-hidden="true"
               className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-[18px]",
+                "flex size-9 shrink-0 items-center justify-center rounded-ios-md text-white [&_svg]:size-[18px]",
                 item.status === "error"
                   ? "bg-ios-red"
                   : item.status === "complete"
@@ -117,10 +117,10 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
                   aria-valuemax={100}
                   aria-valuenow={Math.round(item.progress * 100)}
                   aria-valuetext={statusLabel}
-                  className="bg-ios-fill h-1 overflow-hidden rounded-full"
+                  className="h-1 overflow-hidden rounded-full bg-ios-fill"
                 >
                   <span
-                    className="bg-ios-tint block h-full origin-left rounded-full transition-transform duration-150 motion-reduce:transition-none"
+                    className="block h-full origin-left rounded-full bg-ios-tint transition-transform duration-150 motion-reduce:transition-none"
                     style={{ transform: `scaleX(${item.progress})` }}
                   />
                 </span>

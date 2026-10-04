@@ -1,6 +1,9 @@
 "use client";
 
+import { cn } from "@workspace/ui/lib/utils";
 import { useFormStatus } from "react-dom";
+
+import { iosFilledButtonClassName } from "./ios-button-styles";
 
 interface IosSubmitButtonProps {
   checkingLabel: string;
@@ -16,7 +19,7 @@ export function IosSubmitButton({ checkingLabel, label }: IosSubmitButtonProps) 
       type="submit"
       disabled={pending}
       aria-busy={pending}
-      className="bg-ios-tint text-ios-body focus-visible:ring-ios-tint/50 focus-visible:ring-offset-ios-grouped-background flex h-[50px] w-full items-center justify-center gap-2 rounded-full px-6 font-semibold text-white transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-[0.97] disabled:opacity-70 disabled:active:scale-100 motion-reduce:transition-none"
+      className={cn(iosFilledButtonClassName, "w-full")}
     >
       {pending ? (
         <span

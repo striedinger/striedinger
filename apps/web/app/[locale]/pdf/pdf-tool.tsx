@@ -8,6 +8,7 @@ import { lazy, Suspense, useRef, useState } from "react";
 
 import type { PdfCompressionMode, PdfOperationStage, PdfToolLabels } from "./types";
 
+import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
@@ -132,7 +133,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
             <li className="flex min-h-[64px] items-center gap-3 px-4 py-2.5">
               <span
                 aria-hidden="true"
-                className="bg-ios-tint flex size-9 shrink-0 items-center justify-center rounded-[10px] text-white [&_svg]:size-5"
+                className="flex size-9 shrink-0 items-center justify-center rounded-ios-md bg-ios-tint text-white [&_svg]:size-5"
               >
                 <DocIcon />
               </span>
@@ -152,7 +153,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
               <button
                 type="button"
                 disabled={isProcessing}
-                className="text-ios-body text-ios-tint focus-visible:ring-ios-tint/50 disabled:text-ios-tertiary-label shrink-0 rounded-full px-2 py-1 outline-none focus-visible:ring-2 active:opacity-50"
+                className="shrink-0 rounded-full px-2 py-1 text-ios-body text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-50 disabled:text-ios-tertiary-label"
                 onClick={openFilePicker}
               >
                 {labels.replaceFile}
@@ -175,7 +176,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
             stageLabel={stageLabel}
           />
           {error ? (
-            <Text role="alert" className="text-ios-footnote text-ios-red px-5">
+            <Text role="alert" className="px-5 text-ios-footnote text-ios-red">
               {error}
             </Text>
           ) : null}
@@ -204,7 +205,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
             quality={quality}
             requiresPassword={requiresPassword}
           />
-          <Suspense fallback={<IosSkeleton className="mt-4 h-96 w-full rounded-[22px]" />}>
+          <Suspense fallback={<IosSkeleton className="mt-4 h-96 w-full rounded-ios-xl" />}>
             <PdfPreview
               key={`${previewFile.name}-${previewFile.size}-${previewFile.lastModified}`}
               file={previewFile}
@@ -216,7 +217,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
         </>
       ) : (
         <div className="flex flex-col pt-2">
-          <div className="border-ios-separator bg-ios-grouped-cell rounded-[26px] border-2 border-dashed">
+          <div className="rounded-ios-2xl border-2 border-dashed border-ios-separator bg-ios-grouped-cell">
             <IosContentUnavailable
               className="px-6 pt-12 pb-12"
               icon={<DocIcon />}
@@ -224,7 +225,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
               description={labels.supported}
             />
           </div>
-          <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">
+          <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">
             {labels.fileStaysLocal}
           </Text>
         </div>
@@ -251,7 +252,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
         <button
           type="button"
           disabled={file ? !canCompress : false}
-          className="bg-ios-tint focus-visible:ring-ios-tint/50 pointer-events-auto flex h-[50px] w-full max-w-sm items-center justify-center gap-2 rounded-full text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100 motion-reduce:transition-none [&_svg]:size-5"
+          className={cn(iosFilledButtonClassName, "pointer-events-auto w-full max-w-sm")}
           onClick={
             file
               ? function compress() {

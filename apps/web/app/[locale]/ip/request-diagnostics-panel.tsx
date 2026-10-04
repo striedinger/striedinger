@@ -60,10 +60,10 @@ export async function RequestDiagnosticsPanel({ labels }: RequestDiagnosticsPane
         footer={labels.privacy}
         label={labels.observedIpAddress}
       >
-        <li className="after:bg-ios-separator relative px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50">
+        <li className="relative px-4 py-4 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-ios-separator">
           <Text
             family={hasIpAddress ? "mono" : undefined}
-            className="text-ios-title2 text-ios-label text-center font-semibold break-all"
+            className="text-center text-ios-title2 font-semibold break-all text-ios-label"
           >
             <span className="sr-only">{labels.ipAddress} </span>
             {diagnostics.ipAddress}

@@ -13,6 +13,6 @@ export async function OgPreviewError({ labels, preview }: OgPreviewErrorProps) {
   if (state.status !== "error") return null;
 
   return (
-    <Text className="text-ios-footnote text-ios-red px-5 pt-2">{labels.errors[state.error]}</Text>
+    <Text className="px-5 pt-2 text-ios-footnote text-ios-red">{labels.errors[state.error]}</Text>
   );
 }

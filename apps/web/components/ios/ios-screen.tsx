@@ -23,7 +23,7 @@ export function IosScreen({ className, ...props }: IosScreenProps) {
         ref={scrollerRef}
         data-ios-scroll
         className={cn(
-          "bg-ios-background absolute inset-0 flex flex-col overflow-y-auto overscroll-contain",
+          "absolute inset-0 flex flex-col overflow-y-auto overscroll-contain bg-ios-background",
           className,
         )}
         {...props}

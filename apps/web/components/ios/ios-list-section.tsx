@@ -32,8 +32,8 @@ export function IosListSection({
           as="h2"
           className={cn(
             headerVariant === "prominent"
-              ? "text-ios-title2 text-ios-label pt-3 pb-2 font-bold"
-              : "text-ios-subheadline text-ios-secondary-label px-5 pt-4 pb-1.5 font-semibold",
+              ? "pt-3 pb-2 text-ios-title2 font-bold text-ios-label"
+              : "px-5 pt-4 pb-1.5 text-ios-subheadline font-semibold text-ios-secondary-label",
           )}
         >
           {header}
@@ -41,14 +41,14 @@ export function IosListSection({
       ) : null}
       <ul
         className={cn(
-          "bg-ios-grouped-cell m-0 list-none overflow-hidden rounded-[22px] p-0",
+          "m-0 list-none overflow-hidden rounded-ios-xl bg-ios-grouped-cell p-0",
           listClassName,
         )}
       >
         {children}
       </ul>
       {footer ? (
-        <Text className="text-ios-footnote text-ios-secondary-label px-5 pt-2">{footer}</Text>
+        <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">{footer}</Text>
       ) : null}
     </section>
   );

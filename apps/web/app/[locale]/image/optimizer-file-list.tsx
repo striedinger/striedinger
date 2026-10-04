@@ -63,7 +63,7 @@ export function OptimizerFileList({
       </IosListSection>
       <IosListSection className="px-0">
         {completed.length > 1 ? (
-          <li className="after:bg-ios-separator relative after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:scale-y-50">
+          <li className="relative after:absolute after:right-0 after:bottom-0 after:left-12 after:h-px after:scale-y-50 after:bg-ios-separator">
             <button
               type="button"
               className={cn(actionRowClassName, "text-ios-tint")}

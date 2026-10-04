@@ -85,7 +85,7 @@ export function IosNavigationBar({
             aria-hidden={showsLargeTitle || undefined}
             numberOfLines={1}
             className={cn(
-              "text-ios-body text-ios-label max-w-[50vw] text-center font-semibold transition-opacity duration-200 motion-reduce:transition-none",
+              "max-w-[50vw] text-center text-ios-body font-semibold text-ios-label transition-opacity duration-200 motion-reduce:transition-none",
               (showsLargeTitle || titleDisplay === "scroll-edge") &&
                 !isScrolledUnder &&
                 "opacity-0",
@@ -111,7 +111,7 @@ export function IosNavigationBar({
           <Text
             as={titleElement}
             numberOfLines={2}
-            className="text-ios-large-title text-ios-label font-bold text-pretty"
+            className="text-ios-large-title font-bold text-pretty text-ios-label"
           >
             {title}
           </Text>

@@ -22,10 +22,10 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
   });
 
   return (
-    <article className="bg-ios-grouped-cell overflow-hidden rounded-[22px]">
+    <article className="overflow-hidden rounded-ios-xl bg-ios-grouped-cell">
       <header className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3">
         <div className="flex min-w-0 flex-col gap-2">
-          <Text as="h3" className="text-ios-body text-ios-label font-semibold">
+          <Text as="h3" className="text-ios-body font-semibold text-ios-label">
             {station.name}
           </Text>
           <div className="flex flex-wrap gap-1" aria-label={station.routes.join(", ")}>
@@ -35,7 +35,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end">
-          <Text className="text-ios-subheadline text-ios-label font-semibold tabular-nums">
+          <Text className="text-ios-subheadline font-semibold text-ios-label tabular-nums">
             {station.distance.toFixed(1)} mi
           </Text>
           <Text className="text-ios-footnote text-ios-secondary-label tabular-nums">
@@ -50,7 +50,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           return (
             <li
               key={`${arrival.route}-${arrival.direction}-${arrival.arrivalAt}-${index}`}
-              className="before:bg-ios-separator relative flex min-h-[54px] items-center gap-3 py-2 pr-4 pl-4 before:absolute before:top-0 before:right-0 before:left-[52px] before:h-px before:scale-y-50"
+              className="relative flex min-h-[54px] items-center gap-3 py-2 pr-4 pl-4 before:absolute before:top-0 before:right-0 before:left-[52px] before:h-px before:scale-y-50 before:bg-ios-separator"
             >
               <TrainIcon route={arrival.route} />
               <div className="min-w-0 flex-1">
@@ -66,7 +66,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
                   type="button"
                   aria-describedby={tooltipId}
                   className={cn(
-                    "text-ios-body focus-visible:ring-ios-tint/50 rounded-md px-1 font-semibold tabular-nums outline-none focus-visible:ring-2",
+                    "rounded-md px-1 text-ios-body font-semibold tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50",
                     isArriving ? "text-ios-green" : "text-ios-label",
                   )}
                 >
@@ -77,7 +77,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
                 <span
                   id={tooltipId}
                   role="tooltip"
-                  className="bg-ios-menu text-ios-footnote text-ios-label pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-[12px] px-3 py-2 text-center font-medium shadow-[0_8px_30px_rgb(0_0_0/0.18)] backdrop-blur-[20px] group-focus-within:block group-hover:block"
+                  className="pointer-events-none absolute right-0 bottom-full z-30 mb-2 hidden w-max max-w-64 rounded-ios-md bg-ios-menu px-3 py-2 text-center text-ios-footnote font-medium text-ios-label shadow-ios-floating backdrop-blur-[20px] group-focus-within:block group-hover:block"
                 >
                   {arrivalFormat.format(new Date(arrival.arrivalAt))}
                 </span>
@@ -86,7 +86,7 @@ export function StationCard({ labels, locale, station }: StationCardProps) {
           );
         })}
         {station.arrivals.length === 0 ? (
-          <li className="before:bg-ios-separator relative px-4 py-3 before:absolute before:top-0 before:right-0 before:left-4 before:h-px before:scale-y-50">
+          <li className="relative px-4 py-3 before:absolute before:top-0 before:right-0 before:left-4 before:h-px before:scale-y-50 before:bg-ios-separator">
             <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.noArrivals}
             </Text>

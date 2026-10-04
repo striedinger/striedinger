@@ -218,12 +218,12 @@ export function StockDashboard({
 
       <section
         aria-labelledby="stock-heading"
-        className="bg-ios-grouped-cell flex min-w-0 flex-col gap-4 rounded-[22px] p-4 sm:p-5 lg:order-2"
+        className="flex min-w-0 flex-col gap-4 rounded-ios-xl bg-ios-grouped-cell p-4 sm:p-5 lg:order-2"
       >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <Text as="h2" id="stock-heading" className="text-ios-title1 text-ios-label font-bold">
+              <Text as="h2" id="stock-heading" className="text-ios-title1 font-bold text-ios-label">
                 {selectedStock.symbol}
               </Text>
               <MarketSessionIndicator
@@ -238,7 +238,7 @@ export function StockDashboard({
               {displayedSeries?.isDemo ? (
                 <Text
                   as="span"
-                  className="bg-ios-fill text-ios-secondary-label rounded-full px-2 py-0.5 text-[12px] font-semibold"
+                  className="rounded-full bg-ios-fill px-2 py-0.5 text-ios-caption1 font-semibold text-ios-secondary-label"
                 >
                   {labels.demo}
                 </Text>
@@ -262,12 +262,12 @@ export function StockDashboard({
 
         {latestPoint ? (
           <div className="flex items-baseline gap-3">
-            <Text className="text-ios-label text-[34px] leading-[41px] font-bold tracking-[0.37px] tabular-nums">
+            <Text className="text-[34px] leading-[41px] font-bold tracking-[0.37px] text-ios-label tabular-nums">
               {priceFormatter.format(latestPoint.close)}
             </Text>
             <Text
               className={cn(
-                "text-ios-subheadline rounded-[8px] px-2 py-0.5 font-semibold text-white tabular-nums",
+                "rounded-ios-sm px-2 py-0.5 text-ios-subheadline font-semibold text-white tabular-nums",
                 isUp ? "bg-ios-green" : "bg-ios-red",
               )}
             >
@@ -294,7 +294,7 @@ export function StockDashboard({
         {!displayedSeries ? (
           <div
             role="alert"
-            className="bg-ios-grouped-background flex aspect-[1.5/1] items-center justify-center rounded-[14px] p-6 text-center sm:aspect-[2.35/1]"
+            className="flex aspect-[1.5/1] items-center justify-center rounded-ios-lg bg-ios-grouped-background p-6 text-center sm:aspect-[2.35/1]"
           >
             <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.dataUnavailable}
@@ -317,7 +317,7 @@ export function StockDashboard({
             {isNavigating ? (
               <Text
                 role="status"
-                className="bg-ios-menu text-ios-secondary-label pointer-events-none absolute top-0 right-0 rounded-full px-3 py-1 text-[13px] backdrop-blur-[20px]"
+                className="pointer-events-none absolute top-0 right-0 rounded-full bg-ios-menu px-3 py-1 text-ios-footnote text-ios-secondary-label backdrop-blur-[20px]"
               >
                 {labels.loading}
               </Text>
@@ -326,7 +326,7 @@ export function StockDashboard({
         )}
 
         {latestPoint ? (
-          <dl className="bg-ios-separator m-0 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] sm:grid-cols-4">
+          <dl className="m-0 grid grid-cols-2 gap-px overflow-hidden rounded-ios-lg bg-ios-separator sm:grid-cols-4">
             {[
               [labels.open, priceFormatter.format(latestPoint.open)],
               [labels.high, priceFormatter.format(latestPoint.high)],
@@ -337,13 +337,13 @@ export function StockDashboard({
               ],
             ].map(function renderStat([label, value]) {
               return (
-                <div key={label} className="bg-ios-grouped-background flex flex-col px-3.5 py-2.5">
+                <div key={label} className="flex flex-col bg-ios-grouped-background px-3.5 py-2.5">
                   <Text as="dt" className="text-ios-footnote text-ios-secondary-label">
                     {label}
                   </Text>
                   <Text
                     as="dd"
-                    className="text-ios-body text-ios-label m-0 font-semibold tabular-nums"
+                    className="m-0 text-ios-body font-semibold text-ios-label tabular-nums"
                   >
                     {value}
                   </Text>
@@ -357,29 +357,29 @@ export function StockDashboard({
 
       <section aria-label={labels.watchlist} className="flex min-w-0 flex-col lg:order-1">
         <div className="flex items-center justify-between px-4 pb-1.5">
-          <Text as="h2" className="text-ios-title2 text-ios-label font-bold">
+          <Text as="h2" className="text-ios-title2 font-bold text-ios-label">
             {labels.watchlist}
           </Text>
-          <Text as="span" className="text-ios-secondary-label text-[15px] tabular-nums">
+          <Text as="span" className="text-ios-subheadline text-ios-secondary-label tabular-nums">
             {watchlist.length}
           </Text>
         </div>
         {watchlist.length > 0 ? (
-          <ul className="bg-ios-grouped-cell m-0 list-none overflow-hidden rounded-[22px] p-0">
+          <ul className="m-0 list-none overflow-hidden rounded-ios-xl bg-ios-grouped-cell p-0">
             {watchlist.map(function renderWatchlistStock(stock) {
               const isSelected = stock.symbol === selectedStock.symbol;
               return (
                 <li
                   key={stock.symbol}
                   className={cn(
-                    "not-last:after:bg-ios-separator relative flex items-center transition-colors duration-150 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 motion-reduce:transition-none",
+                    "relative flex items-center transition-colors duration-150 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator motion-reduce:transition-none",
                     isSelected && "bg-ios-tint/10",
                   )}
                 >
                   <button
                     type="button"
                     aria-pressed={isSelected}
-                    className="focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed flex min-h-[58px] min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none"
+                    className="flex min-h-[58px] min-w-0 flex-1 flex-col justify-center py-2 pr-2 pl-4 text-left outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed"
                     onClick={function selectWatchlistStock() {
                       setShareStatus("idle");
                       if (!isSelected) navigateToSelection(stock.symbol, timeframe);
@@ -406,7 +406,7 @@ export function StockDashboard({
                   <button
                     type="button"
                     aria-label={`${labels.remove} ${stock.symbol}`}
-                    className="bg-ios-fill text-ios-secondary-label focus-visible:ring-ios-tint/50 mr-3 flex size-7 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 active:opacity-60 [&_svg]:size-3"
+                    className="mr-3 flex size-7 shrink-0 items-center justify-center rounded-full bg-ios-fill text-ios-secondary-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-3"
                     onClick={function removeWatchlistStock(event) {
                       event.stopPropagation();
                       removeStock(stock);
@@ -419,7 +419,7 @@ export function StockDashboard({
             })}
           </ul>
         ) : (
-          <Text className="bg-ios-grouped-cell text-ios-subheadline text-ios-secondary-label rounded-[22px] px-4 py-6 text-center">
+          <Text className="rounded-ios-xl bg-ios-grouped-cell px-4 py-6 text-center text-ios-subheadline text-ios-secondary-label">
             {labels.emptyWatchlist}
           </Text>
         )}

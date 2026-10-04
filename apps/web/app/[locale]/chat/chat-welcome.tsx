@@ -15,19 +15,19 @@ export function ChatWelcome({ alias, labels }: ChatWelcomeProps) {
     <div className="flex flex-col items-center gap-2 px-4 pt-2 text-center">
       <span
         aria-hidden="true"
-        className="bg-ios-tint flex size-[72px] items-center justify-center rounded-full text-white"
+        className="flex size-[72px] items-center justify-center rounded-full bg-ios-tint text-white"
       >
         <BubbleIcon className="size-9" fill="currentColor" strokeWidth={1.5} />
       </span>
-      <Text className="text-ios-title2 text-ios-label font-bold">
+      <Text className="text-ios-title2 font-bold text-ios-label">
         {labels.youAre.replace("{name}", alias)}
       </Text>
-      <Text className="text-ios-subheadline text-ios-secondary-label max-w-sm">
+      <Text className="max-w-sm text-ios-subheadline text-ios-secondary-label">
         {labels.privacyIntro}
       </Text>
       <Text
         as="span"
-        className="text-ios-footnote text-ios-green inline-flex items-center gap-1.5 font-semibold"
+        className="inline-flex items-center gap-1.5 text-ios-footnote font-semibold text-ios-green"
       >
         <LockIcon className="size-3.5" />
         {labels.localOnly}

@@ -38,7 +38,7 @@ export function SudokuTimer({ completedSeconds, startedAt }: SudokuTimerProps) {
     <Text
       family="rounded"
       aria-live="off"
-      className="text-ios-title3 text-ios-label font-semibold tabular-nums"
+      className="text-ios-title3 font-semibold text-ios-label tabular-nums"
     >
       {formatElapsedTime(completedSeconds ?? (startedAt === undefined ? 0 : elapsedSeconds))}
     </Text>

@@ -106,7 +106,7 @@ export function NoteRow({
       ];
 
   return (
-    <li className="bg-ios-grouped-cell not-last:after:bg-ios-separator md:bg-ios-background relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 md:not-last:after:right-3 md:not-last:after:left-3">
+    <li className="relative bg-ios-grouped-cell not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator md:bg-ios-background md:not-last:after:right-3 md:not-last:after:left-3">
       <IosSwipeActions
         className="bg-inherit"
         leadingActions={
@@ -163,7 +163,7 @@ export function NoteRow({
           <button
             type="button"
             aria-current={selected || undefined}
-            className="hover:bg-ios-fill/40 focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:bg-ios-tint/25 dark:aria-current:bg-ios-tint/25 flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none motion-reduce:transition-none md:rounded-[12px] md:px-3"
+            className="flex w-full items-center gap-3 py-[11px] pr-4 pl-4 text-left transition-colors duration-150 outline-none select-none hover:bg-ios-fill/40 focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-current:bg-ios-tint/25 motion-reduce:transition-none md:rounded-ios-md md:px-3 dark:aria-current:bg-ios-tint/25"
             onClick={function selectNote() {
               onSelect(note);
             }}
@@ -172,7 +172,7 @@ export function NoteRow({
               <Text
                 as="span"
                 numberOfLines={1}
-                className="text-ios-body text-ios-label font-semibold"
+                className="text-ios-body font-semibold text-ios-label"
               >
                 {title}
               </Text>
@@ -181,7 +181,7 @@ export function NoteRow({
                 numberOfLines={1}
                 className="text-ios-subheadline text-ios-secondary-label"
               >
-                <span className="text-ios-label/80 in-aria-current:text-ios-label mr-2">
+                <span className="mr-2 text-ios-label/80 in-aria-current:text-ios-label">
                   {formatNoteListDate(note.updatedAt, locale, now)}
                 </span>
                 {preview}
@@ -190,7 +190,7 @@ export function NoteRow({
                 <Text
                   as="span"
                   numberOfLines={1}
-                  className="text-ios-subheadline text-ios-secondary-label flex items-center gap-1"
+                  className="flex items-center gap-1 text-ios-subheadline text-ios-secondary-label"
                 >
                   <FolderIcon className="size-4 shrink-0" />
                   {folderName}
@@ -205,7 +205,7 @@ export function NoteRow({
                 alt=""
                 decoding="async"
                 loading="lazy"
-                className="border-ios-separator size-[50px] shrink-0 rounded-md border-[0.5px] object-cover"
+                className="size-[50px] shrink-0 rounded-md border-[0.5px] border-ios-separator object-cover"
               />
             ) : null}
           </button>

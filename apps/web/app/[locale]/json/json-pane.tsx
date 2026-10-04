@@ -19,7 +19,7 @@ export function JsonPane({ action, children, footer, heading, headingId }: JsonP
         <Text
           as="h2"
           id={headingId}
-          className="text-ios-subheadline text-ios-secondary-label font-semibold"
+          className="text-ios-subheadline font-semibold text-ios-secondary-label"
         >
           {heading}
         </Text>

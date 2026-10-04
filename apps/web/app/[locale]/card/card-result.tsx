@@ -38,7 +38,7 @@ export async function CardResult({ targetUrl }: CardResultProps) {
 
   if (preview.status === "error") {
     return (
-      <Text role="alert" className="text-ios-subheadline text-ios-red px-5">
+      <Text role="alert" className="px-5 text-ios-subheadline text-ios-red">
         {errorMessages[preview.error]}
       </Text>
     );
@@ -52,10 +52,10 @@ export async function CardResult({ targetUrl }: CardResultProps) {
         <SocialCardPreview metadata={getCardMetadata(preview)} platform="twitter" title="Preview" />
       </div>
       <IosListSection header="Share this link" className="px-0">
-        <li className="after:bg-ios-separator relative px-4 py-[11px] after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50">
+        <li className="relative px-4 py-[11px] after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-ios-separator">
           <Text
             family="mono"
-            className="text-ios-label text-[15px] leading-[22px] [overflow-wrap:anywhere]"
+            className="text-[15px] leading-[22px] [overflow-wrap:anywhere] text-ios-label"
           >
             {trackedUrl}
           </Text>

@@ -81,7 +81,7 @@ export function FoldersPane({
     <section
       aria-label={messages.Folders}
       className={cn(
-        "bg-ios-grouped-background md:bg-ios-secondary-background relative min-h-0 flex-col md:overflow-hidden md:rounded-[26px] md:shadow-[inset_0_0_0_0.5px_var(--ios-separator),0_8px_30px_var(--ios-glass-shadow)]",
+        "relative min-h-0 flex-col bg-ios-grouped-background md:overflow-hidden md:rounded-ios-2xl md:bg-ios-secondary-background md:shadow-ios-panel",
         className,
       )}
     >
@@ -156,7 +156,7 @@ export function FoldersPane({
               return (
                 <li
                   key={folder.id}
-                  className="not-last:after:bg-ios-separator relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[52px] not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50"
+                  className="relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-[52px] not-last:after:z-10 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator"
                 >
                   <IosSwipeActions
                     className="bg-ios-grouped-cell md:bg-transparent"
@@ -246,4 +246,4 @@ export function FoldersPane({
 // Beside the notes list, folders appear as sidebar rows: no grouped card, separators, or
 // chevrons, and the selected folder is a rounded tinted capsule.
 const sidebarListClassName =
-  "md:flex md:flex-col md:gap-0.5 md:overflow-visible md:rounded-none md:bg-transparent md:[&_button]:min-h-11 md:[&_button]:rounded-[12px] md:[&_button]:py-2.5 md:[&_button>svg:last-child]:hidden md:[&>li]:after:hidden";
+  "md:flex md:flex-col md:gap-0.5 md:overflow-visible md:rounded-none md:bg-transparent md:[&_button]:min-h-11 md:[&_button]:rounded-ios-md md:[&_button]:py-2.5 md:[&_button>svg:last-child]:hidden md:[&>li]:after:hidden";

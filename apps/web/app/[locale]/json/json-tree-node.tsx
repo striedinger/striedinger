@@ -65,7 +65,7 @@ export function JsonTreeNode({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className="text-ios-tertiary-label focus-visible:ring-ios-tint/50 active:bg-ios-fill flex size-6 shrink-0 items-center justify-center rounded-full outline-none select-none focus-visible:ring-2"
+          className="flex size-6 shrink-0 items-center justify-center rounded-full text-ios-tertiary-label outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:bg-ios-fill"
           aria-label={expanded ? collapseLabel : expandLabel}
           aria-expanded={expanded}
           onClick={handleExpandedChange}
@@ -90,7 +90,7 @@ export function JsonTreeNode({
       </div>
 
       {expanded ? (
-        <div className="border-ios-separator ml-3 flex flex-col border-l pl-2">
+        <div className="ml-3 flex flex-col border-l border-ios-separator pl-2">
           {entries.map(function renderEntry([entryName, entryValue]) {
             return (
               <JsonTreeNode

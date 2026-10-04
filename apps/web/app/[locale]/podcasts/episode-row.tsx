@@ -39,11 +39,11 @@ export function EpisodeRow({
   const menuSections = useEpisodeMenuSections({ extraActions, item, showsGoToShow });
 
   return (
-    <li className="not-last:after:bg-ios-separator has-[a:active]:bg-ios-fill/40 has-[a:hover]:bg-ios-fill/20 relative transition-colors duration-150 [contain-intrinsic-size:auto_180px] [content-visibility:auto] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 motion-reduce:transition-none">
+    <li className="relative transition-colors duration-150 [contain-intrinsic-size:auto_180px] [content-visibility:auto] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator has-[a:active]:bg-ios-fill/40 has-[a:hover]:bg-ios-fill/20 motion-reduce:transition-none">
       <IosContextMenu sections={menuSections} className="relative flex flex-col gap-1 py-3.5 pr-4">
         <Text
           as="span"
-          className="text-ios-secondary-label flex items-center gap-1.5 text-[12px] leading-4 font-semibold tracking-[0.02em] uppercase"
+          className="flex items-center gap-1.5 text-[12px] leading-4 font-semibold tracking-[0.02em] text-ios-secondary-label uppercase"
         >
           {showsPodcastTitle ? (
             <span className="truncate">{item.podcast.title}</span>
@@ -53,7 +53,7 @@ export function EpisodeRow({
           {item.podcast.explicit ? (
             <span
               aria-label={messages.Explicit}
-              className="bg-ios-secondary-label text-ios-background inline-flex size-3.5 items-center justify-center rounded-[3px] text-[9px] font-bold"
+              className="inline-flex size-3.5 items-center justify-center rounded-ios-xs bg-ios-secondary-label text-[9px] font-bold text-ios-background"
             >
               E
             </span>
@@ -63,7 +63,7 @@ export function EpisodeRow({
           item={item}
           className="outline-none after:absolute after:inset-0 focus-visible:underline"
         >
-          <Text as="span" numberOfLines={2} className="text-ios-body text-ios-label font-semibold">
+          <Text as="span" numberOfLines={2} className="text-ios-body font-semibold text-ios-label">
             {item.episode.title}
           </Text>
         </PodcastLink>
@@ -88,7 +88,7 @@ export function EpisodeRow({
               <button
                 type="button"
                 aria-label={`${messages.More}: ${item.episode.title}`}
-                className="text-ios-tint focus-visible:ring-ios-tint relative z-10 -mr-2 flex size-9 items-center justify-center rounded-full outline-none focus-visible:ring-2 active:opacity-50"
+                className="relative z-10 -mr-2 flex size-9 items-center justify-center rounded-full text-ios-tint outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:opacity-50"
               >
                 <EllipsisIcon className="size-5" />
               </button>

@@ -2,10 +2,13 @@
 
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import { useState } from "react";
 
 import type { ShareOutcome } from "./share-result";
 import type { SudokuDifficulty, SudokuLabels } from "./types";
+
+import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 
 interface CompletionCardProps {
   date: string;
@@ -63,10 +66,10 @@ export function CompletionCard({
   return (
     <section
       aria-live="polite"
-      className="bg-ios-grouped-cell/80 absolute inset-0 z-30 flex animate-in flex-col justify-center gap-[clamp(0.5rem,3cqh,1rem)] overflow-y-auto rounded-[22px] p-[clamp(1rem,5cqw,1.5rem)] backdrop-blur-[16px] duration-500 zoom-in-95 fade-in motion-reduce:animate-none"
+      className="absolute inset-0 z-30 flex animate-in flex-col justify-center gap-[clamp(0.5rem,3cqh,1rem)] overflow-y-auto rounded-ios-xl bg-ios-grouped-cell/80 p-[clamp(1rem,5cqw,1.5rem)] backdrop-blur-[16px] duration-500 zoom-in-95 fade-in motion-reduce:animate-none"
     >
       <div className="flex flex-col gap-0.5">
-        <Text as="h2" className="text-ios-title2 text-ios-label font-bold">
+        <Text as="h2" className="text-ios-title2 font-bold text-ios-label">
           {labels.completed}
         </Text>
         <Text className="text-ios-subheadline text-ios-secondary-label">
@@ -74,20 +77,20 @@ export function CompletionCard({
         </Text>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-ios-grouped-background flex flex-col gap-0.5 rounded-[16px] px-3.5 py-2.5">
+        <div className="flex flex-col gap-0.5 rounded-ios-lg bg-ios-grouped-background px-3.5 py-2.5">
           <Text className="text-ios-footnote text-ios-secondary-label">{labels.time}</Text>
           <Text
             family="rounded"
-            className="text-ios-label text-[clamp(22px,7cqw,34px)] leading-tight font-bold tabular-nums"
+            className="text-[clamp(22px,7cqw,34px)] leading-tight font-bold text-ios-label tabular-nums"
           >
             {elapsedTime}
           </Text>
         </div>
-        <div className="bg-ios-grouped-background flex flex-col gap-0.5 rounded-[16px] px-3.5 py-2.5">
+        <div className="flex flex-col gap-0.5 rounded-ios-lg bg-ios-grouped-background px-3.5 py-2.5">
           <Text className="text-ios-footnote text-ios-secondary-label">{labels.score}</Text>
           <Text
             family="rounded"
-            className="text-ios-tint text-[clamp(22px,7cqw,34px)] leading-tight font-bold tabular-nums"
+            className="text-[clamp(22px,7cqw,34px)] leading-tight font-bold text-ios-tint tabular-nums"
           >
             {score}/100
           </Text>
@@ -101,7 +104,7 @@ export function CompletionCard({
       <button
         type="button"
         disabled={shareState === "sharing"}
-        className="bg-ios-tint focus-visible:ring-ios-tint/50 flex h-[50px] shrink-0 items-center justify-center gap-2 rounded-full text-[17px] font-semibold tracking-[-0.43px] text-white outline-none focus-visible:ring-2 active:scale-[0.98] disabled:opacity-60 motion-safe:transition-transform [&_svg]:size-5"
+        className={cn(iosFilledButtonClassName, "shrink-0")}
         onClick={handleShare}
       >
         <ShareUpIcon />

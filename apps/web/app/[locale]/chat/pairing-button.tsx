@@ -2,6 +2,8 @@ import type { ComponentPropsWithRef } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
 
+import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
+
 type PairingButtonVariant = "filled" | "tinted" | "plain";
 
 type PairingButtonProps = ComponentPropsWithRef<"button"> & {
@@ -9,8 +11,7 @@ type PairingButtonProps = ComponentPropsWithRef<"button"> & {
 };
 
 const variantClassNames: Readonly<Record<PairingButtonVariant, string>> = {
-  filled:
-    "h-[50px] bg-ios-tint font-semibold text-white disabled:bg-ios-fill disabled:text-ios-tertiary-label",
+  filled: `${iosFilledButtonClassName} w-full disabled:bg-ios-fill disabled:text-ios-tertiary-label disabled:opacity-100 disabled:shadow-none`,
   tinted:
     "h-[50px] bg-ios-tint/15 font-semibold text-ios-tint disabled:bg-ios-fill disabled:text-ios-tertiary-label",
   plain: "h-11 text-ios-tint active:opacity-50 disabled:text-ios-tertiary-label",
@@ -27,7 +28,8 @@ export function PairingButton({
     <button
       type={type}
       className={cn(
-        "text-ios-body focus-visible:ring-ios-tint/50 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 active:scale-[0.98] disabled:active:scale-100 motion-reduce:transition-none [&_svg]:size-5 [&_svg]:shrink-0",
+        variant !== "filled" &&
+          "inline-flex w-full items-center justify-center gap-2 rounded-full px-5 text-ios-body transition-[transform,opacity] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-[0.98] disabled:active:scale-100 motion-reduce:transition-none [&_svg]:size-5 [&_svg]:shrink-0",
         variantClassNames[variant],
         className,
       )}

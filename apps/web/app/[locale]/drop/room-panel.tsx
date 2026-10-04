@@ -43,14 +43,14 @@ export function RoomPanel({
         footer={copyFailed ? undefined : labels.shareHint}
         label={labels.roomCode}
       >
-        <li className="after:bg-ios-separator relative px-4 py-3.5 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50">
+        <li className="relative px-4 py-3.5 after:absolute after:right-0 after:bottom-0 after:left-4 after:h-px after:scale-y-50 after:bg-ios-separator">
           <Text
             as="output"
             family="mono"
             aria-live="polite"
             aria-atomic="true"
             aria-label={labels.roomCode}
-            className="text-ios-label block text-center text-[22px] leading-7 font-semibold tracking-[0.12em] break-all"
+            className="block text-center text-[22px] leading-7 font-semibold tracking-[0.12em] break-all text-ios-label"
           >
             {roomCode ? formatRoomCode(roomCode) : labels.preparing}
           </Text>
@@ -59,7 +59,7 @@ export function RoomPanel({
           <button
             type="button"
             disabled={!roomCode}
-            className="text-ios-body text-ios-tint focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label flex min-h-[48px] w-full items-center gap-3 px-4 text-left transition-colors duration-150 outline-none select-none motion-reduce:transition-none [&_svg]:size-5"
+            className="flex min-h-[48px] w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
             onClick={onCopy}
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
@@ -68,7 +68,7 @@ export function RoomPanel({
         </li>
       </IosListSection>
       {copyFailed ? (
-        <Text role="alert" className="text-ios-footnote text-ios-red px-9">
+        <Text role="alert" className="px-9 text-ios-footnote text-ios-red">
           {labels.copyFailed}
         </Text>
       ) : null}
@@ -93,11 +93,11 @@ export function RoomPanel({
               autoCapitalize="characters"
               autoComplete="off"
               spellCheck={false}
-              className="text-ios-label placeholder:text-ios-tertiary-label min-w-0 flex-1 bg-transparent py-3 font-mono text-[17px] tracking-wide outline-none"
+              className="min-w-0 flex-1 bg-transparent py-3 font-mono text-[17px] tracking-wide text-ios-label outline-none placeholder:text-ios-tertiary-label"
             />
             <button
               type="submit"
-              className="bg-ios-tint focus-visible:ring-ios-tint/50 h-8 shrink-0 rounded-full px-4 text-[15px] font-semibold text-white outline-none focus-visible:ring-2 active:opacity-70"
+              className="h-8 shrink-0 rounded-full bg-ios-tint px-4 text-ios-subheadline font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-70"
             >
               {labels.join}
             </button>
@@ -107,7 +107,7 @@ export function RoomPanel({
           <Text
             id="join-code-error"
             role="alert"
-            className="text-ios-footnote text-ios-red px-9 pt-2"
+            className="px-9 pt-2 text-ios-footnote text-ios-red"
           >
             {labels.invalidCode}
           </Text>

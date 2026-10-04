@@ -1,10 +1,12 @@
 "use client";
 
 import { Text } from "@workspace/ui/components/text";
+import { cn } from "@workspace/ui/lib/utils";
 import { useState, type KeyboardEvent } from "react";
 
 import type { SudokuDifficulty, SudokuLabels, SudokuPuzzle } from "./types";
 
+import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosSegmentedControl } from "../../../components/ios/ios-segmented-control";
 import { getDateTimeFormat } from "../../../lib/intl-cache";
 import { CompletionCard } from "./completion-card";
@@ -154,7 +156,7 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <Text className="text-ios-subheadline text-ios-secondary-label -mt-2.5">{localizedDate}</Text>
+      <Text className="-mt-2.5 text-ios-subheadline text-ios-secondary-label">{localizedDate}</Text>
       <IosSegmentedControl
         label={labels.chooseDifficulty}
         options={difficulties.map(function createOption(option) {
@@ -169,18 +171,18 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
       />
 
       <div className="flex h-14 shrink-0 items-stretch gap-2.5">
-        <div className="bg-ios-grouped-cell flex min-w-0 flex-1 flex-col justify-center rounded-[16px] px-3.5">
-          <Text className="text-ios-footnote text-ios-secondary-label truncate">{labels.time}</Text>
+        <div className="flex min-w-0 flex-1 flex-col justify-center rounded-ios-lg bg-ios-grouped-cell px-3.5">
+          <Text className="truncate text-ios-footnote text-ios-secondary-label">{labels.time}</Text>
           <SudokuTimer completedSeconds={completedSeconds} startedAt={startedAt} />
         </div>
-        <div className="bg-ios-grouped-cell flex min-w-0 flex-1 flex-col justify-center rounded-[16px] px-3.5">
-          <Text className="text-ios-footnote text-ios-secondary-label truncate">
+        <div className="flex min-w-0 flex-1 flex-col justify-center rounded-ios-lg bg-ios-grouped-cell px-3.5">
+          <Text className="truncate text-ios-footnote text-ios-secondary-label">
             {labels.score}
           </Text>
           <Text
             family="rounded"
             aria-live="polite"
-            className="text-ios-title3 text-ios-label font-semibold tabular-nums"
+            className="text-ios-title3 font-semibold text-ios-label tabular-nums"
           >
             {startedAt === undefined ? "—" : `${liveScore}/100`}
           </Text>
@@ -217,14 +219,14 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
             />
           </div>
           {startedAt === undefined ? (
-            <div className="bg-ios-grouped-background/55 absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 rounded-[22px] p-5 text-center backdrop-blur-[10px]">
-              <Text as="h2" className="text-ios-title2 text-ios-label font-bold">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 rounded-ios-xl bg-ios-grouped-background/55 p-5 text-center backdrop-blur-[10px]">
+              <Text as="h2" className="text-ios-title2 font-bold text-ios-label">
                 {labels.startPrompt}
               </Text>
               <button
                 type="button"
                 onClick={handleStart}
-                className="bg-ios-tint focus-visible:ring-ios-tint/50 h-[50px] min-w-44 rounded-full px-8 text-[17px] font-semibold tracking-[-0.43px] text-white shadow-[inset_0_0.5px_0_0.5px_rgb(255_255_255/0.35),0_8px_24px_rgb(0_0_0/0.18)] outline-none focus-visible:ring-2 active:scale-[0.97] motion-safe:transition-transform"
+                className={cn(iosFilledButtonClassName, "min-w-44 px-8")}
               >
                 {labels.start}
               </button>

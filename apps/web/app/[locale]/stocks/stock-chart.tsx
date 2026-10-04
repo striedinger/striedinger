@@ -159,7 +159,7 @@ export function StockChart({
           </>
         ) : (
           <>
-            <Text className="text-ios-body text-ios-label font-semibold tabular-nums">
+            <Text className="text-ios-body font-semibold text-ios-label tabular-nums">
               {priceFormat.format(displayedPoint.close)}
             </Text>
             <Text
@@ -190,7 +190,7 @@ export function StockChart({
           aria-valuemax={lastIndex}
           aria-valuenow={displayedIndex}
           aria-valuetext={`${priceFormat.format(displayedPoint.close)}, ${dateFormat.format(new Date(displayedPoint.date))}`}
-          className="focus-visible:ring-ios-tint/50 block aspect-[1.6/1] w-full cursor-crosshair touch-pan-y overflow-visible outline-none select-none [-webkit-touch-callout:none] focus-visible:rounded-[12px] focus-visible:ring-2 sm:aspect-[2.4/1]"
+          className="block aspect-[1.6/1] w-full cursor-crosshair touch-pan-y overflow-visible outline-none select-none [-webkit-touch-callout:none] focus-visible:rounded-ios-md focus-visible:ring-2 focus-visible:ring-ios-tint/50 sm:aspect-[2.4/1]"
           onPointerDown={startSelection}
           onPointerMove={moveSelection}
           onPointerUp={endSelection}
@@ -295,7 +295,7 @@ export function StockChart({
               key={index}
               aria-hidden="true"
               className={cn(
-                "border-ios-grouped-cell pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2",
+                "pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ios-grouped-cell",
                 scrubIndex === null && !range && "animate-pulse motion-reduce:animate-none",
               )}
               style={{
@@ -308,13 +308,13 @@ export function StockChart({
         })}
         <Text
           aria-hidden="true"
-          className="bg-ios-grouped-cell text-ios-caption2 text-ios-secondary-label pointer-events-none absolute top-0 right-0 rounded-[4px] px-1 tabular-nums"
+          className="pointer-events-none absolute top-0 right-0 rounded-ios-xs bg-ios-grouped-cell px-1 text-ios-caption2 text-ios-secondary-label tabular-nums"
         >
           {priceFormat.format(model.maximum)}
         </Text>
         <Text
           aria-hidden="true"
-          className="bg-ios-grouped-cell text-ios-caption2 text-ios-secondary-label pointer-events-none absolute right-0 bottom-0 rounded-[4px] px-1 tabular-nums"
+          className="pointer-events-none absolute right-0 bottom-0 rounded-ios-xs bg-ios-grouped-cell px-1 text-ios-caption2 text-ios-secondary-label tabular-nums"
         >
           {priceFormat.format(model.minimum)}
         </Text>

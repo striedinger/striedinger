@@ -42,7 +42,7 @@ export function PodcastStackPlaceholder({ message }: PodcastStackPlaceholderProp
         }
       />
       {message ? (
-        <Text className="text-ios-secondary-label px-8 pt-[20vh] text-center text-[17px]">
+        <Text className="px-8 pt-[20vh] text-center text-ios-body text-ios-secondary-label">
           {message}
         </Text>
       ) : (
@@ -51,7 +51,7 @@ export function PodcastStackPlaceholder({ message }: PodcastStackPlaceholderProp
             <IosSkeleton className="size-[200px] rounded-xl md:size-[240px]" />
             <IosSkeleton className="mt-2 h-6 w-48" />
             <IosSkeleton className="h-4 w-32" />
-            <IosSkeleton className="mt-2 h-12 w-full max-w-sm rounded-[12px]" />
+            <IosSkeleton className="mt-2 h-12 w-full max-w-sm rounded-ios-md" />
           </div>
           <EpisodeListSkeleton label={messages["Loading episodes"]} />
         </>

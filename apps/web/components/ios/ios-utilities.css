@@ -67,4 +67,20 @@
   --text-ios-caption2: 11px;
   --text-ios-caption2--line-height: 13px;
   --text-ios-caption2--letter-spacing: 0.06px;
+  /* Corner radii, from tags and inner controls up to cards, panels, and sheets. */
+  --radius-ios-xs: 4px;
+  --radius-ios-sm: 8px;
+  --radius-ios-md: 12px;
+  --radius-ios-lg: 16px;
+  --radius-ios-xl: 22px;
+  --radius-ios-2xl: 28px;
+  --radius-ios-sheet: 38px;
+  /* Elevations: resting controls, floating popovers, overlays, bottom sheets, and filled
+   * buttons, plus the hairline-edged panel of a sidebar. */
+  --shadow-ios-raised: 0 1px 3px rgb(0 0 0 / 0.12), 0 6px 18px rgb(0 0 0 / 0.08);
+  --shadow-ios-floating: 0 8px 24px rgb(0 0 0 / 0.14);
+  --shadow-ios-overlay: 0 14px 40px rgb(0 0 0 / 0.32);
+  --shadow-ios-sheet: 0 -6px 32px rgb(0 0 0 / 0.16);
+  --shadow-ios-button: inset 0 0.5px 0 0.5px rgb(255 255 255 / 0.35), 0 8px 24px rgb(0 0 0 / 0.18);
+  --shadow-ios-panel: inset 0 0 0 0.5px var(--ios-separator), 0 8px 30px var(--ios-glass-shadow);
 }

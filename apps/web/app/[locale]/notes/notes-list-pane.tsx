@@ -163,7 +163,7 @@ export function NotesListPane({
     <section
       aria-label={title}
       className={cn(
-        "bg-ios-grouped-background md:bg-ios-background relative min-h-0 flex-col",
+        "relative min-h-0 flex-col bg-ios-grouped-background md:bg-ios-background",
         className,
       )}
     >
@@ -196,7 +196,7 @@ export function NotesListPane({
           }
         />
         {isRecentlyDeleted && noteCount > 0 ? (
-          <Text className="text-ios-footnote text-ios-secondary-label px-8 pb-2 text-center">
+          <Text className="px-8 pb-2 text-center text-ios-footnote text-ios-secondary-label">
             {messages["Notes are permanently deleted after 30 days."]}
           </Text>
         ) : null}
@@ -215,7 +215,7 @@ export function NotesListPane({
                   className="flex flex-col px-4"
                 >
                   {section.title ? (
-                    <Text as="h2" className="text-ios-title2 text-ios-label px-1 pb-2 font-bold">
+                    <Text as="h2" className="px-1 pb-2 text-ios-title2 font-bold text-ios-label">
                       {section.title}
                     </Text>
                   ) : null}

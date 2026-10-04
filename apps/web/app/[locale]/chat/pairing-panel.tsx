@@ -192,7 +192,7 @@ export function PairingPanel({
         <div className="flex min-h-24 flex-col items-center justify-center gap-3" role="status">
           <span
             aria-hidden="true"
-            className="border-ios-fill border-t-ios-secondary-label size-6 animate-spin rounded-full border-[2.5px] motion-reduce:animate-none"
+            className="size-6 animate-spin rounded-full border-[2.5px] border-ios-fill border-t-ios-secondary-label motion-reduce:animate-none"
           />
           <Text className="text-ios-subheadline text-ios-secondary-label">
             {pairingState === "creating" ? labels.preparingConnection : labels.connecting}
@@ -201,7 +201,7 @@ export function PairingPanel({
       ) : null}
 
       {connectionError ? (
-        <Text role="alert" className="text-ios-footnote text-ios-red px-5">
+        <Text role="alert" className="px-5 text-ios-footnote text-ios-red">
           {connectionError}
         </Text>
       ) : null}
