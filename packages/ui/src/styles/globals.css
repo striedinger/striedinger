@@ -1,13 +1,10 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "./theme.css";
-/* The site stylesheet loads on every page, so it only scans the UI kit and the pages and
- * components outside the native apps. Native apps add their utilities from the stylesheet
- * IosAppFrame imports, which loads only on their routes. */
-@source "../**/*.{ts,tsx}";
-@source "../../../../apps/web/app/*.tsx";
-@source "../../../../apps/web/app/*/*.tsx";
-@source "../../../../apps/web/components/*.tsx";
+/* The complete base for a stylesheet: preflight, design tokens, color variables, and base
+ * styles. An app stylesheet imports it and adds `@source` paths for the files it covers, so
+ * every page loads one stylesheet with no utility sent twice. */
+
 :root {
   --radius: 0.75rem;
   --background: oklch(0.978 0.009 82);

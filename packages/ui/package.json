@@ -8,7 +8,6 @@
   "exports": {
     "./globals.css": "./src/styles/globals.css",
     "./theme.css": "./src/styles/theme.css",
-    "./utilities.css": "./src/styles/utilities.css",
     "./components/*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts"
   },

@@ -3,13 +3,13 @@ import { InstagramIcon } from "@workspace/icons/instagram-icon";
 import { XIcon } from "@workspace/icons/x-icon";
 import { Text } from "@workspace/ui/components/text";
 
-import { JsonLd } from "../../components/json-ld";
-import { LanguagePicker } from "../../components/language-picker";
-import { SocialLink } from "../../components/social-link";
-import { localizePath } from "../../lib/locale-path";
-import { personId, siteUrl, websiteId } from "../../lib/seo";
-import { getTranslator } from "../../messages/get-translator";
-import { getRequestLocale } from "../get-request-locale";
+import { JsonLd } from "../../../components/json-ld";
+import { LanguagePicker } from "../../../components/language-picker";
+import { SocialLink } from "../../../components/social-link";
+import { localizePath } from "../../../lib/locale-path";
+import { personId, siteUrl, websiteId } from "../../../lib/seo";
+import { getTranslator } from "../../../messages/get-translator";
+import { getRequestLocale } from "../../get-request-locale";
 
 export default async function Page() {
   const locale = await getRequestLocale();

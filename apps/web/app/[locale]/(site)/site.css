@@ -1,0 +1,8 @@
+/* The stylesheet for pages outside the native apps, loaded by the (site) layout and the
+ * global error page. Native apps load components/ios/ios-utilities.css instead. */
+@import "@workspace/ui/globals.css";
+@source ".";
+@source "../*.tsx";
+@source "../../*.tsx";
+@source "../../../components/*.tsx";
+@source "../../../../../packages/ui/src";

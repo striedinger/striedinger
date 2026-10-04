@@ -8,7 +8,6 @@ import { localizePath } from "../../lib/locale-path";
 import { createPageMetadata, getOpenGraphLocale, siteName, siteUrl } from "../../lib/seo";
 import { getTranslator } from "../../messages/get-translator";
 import { getRequestLocale } from "../get-request-locale";
-import "@workspace/ui/globals.css";
 
 export const viewport: Viewport = {
   colorScheme: "light dark",

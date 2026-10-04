@@ -1,7 +1,8 @@
-/* Tailwind utilities for the native apps. IosAppFrame imports this stylesheet, so it loads
- * only on app routes and keeps their utilities out of the site stylesheet every page
- * downloads. */
-@import "@workspace/ui/utilities.css";
+/* The native apps' stylesheet: the shared base plus the utilities their files use,
+ * including the UI kit components. IosAppFrame imports it, so app routes load this
+ * stylesheet and not the site one. */
+@import "@workspace/ui/globals.css";
 @source "../../app";
 @source ".";
 @source "../*.tsx";
+@source "../../../../packages/ui/src";

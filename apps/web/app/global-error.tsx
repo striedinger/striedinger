@@ -1,7 +1,7 @@
 "use client";
 
 import { ToolError, type ToolErrorProps } from "../components/tool-error";
-import "@workspace/ui/globals.css";
+import "./[locale]/(site)/site.css";
 
 export default function GlobalError(props: ToolErrorProps) {
   return (
