@@ -1,0 +1,7 @@
+/* The base for an extra stylesheet that generates Tailwind utilities for part of an app.
+ * Import it, then add `@source` paths for the files that stylesheet covers. It relies on
+ * globals.css for base styles and color variables. */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities) source(none);
+@import "tw-animate-css";
+@import "./theme.css";

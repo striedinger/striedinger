@@ -10,6 +10,7 @@ import type { IosAppSwitcherLabels } from "./ios-app-switcher-context";
 import { IosAppSwitcher } from "./ios-app-switcher";
 import { IosPortalContainerContext } from "./ios-portal-container";
 import { useKeyboardInset } from "./use-keyboard-inset";
+import "./ios-utilities.css";
 import "./ios-view-transitions.css";
 
 // Apple's iOS system colors for the light and dark appearances. Native replicas use these

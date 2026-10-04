@@ -11,9 +11,9 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Provide complete, localized Next.js metadata for indexable pages, including canonical URLs, Open Graph data, X card data, robots directives, and structured data when relevant.
 - Run every app and tool route as a native iOS app (see Native app replicas) and link them through the app switcher. Keep that chrome in route layouts so the home page does not hydrate or download it.
 - Leave the home route’s presentation independent from the shared tool navigation.
-- Compose pages outside the native apps, such as `/card`, on the shared wide page canvas so horizontal padding and the desktop content edge remain consistent.
 - On pages outside the native apps, keep route identity in content, data visualization, and specialized controls; do not replace shared page backgrounds, typography, surface styling, or spacing with route-specific hard-coded values.
 - Request-cache locale and translation composition used by metadata, layouts, and pages.
+- Keep Tailwind utilities split by where they load. `@workspace/ui/globals.css` loads on every page and scans only the UI kit, top-level `app` files, `app/[locale]/*.tsx`, and top-level `components`. Native apps get their utilities from `components/ios/ios-utilities.css`, which `IosAppFrame` imports. A new page outside the native apps must sit where the site stylesheet scans it.
 - Use `next/link` for internal application navigation.
 - Use native and React/Next view transitions as progressive enhancement. Keep navigation usable without them and disable or minimize their animation for reduced-motion users.
 - Read request-time data such as cookies only where a page needs it; shared layouts that can render without it stay static.
@@ -27,7 +27,7 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 
 ## Native app replicas
 
-- Build native app replicas, such as Notes, Podcasts, Drop, Sudoku, MTA, and Stocks, and the browser tools (Chat, Open Graph, IP, JavaScript, JSON, Image, PDF) inside the shared `IosAppFrame`. Single-screen tools use `NativeToolLayout` for their layout and render `IosToolScreen` from the server page, without explainer sections. It supplies Apple system color tokens, Liquid Glass material tokens, the system font stack, and the portal container that menus, alerts, and sheets render into.
+- Build native app replicas, such as Notes, Podcasts, Drop, Sudoku, MTA, and Stocks, and the browser tools (Chat, Open Graph, IP, JavaScript, JSON, Image, PDF) inside the shared `IosAppFrame`. Single-screen tools, including the unlisted `/card`, use `NativeToolLayout` for their layout, which renders the screen and large title once, without explainer sections. It supplies Apple system color tokens, Liquid Glass material tokens, the system font stack, and the portal container that menus, alerts, and sheets render into.
 - Match the current iOS design language (iOS 26 Liquid Glass): floating glass bar buttons, toolbars, and tab bars over content with scroll-edge fades instead of opaque bars, using `iosGlassClassName` from `components/ios/ios-glass`.
 - These routes intentionally run full screen like installed apps: no shared app bar, a full-viewport frame with safe-area insets, and native styling instead of the shared page canvas, surfaces, and site palette. Keep each app's tint as a CSS variable on its frame.
 - Keep native replicas fast on phones: load popups (menus, alerts, sheets) on first use, subscribe to the narrowest store slice a component needs, keep navigation handlers stable, and reuse cached `Intl` formatters from `lib/intl-cache`.
