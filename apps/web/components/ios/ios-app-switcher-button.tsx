@@ -2,7 +2,6 @@
 
 import { SquareGridIcon } from "@workspace/icons/square-grid-icon";
 
-import { importAppSwitcherSheet } from "./import-app-switcher-sheet";
 import { useIosAppSwitcher } from "./ios-app-switcher-context";
 import { IosBarButton } from "./ios-bar-button";
 
@@ -16,9 +15,9 @@ export function IosAppSwitcherButton() {
       aria-label={appSwitcher.labels.open}
       aria-haspopup="dialog"
       onClick={appSwitcher.openAppSwitcher}
-      onPointerEnter={importAppSwitcherSheet}
-      onTouchStart={importAppSwitcherSheet}
-      onFocus={importAppSwitcherSheet}
+      onPointerEnter={appSwitcher.prepareAppSwitcher}
+      onTouchStart={appSwitcher.prepareAppSwitcher}
+      onFocus={appSwitcher.prepareAppSwitcher}
     >
       <SquareGridIcon />
     </IosBarButton>

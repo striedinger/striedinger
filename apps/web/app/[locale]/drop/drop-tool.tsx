@@ -316,18 +316,20 @@ export function DropTool({ labels }: DropToolProps) {
     <FileDropZone labels={labels} onFiles={handleFiles}>
       <div
         data-ios-scroll
-        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+7rem)] [--ios-bar-edge:var(--ios-grouped-background)]"
+        className="flex h-full flex-col overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+7rem)] [--ios-bar-edge:var(--ios-grouped-background)] [--ios-content-width:42rem]"
       >
         <IosNavigationBar
           title={labels.title}
-          leading={<IosAppSwitcherButton />}
           trailing={
-            <IosBarButton aria-label={labels.share} disabled={!roomCode} onClick={handleShare}>
-              <ShareUpIcon />
-            </IosBarButton>
+            <>
+              <IosBarButton aria-label={labels.share} disabled={!roomCode} onClick={handleShare}>
+                <ShareUpIcon />
+              </IosBarButton>
+              <IosAppSwitcherButton />
+            </>
           }
         />
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 pb-4">
+        <div className="mx-auto flex w-full max-w-(--ios-content-width) flex-col gap-2 pb-4">
           <DropRadar connectionError={connectionError} labels={labels} peerCount={peerCount} />
           <RoomPanel
             key={roomCode}

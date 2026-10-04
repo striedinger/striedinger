@@ -26,6 +26,8 @@ export interface IosAppSwitcherLabels {
 interface IosAppSwitcherContextValue {
   labels: IosAppSwitcherLabels;
   openAppSwitcher: () => void;
+  /** Loads and mounts the closed sheet ahead of a likely tap. */
+  prepareAppSwitcher: () => void;
 }
 
 export const IosAppSwitcherContext = createContext<IosAppSwitcherContextValue | null>(null);
