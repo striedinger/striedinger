@@ -50,7 +50,6 @@ export async function StockDashboardLoader({
       initialSeries={initialSeries}
       initialStock={initialStock}
       initialTimeframe={initialTimeframe}
-      isSharedSelection={initialSymbol !== null}
       labels={labels}
       locale={locale}
       searchQuery={query}

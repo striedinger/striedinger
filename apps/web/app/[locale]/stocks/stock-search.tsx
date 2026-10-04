@@ -19,7 +19,7 @@ interface StockSearchProps {
   searchResults: Promise<StockIdentity[]>;
   selectedSymbol: string;
   timeframe: StockTimeframe;
-  watchlist: StockIdentity[];
+  watchlist: readonly StockIdentity[];
 }
 
 const searchDelayMilliseconds = 180;

@@ -1,6 +1,6 @@
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import { StockWatchlistRowsSkeleton } from "./stock-watchlist-rows-skeleton";
 
-const watchlistRows = [0, 1, 2, 3];
 const stats = [0, 1, 2, 3];
 
 /** The watchlist and chart in placeholder form while market data loads. */
@@ -30,11 +30,7 @@ export function StockDashboardSkeleton() {
       </div>
       <div className="flex flex-col gap-2 lg:order-1">
         <IosSkeleton className="mx-4 h-7 w-32" />
-        <div className="flex flex-col gap-px overflow-hidden rounded-ios-xl">
-          {watchlistRows.map(function renderRow(row) {
-            return <IosSkeleton key={row} className="h-14.5 rounded-none" />;
-          })}
-        </div>
+        <StockWatchlistRowsSkeleton />
       </div>
     </div>
   );

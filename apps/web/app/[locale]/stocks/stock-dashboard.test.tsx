@@ -75,14 +75,22 @@ describe("StockDashboard", function () {
   });
 
   it("restores an intentionally empty watchlist", async function () {
-    vi.useFakeTimers();
     window.localStorage.setItem("stocks-watchlist:v1", "[]");
     await renderDashboard();
-    act(function restoreWatchlist() {
-      vi.advanceTimersByTime(0);
-    });
     expect(screen.getByText(labels.emptyWatchlist)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove AAPL" })).not.toBeInTheDocument();
+  });
+
+  it("shows a saved watchlist without replacing the server's selection", async function () {
+    window.localStorage.setItem(
+      "stocks-watchlist:v1",
+      JSON.stringify([{ symbol: "TSLA", name: "Tesla", exchange: "NASDAQ", currency: "USD" }]),
+    );
+    await renderDashboard();
+    expect(screen.getByRole("button", { name: "Remove TSLA" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove AAPL" })).not.toBeInTheDocument();
+    expect(navigationMocks.replace).not.toHaveBeenCalled();
+    expect(navigationMocks.push).not.toHaveBeenCalled();
   });
 
   it("still navigates after removing a stock when persistence fails", async function () {
@@ -180,7 +188,6 @@ async function renderDashboard({
         initialSeries={initialSeries}
         initialStock={apple}
         initialTimeframe="1M"
-        isSharedSelection
         labels={labels}
         locale="en-US"
         searchQuery={searchQuery}

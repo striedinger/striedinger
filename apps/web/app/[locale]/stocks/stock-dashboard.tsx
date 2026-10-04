@@ -11,34 +11,30 @@ import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from ".
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosSegmentedControl } from "../../../components/ios/ios-segmented-control";
-import { readStoredValue, removeStoredValue, writeStoredValue } from "../../../lib/browser-storage";
 import { getNumberFormat } from "../../../lib/intl-cache";
 import { playStockHaptic } from "./haptics";
 import { MarketSessionIndicator } from "./market-session-indicator";
 import { StockChart } from "./stock-chart";
-import { defaultStocks, spaceXStock } from "./stock-defaults";
 import { StockSearch } from "./stock-search";
 import { StockSearchFallback } from "./stock-search-fallback";
+import { StockWatchlistRowsSkeleton } from "./stock-watchlist-rows-skeleton";
+import { saveStockWatchlist, useStockWatchlist } from "./stock-watchlist-store";
 import { stockTimeframeFreshnessSeconds, stockTimeframes } from "./types";
 
 interface StockDashboardProps {
   initialSeries: StockSeries | null;
   initialStock: StockIdentity;
   initialTimeframe: StockTimeframe;
-  isSharedSelection: boolean;
   labels: StocksLabels;
   locale: string;
   searchQuery: string;
   searchResults: Promise<StockIdentity[]>;
 }
 
-const storageKey = "stocks-watchlist:v1";
-const previousDefaultSymbols = new Set(["AAPL", "MSFT", "NVDA"]);
 export function StockDashboard({
   initialSeries,
   initialStock,
   initialTimeframe,
-  isSharedSelection,
   labels,
   locale,
   searchQuery,
@@ -47,7 +43,8 @@ export function StockDashboard({
   const router = useRouter();
   // Staying on the current path keeps a localized page (such as /es/stocks) in its language.
   const pathname = usePathname();
-  const [watchlist, setWatchlist] = useState<StockIdentity[]>(defaultStocks);
+  const storedWatchlist = useStockWatchlist();
+  const watchlist = storedWatchlist ?? [];
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const [isNavigating, startNavigation] = useTransition();
   const lastRefreshAt = useRef(0);
@@ -59,49 +56,6 @@ export function StockDashboard({
     symbol: selectedStock.symbol,
     timeframe,
   });
-
-  useEffect(
-    function restoreWatchlist() {
-      const timeoutId = window.setTimeout(function readStoredWatchlist() {
-        try {
-          const storedValue = readStoredValue(storageKey);
-          if (!storedValue) return;
-          const parsedValue = JSON.parse(storedValue) as unknown;
-          if (!Array.isArray(parsedValue)) return;
-          const validStocks = parsedValue.filter(isStockIdentity).slice(0, 30);
-          if (validStocks.length > 0 || parsedValue.length === 0) {
-            const restoredStocks = isPreviousDefaultWatchlist(validStocks)
-              ? [...validStocks, spaceXStock]
-              : validStocks;
-            setWatchlist(restoredStocks);
-            if (
-              !isSharedSelection &&
-              restoredStocks[0] &&
-              restoredStocks[0].symbol !== selectedStock.symbol
-            ) {
-              const restoredStock = restoredStocks[0]!;
-              const parameters = new URLSearchParams({
-                symbol: restoredStock.symbol,
-                timeframe,
-              });
-              startNavigation(function restoreServerSelection() {
-                router.replace(`${pathname}?${parameters}`, { scroll: false });
-              });
-            }
-            if (restoredStocks !== validStocks) {
-              writeStoredValue(storageKey, JSON.stringify(restoredStocks));
-            }
-          }
-        } catch {
-          removeStoredValue(storageKey);
-        }
-      }, 0);
-      return function cancelStoredWatchlistRead() {
-        window.clearTimeout(timeoutId);
-      };
-    },
-    [isSharedSelection, pathname, router, selectedStock.symbol, timeframe],
-  );
 
   useEffect(
     function refreshServerComponentOnRefocus() {
@@ -139,16 +93,11 @@ export function StockDashboard({
     });
   }
 
-  function persistWatchlist(nextWatchlist: StockIdentity[]) {
-    setWatchlist(nextWatchlist);
-    writeStoredValue(storageKey, JSON.stringify(nextWatchlist));
-  }
-
   function addStock(stock: StockIdentity) {
     const alreadyAdded = watchlist.some(function hasSymbol(item) {
       return item.symbol === stock.symbol;
     });
-    if (!alreadyAdded) persistWatchlist([...watchlist, stock]);
+    if (!alreadyAdded) saveStockWatchlist([...watchlist, stock]);
     setShareStatus("idle");
     if (stock.symbol !== selectedStock.symbol || searchQuery) {
       navigateToSelection(stock.symbol, timeframe);
@@ -160,7 +109,7 @@ export function StockDashboard({
     const nextWatchlist = watchlist.filter(function keepOtherStock(item) {
       return item.symbol !== stock.symbol;
     });
-    persistWatchlist(nextWatchlist);
+    saveStockWatchlist(nextWatchlist);
     if (selectedStock.symbol === stock.symbol && nextWatchlist[0]) {
       setShareStatus("idle");
       navigateToSelection(nextWatchlist[0].symbol, timeframe);
@@ -367,10 +316,12 @@ export function StockDashboard({
             {labels.watchlist}
           </Text>
           <Text as="span" className="text-ios-subheadline text-ios-secondary-label tabular-nums">
-            {watchlist.length}
+            {storedWatchlist?.length}
           </Text>
         </div>
-        {watchlist.length > 0 ? (
+        {storedWatchlist === null ? (
+          <StockWatchlistRowsSkeleton />
+        ) : watchlist.length > 0 ? (
           <ul className="m-0 list-none overflow-hidden rounded-ios-xl bg-ios-grouped-cell p-0">
             {watchlist.map(function renderWatchlistStock(stock) {
               const isSelected = stock.symbol === optimisticSelection.symbol;
@@ -431,27 +382,5 @@ export function StockDashboard({
         )}
       </section>
     </div>
-  );
-}
-
-function isStockIdentity(value: unknown): value is StockIdentity {
-  if (!value || typeof value !== "object") return false;
-  const stock = value as Partial<StockIdentity>;
-  return (
-    typeof stock.symbol === "string" &&
-    /^[A-Z0-9.:-]{1,20}$/.test(stock.symbol) &&
-    typeof stock.name === "string" &&
-    typeof stock.exchange === "string" &&
-    typeof stock.currency === "string" &&
-    /^[A-Z]{3}$/.test(stock.currency)
-  );
-}
-
-function isPreviousDefaultWatchlist(stocks: StockIdentity[]) {
-  return (
-    stocks.length === previousDefaultSymbols.size &&
-    stocks.every(function isPreviousDefault(stock) {
-      return previousDefaultSymbols.has(stock.symbol);
-    })
   );
 }
