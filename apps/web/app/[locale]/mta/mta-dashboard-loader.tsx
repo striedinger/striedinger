@@ -3,20 +3,22 @@ import type { InitialMtaState, LiveStation, MtaLabels } from "./types";
 import { getNearbyStations } from "../../../lib/mta/live-arrivals";
 import { searchLocations } from "../../../lib/mta/search-locations";
 import { MtaDashboard } from "./mta-dashboard";
+import { getInitialState } from "./mta-page-state";
 
 interface MtaDashboardLoaderProps {
-  initialState: InitialMtaState;
   labels: MtaLabels;
   locale: string;
-  locationQuery: string;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/** Reads the request's location from the URL, inside the page's Suspense boundary, so
+ * the rest of the page prerenders. */
 export async function MtaDashboardLoader({
-  initialState,
   labels,
   locale,
-  locationQuery,
+  searchParams,
 }: MtaDashboardLoaderProps) {
+  const { initialState, locationQuery } = getInitialState(await searchParams);
   const { searchFailed, state: resolvedState } = await resolveInitialState(
     initialState,
     locationQuery,

@@ -3,7 +3,14 @@
 import { BracesIcon } from "@workspace/icons/braces-icon";
 import { CheckCircleIcon } from "@workspace/icons/check-circle-icon";
 import { Text } from "@workspace/ui/components/text";
-import { startTransition, useEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  startTransition,
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import type { JsonWorkerReply, JsonWorkerRequest, JsonWorkerResponse } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
@@ -26,6 +33,7 @@ export function JsonTool({ labels }: JsonToolProps) {
   const [isPreviewStale, setIsPreviewStale] = useState(false);
   const [treeVersion, setTreeVersion] = useState(0);
   const [defaultExpanded, setDefaultExpanded] = useState(true);
+  const [displayedExpanded, setDisplayedExpanded] = useOptimistic(defaultExpanded);
   const processedInput = useRef<string | undefined>(undefined);
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
@@ -120,12 +128,15 @@ export function JsonTool({ labels }: JsonToolProps) {
     setIsPreviewStale(true);
   }
 
+  // Rebuilding a large tree can take a while, so the button flips at once and the tree
+  // re-renders in a transition that keeps the page responsive.
   function handleToggleAll() {
-    setDefaultExpanded(function toggleDefaultExpanded(currentDefaultExpanded) {
-      return !currentDefaultExpanded;
-    });
-    setTreeVersion(function incrementTreeVersion(currentVersion) {
-      return currentVersion + 1;
+    startTransition(function rebuildTree() {
+      setDisplayedExpanded(!defaultExpanded);
+      setDefaultExpanded(!defaultExpanded);
+      setTreeVersion(function incrementTreeVersion(currentVersion) {
+        return currentVersion + 1;
+      });
     });
   }
 
@@ -182,14 +193,14 @@ export function JsonTool({ labels }: JsonToolProps) {
             onClick={handleToggleAll}
             disabled={!canToggleAll}
           >
-            {defaultExpanded ? labels.collapseAll : labels.expandAll}
+            {displayedExpanded ? labels.collapseAll : labels.expandAll}
           </button>
         }
       >
         <div
           className="h-88 overflow-auto overscroll-contain rounded-ios-xl bg-ios-grouped-cell px-3 py-3 transition-opacity duration-200 data-stale:opacity-60 motion-reduce:transition-none lg:h-128"
           data-stale={isPreviewDimmed ? "" : undefined}
-          aria-busy={isPreviewStale}
+          aria-busy={isPreviewStale || displayedExpanded !== defaultExpanded}
         >
           {canToggleAll ? (
             <JsonTree

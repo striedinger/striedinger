@@ -12,7 +12,7 @@ import { useIsHydrated } from "../../../components/use-is-hydrated";
 import { FeaturedPodcastCard } from "./featured-podcast-card";
 import { PodcastChartRow } from "./podcast-chart-row";
 import { usePodcastLibrary } from "./podcast-library-store";
-import { removeFromQueue, usePodcastPlayer } from "./podcast-player-store";
+import { removeFromQueue, usePlayingEpisode, usePodcastPlayerItems } from "./podcast-player-store";
 import { PodcastShelf } from "./podcast-shelf";
 import { PodcastTile } from "./podcast-tile";
 import { usePodcasts } from "./podcasts-context";
@@ -29,7 +29,8 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
   const { messages } = usePodcasts();
   const isHydrated = useIsHydrated();
   const library = usePodcastLibrary();
-  const player = usePodcastPlayer();
+  const player = usePodcastPlayerItems();
+  const playingEpisode = usePlayingEpisode();
   const progressByEpisodeId = new Map(
     library.progress.map(function indexProgress(item) {
       return [item.episode.id, item];
@@ -79,13 +80,13 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
         {upNextItems.length > 0 ? (
           <PodcastShelf title={messages["Up Next"]}>
             {upNextItems.map(function renderUpNext(item) {
-              const isCurrent = player.current?.episode.id === item.episode.id;
+              const isCurrent = playingEpisode.currentEpisodeId === item.episode.id;
               return (
                 <UpNextCard
                   key={item.episode.id}
                   item={item}
                   isCurrent={isCurrent}
-                  isPlaying={isCurrent && player.isPlaying}
+                  isPlaying={isCurrent && playingEpisode.isPlaying}
                   progress={progressByEpisodeId.get(item.episode.id)}
                   extraActions={
                     queuedEpisodeIds.has(item.episode.id)

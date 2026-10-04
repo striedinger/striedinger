@@ -5,7 +5,7 @@ import type { PodcastQueueItem } from "./types";
 
 import { EpisodeRow } from "./episode-row";
 import { usePodcastLibrary } from "./podcast-library-store";
-import { usePodcastPlayer } from "./podcast-player-store";
+import { usePlayingEpisode } from "./podcast-player-store";
 
 interface EpisodeListProps {
   getExtraActions?: (item: PodcastQueueItem) => readonly IosMenuAction[];
@@ -23,7 +23,7 @@ export function EpisodeList({
   showsPodcastTitle = false,
 }: EpisodeListProps) {
   const library = usePodcastLibrary();
-  const player = usePodcastPlayer();
+  const { currentEpisodeId, isPlaying } = usePlayingEpisode();
   const progressByEpisodeId = new Map(
     library.progress.map(function indexProgress(item) {
       return [item.episode.id, item];
@@ -33,13 +33,13 @@ export function EpisodeList({
   return (
     <ul aria-label={label} className="m-0 flex list-none flex-col p-0 pl-4">
       {items.map(function renderEpisode(item) {
-        const isCurrent = player.current?.episode.id === item.episode.id;
+        const isCurrent = currentEpisodeId === item.episode.id;
         return (
           <EpisodeRow
             key={item.episode.id}
             item={item}
             isCurrent={isCurrent}
-            isPlaying={isCurrent && player.isPlaying}
+            isPlaying={isCurrent && isPlaying}
             isPlayed={library.playedEpisodeIds.has(item.episode.id)}
             progress={progressByEpisodeId.get(item.episode.id)}
             extraActions={getExtraActions?.(item)}

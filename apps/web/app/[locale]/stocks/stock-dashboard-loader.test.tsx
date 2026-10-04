@@ -20,11 +20,9 @@ describe("stock dashboard loading", function () {
     data.searchStockSymbols.mockReturnValue(suggestions.promise);
     data.getStockSeries.mockRejectedValue(new Error("Market data unavailable"));
     const dashboard = StockDashboardLoader({
-      initialSymbol: null,
-      initialTimeframe: "1M",
       labels: {} as StocksLabels,
       locale: "en",
-      query: "Tesla",
+      searchParams: Promise.resolve({ q: "Tesla" }),
     });
     try {
       await vi.waitFor(function chartStarted() {

@@ -10,7 +10,6 @@ import { getStocksTranslator } from "../../../messages/stocks/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
 import { StockDashboardSkeleton } from "./stock-dashboard-skeleton";
-import { getStockPageState } from "./stock-page-state";
 import { StocksScreen } from "./stocks-screen";
 
 interface StocksPageProps {
@@ -28,8 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function StocksPage({ searchParams }: StocksPageProps) {
-  const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
-  const initialState = getStockPageState(resolvedSearchParams);
+  const locale = await getRequestLocale();
   const translate = await getStocksTranslator(locale);
   const localStorageDescription = translate(
     "Your watchlist is stored only in this browser and works without creating an account.",
@@ -84,13 +82,7 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
     <StocksScreen title={labels.title}>
       <JsonLd value={structuredData} />
       <Suspense fallback={<StockDashboardSkeleton />}>
-        <StockDashboardLoader
-          initialSymbol={initialState.symbol}
-          initialTimeframe={initialState.timeframe}
-          query={initialState.query}
-          labels={labels}
-          locale={locale}
-        />
+        <StockDashboardLoader searchParams={searchParams} labels={labels} locale={locale} />
       </Suspense>
     </StocksScreen>
   );

@@ -2,28 +2,32 @@ import type { Locale } from "@workspace/i18n";
 
 import { headers } from "next/headers";
 
-import type { StockIdentity, StocksLabels, StockTimeframe } from "./types";
+import type { StockIdentity, StocksLabels } from "./types";
 
 import { isRateLimited } from "../../../lib/rate-limit";
 import { getStockSeries, searchStockSymbols } from "../../../lib/stocks/market-data";
 import { StockDashboard } from "./stock-dashboard";
 import { defaultStocks, featuredStocks } from "./stock-defaults";
+import { getStockPageState } from "./stock-page-state";
 
 interface StockDashboardLoaderProps {
-  initialSymbol: string | null;
-  initialTimeframe: StockTimeframe;
   labels: StocksLabels;
   locale: Locale;
-  query: string;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/** Reads the requested stock from the URL, inside the page's Suspense boundary, so the rest
+ * of the page prerenders. */
 export async function StockDashboardLoader({
-  initialSymbol,
-  initialTimeframe,
   labels,
   locale,
-  query,
+  searchParams,
 }: StockDashboardLoaderProps) {
+  const {
+    query,
+    symbol: initialSymbol,
+    timeframe: initialTimeframe,
+  } = getStockPageState(await searchParams);
   const stockPromise = initialSymbol
     ? resolveInitialStock(initialSymbol)
     : Promise.resolve(defaultStocks[0]!);

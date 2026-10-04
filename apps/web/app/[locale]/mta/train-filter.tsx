@@ -23,7 +23,9 @@ export function TrainFilter({
   routes,
   selectedRoute,
 }: TrainFilterProps) {
-  const { actions } = useMtaNavigation();
+  const { actions, state } = useMtaNavigation();
+  // A tapped filter shows as selected while the server loads its arrivals.
+  const displayedRoute = state.pendingRoute === undefined ? selectedRoute : state.pendingRoute;
 
   function selectRoute(route: string | null) {
     actions.navigateToLocation(coordinates.latitude, coordinates.longitude, locationName, route);
@@ -37,10 +39,10 @@ export function TrainFilter({
     >
       <button
         type="button"
-        aria-pressed={selectedRoute === null}
+        aria-pressed={displayedRoute === null}
         className={cn(
           "h-9 shrink-0 snap-start rounded-full px-4 text-ios-subheadline font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-95 motion-safe:transition-transform",
-          selectedRoute === null ? "bg-ios-tint text-white" : "bg-ios-grouped-cell text-ios-label",
+          displayedRoute === null ? "bg-ios-tint text-white" : "bg-ios-grouped-cell text-ios-label",
         )}
         onClick={function selectAllTrains() {
           selectRoute(null);
@@ -49,7 +51,7 @@ export function TrainFilter({
         {labels.allTrains}
       </button>
       {routes.map(function renderRouteFilter(route) {
-        const isSelected = selectedRoute === route;
+        const isSelected = displayedRoute === route;
         return (
           <button
             key={route}
@@ -60,7 +62,7 @@ export function TrainFilter({
               "flex size-9 shrink-0 snap-start items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:scale-90 motion-safe:transition-[transform,opacity]",
               isSelected
                 ? "ring-2 ring-ios-label ring-offset-2 ring-offset-ios-grouped-background"
-                : selectedRoute && "opacity-45",
+                : displayedRoute && "opacity-45",
             )}
             onClick={function selectTrainRoute() {
               selectRoute(isSelected ? null : route);

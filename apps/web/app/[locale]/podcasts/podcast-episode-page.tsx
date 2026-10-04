@@ -17,7 +17,7 @@ import { PodcastHero } from "./podcast-hero";
 import { usePodcastLibrary } from "./podcast-library-store";
 import { PodcastLink } from "./podcast-link";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
-import { playEpisode, togglePlayback, usePodcastPlayer } from "./podcast-player-store";
+import { playEpisode, togglePlayback, usePlayingEpisode } from "./podcast-player-store";
 import { getShowHref } from "./podcast-route";
 import { usePodcasts } from "./podcasts-context";
 import { podcastsScreenClassName } from "./podcasts-screen";
@@ -30,9 +30,9 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
   const { locale, messages, now } = usePodcasts();
   const iosRouter = useIosRouter();
   const library = usePodcastLibrary();
-  const player = usePodcastPlayer();
-  const isCurrent = player.current?.episode.id === item.episode.id;
-  const isPlaying = isCurrent && player.isPlaying;
+  const playingEpisode = usePlayingEpisode();
+  const isCurrent = playingEpisode.currentEpisodeId === item.episode.id;
+  const isPlaying = isCurrent && playingEpisode.isPlaying;
   const isPlayed = library.playedEpisodeIds.has(item.episode.id);
   const progress = library.progress.find(function matchesEpisode(progressItem) {
     return progressItem.episode.id === item.episode.id;

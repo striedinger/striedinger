@@ -29,8 +29,9 @@ export function savePodcastProgress(
   episode: PodcastEpisode,
   positionSeconds: number,
   durationSeconds: number,
+  // Callers holding the stored list pass it so playback saves skip re-parsing storage.
+  currentItems: readonly PodcastProgress[] = readPodcastProgress(),
 ): PodcastProgress[] {
-  const currentItems = readPodcastProgress();
   const otherItems = currentItems.filter(function keepOtherEpisode(item) {
     return item.episode.id !== episode.id;
   });
@@ -57,8 +58,11 @@ export function savePodcastProgress(
   return nextItems;
 }
 
-export function removePodcastProgress(episodeId: string): PodcastProgress[] {
-  const nextItems = readPodcastProgress().filter(function keepOtherEpisode(item) {
+export function removePodcastProgress(
+  episodeId: string,
+  currentItems: readonly PodcastProgress[] = readPodcastProgress(),
+): PodcastProgress[] {
+  const nextItems = currentItems.filter(function keepOtherEpisode(item) {
     return item.episode.id !== episodeId;
   });
   writeProgress(nextItems);

@@ -166,7 +166,9 @@ export function setEpisodePlayed(episodeId: string, played: boolean) {
   writeStoredValue(playedStorageKey, JSON.stringify({ version: 1, ids }));
   updateLibrary({
     playedEpisodeIds: new Set(ids),
-    progress: played ? removePodcastProgress(episodeId) : getLibrarySnapshot().progress,
+    progress: played
+      ? removePodcastProgress(episodeId, getLibrarySnapshot().progress)
+      : getLibrarySnapshot().progress,
   });
 }
 
@@ -177,12 +179,18 @@ export function recordEpisodeProgress(
   durationSeconds: number,
 ) {
   updateLibrary({
-    progress: savePodcastProgress(podcast, episode, positionSeconds, durationSeconds),
+    progress: savePodcastProgress(
+      podcast,
+      episode,
+      positionSeconds,
+      durationSeconds,
+      getLibrarySnapshot().progress,
+    ),
   });
 }
 
 export function clearEpisodeProgress(episodeId: string) {
-  updateLibrary({ progress: removePodcastProgress(episodeId) });
+  updateLibrary({ progress: removePodcastProgress(episodeId, getLibrarySnapshot().progress) });
 }
 
 export function getSavedProgress(episodeId: string) {

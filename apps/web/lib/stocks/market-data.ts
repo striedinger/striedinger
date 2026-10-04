@@ -88,11 +88,8 @@ async function loadStockSymbols({
   url.searchParams.set("apikey", apiKey);
 
   try {
-    const response = await fetch(url, {
-      next: { revalidate: 86_400 },
-      signal: AbortSignal.timeout(4_000),
-    });
-    if (!response.ok) return localMatches.slice(0, 8);
+    const response = await fetch(url, { signal: AbortSignal.timeout(4_000) });
+    if (!response.ok) return fallBackToLocalMatches(localMatches);
     const payload = (await response.json()) as TwelveDataSearchResponse;
     const remoteMatches = (payload.data ?? []).flatMap(function parseSearchResult(item) {
       const symbol = item.symbol?.trim().toUpperCase();
@@ -108,24 +105,45 @@ async function loadStockSymbols({
     });
     return uniqueStocks([...localMatches, ...remoteMatches]).slice(0, 8);
   } catch {
-    return localMatches.slice(0, 8);
+    return fallBackToLocalMatches(localMatches);
   }
 }
 
-export function getStockSeries(
+/** Falls back to the built-in matches when the search service fails, cached only briefly so
+ * a passing outage does not hide real results for the rest of the day. */
+function fallBackToLocalMatches(localMatches: StockIdentity[]) {
+  cacheLife({ stale: 30, revalidate: 60, expire: 300 });
+  return localMatches.slice(0, 8);
+}
+
+export async function getStockSeries(
   identity: StockIdentity,
   timeframe: StockTimeframe,
 ): Promise<StockSeries> {
   const normalizedIdentity = validateIdentity(identity);
-  return loadStockSeries(normalizedIdentity, timeframe);
+  const { currency, exchange, isDemo, points } = await loadStockSeries(
+    normalizedIdentity.symbol,
+    timeframe,
+  );
+  return {
+    identity: {
+      ...normalizedIdentity,
+      currency: currency || normalizedIdentity.currency,
+      exchange: exchange || normalizedIdentity.exchange,
+    },
+    timeframe,
+    points,
+    isDemo,
+  };
 }
 
+/** Market data for a symbol, cached by symbol and timeframe alone so every page that shows
+ * the stock, whatever name it arrived with, shares one entry and one upstream request. */
 async function loadStockSeries(
-  normalizedIdentity: StockIdentity,
+  symbol: string,
   timeframe: StockTimeframe,
-): Promise<StockSeries> {
+): Promise<{ currency?: string; exchange?: string; isDemo: boolean; points: StockPoint[] }> {
   "use cache";
-  const { symbol } = normalizedIdentity;
   const freshnessSeconds = stockTimeframeFreshnessSeconds[timeframe];
   cacheLife({
     stale: Math.min(freshnessSeconds, 300),
@@ -135,20 +153,20 @@ async function loadStockSeries(
   cacheTag("stock-series", `stock-series:${symbol}:${timeframe}`);
 
   const apiKey = process.env.TWELVE_DATA_API_KEY;
-  if (!apiKey) return createDemoSeries(normalizedIdentity, timeframe);
+  if (!apiKey) {
+    const demo = createDemoSeries({ symbol, name: symbol, exchange: "", currency: "" }, timeframe);
+    return { isDemo: true, points: demo.points };
+  }
 
   const request = timeframeRequests[timeframe];
   const url = new URL("/time_series", twelveDataBaseUrl);
-  url.searchParams.set("symbol", normalizedIdentity.symbol);
+  url.searchParams.set("symbol", symbol);
   url.searchParams.set("interval", request.interval);
   url.searchParams.set("outputsize", String(request.outputsize));
   url.searchParams.set("order", "asc");
   url.searchParams.set("apikey", apiKey);
 
-  const response = await fetch(url, {
-    next: { revalidate: freshnessSeconds },
-    signal: AbortSignal.timeout(6_000),
-  });
+  const response = await fetch(url, { signal: AbortSignal.timeout(6_000) });
   if (!response.ok) throw new Error("Market data request failed");
   const payload = (await response.json()) as TwelveDataSeriesResponse;
   const parsedPoints = (payload.values ?? []).flatMap(parsePoint);
@@ -156,14 +174,10 @@ async function loadStockSeries(
   if (points.length < 1) throw new Error(payload.message ?? "Market data unavailable");
 
   return {
-    identity: {
-      ...normalizedIdentity,
-      currency: payload.meta?.currency || normalizedIdentity.currency,
-      exchange: payload.meta?.exchange || normalizedIdentity.exchange,
-    },
-    timeframe,
-    points,
+    currency: payload.meta?.currency,
+    exchange: payload.meta?.exchange,
     isDemo: false,
+    points,
   };
 }
 

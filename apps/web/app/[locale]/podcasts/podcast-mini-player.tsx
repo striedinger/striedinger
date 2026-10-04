@@ -14,7 +14,8 @@ import {
   skipForward,
   skipForwardSeconds,
   togglePlayback,
-  usePodcastPlayer,
+  usePlayingEpisode,
+  usePodcastPlayerItems,
 } from "./podcast-player-store";
 
 interface PodcastMiniPlayerProps {
@@ -24,8 +25,8 @@ interface PodcastMiniPlayerProps {
 }
 
 export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: PodcastMiniPlayerProps) {
-  const player = usePodcastPlayer();
-  const item = player.current;
+  const { current: item } = usePodcastPlayerItems();
+  const { isPlaying } = usePlayingEpisode();
   if (!item) return null;
 
   return (
@@ -69,15 +70,11 @@ export function PodcastMiniPlayer({ isTabBarMinimized, messages, onOpen }: Podca
       </button>
       <button
         type="button"
-        aria-label={player.isPlaying ? messages.Pause : messages.Play}
+        aria-label={isPlaying ? messages.Pause : messages.Play}
         className="flex size-11 shrink-0 items-center justify-center rounded-full text-ios-label outline-none focus-visible:ring-2 focus-visible:ring-ios-tint active:scale-90 active:opacity-60 motion-safe:transition-transform"
         onClick={togglePlayback}
       >
-        {player.isPlaying ? (
-          <PauseFillIcon className="size-6" />
-        ) : (
-          <PlayFillIcon className="size-6" />
-        )}
+        {isPlaying ? <PauseFillIcon className="size-6" /> : <PlayFillIcon className="size-6" />}
       </button>
       <button
         type="button"

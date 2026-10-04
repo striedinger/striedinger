@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { Suspense } from "react";
+
 import type { OgPreviewLabels } from "../../../lib/og/labels";
 
 import { JsonLd } from "../../../components/json-ld";
@@ -7,8 +9,8 @@ import { localizePath } from "../../../lib/locale-path";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getOgTranslator } from "../../../messages/og/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
-import { loadPreviewMetadata } from "./load-preview-metadata";
-import { OgPreviewForm } from "./og-preview-form";
+import { OgPreviewFormSkeleton } from "./og-preview-form-skeleton";
+import { OgPreviewFromUrl } from "./og-preview-from-url";
 
 interface OpenGraphPreviewPageProps {
   searchParams: Promise<{
@@ -28,11 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPreviewPageProps) {
-  const [resolvedSearchParams, locale] = await Promise.all([searchParams, getRequestLocale()]);
-  const requestedUrl = Array.isArray(resolvedSearchParams.url)
-    ? resolvedSearchParams.url[0]
-    : resolvedSearchParams.url;
-  const initialUrl = requestedUrl?.slice(0, 2048).trim() ?? "";
+  const locale = await getRequestLocale();
   const translate = await getOgTranslator(locale);
 
   const labels: OgPreviewLabels = {
@@ -84,12 +82,14 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
   return (
     <>
       <JsonLd value={structuredData} />
-      <OgPreviewForm
-        action={localizePath("/og", locale)}
-        defaultUrl={initialUrl}
-        labels={labels}
-        preview={initialUrl ? loadPreviewMetadata(initialUrl) : null}
-      />
+      {/* Only the form reads the URL, so the rest of the page prerenders. */}
+      <Suspense fallback={<OgPreviewFormSkeleton />}>
+        <OgPreviewFromUrl
+          action={localizePath("/og", locale)}
+          labels={labels}
+          searchParams={searchParams}
+        />
+      </Suspense>
     </>
   );
 }

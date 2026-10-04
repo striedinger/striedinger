@@ -5,7 +5,7 @@ import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useEffect, useRef, useState, useTransition } from "react";
+import { Suspense, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 
 import type { StockIdentity, StockSeries, StocksLabels, StockTimeframe } from "./types";
 
@@ -54,6 +54,11 @@ export function StockDashboard({
   const selectedStock = initialStock;
   const timeframe = initialTimeframe;
   const displayedSeries = initialSeries;
+  // The tapped stock and timeframe highlight at once while the server renders their data.
+  const [optimisticSelection, setOptimisticSelection] = useOptimistic({
+    symbol: selectedStock.symbol,
+    timeframe,
+  });
 
   useEffect(
     function restoreWatchlist() {
@@ -128,6 +133,7 @@ export function StockDashboard({
   function navigateToSelection(symbol: string, nextTimeframe: StockTimeframe, replace = false) {
     const parameters = new URLSearchParams({ symbol, timeframe: nextTimeframe });
     startNavigation(function navigate() {
+      setOptimisticSelection({ symbol, timeframe: nextTimeframe });
       if (replace) router.replace(`${pathname}?${parameters}`, { scroll: false });
       else router.push(`${pathname}?${parameters}`, { scroll: false });
     });
@@ -283,7 +289,7 @@ export function StockDashboard({
           options={stockTimeframes.map(function createOption(option) {
             return { label: option, value: option };
           })}
-          value={timeframe}
+          value={optimisticSelection.timeframe}
           onChange={function selectTimeframe(option) {
             setShareStatus("idle");
             navigateToSelection(selectedStock.symbol, option);
@@ -367,7 +373,7 @@ export function StockDashboard({
         {watchlist.length > 0 ? (
           <ul className="m-0 list-none overflow-hidden rounded-ios-xl bg-ios-grouped-cell p-0">
             {watchlist.map(function renderWatchlistStock(stock) {
-              const isSelected = stock.symbol === selectedStock.symbol;
+              const isSelected = stock.symbol === optimisticSelection.symbol;
               return (
                 <li
                   key={stock.symbol}

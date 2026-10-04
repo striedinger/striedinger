@@ -179,6 +179,40 @@ export function usePodcastPlayerItems() {
   );
 }
 
+function getCurrentEpisodeIdSnapshot() {
+  return getPlayerSnapshot().current?.episode.id ?? null;
+}
+
+function getIsPlayingSnapshot() {
+  return getPlayerSnapshot().isPlaying;
+}
+
+function getServerCurrentEpisodeId() {
+  return null;
+}
+
+function getServerIsPlaying() {
+  return false;
+}
+
+/**
+ * The loaded episode's id and whether it is playing, for episode rows that only mark the
+ * current episode. Volume, buffering, and sleep timer changes leave these lists alone.
+ */
+export function usePlayingEpisode() {
+  const currentEpisodeId = useSyncExternalStore(
+    subscribeToPlayer,
+    getCurrentEpisodeIdSnapshot,
+    getServerCurrentEpisodeId,
+  );
+  const isPlaying = useSyncExternalStore(
+    subscribeToPlayer,
+    getIsPlayingSnapshot,
+    getServerIsPlaying,
+  );
+  return { currentEpisodeId, isPlaying };
+}
+
 /** Subscribes to the playhead separately so only time-based UI re-renders while audio plays. */
 export function usePlaybackTime() {
   return useSyncExternalStore(

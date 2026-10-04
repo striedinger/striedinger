@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Suspense } from "react";
 
-import type { InitialMtaState, MtaLabels } from "./types";
+import type { MtaLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
@@ -10,7 +10,6 @@ import { getMtaTranslator } from "../../../messages/mta/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { MtaDashboardLoader } from "./mta-dashboard-loader";
 import { MtaDashboardSkeleton } from "./mta-dashboard-skeleton";
-import { defaultLocation } from "./mta-data";
 import { MtaScreen } from "./mta-screen";
 
 interface MtaPageProps {
@@ -28,8 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function MtaPage({ searchParams }: MtaPageProps) {
-  const [locale, resolvedSearchParams] = await Promise.all([getRequestLocale(), searchParams]);
-  const { initialState, locationQuery } = getInitialState(resolvedSearchParams);
+  const locale = await getRequestLocale();
   const translate = await getMtaTranslator(locale);
   const labels: MtaLabels = {
     title: translate("Trains near you"),
@@ -84,44 +82,8 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
     <MtaScreen title={labels.title}>
       <JsonLd value={structuredData} />
       <Suspense fallback={<MtaDashboardSkeleton />}>
-        <MtaDashboardLoader
-          initialState={initialState}
-          labels={labels}
-          locale={locale}
-          locationQuery={locationQuery}
-        />
+        <MtaDashboardLoader searchParams={searchParams} labels={labels} locale={locale} />
       </Suspense>
     </MtaScreen>
   );
-}
-
-function getInitialState(searchParams: Record<string, string | string[] | undefined>): {
-  initialState: InitialMtaState;
-  locationQuery: string;
-} {
-  const latitude = Number(singleValue(searchParams.latitude));
-  const longitude = Number(singleValue(searchParams.longitude));
-  const hasValidCoordinates =
-    Number.isFinite(latitude) &&
-    latitude >= -90 &&
-    latitude <= 90 &&
-    Number.isFinite(longitude) &&
-    longitude >= -180 &&
-    longitude <= 180;
-  const locationName =
-    singleValue(searchParams.location)?.trim().slice(0, 160) || "Lower Manhattan";
-  const requestedRoute = singleValue(searchParams.train)?.trim().toUpperCase();
-  return {
-    initialState: {
-      coordinates: hasValidCoordinates ? { latitude, longitude } : defaultLocation,
-      locationName,
-      selectedRoute:
-        requestedRoute && /^[1-7ACEBDFMGJZLNQRWS]$/.test(requestedRoute) ? requestedRoute : null,
-    },
-    locationQuery: singleValue(searchParams.q)?.trim().replace(/\s+/g, " ").slice(0, 160) ?? "",
-  };
-}
-
-function singleValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
 }

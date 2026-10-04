@@ -1,10 +1,12 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, use, useTransition, type ReactNode } from "react";
+import { createContext, use, useOptimistic, useTransition, type ReactNode } from "react";
 
 interface NavigationState {
   isNavigating: boolean;
+  /** The train filter being loaded, or `undefined` when no filter change is pending. */
+  pendingRoute: string | null | undefined;
 }
 
 interface NavigationActions {
@@ -29,6 +31,7 @@ export function MtaNavigationProvider({ children }: { children: ReactNode }) {
   // Staying on the current path keeps a localized page (such as /es/mta) in its language.
   const pathname = usePathname();
   const [isNavigating, startNavigation] = useTransition();
+  const [pendingRoute, setPendingRoute] = useOptimistic<string | null | undefined>(undefined);
   const value: MtaNavigationContextValue = {
     actions: {
       navigateToLocation(
@@ -44,6 +47,7 @@ export function MtaNavigationProvider({ children }: { children: ReactNode }) {
         });
         if (route) parameters.set("train", route);
         startNavigation(function loadServerArrivals() {
+          setPendingRoute(route);
           router.push(`${pathname}?${parameters}`, { scroll: false });
         });
       },
@@ -53,7 +57,7 @@ export function MtaNavigationProvider({ children }: { children: ReactNode }) {
         });
       },
     },
-    state: { isNavigating },
+    state: { isNavigating, pendingRoute },
   };
 
   return <MtaNavigationContext value={value}>{children}</MtaNavigationContext>;

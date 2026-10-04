@@ -1,6 +1,7 @@
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 
-export default function OpenGraphLoading() {
+/** Stands in for the preview form while the page reads the requested URL. */
+export function OgPreviewFormSkeleton() {
   return (
     <div aria-busy="true" className="flex flex-col gap-5">
       <div className="flex flex-col">

@@ -39,14 +39,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(destinationUrl, 308);
   }
 
-  const requestHeaders = new Headers(request.headers);
-  if (aiCrawlerUserAgentPattern.test(userAgent)) {
-    requestHeaders.set("x-original-user-agent", userAgent);
-    requestHeaders.set("user-agent", "Bingbot/2.0");
-  }
+  const requestOverrides = getAiCrawlerRequestOverrides(request, userAgent);
 
   if (routeLocale) {
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next(requestOverrides);
     response.cookies.set(localeCookieName, routeLocale, {
       maxAge: 60 * 60 * 24 * 365,
       path: "/",
@@ -56,16 +52,28 @@ export function proxy(request: NextRequest) {
   }
 
   if (!isLocalizedRoute(pathname)) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return NextResponse.next(requestOverrides);
   }
 
   // Unprefixed URLs render the visitor's language from the statically generated [locale] tree,
   // so URLs never need a locale code.
   const destinationUrl = request.nextUrl.clone();
   destinationUrl.pathname = `/${negotiateLocale(request)}${pathname === "/" ? "" : pathname}`;
-  const response = NextResponse.rewrite(destinationUrl, { request: { headers: requestHeaders } });
+  const response = NextResponse.rewrite(destinationUrl, requestOverrides);
   response.headers.set("Vary", "Cookie, Accept-Language");
   return response;
+}
+
+/**
+ * AI crawlers get the same fully rendered HTML as search engines. Other requests pass through
+ * untouched, so most visitors skip copying the request headers.
+ */
+function getAiCrawlerRequestOverrides(request: NextRequest, userAgent: string) {
+  if (!aiCrawlerUserAgentPattern.test(userAgent)) return undefined;
+  const headers = new Headers(request.headers);
+  headers.set("x-original-user-agent", userAgent);
+  headers.set("user-agent", "Bingbot/2.0");
+  return { request: { headers } };
 }
 
 /** Pages and their Open Graph images live under [locale]; files and the redirect logger do not. */
@@ -94,6 +102,6 @@ function negotiateLocale(request: NextRequest): Locale {
 // Static assets, framework chunks, and vendored runtimes never need locale or host handling.
 export const config = {
   matcher: [
-    "/((?!_next/|vendor/|.*\\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|wasm|webp|woff2?)$).*)",
+    "/((?!_next/|vendor/|.*\\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|txt|wasm|webmanifest|webp|woff2?|xml)$).*)",
   ],
 };

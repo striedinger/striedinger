@@ -38,6 +38,9 @@ export function PodcastLink({ item, onClick, podcast, ...props }: PodcastLinkPro
     <IosLink
       {...props}
       href={href}
+      // Shows and episodes render per request, so prefetching every visible link would send
+      // a request per row while scrolling; intent (hover, touch, focus) prefetches instead.
+      prefetch={false}
       onPointerEnter={prefetchDestination}
       onTouchStart={prefetchDestination}
       onFocus={prefetchDestination}
