@@ -8,6 +8,7 @@ import { cn } from "@workspace/ui/lib/utils";
 
 import type { IosMenuSection, IosMenuVirtualAnchor } from "./ios-menu-types";
 
+import { useOpenAfterMount } from "../use-open-after-mount";
 import { iosStrongGlassClassName } from "./ios-glass";
 import { useIosPortalContainer } from "./ios-portal-container";
 
@@ -35,6 +36,7 @@ export function IosMenuPopup({
   side,
 }: IosMenuPopupProps) {
   const portalContainer = useIosPortalContainer();
+  const isOpen = useOpenAfterMount(open);
   const visibleSections = sections.filter(function hasActions(section) {
     return section.actions.length > 0;
   });
@@ -46,7 +48,7 @@ export function IosMenuPopup({
 
   return (
     <Menu.Root
-      open={open}
+      open={isOpen}
       onOpenChange={function updateOpen(nextOpen, eventDetails) {
         onOpenChange(nextOpen, eventDetails.event?.timeStamp ?? 0);
       }}

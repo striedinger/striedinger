@@ -4,6 +4,7 @@ import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { cn } from "@workspace/ui/lib/utils";
 import { useId, useRef } from "react";
 
+import { useOpenAfterMount } from "../use-open-after-mount";
 import { iosStrongGlassClassName } from "./ios-glass";
 import { useIosPortalContainer } from "./ios-portal-container";
 
@@ -40,6 +41,7 @@ export function IosAlertDialog({
   title,
 }: IosAlertProps) {
   const portalContainer = useIosPortalContainer();
+  const isOpen = useOpenAfterMount(open);
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const stacksActions = actions.length > 2;
@@ -48,7 +50,7 @@ export function IosAlertDialog({
   });
 
   return (
-    <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
+    <AlertDialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialog.Portal container={portalContainer}>
         <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/25 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none dark:bg-black/45" />
         <AlertDialog.Viewport className="fixed inset-0 z-50 flex items-center justify-center p-6">

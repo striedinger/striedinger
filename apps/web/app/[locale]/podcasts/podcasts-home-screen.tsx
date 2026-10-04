@@ -56,7 +56,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
 
   return (
     <IosScreen className={podcastsScreenClassName}>
-      <IosNavigationBar title={messages.Home} trailing={<IosAppSwitcherButton />} />
+      <IosNavigationBar title={messages.Home} leading={<IosAppSwitcherButton />} />
       <div className="flex flex-col gap-7 pt-1">
         {/* Listening history lives in this browser, so the server renders a placeholder for it. */}
         {!isHydrated ? (

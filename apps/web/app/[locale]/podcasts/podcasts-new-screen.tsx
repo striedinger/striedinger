@@ -35,7 +35,7 @@ export function PodcastsNewScreen({ episodes }: PodcastsNewScreenProps) {
 
   return (
     <IosScreen className={podcastsScreenClassName}>
-      <IosNavigationBar title={messages.New} trailing={<IosAppSwitcherButton />} />
+      <IosNavigationBar title={messages.New} leading={<IosAppSwitcherButton />} />
       {/* Followed shows live in this browser, so the server renders a placeholder for them. */}
       {!isHydrated ? (
         skeleton

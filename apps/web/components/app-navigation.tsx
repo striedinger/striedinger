@@ -4,7 +4,6 @@ import type { Locale } from "@workspace/i18n";
 
 import { MenuIcon } from "@workspace/icons/menu-icon";
 import { Button } from "@workspace/ui/components/button";
-import { Sheet, SheetTrigger } from "@workspace/ui/components/sheet";
 import { Text } from "@workspace/ui/components/text";
 import Link from "next/link";
 import { lazy, Suspense, useState } from "react";
@@ -66,28 +65,32 @@ export function AppNavigation({ labels, locale }: AppNavigationProps) {
           Hugo Striedinger
         </Text>
 
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={labels.menu}
-                onPointerEnter={importAppNavigationDrawer}
-                onFocus={importAppNavigationDrawer}
-                onTouchStart={importAppNavigationDrawer}
-              />
-            }
-          >
-            <MenuIcon />
-          </SheetTrigger>
-          {hasOpened ? (
-            <Suspense fallback={null}>
-              <AppNavigationDrawer labels={labels} locale={locale} />
-            </Suspense>
-          ) : null}
-        </Sheet>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={labels.menu}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          onClick={function openNavigation() {
+            setIsOpen(true);
+          }}
+          onPointerEnter={importAppNavigationDrawer}
+          onFocus={importAppNavigationDrawer}
+          onTouchStart={importAppNavigationDrawer}
+        >
+          <MenuIcon />
+        </Button>
+        {hasOpened ? (
+          <Suspense fallback={null}>
+            <AppNavigationDrawer
+              labels={labels}
+              locale={locale}
+              open={isOpen}
+              onOpenChange={setIsOpen}
+            />
+          </Suspense>
+        ) : null}
       </div>
     </header>
   );

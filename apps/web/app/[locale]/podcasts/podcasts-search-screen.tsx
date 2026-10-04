@@ -28,7 +28,7 @@ export function PodcastsSearchScreen({ results }: PodcastsSearchScreenProps) {
 
   return (
     <IosScreen className={podcastsScreenClassName}>
-      <IosNavigationBar title={messages.Search} trailing={<IosAppSwitcherButton />} />
+      <IosNavigationBar title={messages.Search} leading={<IosAppSwitcherButton />} />
       {normalizeSearchQuery(inputValue) ? (
         <Suspense fallback={<PodcastsSearchResultsPlaceholder />}>
           <PodcastsSearchResultList results={results} />

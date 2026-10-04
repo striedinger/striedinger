@@ -92,7 +92,7 @@ export function FoldersPane({
         <IosNavigationBar
           title={messages.Folders}
           titleElement="h2"
-          trailing={<IosAppSwitcherButton />}
+          leading={<IosAppSwitcherButton />}
         />
         {isSearching ? (
           searchResults.length > 0 ? (

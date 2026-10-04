@@ -23,6 +23,7 @@ import Link from "next/link";
 
 import type { IosAppSwitcherLabels } from "./ios-app-switcher-context";
 
+import { useOpenAfterMount } from "../use-open-after-mount";
 import { IosAppIcon } from "./ios-app-icon";
 import { IosBarButton } from "./ios-bar-button";
 import { useIosPortalContainer } from "./ios-portal-container";
@@ -120,6 +121,7 @@ export function IosAppSwitcherSheet({
   open,
 }: IosAppSwitcherSheetProps) {
   const portalContainer = useIosPortalContainer();
+  const isOpen = useOpenAfterMount(open);
 
   function getName(destination: SwitcherDestination) {
     return destination.label ? labels[destination.label] : (destination.name ?? "");
@@ -148,7 +150,7 @@ export function IosAppSwitcherSheet({
   }
 
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+    <Drawer.Root open={isOpen} onOpenChange={onOpenChange}>
       <Drawer.Portal container={portalContainer}>
         <Drawer.Backdrop className="fixed inset-0 z-50 bg-black opacity-[calc(0.25*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center px-2 pb-[max(env(safe-area-inset-bottom),8px)]">

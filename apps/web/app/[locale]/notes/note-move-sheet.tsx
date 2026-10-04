@@ -9,6 +9,7 @@ import type { NoteFolder, NotesMessages } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { useIosPortalContainer } from "../../../components/ios/ios-portal-container";
+import { useOpenAfterMount } from "../../../components/use-open-after-mount";
 
 interface NoteMoveSheetProps {
   currentFolderId: string | null;
@@ -28,9 +29,10 @@ export function NoteMoveSheet({
   open,
 }: NoteMoveSheetProps) {
   const portalContainer = useIosPortalContainer();
+  const isOpen = useOpenAfterMount(open);
 
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
+    <Drawer.Root open={isOpen} onOpenChange={onOpenChange}>
       <Drawer.Portal container={portalContainer}>
         <Drawer.Backdrop className="fixed inset-0 z-50 bg-black opacity-[calc(0.25*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-50 flex items-end justify-center">

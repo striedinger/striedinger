@@ -26,7 +26,7 @@ export interface IosAppSwitcherLabels {
 interface IosAppSwitcherContextValue {
   labels: IosAppSwitcherLabels;
   openAppSwitcher: () => void;
-  /** Loads and mounts the closed sheet ahead of a likely tap. */
+  /** Starts downloading the sheet ahead of a likely tap. */
   prepareAppSwitcher: () => void;
 }
 

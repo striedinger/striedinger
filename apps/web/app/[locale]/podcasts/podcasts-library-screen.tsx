@@ -73,9 +73,10 @@ export function PodcastsLibraryScreen({ view }: PodcastsLibraryScreenProps) {
             >
               <ChevronLeftIcon strokeWidth={2.6} />
             </IosBarButton>
-          ) : null
+          ) : (
+            <IosAppSwitcherButton />
+          )
         }
-        trailing={view ? null : <IosAppSwitcherButton />}
       />
       {/* The library lives in this browser, so the server renders a placeholder for it. */}
       {!isHydrated ? (

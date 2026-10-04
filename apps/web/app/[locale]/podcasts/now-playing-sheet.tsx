@@ -14,6 +14,7 @@ import { useState } from "react";
 
 import { IosMenu } from "../../../components/ios/ios-menu";
 import { useIosPortalContainer } from "../../../components/ios/ios-portal-container";
+import { useOpenAfterMount } from "../../../components/use-open-after-mount";
 import { getNumberFormat } from "../../../lib/intl-cache";
 import { EpisodeMenu } from "./episode-menu";
 import { NowPlayingQueue } from "./now-playing-queue";
@@ -45,6 +46,7 @@ interface NowPlayingSheetProps {
 const sleepTimerMinutes = [5, 10, 15, 30, 45, 60] as const;
 
 export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
+  const isOpen = useOpenAfterMount(open);
   const { goToShow, locale, messages, now } = usePodcasts();
   const portalContainer = useIosPortalContainer();
   const player = usePodcastPlayer();
@@ -59,7 +61,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
   const isSleepTimerActive = player.sleepTimer !== null;
 
   return (
-    <Drawer.Root open={open && item !== null} onOpenChange={onOpenChange}>
+    <Drawer.Root open={isOpen && item !== null} onOpenChange={onOpenChange}>
       <Drawer.Portal container={portalContainer}>
         <Drawer.Backdrop className="fixed inset-0 z-40 bg-black opacity-[calc(0.4*(1-var(--drawer-swipe-progress)))] transition-opacity duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 motion-reduce:transition-none" />
         <Drawer.Viewport className="fixed inset-0 z-40 flex items-end justify-center">
