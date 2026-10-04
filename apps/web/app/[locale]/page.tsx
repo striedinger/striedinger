@@ -145,7 +145,9 @@ export default async function Page() {
         </li>
       </ul>
 
-      <LanguagePicker locale={locale} label={translate("Select language")} />
+      <Text as="div" size="sm" className="flex justify-center">
+        <LanguagePicker locale={locale} label={translate("Select language")} />
+      </Text>
     </main>
   );
 }

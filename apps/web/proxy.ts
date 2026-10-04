@@ -94,6 +94,6 @@ function negotiateLocale(request: NextRequest): Locale {
 // Static assets, framework chunks, and vendored runtimes never need locale or host handling.
 export const config = {
   matcher: [
-    "/((?!_next/|vendor/|themes/|.*\\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|wasm|webp|woff2?)$).*)",
+    "/((?!_next/|vendor/|.*\\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|wasm|webp|woff2?)$).*)",
   ],
 };

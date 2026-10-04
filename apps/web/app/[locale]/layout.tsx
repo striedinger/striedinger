@@ -6,21 +6,14 @@ import { notFound } from "next/navigation";
 
 import { localizePath } from "../../lib/locale-path";
 import { createPageMetadata, getOpenGraphLocale, siteName, siteUrl } from "../../lib/seo";
-import { themeCookieName, themes } from "../../lib/themes";
 import { getTranslator } from "../../messages/get-translator";
 import { getRequestLocale } from "../get-request-locale";
 import "@workspace/ui/globals.css";
 
-const themeBootstrapScript = `(()=>{const prefix=${JSON.stringify(`${themeCookieName}=`)};const stored=document.cookie.split(";").map(value=>value.trim()).find(value=>value.startsWith(prefix))?.slice(prefix.length);const themes=${JSON.stringify(
-  themes.map(function selectThemeId(theme) {
-    return theme.id;
-  }),
-)};const theme=themes.includes(stored)?stored:"default";document.documentElement.dataset.theme=theme;if(theme!=="default")document.write('<link rel="stylesheet" href="/themes/'+theme+'.css" data-theme-stylesheet="'+theme+'">')})()`;
-
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    // The Editorial theme's page backgrounds, so browser chrome blends with the page.
+    // The page backgrounds, so browser chrome blends with the page.
     { media: "(prefers-color-scheme: light)", color: "#fbf7f1" },
     { media: "(prefers-color-scheme: dark)", color: "#0d1117" },
   ],
@@ -110,10 +103,7 @@ export default async function LocaleRootLayout({ children, params }: LocaleRootL
   if (!isLocale(locale)) notFound();
 
   return (
-    <html lang={locale} data-theme="default" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
-      </head>
+    <html lang={locale}>
       <body>{children}</body>
     </html>
   );

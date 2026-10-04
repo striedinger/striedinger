@@ -12,7 +12,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Hugo Striedinger on X": "Hugo Striedinger en X",
   "Hugo Striedinger on Instagram": "Hugo Striedinger en Instagram",
   "Select language": "Seleccionar idioma",
-  Theme: "Tema",
   Navigation: "Navegación",
   "Close navigation": "Cerrar navegación",
   "Open Graph Preview": "Vista previa de Open Graph",

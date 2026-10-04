@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { LanguagePicker } from "./language-picker";
 
 vi.mock("next/navigation", function mockNavigation() {
-  return { useRouter: () => ({ push: vi.fn() }) };
+  return { useRouter: () => ({ push: vi.fn<(href: string) => void>() }) };
 });
 
 describe("LanguagePicker", function () {

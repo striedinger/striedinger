@@ -5,7 +5,7 @@ import "@workspace/ui/globals.css";
 
 export default function GlobalError(props: ToolErrorProps) {
   return (
-    <html lang="en" data-theme="default">
+    <html lang="en">
       <head>
         <title>Something went wrong | Hugo Striedinger</title>
       </head>

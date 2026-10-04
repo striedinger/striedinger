@@ -33,10 +33,6 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: publicMetadataCacheControl }],
       },
       {
-        source: "/themes/:path*",
-        headers: [{ key: "Cache-Control", value: publicMetadataCacheControl }],
-      },
-      {
         source: "/vendor/pdfjs-dist/:version/:path*",
         headers: [
           {

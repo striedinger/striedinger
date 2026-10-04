@@ -4,7 +4,6 @@ import type { FocusEvent } from "react";
 
 import { type Locale } from "@workspace/i18n";
 import { ChevronDownIcon } from "@workspace/icons/chevron-down-icon";
-import { Text } from "@workspace/ui/components/text";
 import { lazy, Suspense, useState } from "react";
 
 import { localeNames } from "./locale-names";
@@ -67,20 +66,18 @@ export function LanguagePicker({ label, locale }: LanguagePickerProps) {
     </button>
   );
 
-  return (
-    <Text as="div" size="sm" className="flex justify-center">
-      {activation ? (
-        <Suspense fallback={placeholder}>
-          <LanguageSelect
-            focusOnMount={activation.focus}
-            label={label}
-            locale={locale}
-            openOnMount={activation.open}
-          />
-        </Suspense>
-      ) : (
-        placeholder
-      )}
-    </Text>
+  // The page wraps the picker in its text styles, so the client bundle carries no Text
+  // component or class merging.
+  return activation ? (
+    <Suspense fallback={placeholder}>
+      <LanguageSelect
+        focusOnMount={activation.focus}
+        label={label}
+        locale={locale}
+        openOnMount={activation.open}
+      />
+    </Suspense>
+  ) : (
+    placeholder
   );
 }

@@ -12,7 +12,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Hugo Striedinger on X": "X 上的 Hugo Striedinger",
   "Hugo Striedinger on Instagram": "Instagram 上的 Hugo Striedinger",
   "Select language": "选择语言",
-  Theme: "主题",
   Navigation: "导航",
   "Close navigation": "关闭导航",
   "Open Graph Preview": "Open Graph 预览",
