@@ -15,6 +15,7 @@ import type {
   VideoEditorLabels,
   VideoTrim,
 } from "./types";
+import type { VideoPlayback } from "./video-playback";
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
@@ -24,7 +25,7 @@ import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 import { IosSwitchRow } from "../../../components/ios/ios-switch-row";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
-import { captionsToWebVtt, createCaptionAt, findCaptionAt, formatClock } from "./captions";
+import { createCaptionAt, findCaptionAt, formatClock } from "./captions";
 import { openVideo } from "./open-video";
 import { useVideoExport } from "./use-video-export";
 import { VideoCaptionsSection } from "./video-captions-section";
@@ -58,7 +59,7 @@ export function VideoWorkspace({
   locale,
   onChooseAnother,
 }: VideoWorkspaceProps) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playbackRef = useRef<VideoPlayback | null>(null);
   const coverUrlRef = useRef<string | null>(null);
   const [opened, setOpened] = useState<OpenedVideo | null>(null);
   const [hasOpenError, setHasOpenError] = useState(false);
@@ -141,13 +142,13 @@ export function VideoWorkspace({
       if (!isPlaying) return;
       let frame = 0;
       function readPlayhead() {
-        const video = videoRef.current;
-        if (!video) return;
-        if (video.currentTime >= trim.end) {
-          video.pause();
-          video.currentTime = trim.end;
+        const playback = playbackRef.current;
+        if (!playback) return;
+        if (playback.currentTime >= trim.end) {
+          playback.pause();
+          playback.seek(trim.end);
         }
-        setCurrentTime(video.currentTime);
+        setCurrentTime(playback.currentTime);
         frame = requestAnimationFrame(readPlayhead);
       }
       frame = requestAnimationFrame(readPlayhead);
@@ -204,23 +205,21 @@ export function VideoWorkspace({
   const hasCurrentExport = exportState.kind === "done" && exportState.settingsKey === settingsKey;
 
   function seek(time: number) {
-    const video = videoRef.current;
-    if (!video) return;
-    video.currentTime = time;
+    playbackRef.current?.seek(time);
     setCurrentTime(time);
   }
 
   function togglePlayback() {
-    const video = videoRef.current;
-    if (!video) return;
-    if (!video.paused) {
-      video.pause();
+    const playback = playbackRef.current;
+    if (!playback) return;
+    if (!playback.paused) {
+      playback.pause();
       return;
     }
-    if (video.currentTime < trim.start || video.currentTime >= trim.end - 0.05) {
-      video.currentTime = trim.start;
+    if (playback.currentTime < trim.start || playback.currentTime >= trim.end - 0.05) {
+      playback.seek(trim.start);
     }
-    void video.play();
+    playback.play();
   }
 
   function addCaption() {
@@ -231,7 +230,7 @@ export function VideoWorkspace({
 
   function useCurrentFrame() {
     if (!opened) return;
-    const time = videoRef.current?.currentTime ?? currentTime;
+    const time = playbackRef.current?.currentTime ?? currentTime;
     startCapturing(async function captureCover() {
       const blob = await opened.renderFrame(time);
       if (!blob) return;
@@ -319,17 +318,12 @@ export function VideoWorkspace({
       <VideoPreview
         aspectRatio={info.width / info.height}
         caption={visibleCaption}
-        captionsUrl={`data:text/vtt;charset=utf-8,${encodeURIComponent(
-          captionsToWebVtt(captions, { end: info.duration, start: 0 }),
-        )}`}
-        file={file}
         isPlaying={isPlaying}
         labels={labels}
-        locale={locale}
         onPlayingChange={setIsPlaying}
-        onTimeChange={setCurrentTime}
         onTogglePlayback={togglePlayback}
-        videoRef={videoRef}
+        opened={opened}
+        playbackRef={playbackRef}
       />
 
       <div className="flex flex-col gap-2">

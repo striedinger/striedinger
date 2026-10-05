@@ -1,11 +1,19 @@
 import { BlobSource, CanvasSink, Input, MATROSKA, MP4, QTFF, WEBM } from "mediabunny";
 
 import type { VideoInfo } from "./types";
+import type { VideoPlayback } from "./video-playback";
+
+import { createVideoPlayback } from "./video-playback";
 
 /** The containers phones and browsers record; reading only these keeps the code small. */
 export const videoInputFormats = [MP4, QTFF, WEBM, MATROSKA];
 
 export interface OpenedVideo {
+  /** Plays the video onto a canvas; see `createVideoPlayback`. */
+  createPlayback: (
+    canvas: HTMLCanvasElement,
+    onPausedChange: (paused: boolean) => void,
+  ) => VideoPlayback;
   dispose: () => void;
   info: VideoInfo;
   /** Renders frames at the given times as small JPEG data URLs, for the trim filmstrip. */
@@ -58,8 +66,20 @@ export async function openVideo(file: File): Promise<OpenedVideo> {
       width: rotated ? videoTrack.squarePixelHeight : videoTrack.squarePixelWidth,
     };
     const fullSizeSink = canDecode ? new CanvasSink(videoTrack, { poolSize: 1 }) : null;
+    const playableAudioTrack = audioTrack && (await audioTrack.canDecode()) ? audioTrack : null;
 
     return {
+      createPlayback(canvas, onPausedChange) {
+        return createVideoPlayback({
+          audioTrack: playableAudioTrack,
+          canvas,
+          duration,
+          height: info.height,
+          onPausedChange,
+          videoTrack,
+          width: info.width,
+        });
+      },
       dispose() {
         input.dispose();
       },
