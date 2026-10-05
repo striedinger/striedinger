@@ -28,7 +28,8 @@ const codeClassName =
  * A plain textarea layered over a syntax-colored copy of its text, like the code views in
  * Swift Playgrounds. Both share one grid cell sized by the colored copy, so the card scrolls
  * them together and the caret always sits on the colored letters. Very large files skip the
- * coloring, and the hidden copy only sizes the cell.
+ * coloring, and the hidden copy only sizes the cell. Each line is its own block, so a
+ * keystroke re-lays out one line instead of the whole file.
  */
 export function SvgCodeEditor({
   invalid,
@@ -43,24 +44,22 @@ export function SvgCodeEditor({
   return (
     <div className="h-80 overflow-y-auto overscroll-contain rounded-ios-xl bg-ios-grouped-cell transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ios-tint/35 motion-reduce:transition-none lg:h-full">
       <div className="grid min-h-full">
-        <pre
+        <div
           aria-hidden="true"
           className={cn(codeClassName, "pointer-events-none", !isHighlighted && "invisible")}
         >
-          {isHighlighted
-            ? encodeSvgTokenLines(tokenizeSvg(value)).map(function renderLine(line, index) {
-                return (
-                  // oxlint-disable-next-line react/no-array-index-key -- Lines are positional; unchanged ones skip rendering.
-                  <span key={index}>
-                    {index > 0 ? "\n" : null}
-                    <SvgCodeLine encodedTokens={line} />
-                  </span>
-                );
-              })
-            : value}
-          {/* A final newline still needs a line of height. */}
-          {"\n"}
-        </pre>
+          {/* One block per line, so typing re-lays out only the line it changes. */}
+          {(isHighlighted ? encodeSvgTokenLines(tokenizeSvg(value)) : value.split("\n")).map(
+            function renderLine(line, index) {
+              return (
+                // oxlint-disable-next-line react/no-array-index-key -- Lines are positional; unchanged ones skip rendering.
+                <div key={index} className="min-h-5.5">
+                  {isHighlighted ? <SvgCodeLine encodedTokens={line} /> : line}
+                </div>
+              );
+            },
+          )}
+        </div>
         <textarea
           className={cn(
             codeClassName,
