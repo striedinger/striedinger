@@ -11,10 +11,10 @@ import type { CompressionMode, ImageOptimizerLabels, OptimizerItem, OutputFormat
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
+import { IosFileDropZone } from "../../../components/ios/ios-file-drop-zone";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { downloadBlob } from "../../../lib/download-blob";
 import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
-import { FileDropZone } from "./file-drop-zone";
 import { getImageDescriptionOptions } from "./image-description-options";
 import { targetRatioForMode } from "./optimization-settings";
 import { optimizeImage } from "./optimize-image";
@@ -275,7 +275,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
         outputFormat={outputFormat}
         quality={quality}
       />
-      <FileDropZone label={labels.dropActive} onFiles={addFiles} />
+      <IosFileDropZone label={labels.dropActive} onFiles={addFiles} />
       <div
         className={cn(
           "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-safe-min-3.5",

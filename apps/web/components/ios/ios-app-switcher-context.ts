@@ -22,6 +22,7 @@ export interface IosAppSwitcherLabels {
   svg: string;
   tools: string;
   trains: string;
+  video: string;
 }
 
 interface IosAppSwitcherContextValue {

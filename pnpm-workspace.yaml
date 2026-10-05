@@ -3,6 +3,9 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  # Transformers.js runs in the browser here, so its Node.js native bindings are never built.
+  onnxruntime-node: false
+  protobufjs: false
   sharp: true
 
 verifyDepsBeforeRun: warn

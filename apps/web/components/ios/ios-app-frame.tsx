@@ -39,6 +39,7 @@ const systemColorClasses = [
   "[--ios-gray:#8e8e93]",
   "[--ios-red:#ff3b30] dark:[--ios-red:#ff453a]",
   "[--ios-orange:#ff9500] dark:[--ios-orange:#ff9f0a]",
+  "[--ios-yellow:#ffcc00] dark:[--ios-yellow:#ffd60a]",
   "[--ios-purple:#af52de] dark:[--ios-purple:#bf5af2]",
   "[--ios-blue:#007aff] dark:[--ios-blue:#0a84ff]",
   "[--ios-green:#34c759] dark:[--ios-green:#30d158]",

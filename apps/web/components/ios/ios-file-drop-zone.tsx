@@ -5,16 +5,16 @@ import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useEffectEvent, useState } from "react";
 
-interface FileDropZoneProps {
+interface IosFileDropZoneProps {
   label: string;
   onFiles: (files: File[]) => void;
 }
 
 /**
- * Lets images be dropped anywhere on the screen, like dragging files onto an iPad app, and
+ * Lets files be dropped anywhere on the screen, like dragging files onto an iPad app, and
  * outlines the whole screen while files are dragged over it.
  */
-export function FileDropZone({ label, onFiles }: FileDropZoneProps) {
+export function IosFileDropZone({ label, onFiles }: IosFileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const receiveFiles = useEffectEvent(onFiles);
 

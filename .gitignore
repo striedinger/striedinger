@@ -6,6 +6,7 @@ apps/web/certificates
 apps/web/public/vendor/qpdf-run
 apps/web/public/vendor/jsquash-avif
 apps/web/public/vendor/pdfjs-dist
+apps/web/public/vendor/onnxruntime-web
 dist
 *.tsbuildinfo
 .env*

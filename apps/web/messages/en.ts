@@ -106,4 +106,5 @@ export const messages = defineMessages({
   "Translate from {language}": "Translate from {language}",
   "Translating…": "Translating…",
   "Try Again": "Try Again",
+  "Video Editor": "Video Editor",
 });

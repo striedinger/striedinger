@@ -15,6 +15,7 @@ import {
   iosFilledButtonClassName,
 } from "../../../components/ios/ios-button-styles";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
+import { IosFileDropZone } from "../../../components/ios/ios-file-drop-zone";
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
@@ -22,7 +23,6 @@ import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
 import { translationProbe } from "../../../lib/on-device-ai/translation-probe";
 import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
-import { PdfDropZone } from "./pdf-drop-zone";
 import { PdfOptionsSection } from "./pdf-options-section";
 import { PdfStatusSection } from "./pdf-status-section";
 import { getPdfSummaryOptions } from "./pdf-summary-options";
@@ -347,7 +347,7 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
           </Text>
         </div>
       )}
-      <PdfDropZone label={labels.dropActive} onFiles={selectFiles} />
+      <IosFileDropZone label={labels.dropActive} onFiles={selectFiles} />
       <input
         ref={fileInputRef}
         className="sr-only"

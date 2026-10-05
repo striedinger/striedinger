@@ -11,6 +11,7 @@ import { ChevronRightIcon } from "@workspace/icons/chevron-right-icon";
 import { CloseIcon } from "@workspace/icons/close-icon";
 import { CodeIcon } from "@workspace/icons/code-icon";
 import { DocIcon } from "@workspace/icons/doc-icon";
+import { FilmIcon } from "@workspace/icons/film-icon";
 import { GlobeIcon } from "@workspace/icons/globe-icon";
 import { HouseFillIcon } from "@workspace/icons/house-fill-icon";
 import { LinkIcon } from "@workspace/icons/link-icon";
@@ -94,6 +95,7 @@ const tools: readonly SwitcherDestination[] = [
   { background: "bg-[#af52de]", href: "/svg", icon: <PencilIcon />, label: "svg" },
   { background: "bg-[#ff2d55]", href: "/image", icon: <PhotoIcon />, label: "image" },
   { background: "bg-[#ff3b30]", href: "/pdf", icon: <DocIcon />, label: "pdf" },
+  { background: "bg-[#ff9f0a]", href: "/video", icon: <FilmIcon />, label: "video" },
 ];
 
 const home: SwitcherDestination = {

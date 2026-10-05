@@ -19,6 +19,7 @@ const labels = {
   open: "Open apps menu",
   pdf: "PDF Optimizer",
   svg: "SVG Editor",
+  video: "Video Editor",
   podcasts: "Podcasts",
   stocks: "Stocks",
   sudoku: "Sudoku",

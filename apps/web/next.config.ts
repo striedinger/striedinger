@@ -42,6 +42,29 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/vendor/onnxruntime-web/:version/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // Workers started from the cross-origin isolated video editor must opt in as well.
+        source: "/_next/static/chunks/:path*",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "credentialless" }],
+      },
+      {
+        // Cross-origin isolation lets the speech model use every CPU core through shared
+        // memory. `credentialless` keeps cross-origin downloads, such as the model, working.
+        source: "/:locale(es|de|it|fr|pt|zh|ja)?/video",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
+      {
         source: "/vendor/jsquash-avif/:version/:path*",
         headers: [
           {
