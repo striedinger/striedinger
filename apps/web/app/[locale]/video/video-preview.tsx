@@ -47,7 +47,15 @@ export function VideoPreview({
       style={{ aspectRatio }}
     >
       <video
-        ref={videoRef}
+        ref={function attachVideo(video: HTMLVideoElement | null) {
+          videoRef.current = video;
+          if (!video) return;
+          const releaseFile = playFile(video, file);
+          return function detachVideo() {
+            videoRef.current = null;
+            releaseFile();
+          };
+        }}
         playsInline
         preload="auto"
         className="absolute inset-0 size-full object-contain"
@@ -61,27 +69,13 @@ export function VideoPreview({
         onSeeked={function reportSeek(event) {
           onTimeChange(event.currentTarget.currentTime);
         }}
-        onLoadedMetadata={function reportStart(event) {
-          onTimeChange(event.currentTarget.currentTime);
+        onLoadedMetadata={function showFirstFrame(event) {
+          const video = event.currentTarget;
+          // Safari leaves the picture black until it seeks, so nudge it onto the first frame.
+          if (video.currentTime === 0) video.currentTime = 0.001;
+          onTimeChange(video.currentTime);
         }}
       >
-        <source
-          ref={function attachSource(source: HTMLSourceElement | null) {
-            const video = source?.parentElement;
-            if (!source || !(video instanceof HTMLVideoElement)) return;
-            // The file plays straight from disk through an object URL, released with the editor.
-            // iOS Safari only starts blob URLs from a typed <source>, not the video's src, and
-            // the #t fragment makes it paint the first frame instead of a black box.
-            const url = URL.createObjectURL(file);
-            const type = findPlayableType(video, file);
-            if (type) source.type = type;
-            source.src = `${url}#t=0.001`;
-            video.load();
-            return function releaseSource() {
-              URL.revokeObjectURL(url);
-            };
-          }}
-        />
         <track kind="captions" src={captionsUrl} srcLang={locale} label={labels.captions} />
       </video>
       {caption ? (
@@ -117,15 +111,27 @@ const typesByExtension: Record<string, string> = {
 };
 
 /**
- * The MIME type to label the file's <source> with, so the browser does not skip it. Chrome
- * reports no support for QuickTime but plays H.264 and HEVC movies labelled as MP4.
+ * Plays the file straight from disk and returns a cleanup that releases it. Safari takes the
+ * file itself as `srcObject`: since iOS 15 its blob URLs ignore byte ranges and read the whole
+ * file for every request, so large phone videos never start. Other browsers only accept media
+ * streams there and play the file through an object URL instead.
  */
-function findPlayableType(video: HTMLVideoElement, file: File) {
+function playFile(video: HTMLVideoElement, file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  const type = file.type || typesByExtension[extension];
-  if (!type) return undefined;
-  if (video.canPlayType(type)) return type;
-  if (type === "video/quicktime" && video.canPlayType("video/mp4")) return "video/mp4";
-  // An unlabelled source is still tried, which beats one the browser refuses outright.
-  return undefined;
+  const inferredType = typesByExtension[extension];
+  // Safari picks a decoder from the blob's type, which some pickers leave empty.
+  const media = file.type || !inferredType ? file : new Blob([file], { type: inferredType });
+  try {
+    video.srcObject = media;
+    return function releaseFile() {
+      video.srcObject = null;
+    };
+  } catch {
+    const url = URL.createObjectURL(media);
+    video.src = url;
+    return function releaseFile() {
+      video.removeAttribute("src");
+      URL.revokeObjectURL(url);
+    };
+  }
 }
