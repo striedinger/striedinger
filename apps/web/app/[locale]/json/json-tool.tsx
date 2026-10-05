@@ -9,6 +9,7 @@ import {
   startTransition,
   Suspense,
   useEffect,
+  useEffectEvent,
   useOptimistic,
   useRef,
   useState,
@@ -16,7 +17,7 @@ import {
 } from "react";
 
 import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
-import type { JsonWorkerReply, JsonWorkerRequest, JsonWorkerResponse } from "./process-json";
+import type { JsonWorkerReply, JsonWorkerRequest } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
 
 import { iosChipButtonClassName } from "../../../components/ios/ios-button-styles";
@@ -56,7 +57,12 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
   const [isPreviewStale, setIsPreviewStale] = useState(false);
   const [treeVersion, setTreeVersion] = useState(0);
   const [defaultExpanded, setDefaultExpanded] = useState(true);
-  const [displayedExpanded, setDisplayedExpanded] = useOptimistic(defaultExpanded);
+  const [displayedExpanded, toggleDisplayedExpanded] = useOptimistic(
+    defaultExpanded,
+    function toggleExpanded(currentExpanded: boolean) {
+      return !currentExpanded;
+    },
+  );
   const [isAiOpen, setIsAiOpen] = useState(false);
   // Questions about the document appear only once the browser confirms on-device AI.
   const canAsk = useOnDeviceAi(
@@ -75,6 +81,25 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
     };
   }, []);
 
+  // The worker outlives any one effect run, so its replies go through an effect event that
+  // always sees the latest request.
+  const applyValidationResult = useEffectEvent(function applyValidationResult(
+    reply: JsonWorkerReply,
+  ) {
+    if (reply.id !== requestIdRef.current) return;
+    // Rendering a large tree is interruptible, so typing stays responsive.
+    startTransition(function showValidationResult() {
+      setValidationResult(reply.response.result);
+      if (reply.response.result.status === "valid") setPreviewResult(reply.response.result);
+      setIsPreviewStale(false);
+    });
+    const { formattedInput } = reply.response;
+    if (formattedInput && formattedInput !== reply.input) {
+      processedInput.current = formattedInput;
+      setInput(formattedInput);
+    }
+  });
+
   useEffect(
     function validateAndFormatAfterIdle() {
       if (!input.trim() || input.length > maximumInputCharacters) {
@@ -89,7 +114,7 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
       const timeoutId = window.setTimeout(function validateAndFormatInput() {
         if (typeof Worker === "undefined") {
           void import("./process-json").then(function processWithoutWorker({ processJson }) {
-            applyValidationResult(processJson(input));
+            applyValidationResult({ id: requestId, input, response: processJson(input) });
             return undefined;
           });
           return;
@@ -106,31 +131,20 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
         jsonWorker.addEventListener(
           "message",
           function handleWorkerResult(event: MessageEvent<JsonWorkerReply>) {
-            if (event.data.id === requestIdRef.current) applyValidationResult(event.data.response);
+            applyValidationResult(event.data);
           },
         );
         jsonWorker.addEventListener("error", function handleWorkerError() {
           jsonWorker.terminate();
           workerRef.current = null;
-          applyValidationResult({ result: { status: "invalid", error: labels.tooComplex } });
+          applyValidationResult({
+            id: requestIdRef.current,
+            input: "",
+            response: { result: { status: "invalid", error: labels.tooComplex } },
+          });
         });
         workerRef.current = jsonWorker;
         return jsonWorker;
-      }
-
-      function applyValidationResult(response: JsonWorkerResponse) {
-        if (requestId !== requestIdRef.current) return;
-        // Rendering a large tree is interruptible, so typing stays responsive.
-        startTransition(function showValidationResult() {
-          setValidationResult(response.result);
-          if (response.result.status === "valid") setPreviewResult(response.result);
-          setIsPreviewStale(false);
-        });
-
-        if (response.formattedInput && response.formattedInput !== input) {
-          processedInput.current = response.formattedInput;
-          setInput(response.formattedInput);
-        }
       }
 
       return function cancelPendingValidation() {
@@ -162,8 +176,10 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
   // re-renders in a transition that keeps the page responsive.
   function handleToggleAll() {
     startTransition(function rebuildTree() {
-      setDisplayedExpanded(!defaultExpanded);
-      setDefaultExpanded(!defaultExpanded);
+      toggleDisplayedExpanded(undefined);
+      setDefaultExpanded(function toggleDefaultExpanded(currentExpanded) {
+        return !currentExpanded;
+      });
       setTreeVersion(function incrementTreeVersion(currentVersion) {
         return currentVersion + 1;
       });
@@ -255,12 +271,12 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
         </div>
       </IosGroupedPane>
 
-      {canAsk && validationResult.status === "valid" ? (
+      {canAsk && (isAiOpen || validationResult.status === "valid") ? (
         isAiOpen ? (
           <Suspense fallback={null}>
             <JsonIntelligencePanel
               aiLabels={aiLabels}
-              json={input}
+              json={validationResult.status === "valid" ? input : null}
               labels={labels}
               locale={locale}
               onClose={function closeAi() {

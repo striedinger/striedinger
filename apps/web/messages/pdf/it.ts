@@ -45,4 +45,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Summarize Document": "Riassumi documento",
   "Summary Copied": "Riepilogo copiato",
   "Key Points": "Punti chiave",
+  "This document is already in your language.": "Questo documento è già nella tua lingua.",
+  "Translate Document": "Traduci documento",
+  "Translated from {language}": "Tradotto da: {language}",
+  Translation: "Traduzione",
+  "Translation Copied": "Traduzione copiata",
+  "Copy Translation": "Copia traduzione",
 };

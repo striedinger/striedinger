@@ -13,6 +13,8 @@ export interface JsonWorkerRequest {
 
 export interface JsonWorkerReply {
   id: number;
+  /** The text that was checked, so formatting applies only if it is still current. */
+  input: string;
   response: JsonWorkerResponse;
 }
 

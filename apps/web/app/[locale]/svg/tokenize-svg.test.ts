@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { tokenizeSvg } from "./tokenize-svg";
+import { encodeSvgTokenLines, tokenizeSvg } from "./tokenize-svg";
 
 function join(source: string) {
   return tokenizeSvg(source)
@@ -40,5 +40,22 @@ describe("tokenizeSvg", function () {
     ]) {
       expect(join(source)).toBe(source);
     }
+  });
+
+  it("encodes lines that rebuild the source and compare equal when unchanged", function () {
+    const source = '<svg\n  width="1">\n<!-- a\nb -->\n</svg>\n';
+    const lines = encodeSvgTokenLines(tokenizeSvg(source));
+    const rebuilt = lines
+      .map(function decodeLine(line) {
+        return line
+          .split("\u0002")
+          .map(function selectText(pair) {
+            return pair.slice(pair.indexOf("\u0001") + 1);
+          })
+          .join("");
+      })
+      .join("\n");
+    expect(rebuilt).toBe(source);
+    expect(encodeSvgTokenLines(tokenizeSvg(source.replace("width", "height")))[0]).toBe(lines[0]);
   });
 });

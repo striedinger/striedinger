@@ -51,4 +51,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Description of {name}": "{name} の説明",
   Renamed: "名前を変更しました",
   "Rename to “{name}”": "「{name}」に名前を変更",
+  "This image has no text to translate.": "この画像には翻訳できるテキストがありません。",
+  "Text in Image": "画像内のテキスト",
+  "Translate Text in Image": "画像内のテキストを翻訳",
 };

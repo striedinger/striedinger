@@ -44,4 +44,5 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "Apply Change": "应用更改",
   "Edit with On-Device AI": "使用设备端 AI 编辑",
   Undo: "撤销",
+  "This SVG is too large to edit with on-device AI.": "此 SVG 太大，无法使用设备端 AI 编辑。",
 });

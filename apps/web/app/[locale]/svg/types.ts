@@ -4,6 +4,7 @@ export interface SvgEditorLabels {
   aiPlaceholder: string;
   aiSubmit: string;
   aiTitle: string;
+  aiTooLarge: string;
   aiUndo: string;
   background: string;
   copied: string;

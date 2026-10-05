@@ -35,6 +35,7 @@ const aiLabels = {
   downloading: "Downloading {percent}",
   failed: "Failed",
   onDevice: "On device",
+  retry: "Try Again",
   working: "Working",
 };
 
@@ -50,7 +51,7 @@ describe("JsonTool", function () {
       terminate = vi.fn<() => void>();
       postMessage({ id, input }: { id: number; input: string }) {
         this.dispatchEvent(
-          new MessageEvent("message", { data: { id, response: processJson(input) } }),
+          new MessageEvent("message", { data: { id, input, response: processJson(input) } }),
         );
       }
     }
@@ -67,6 +68,38 @@ describe("JsonTool", function () {
     expect(screen.getByRole("textbox", { name: labels.inputLabel })).toHaveValue(
       '{\n  "worker": true\n}',
     );
+  });
+
+  it("keeps validating later edits with the same worker", async function () {
+    vi.useFakeTimers();
+    class JsonWorker extends EventTarget {
+      terminate = vi.fn<() => void>();
+      postMessage({ id, input }: { id: number; input: string }) {
+        this.dispatchEvent(
+          new MessageEvent("message", { data: { id, input, response: processJson(input) } }),
+        );
+      }
+    }
+    vi.stubGlobal("Worker", JsonWorker);
+    render(<JsonTool aiLabels={aiLabels} labels={labels} locale="en" />);
+    const textbox = screen.getByRole("textbox", { name: labels.inputLabel });
+
+    fireEvent.change(textbox, { target: { value: '{"first":1}' } });
+    await act(async function finishFirstDebounce() {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    fireEvent.change(textbox, { target: { value: '{"second":' } });
+    await act(async function finishSecondDebounce() {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(screen.getByText(/^Invalid JSON:/)).toBeInTheDocument();
+
+    fireEvent.change(textbox, { target: { value: '{"third":3}' } });
+    await act(async function finishThirdDebounce() {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(screen.getByText(labels.valid)).toBeInTheDocument();
+    expect(screen.getByText('"third":')).toBeInTheDocument();
   });
 
   it("formats and previews JSON when Web Workers are unavailable", async function () {

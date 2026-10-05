@@ -46,4 +46,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Summarize Document": "Dokument zusammenfassen",
   "Summary Copied": "Zusammenfassung kopiert",
   "Key Points": "Kernpunkte",
+  "This document is already in your language.": "Dieses Dokument ist bereits in deiner Sprache.",
+  "Translate Document": "Dokument übersetzen",
+  "Translated from {language}": "Übersetzt aus: {language}",
+  Translation: "Übersetzung",
+  "Translation Copied": "Übersetzung kopiert",
+  "Copy Translation": "Übersetzung kopieren",
 };

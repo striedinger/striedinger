@@ -107,4 +107,5 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Translated from {language}": "Traducido del {language}",
   "Translate from {language}": "Traducir del {language}",
   "Translating…": "Traduciendo…",
+  "Try Again": "Reintentar",
 };

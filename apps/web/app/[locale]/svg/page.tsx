@@ -29,6 +29,7 @@ export default async function SvgPage() {
     aiPlaceholder: translate("Describe a change, like “make it blue”"),
     aiSubmit: translate("Apply Change"),
     aiTitle: translate("Edit with On-Device AI"),
+    aiTooLarge: translate("This SVG is too large to edit with on-device AI."),
     aiUndo: translate("Undo"),
     actions: translate("SVG actions"),
     alreadyOptimized: translate("This SVG is already optimized."),

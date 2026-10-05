@@ -105,4 +105,5 @@ export const messages = defineMessages({
   "Translated from {language}": "Translated from {language}",
   "Translate from {language}": "Translate from {language}",
   "Translating…": "Translating…",
+  "Try Again": "Try Again",
 });

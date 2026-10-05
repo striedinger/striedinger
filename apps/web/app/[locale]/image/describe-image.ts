@@ -47,6 +47,59 @@ export async function describeImage(
   }
 }
 
+export interface ImageTextTranslation {
+  /** The text as written in the image; empty when it has none. */
+  text: string;
+  translation: string;
+}
+
+const textTranslationSchema = {
+  type: "object",
+  properties: {
+    hasText: { type: "boolean" },
+    text: { type: "string" },
+    translation: { type: "string" },
+  },
+  required: ["hasText", "text", "translation"],
+};
+
+/** Reads any writing in the image, such as a sign or a menu, and translates it. */
+export async function translateImageText(
+  image: Blob,
+  locale: string,
+  { monitor, signal }: { monitor: (monitor: AICreateMonitor) => void; signal: AbortSignal },
+): Promise<ImageTextTranslation> {
+  const session = await LanguageModel.create({
+    ...getImageDescriptionOptions(locale),
+    monitor,
+    signal,
+  });
+  try {
+    const language = new Intl.DisplayNames(["en"], { type: "language" }).of(locale) ?? "English";
+    const response = await session.prompt(
+      [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              value: `Find the written text in this image, such as signs, labels, or menus. If there is none, set hasText to false and leave the other fields empty. Otherwise copy the text exactly as written into "text", keeping line breaks, and translate it into ${language} in "translation".`,
+            },
+            { type: "image", value: image },
+          ],
+        },
+      ],
+      { responseConstraint: textTranslationSchema, signal },
+    );
+    const result = JSON.parse(response) as { hasText: boolean; text: string; translation: string };
+    return result.hasText && result.text.trim()
+      ? { text: result.text.trim(), translation: result.translation.trim() }
+      : { text: "", translation: "" };
+  } finally {
+    session.destroy();
+  }
+}
+
 export function toFileStem(name: string) {
   return (
     name

@@ -44,4 +44,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Summarize Document": "总结文档",
   "Summary Copied": "已拷贝摘要",
   "Key Points": "要点",
+  "This document is already in your language.": "此文档已经是你的语言。",
+  "Translate Document": "翻译文档",
+  "Translated from {language}": "译自{language}",
+  Translation: "翻译",
+  "Translation Copied": "已拷贝翻译",
+  "Copy Translation": "拷贝翻译",
 };

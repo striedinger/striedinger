@@ -46,4 +46,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "Apply Change": "Aplicar alteração",
   "Edit with On-Device AI": "Editar com IA no dispositivo",
   Undo: "Desfazer",
+  "This SVG is too large to edit with on-device AI.":
+    "Este SVG é grande demais para ser editado com a IA no dispositivo.",
 });

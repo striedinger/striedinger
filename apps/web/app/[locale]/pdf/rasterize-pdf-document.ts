@@ -2,6 +2,8 @@ import type { DocumentInitParameters } from "pdfjs-dist/types/src/display/api";
 
 import type { PdfOperationStage } from "./types";
 
+import { getPdfjsAssetOptions } from "./pdfjs-asset-options";
+
 /* oxlint-disable no-await-in-loop -- Rasterize one page at a time to bound canvas and decoded-image memory. */
 
 export interface RasterizePdfOptions {
@@ -42,14 +44,8 @@ export async function rasterizePdfDocument<Canvas extends PageCanvas>(
     import.meta.url,
   ).toString();
 
-  // Font and character map data published by scripts/sync-pdf-assets.mjs, needed to draw text
-  // in fonts the document does not embed.
-  const assetRoot = new URL(`/vendor/pdfjs-dist/${pdfjs.version}/`, globalThis.location.origin);
   const loadingTask = pdfjs.getDocument({
-    cMapPacked: true,
-    cMapUrl: new URL("cmaps/", assetRoot).href,
-    standardFontDataUrl: new URL("standard_fonts/", assetRoot).href,
-    wasmUrl: new URL("wasm/", assetRoot).href,
+    ...getPdfjsAssetOptions(pdfjs.version),
     ...environment.documentOptions,
     data,
     password: options.password || undefined,

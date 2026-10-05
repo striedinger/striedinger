@@ -135,6 +135,13 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
     }
   }
 
+  /** Applies a slow result only if nobody edited the drawing while it was being made. */
+  function replaceSourceIfUnchanged(expectedSource: string, nextSource: string) {
+    setSource(function applyIfUnchanged(currentSource) {
+      return currentSource === expectedSource ? nextSource : currentSource;
+    });
+  }
+
   function optimize() {
     const originalSource = source;
     startOptimizing(async function optimizeSource() {
@@ -146,7 +153,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
           setToastMessage(labels.alreadyOptimized);
           return;
         }
-        setSource(optimizedSource);
+        replaceSourceIfUnchanged(originalSource, optimizedSource);
         setToastMessage(
           labels.optimized
             .replace("{before}", formatBytes(originalBytes))
@@ -254,6 +261,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
         </div>
         <div className="min-h-0 flex-1">
           <SvgCodeEditor
+            readOnly={isOptimizing}
             invalid={invalidMessage !== null}
             label={labels.inputLabel}
             onChange={setSource}
@@ -312,7 +320,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
               onClose={function closeAi() {
                 setIsAiOpen(false);
               }}
-              onSourceChange={setSource}
+              onReplaceSource={replaceSourceIfUnchanged}
               source={source}
             />
           </Suspense>

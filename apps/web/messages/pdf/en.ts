@@ -42,4 +42,10 @@ export const messages = defineMessages({
   "Summarize Document": "Summarize Document",
   "Summary Copied": "Summary Copied",
   "Key Points": "Key Points",
+  "This document is already in your language.": "This document is already in your language.",
+  "Translate Document": "Translate Document",
+  "Translated from {language}": "Translated from {language}",
+  Translation: "Translation",
+  "Translation Copied": "Translation Copied",
+  "Copy Translation": "Copy Translation",
 });

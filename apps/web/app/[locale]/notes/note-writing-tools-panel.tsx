@@ -18,7 +18,7 @@ import { copyText } from "../../../lib/copy-text";
 import { useOnDeviceAiTask } from "../../../lib/on-device-ai/use-on-device-ai-task";
 import {
   applyNoteCorrections,
-  canReplaceWholeNote,
+  canReplaceNoteText,
   readNoteText,
   replaceNoteText,
 } from "./note-writing-text";
@@ -103,7 +103,7 @@ export function NoteWritingToolsPanel({
     const target = readTarget();
     if (!target) return;
     setIsCopied(false);
-    const canReplace = target.range !== null || canReplaceWholeNote(target.editor);
+    const canReplace = canReplaceNoteText(target.editor, target.range);
     setResult({ kind: "rewrite", canReplace, range: target.range, text: "" });
     void task.run(function rewriteText(context) {
       return rewriteNote(

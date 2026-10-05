@@ -27,11 +27,19 @@ function download(item: OptimizerItem) {
   if (item.output) downloadBlob(item.output, item.outputName ?? item.file.name);
 }
 
+function loadImageDescriptionCard() {
+  return import("./image-description-card");
+}
+
 const ImageDescriptionCard = lazy(function importImageDescriptionCard() {
-  return import("./image-description-card").then(function selectCard(module) {
+  return loadImageDescriptionCard().then(function selectCard(module) {
     return { default: module.ImageDescriptionCard };
   });
 });
+
+function preloadImageDescriptionCard() {
+  void loadImageDescriptionCard();
+}
 
 interface ImageOptimizerProps {
   aiLabels: OnDeviceAiLabels;
@@ -217,6 +225,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
             setItems([]);
           }}
           onDescribe={canDescribe ? setDescribedItemId : undefined}
+          onPrepareDescribe={preloadImageDescriptionCard}
           onDownload={download}
           onRemove={function remove(id) {
             setItems(function removeItem(current) {

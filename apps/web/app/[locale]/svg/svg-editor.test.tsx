@@ -17,6 +17,7 @@ const aiLabels = {
   downloading: "Downloading {percent}",
   failed: "Failed",
   onDevice: "On device",
+  retry: "Try Again",
   working: "Working",
 };
 
@@ -26,6 +27,7 @@ const labels: SvgEditorLabels = {
   aiPlaceholder: "Describe a change",
   aiSubmit: "Apply Change",
   aiTitle: "Edit with On-Device AI",
+  aiTooLarge: "Too large for AI",
   aiUndo: "Undo",
   actions: "SVG actions",
   alreadyOptimized: "Already optimized",
@@ -126,6 +128,37 @@ describe("SvgEditor", function () {
     expect(getCode()).toHaveValue(square + "\n");
     fireEvent.click(screen.getByRole("button", { name: labels.aiUndo }));
     expect(getCode()).toHaveValue(original);
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps edits typed while the on-device model was working", async function () {
+    let finishPrompt: ((value: string) => void) | undefined;
+    vi.stubGlobal("LanguageModel", {
+      availability: vi.fn<() => Promise<string>>().mockResolvedValue("available"),
+      create: vi.fn<() => Promise<unknown>>().mockResolvedValue({
+        destroy() {},
+        prompt: vi.fn<() => Promise<string>>(function waitForPrompt() {
+          return new Promise(function deferResult(resolve) {
+            finishPrompt = resolve;
+          });
+        }),
+      }),
+    });
+    render(<SvgEditor aiLabels={aiLabels} labels={labels} locale="de" />);
+
+    fireEvent.click(await screen.findByRole("button", { name: labels.aiTitle }));
+    fireEvent.change(await screen.findByRole("textbox", { name: labels.aiTitle }), {
+      target: { value: "make it a square" },
+    });
+    await act(async function submitRequest() {
+      fireEvent.click(screen.getByRole("button", { name: labels.aiSubmit }));
+    });
+    fireEvent.change(getCode(), { target: { value: square.replace("10", "12") } });
+    await act(async function finishRequest() {
+      finishPrompt?.(JSON.stringify({ svg: square }));
+    });
+
+    expect(getCode()).toHaveValue(square.replace("10", "12"));
     vi.unstubAllGlobals();
   });
 

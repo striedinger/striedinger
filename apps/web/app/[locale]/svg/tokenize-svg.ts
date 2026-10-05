@@ -84,3 +84,24 @@ function tokenizeInsideTag(
   }
   return index;
 }
+
+/**
+ * Splits the tokens at line breaks and encodes each line as one string, so a renderer can
+ * skip lines whose tokens did not change.
+ */
+export function encodeSvgTokenLines(tokens: readonly SvgToken[]) {
+  const lines: string[] = [];
+  let line: string[] = [];
+  for (const token of tokens) {
+    const parts = token.text.split("\n");
+    parts.forEach(function addPart(part, index) {
+      if (index > 0) {
+        lines.push(line.join("\u0002"));
+        line = [];
+      }
+      if (part) line.push(`${token.kind}\u0001${part}`);
+    });
+  }
+  lines.push(line.join("\u0002"));
+  return lines;
+}

@@ -25,6 +25,9 @@ export interface ImageOptimizerLabels {
   describeTitle: string;
   renamed: string;
   renameTo: string;
+  noTextInImage: string;
+  textInImage: string;
+  translateText: string;
   addMore: string;
   avif: string;
   autoFormat: string;

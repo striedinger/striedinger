@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { applyNoteCorrections, readNoteText } from "./note-writing-text";
+import { applyNoteCorrections, canReplaceNoteText, readNoteText } from "./note-writing-text";
 
 function createEditor(html: string) {
   const editor = document.createElement("div");
@@ -50,5 +50,33 @@ describe("applyNoteCorrections", function () {
     expect(applied).toBe(2);
     expect(editor.textContent).toBe("The quick fox");
     expect(editor.querySelector("b")?.textContent).toBe("quick");
+  });
+});
+
+describe("applyNoteCorrections after edits", function () {
+  it("skips corrections in text that changed after proofreading", function () {
+    const editor = createEditor("<p>Teh fox</p>");
+    document.execCommand = vi.fn<() => boolean>().mockReturnValue(true);
+    const snapshot = readNoteText(editor, null);
+    editor.querySelector("p")!.firstChild!.textContent = "A Teh fox";
+
+    expect(
+      applyNoteCorrections(editor, snapshot, [{ startIndex: 0, endIndex: 3, correction: "The" }]),
+    ).toBe(0);
+    expect(editor.textContent).toBe("A Teh fox");
+  });
+});
+
+describe("canReplaceNoteText", function () {
+  it("protects photos and checklists inside the text being replaced", function () {
+    const editor = createEditor('<p>Hello</p><p><img src="data:image/png;base64,AA=="></p>');
+    const textOnly = document.createRange();
+    textOnly.selectNodeContents(editor.querySelector("p")!);
+    const withPhoto = document.createRange();
+    withPhoto.selectNodeContents(editor);
+
+    expect(canReplaceNoteText(editor, textOnly)).toBe(true);
+    expect(canReplaceNoteText(editor, withPhoto)).toBe(false);
+    expect(canReplaceNoteText(editor, null)).toBe(false);
   });
 });

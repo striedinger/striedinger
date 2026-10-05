@@ -51,4 +51,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Description of {name}": "{name} 的描述",
   Renamed: "已重命名",
   "Rename to “{name}”": "重命名为“{name}”",
+  "This image has no text to translate.": "此图像中没有可翻译的文字。",
+  "Text in Image": "图像中的文字",
+  "Translate Text in Image": "翻译图像中的文字",
 };

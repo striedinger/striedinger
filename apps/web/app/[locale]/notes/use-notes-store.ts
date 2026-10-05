@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Note, NoteFolder, NotesPreferences } from "./types";
 
@@ -162,12 +162,10 @@ export function useNotesStore({ welcomeNoteHtml }: UseNotesStoreOptions) {
   function updateNoteHtml(noteId: string, html: string) {
     const summary = summarizeNoteHtml(html);
     const updatedAt = Date.now();
-    // The editor already shows the typed text; the note list and storage can catch up
-    // without delaying the next keystroke.
-    startTransition(function saveNoteHtml() {
-      updateNote(noteId, function applyHtml(note) {
-        return note.html === html ? note : { ...note, ...summary, html, updatedAt };
-      });
+    // A plain update, not a transition: the save that flushes while the editor closes must
+    // land before the check that discards notes left empty.
+    updateNote(noteId, function applyHtml(note) {
+      return note.html === html ? note : { ...note, ...summary, html, updatedAt };
     });
   }
 

@@ -45,4 +45,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Summarize Document": "文書を要約",
   "Summary Copied": "要約をコピーしました",
   "Key Points": "重要なポイント",
+  "This document is already in your language.": "この文書はすでにあなたの言語です。",
+  "Translate Document": "文書を翻訳",
+  "Translated from {language}": "{language}から翻訳",
+  Translation: "翻訳",
+  "Translation Copied": "翻訳をコピーしました",
+  "Copy Translation": "翻訳をコピー",
 };

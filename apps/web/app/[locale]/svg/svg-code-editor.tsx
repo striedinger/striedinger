@@ -4,31 +4,22 @@ import type { ChangeEvent } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
 
-import type { SvgTokenKind } from "./tokenize-svg";
-
 import { maximumSvgCharacters } from "./inspect-svg";
-import { tokenizeSvg } from "./tokenize-svg";
+import { SvgCodeLine } from "./svg-code-line";
+import { encodeSvgTokenLines, tokenizeSvg } from "./tokenize-svg";
 
 interface SvgCodeEditorProps {
   invalid: boolean;
   label: string;
   onChange: (source: string) => void;
   placeholder: string;
+  /** Locks the text while a slow change, such as optimizing, is being made. */
+  readOnly?: boolean;
   value: string;
 }
 
 /** Coloring every keystroke stays instant up to this size; larger files show plain text. */
-const maximumHighlightedCharacters = 30_000;
-
-const tokenClassNames: Readonly<Record<SvgTokenKind, string>> = {
-  attribute: "text-ios-orange",
-  comment: "text-ios-green",
-  meta: "text-ios-secondary-label",
-  punctuation: "text-ios-secondary-label",
-  tag: "text-ios-purple",
-  text: "text-ios-label",
-  value: "text-ios-red",
-};
+const maximumHighlightedCharacters = 60_000;
 
 const codeClassName =
   "col-start-1 row-start-1 m-0 min-h-full px-4 py-3.5 font-mono text-[14px] leading-[22px] wrap-anywhere whitespace-pre-wrap";
@@ -44,6 +35,7 @@ export function SvgCodeEditor({
   label,
   onChange,
   placeholder,
+  readOnly = false,
   value,
 }: SvgCodeEditorProps) {
   const isHighlighted = value.length <= maximumHighlightedCharacters;
@@ -56,10 +48,12 @@ export function SvgCodeEditor({
           className={cn(codeClassName, "pointer-events-none", !isHighlighted && "invisible")}
         >
           {isHighlighted
-            ? tokenizeSvg(value).map(function renderToken(token) {
+            ? encodeSvgTokenLines(tokenizeSvg(value)).map(function renderLine(line, index) {
                 return (
-                  <span key={token.start} className={tokenClassNames[token.kind]}>
-                    {token.text}
+                  // oxlint-disable-next-line react/no-array-index-key -- Lines are positional; unchanged ones skip rendering.
+                  <span key={index}>
+                    {index > 0 ? "\n" : null}
+                    <SvgCodeLine encodedTokens={line} />
                   </span>
                 );
               })
@@ -78,6 +72,7 @@ export function SvgCodeEditor({
             onChange(event.currentTarget.value);
           }}
           placeholder={placeholder}
+          readOnly={readOnly}
           aria-label={label}
           aria-invalid={invalid}
           maxLength={maximumSvgCharacters}

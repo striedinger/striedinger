@@ -9,6 +9,12 @@ export interface PdfToolLabels {
   summarize: string;
   summaryCopied: string;
   summaryTitle: string;
+  sameLanguage: string;
+  translate: string;
+  translatedFrom: string;
+  translation: string;
+  translationCopied: string;
+  copyTranslation: string;
   balanced: string;
   chooseFile: string;
   compress: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import { Text } from "@workspace/ui/components/text";
 import { useState } from "react";
 
 import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
@@ -11,6 +12,8 @@ import { IosIntelligencePromptField } from "../../../components/ios/ios-intellig
 import { useOnDeviceAiTask } from "../../../lib/on-device-ai/use-on-device-ai-task";
 import { describeSvgWithModel, editSvgWithModel } from "./svg-intelligence";
 
+const maximumAiSourceCharacters = 12_000;
+
 interface SvgIntelligencePanelProps {
   aiLabels: OnDeviceAiLabels;
   canDescribe: boolean;
@@ -19,7 +22,8 @@ interface SvgIntelligencePanelProps {
   labels: SvgEditorLabels;
   locale: string;
   onClose: () => void;
-  onSourceChange: (source: string) => void;
+  /** Replaces the drawing with `nextSource` only if it still equals `expectedSource`. */
+  onReplaceSource: (expectedSource: string, nextSource: string) => void;
   source: string;
 }
 
@@ -35,19 +39,21 @@ export function SvgIntelligencePanel({
   labels,
   locale,
   onClose,
-  onSourceChange,
+  onReplaceSource,
   source,
 }: SvgIntelligencePanelProps) {
   const task = useOnDeviceAiTask();
-  const [previousSource, setPreviousSource] = useState<string | null>(null);
+  const [undoChange, setUndoChange] = useState<{ applied: string; previous: string } | null>(null);
+  // The model reads and rewrites the whole drawing, so large files exceed what it can hold.
+  const isTooLarge = source.length > maximumAiSourceCharacters;
   const isBusy = task.status.kind === "working" || task.status.kind === "downloading";
 
   async function applyResult(request: Promise<string | undefined>) {
     const originalSource = source;
     const updatedSource = await request;
     if (updatedSource === undefined) return;
-    setPreviousSource(originalSource);
-    onSourceChange(updatedSource);
+    onReplaceSource(originalSource, updatedSource);
+    setUndoChange({ applied: updatedSource, previous: originalSource });
   }
 
   function editDrawing(request: string) {
@@ -67,9 +73,9 @@ export function SvgIntelligencePanel({
   }
 
   function undo() {
-    if (previousSource === null) return;
-    onSourceChange(previousSource);
-    setPreviousSource(null);
+    if (!undoChange) return;
+    onReplaceSource(undoChange.applied, undoChange.previous);
+    setUndoChange(null);
     task.reset();
   }
 
@@ -93,7 +99,7 @@ export function SvgIntelligencePanel({
               {labels.aiDescribe}
             </button>
           ) : null}
-          {previousSource !== null && !isBusy ? (
+          {undoChange && !isBusy ? (
             <button type="button" className={iosChipButtonClassName} onClick={undo}>
               {labels.aiUndo}
             </button>
@@ -101,8 +107,11 @@ export function SvgIntelligencePanel({
         </>
       }
     >
+      {isTooLarge ? (
+        <Text className="text-ios-footnote text-ios-secondary-label">{labels.aiTooLarge}</Text>
+      ) : null}
       <IosIntelligencePromptField
-        disabled={!isSourceValid || isBusy}
+        disabled={!isSourceValid || isBusy || isTooLarge}
         label={labels.aiTitle}
         placeholder={labels.aiPlaceholder}
         submitLabel={labels.aiSubmit}

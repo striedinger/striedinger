@@ -8,6 +8,7 @@ const aiLabels = {
   downloading: "Downloading {percent}",
   failed: "Failed",
   onDevice: "On device",
+  retry: "Try Again",
   working: "Working",
 };
 

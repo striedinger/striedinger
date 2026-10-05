@@ -48,4 +48,7 @@ export const messages = defineMessages({
   "Description of {name}": "Description of {name}",
   Renamed: "Renamed",
   "Rename to “{name}”": "Rename to “{name}”",
+  "This image has no text to translate.": "This image has no text to translate.",
+  "Text in Image": "Text in Image",
+  "Translate Text in Image": "Translate Text in Image",
 });

@@ -15,13 +15,15 @@ import { askAboutJson, generateJsonSchema } from "./json-intelligence";
 
 interface JsonIntelligencePanelProps {
   aiLabels: OnDeviceAiLabels;
-  json: string;
+  /** The document, or null while the text is not valid JSON. */
+  json: string | null;
   labels: JsonToolLabels;
   locale: string;
   onClose: () => void;
 }
 
-type JsonAnswer = { kind: "answer"; text: string } | { kind: "schema"; text: string };
+/** An answer remembers the document it describes, so edits hide answers that no longer apply. */
+type JsonAnswer = { json: string; kind: "answer" | "schema"; text: string };
 
 /** Answers questions about the document and drafts a JSON Schema with the on-device model. */
 export function JsonIntelligencePanel({
@@ -36,16 +38,22 @@ export function JsonIntelligencePanel({
   const [isCopied, setIsCopied] = useState(false);
   const isBusy = task.status.kind === "working" || task.status.kind === "downloading";
 
+  // An answer about an earlier version of the document no longer applies.
+  const visibleAnswer = answer && answer.json === json ? answer : null;
+  const canAsk = json !== null && !isBusy;
+
   function ask(question: string) {
+    if (json === null) return;
+    const document = json;
     setAnswer(null);
     setIsCopied(false);
     void task.run(function answerQuestion(context) {
       return askAboutJson(
-        json,
+        document,
         question,
         locale,
         function showAnswerSoFar(text) {
-          setAnswer({ kind: "answer", text });
+          setAnswer({ json: document, kind: "answer", text });
         },
         context,
       );
@@ -53,16 +61,18 @@ export function JsonIntelligencePanel({
   }
 
   async function draftSchema() {
+    if (json === null) return;
+    const document = json;
     setAnswer(null);
     setIsCopied(false);
     const schema = await task.run(function writeSchema(context) {
-      return generateJsonSchema(json, locale, context);
+      return generateJsonSchema(document, locale, context);
     });
-    if (schema !== undefined) setAnswer({ kind: "schema", text: schema });
+    if (schema !== undefined) setAnswer({ json: document, kind: "schema", text: schema });
   }
 
   async function copyAnswer() {
-    if (answer && (await copyText(answer.text))) setIsCopied(true);
+    if (visibleAnswer && (await copyText(visibleAnswer.text))) setIsCopied(true);
   }
 
   return (
@@ -78,12 +88,12 @@ export function JsonIntelligencePanel({
           <button
             type="button"
             className={iosChipButtonClassName}
-            disabled={isBusy}
+            disabled={!canAsk}
             onClick={draftSchema}
           >
             {labels.aiSchema}
           </button>
-          {answer && !isBusy ? (
+          {visibleAnswer && !isBusy ? (
             <button type="button" className={iosChipButtonClassName} onClick={copyAnswer}>
               {isCopied ? labels.aiCopied : labels.aiCopy}
             </button>
@@ -92,22 +102,22 @@ export function JsonIntelligencePanel({
       }
     >
       <IosIntelligencePromptField
-        disabled={isBusy}
+        disabled={!canAsk}
         label={labels.aiTitle}
         placeholder={labels.aiPlaceholder}
         submitLabel={labels.aiSubmit}
         onSubmit={ask}
       />
-      {answer ? (
+      {visibleAnswer ? (
         <Text
-          family={answer.kind === "schema" ? "mono" : undefined}
+          family={visibleAnswer.kind === "schema" ? "mono" : undefined}
           className={
-            answer.kind === "schema"
+            visibleAnswer.kind === "schema"
               ? "max-h-80 overflow-auto rounded-ios-md bg-ios-grouped-background p-3 text-ios-footnote whitespace-pre text-ios-label"
               : "text-ios-body whitespace-pre-wrap text-ios-label"
           }
         >
-          {answer.text}
+          {visibleAnswer.text}
         </Text>
       ) : null}
     </IosIntelligenceCard>

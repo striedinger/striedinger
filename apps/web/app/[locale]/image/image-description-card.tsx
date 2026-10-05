@@ -4,14 +4,14 @@ import { Text } from "@workspace/ui/components/text";
 import { useEffect, useEffectEvent, useState } from "react";
 
 import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
-import type { ImageDescription } from "./describe-image";
+import type { ImageDescription, ImageTextTranslation } from "./describe-image";
 import type { ImageOptimizerLabels, OptimizerItem } from "./types";
 
 import { iosChipButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosIntelligenceCard } from "../../../components/ios/ios-intelligence-card";
 import { copyText } from "../../../lib/copy-text";
 import { useOnDeviceAiTask } from "../../../lib/on-device-ai/use-on-device-ai-task";
-import { describeImage } from "./describe-image";
+import { describeImage, translateImageText } from "./describe-image";
 
 interface ImageDescriptionCardProps {
   aiLabels: OnDeviceAiLabels;
@@ -35,9 +35,11 @@ export function ImageDescriptionCard({
   const [description, setDescription] = useState<ImageDescription | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isRenamed, setIsRenamed] = useState(false);
+  const [textTranslation, setTextTranslation] = useState<ImageTextTranslation | null>(null);
+  const isBusy = task.status.kind === "working" || task.status.kind === "downloading";
   // The optimized copy is a format the model reads, even when the original is HEIC.
   const image = item.output ?? item.file;
-  const describe = useEffectEvent(function describeWithModel() {
+  function describe() {
     void task
       .run(function requestDescription(context) {
         return describeImage(image, locale, context);
@@ -46,13 +48,28 @@ export function ImageDescriptionCard({
         if (result) setDescription(result);
         return undefined;
       });
+  }
+
+  const startDescription = useEffectEvent(function describeWithModel() {
+    describe();
   });
 
   // The card opens from a tap on Describe, and its parent keys it by image, so the
   // description starts once, right away.
   useEffect(function describeOnOpen() {
-    describe();
+    startDescription();
   }, []);
+
+  function translateText() {
+    void task
+      .run(function requestTranslation(context) {
+        return translateImageText(image, locale, context);
+      })
+      .then(function showTranslation(result) {
+        if (result) setTextTranslation(result);
+        return undefined;
+      });
+  }
 
   async function copyAltText() {
     if (description && (await copyText(description.altText))) setIsCopied(true);
@@ -63,6 +80,7 @@ export function ImageDescriptionCard({
       closeLabel={labels.closeDescription}
       labels={aiLabels}
       onClose={onClose}
+      onRetry={description ? translateText : describe}
       status={task.status}
       title={labels.describeTitle.replace("{name}", item.file.name)}
       actions={
@@ -82,12 +100,39 @@ export function ImageDescriptionCard({
             >
               {isRenamed ? labels.renamed : labels.renameTo.replace("{name}", description.fileStem)}
             </button>
+            {textTranslation ? null : (
+              <button
+                type="button"
+                disabled={isBusy}
+                className={iosChipButtonClassName}
+                onClick={translateText}
+              >
+                {labels.translateText}
+              </button>
+            )}
           </>
         ) : undefined
       }
     >
       {description ? (
         <Text className="text-ios-body text-ios-label">{description.altText}</Text>
+      ) : null}
+      {textTranslation ? (
+        textTranslation.text ? (
+          <div className="flex flex-col gap-1 rounded-ios-md bg-ios-grouped-background px-3 py-2.5">
+            <Text className="text-ios-footnote font-semibold text-ios-secondary-label">
+              {labels.textInImage}
+            </Text>
+            <Text className="text-ios-subheadline whitespace-pre-line text-ios-secondary-label">
+              {textTranslation.text}
+            </Text>
+            <Text lang={locale} className="text-ios-body whitespace-pre-line text-ios-label">
+              {textTranslation.translation}
+            </Text>
+          </div>
+        ) : (
+          <Text className="text-ios-footnote text-ios-secondary-label">{labels.noTextInImage}</Text>
+        )
       ) : null}
     </IosIntelligenceCard>
   );

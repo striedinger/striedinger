@@ -6,12 +6,14 @@ import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
 import { IosBarButton } from "./ios-bar-button";
+import { iosChipButtonClassName } from "./ios-button-styles";
 
 export interface OnDeviceAiLabels {
   /** Includes `{percent}`. */
   downloading: string;
   failed: string;
   onDevice: string;
+  retry: string;
   working: string;
 }
 
@@ -30,6 +32,8 @@ interface IosIntelligenceCardProps {
   closeLabel?: string;
   labels: OnDeviceAiLabels;
   onClose?: () => void;
+  /** Offered as Try Again when the request fails. */
+  onRetry?: () => void;
   status: IosIntelligenceStatus;
   title: string;
 }
@@ -45,6 +49,7 @@ export function IosIntelligenceCard({
   closeLabel,
   labels,
   onClose,
+  onRetry,
   status,
   title,
 }: IosIntelligenceCardProps) {
@@ -97,7 +102,6 @@ export function IosIntelligenceCard({
           </div>
         ) : null}
         <Text
-          aria-live="polite"
           className={cn(
             "text-ios-footnote empty:hidden",
             status.kind === "error" ? "text-ios-red" : "text-ios-secondary-label",
@@ -113,6 +117,23 @@ export function IosIntelligenceCard({
                   ? labels.onDevice
                   : ""}
         </Text>
+        {/* Announces each stage once, not every percent of a download. */}
+        <span aria-live="polite" className="sr-only">
+          {status.kind === "downloading"
+            ? labels.downloading.replace("{percent}", "")
+            : status.kind === "error"
+              ? labels.failed
+              : status.kind === "done"
+                ? labels.onDevice
+                : ""}
+        </span>
+        {status.kind === "error" && onRetry ? (
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={iosChipButtonClassName} onClick={onRetry}>
+              {labels.retry}
+            </button>
+          </div>
+        ) : null}
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </section>
     </div>

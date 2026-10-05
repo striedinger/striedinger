@@ -17,6 +17,7 @@ interface OptimizerFileRowProps {
   labels: ImageOptimizerLabels;
   /** Present only when the browser can describe images on the device. */
   onDescribe?: (id: string) => void;
+  onPrepareDescribe?: () => void;
   onDownload: (item: OptimizerItem) => void;
   onRemove: (id: string) => void;
 }
@@ -29,6 +30,7 @@ export function OptimizerFileRow({
   item,
   labels,
   onDescribe,
+  onPrepareDescribe,
   onDownload,
   onRemove,
 }: OptimizerFileRowProps) {
@@ -106,6 +108,8 @@ export function OptimizerFileRow({
           type="button"
           aria-label={`${labels.describe} ${item.file.name}`}
           className={cn(accessoryClassName, "text-ios-tint")}
+          onPointerEnter={onPrepareDescribe}
+          onFocus={onPrepareDescribe}
           onClick={function describe() {
             onDescribe(item.id);
           }}

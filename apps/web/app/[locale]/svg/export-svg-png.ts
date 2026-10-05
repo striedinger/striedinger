@@ -12,7 +12,7 @@ export async function exportSvgAsPng(
   height: number | null,
 ): Promise<Blob> {
   const image = new Image();
-  image.src = createSvgDataUrl(source);
+  image.src = createSvgDataUrl(withIntrinsicSize(source, width, height));
   await image.decode();
   const naturalWidth = width ?? (image.naturalWidth || fallbackSide);
   const naturalHeight = height ?? (image.naturalHeight || fallbackSide);
@@ -29,6 +29,20 @@ export async function exportSvgAsPng(
       else reject(new Error("PNG encoding failed"));
     }, "image/png");
   });
+}
+
+/**
+ * Firefox draws an SVG image on a canvas only when its root has a width and height, which
+ * view-box-only icons lack, so the measured size is written onto the root first.
+ */
+function withIntrinsicSize(source: string, width: number | null, height: number | null) {
+  if (width === null || height === null) return source;
+  const document = new DOMParser().parseFromString(source, "image/svg+xml");
+  const root = document.documentElement;
+  if (root.hasAttribute("width") && root.hasAttribute("height")) return source;
+  root.setAttribute("width", String(width));
+  root.setAttribute("height", String(height));
+  return new XMLSerializer().serializeToString(document);
 }
 
 export function createSvgDataUrl(source: string) {

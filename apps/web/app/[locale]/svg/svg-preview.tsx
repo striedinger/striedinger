@@ -7,6 +7,8 @@ import type { SvgPreviewBackground } from "./types";
 
 import { createSvgDataUrl } from "./export-svg-png";
 
+const maximumDataUrlCharacters = 50_000;
+
 interface SvgPreviewProps {
   /** A control floating in the corner, such as the background menu. */
   accessory: ReactNode;
@@ -29,6 +31,10 @@ export function SvgPreview({
   label,
   source,
 }: SvgPreviewProps) {
+  // Large drawings load from an object URL instead of re-encoding megabytes into a data URL
+  // on every edit; small ones keep a data URL, which also works in server-rendered HTML.
+  const usesObjectUrl = source !== null && source.length > maximumDataUrlCharacters;
+
   return (
     <div
       className={cn(
@@ -47,7 +53,18 @@ export function SvgPreview({
           // oxlint-disable-next-line nextjs/no-img-element
           <img
             alt={label}
-            src={createSvgDataUrl(source)}
+            src={usesObjectUrl ? undefined : createSvgDataUrl(source)}
+            ref={
+              usesObjectUrl
+                ? function showFromObjectUrl(image: HTMLImageElement) {
+                    const url = URL.createObjectURL(new Blob([source], { type: "image/svg+xml" }));
+                    image.src = url;
+                    return function releaseObjectUrl() {
+                      URL.revokeObjectURL(url);
+                    };
+                  }
+                : undefined
+            }
             className="size-full object-contain drop-shadow-sm"
             draggable={false}
           />

@@ -37,7 +37,7 @@ export function PdfSummaryCard({
   const [hasNoText, setHasNoText] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  const summarize = useEffectEvent(function summarizeDocument() {
+  function summarize() {
     void task.run(async function summarizeText({ monitor, signal }) {
       // Creating the summarizer first keeps the tap's permission to download the model.
       const summarizer = await Summarizer.create({
@@ -47,7 +47,7 @@ export function PdfSummaryCard({
         signal,
       });
       try {
-        const text = await extractPdfText(file, password);
+        const text = await extractPdfText(file, password, signal);
         if (!text) {
           setHasNoText(true);
           return "";
@@ -62,11 +62,15 @@ export function PdfSummaryCard({
         summarizer.destroy();
       }
     });
+  }
+
+  const startSummary = useEffectEvent(function summarizeDocument() {
+    summarize();
   });
 
   // The card opens from a tap on Summarize and is keyed by file, so it starts once.
   useEffect(function summarizeOnOpen() {
-    summarize();
+    startSummary();
   }, []);
 
   async function copySummary() {
@@ -78,6 +82,7 @@ export function PdfSummaryCard({
       closeLabel={labels.closeSummary}
       labels={aiLabels}
       onClose={onClose}
+      onRetry={summarize}
       status={task.status}
       title={labels.summaryTitle}
       actions={

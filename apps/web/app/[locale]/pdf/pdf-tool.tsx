@@ -20,6 +20,7 @@ import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
+import { translationProbe } from "../../../lib/on-device-ai/translation-probe";
 import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { PdfDropZone } from "./pdf-drop-zone";
 import { PdfOptionsSection } from "./pdf-options-section";
@@ -33,11 +34,33 @@ const PdfPreview = lazy(function importPdfPreview() {
   });
 });
 
+function loadPdfSummaryCard() {
+  return import("./pdf-summary-card");
+}
+
 const PdfSummaryCard = lazy(function importPdfSummaryCard() {
-  return import("./pdf-summary-card").then(function selectPdfSummaryCard(module) {
+  return loadPdfSummaryCard().then(function selectPdfSummaryCard(module) {
     return { default: module.PdfSummaryCard };
   });
 });
+
+function preloadPdfSummaryCard() {
+  void loadPdfSummaryCard();
+}
+
+function loadPdfTranslationCard() {
+  return import("./pdf-translation-card");
+}
+
+const PdfTranslationCard = lazy(function importPdfTranslationCard() {
+  return loadPdfTranslationCard().then(function selectPdfTranslationCard(module) {
+    return { default: module.PdfTranslationCard };
+  });
+});
+
+function preloadPdfTranslationCard() {
+  void loadPdfTranslationCard();
+}
 
 interface PdfToolProps {
   aiLabels: OnDeviceAiLabels;
@@ -66,14 +89,19 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result>();
-  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [openAiCard, setOpenAiCard] = useState<"summary" | "translation" | null>(null);
   // Summaries appear only once the browser confirms it can write them on the device.
   const canSummarize = useOnDeviceAi(
     defineOnDeviceAiProbe("Summarizer", `pdf:${locale}`, function checkSummaries() {
       return Summarizer.availability(getPdfSummaryOptions(locale));
     }),
   );
+  const canTranslate = useOnDeviceAi(translationProbe);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function closeAiCard() {
+    setOpenAiCard(null);
+  }
 
   function handlePasswordResult(documentRequiresPassword: boolean, isValid: boolean) {
     if (documentRequiresPassword) setRequiresPassword(true);
@@ -82,7 +110,7 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
 
   function selectFile(selectedFile: File) {
     setFile(selectedFile);
-    setIsSummaryOpen(false);
+    setOpenAiCard(null);
     setPassword("");
     setPasswordInput("");
     setRequiresPassword(false);
@@ -188,35 +216,66 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
               </button>
             </li>
           </IosListSection>
-          {canSummarize && !(requiresPassword && !passwordIsValid) ? (
-            isSummaryOpen ? (
-              <Suspense fallback={null}>
-                <PdfSummaryCard
-                  key={`${file.name}-${file.size}-${file.lastModified}`}
-                  aiLabels={aiLabels}
-                  file={file}
-                  labels={labels}
-                  locale={locale}
-                  onClose={function closeSummary() {
-                    setIsSummaryOpen(false);
-                  }}
-                  password={password}
-                />
-              </Suspense>
-            ) : (
-              <div className="flex px-1">
-                <button
-                  type="button"
-                  className={`${iosChipButtonClassName} h-9 gap-1.5 [&_svg]:size-4`}
-                  onClick={function openSummary() {
-                    setIsSummaryOpen(true);
-                  }}
-                >
-                  <SparklesIcon aria-hidden="true" />
-                  {labels.summarize}
-                </button>
+          {(canSummarize || canTranslate) && !(requiresPassword && !passwordIsValid) ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2 px-1">
+                {canSummarize ? (
+                  <button
+                    type="button"
+                    aria-pressed={openAiCard === "summary"}
+                    className={`${iosChipButtonClassName} h-9 gap-1.5 [&_svg]:size-4`}
+                    onPointerEnter={preloadPdfSummaryCard}
+                    onFocus={preloadPdfSummaryCard}
+                    onClick={function openSummary() {
+                      setOpenAiCard("summary");
+                    }}
+                  >
+                    <SparklesIcon aria-hidden="true" />
+                    {labels.summarize}
+                  </button>
+                ) : null}
+                {canTranslate ? (
+                  <button
+                    type="button"
+                    aria-pressed={openAiCard === "translation"}
+                    className={`${iosChipButtonClassName} h-9 gap-1.5 [&_svg]:size-4`}
+                    onPointerEnter={preloadPdfTranslationCard}
+                    onFocus={preloadPdfTranslationCard}
+                    onClick={function openTranslation() {
+                      setOpenAiCard("translation");
+                    }}
+                  >
+                    <SparklesIcon aria-hidden="true" />
+                    {labels.translate}
+                  </button>
+                ) : null}
               </div>
-            )
+              {openAiCard ? (
+                <Suspense fallback={null}>
+                  {openAiCard === "summary" ? (
+                    <PdfSummaryCard
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
+                      aiLabels={aiLabels}
+                      file={file}
+                      labels={labels}
+                      locale={locale}
+                      onClose={closeAiCard}
+                      password={password}
+                    />
+                  ) : (
+                    <PdfTranslationCard
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
+                      aiLabels={aiLabels}
+                      file={file}
+                      labels={labels}
+                      locale={locale}
+                      onClose={closeAiCard}
+                      password={password}
+                    />
+                  )}
+                </Suspense>
+              ) : null}
+            </div>
           ) : null}
           <PdfStatusSection
             isProcessing={isProcessing}

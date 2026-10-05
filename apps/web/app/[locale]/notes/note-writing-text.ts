@@ -3,6 +3,8 @@
 
 interface TextSegment {
   node: Text;
+  /** The used text when it was read, to detect edits made since. */
+  text: string;
   /** Where the node's used text starts in the combined text. */
   textStart: number;
   /** The used part of the node, which a selection can clip. */
@@ -36,8 +38,9 @@ export function readNoteText(editor: HTMLElement, range: Range | null): NoteText
     const nodeStart = range?.startContainer === node ? range.startOffset : 0;
     const nodeEnd = range?.endContainer === node ? range.endOffset : node.data.length;
     if (nodeEnd <= nodeStart) continue;
-    segments.push({ node, nodeEnd, nodeStart, textStart: text.length });
-    text += node.data.slice(nodeStart, nodeEnd);
+    const segmentText = node.data.slice(nodeStart, nodeEnd);
+    segments.push({ node, nodeEnd, nodeStart, text: segmentText, textStart: text.length });
+    text += segmentText;
   }
   return { segments, text: text.trim() === "" ? "" : text };
 }
@@ -81,7 +84,7 @@ export function applyNoteCorrections(
       correction.endIndex === correction.startIndex
         ? start
         : findPosition(snapshot.segments, correction.endIndex, true);
-    if (!start || start !== end || !start.node.isConnected) continue;
+    if (!start || start !== end || !isUnchanged(start)) continue;
     const range = document.createRange();
     range.setStart(start.node, start.nodeStart + correction.startIndex - start.textStart);
     range.setEnd(start.node, start.nodeStart + correction.endIndex - start.textStart);
@@ -89,6 +92,14 @@ export function applyNoteCorrections(
     applied += 1;
   }
   return applied;
+}
+
+/** True while the segment's text is still exactly what was proofread. */
+function isUnchanged(segment: TextSegment) {
+  return (
+    segment.node.isConnected &&
+    segment.node.data.slice(segment.nodeStart, segment.nodeEnd) === segment.text
+  );
 }
 
 /** Replaces the selection, or the whole note, with plain rewritten text. */
@@ -99,7 +110,11 @@ export function replaceNoteText(editor: HTMLElement, range: Range | null, text: 
   insertTextAt(target, text);
 }
 
-/** Whole-note replacement would drop photos and checklists, so it is offered only without them. */
-export function canReplaceWholeNote(editor: HTMLElement) {
-  return !editor.querySelector("img, [data-type='checklist']");
+/**
+ * Plain rewritten text would drop photos and checklists, so replacing is offered only for a
+ * selection or note without them.
+ */
+export function canReplaceNoteText(editor: HTMLElement, range: Range | null) {
+  const content = range ? range.cloneContents() : editor;
+  return !content.querySelector("img, [data-type='checklist'], li[data-checked]");
 }

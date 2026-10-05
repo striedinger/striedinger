@@ -43,6 +43,7 @@ interface TwelveDataSearchResponse {
     instrument_name?: string;
     symbol?: string;
   }>;
+  status?: string;
 }
 
 interface TwelveDataSeriesResponse {
@@ -91,7 +92,11 @@ async function loadStockSymbols({
     const response = await fetch(url, { signal: AbortSignal.timeout(4_000) });
     if (!response.ok) return fallBackToLocalMatches(localMatches);
     const payload = (await response.json()) as TwelveDataSearchResponse;
-    const remoteMatches = (payload.data ?? []).flatMap(function parseSearchResult(item) {
+    // Rate limits and key errors arrive as a 200 with an error body.
+    if (payload.status === "error" || !Array.isArray(payload.data)) {
+      return fallBackToLocalMatches(localMatches);
+    }
+    const remoteMatches = payload.data.flatMap(function parseSearchResult(item) {
       const symbol = item.symbol?.trim().toUpperCase();
       if (!symbol || !supportedSymbolPattern.test(symbol)) return [];
       return [

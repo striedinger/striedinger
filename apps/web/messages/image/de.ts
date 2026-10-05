@@ -52,4 +52,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Description of {name}": "Beschreibung von {name}",
   Renamed: "Umbenannt",
   "Rename to “{name}”": "Umbenennen in „{name}“",
+  "This image has no text to translate.": "Dieses Bild enthält keinen Text zum Übersetzen.",
+  "Text in Image": "Text im Bild",
+  "Translate Text in Image": "Text im Bild übersetzen",
 };

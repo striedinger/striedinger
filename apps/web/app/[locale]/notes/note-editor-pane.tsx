@@ -488,6 +488,8 @@ export function NoteEditorPane({
         {isWritingToolsOpen && note && !isDeleted ? (
           <Suspense fallback={null}>
             <NoteWritingToolsPanel
+              // A result belongs to the note it was made from, so another note starts fresh.
+              key={note.id}
               aiLabels={aiLabels}
               availability={writingToolsAvailability}
               editorRef={editorRef}

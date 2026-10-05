@@ -103,4 +103,5 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Translated from {language}": "译自{language}",
   "Translate from {language}": "从{language}翻译",
   "Translating…": "正在翻译…",
+  "Try Again": "重试",
 };

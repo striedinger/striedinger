@@ -43,4 +43,6 @@ export const messages = defineMessages({
   "Apply Change": "Apply Change",
   "Edit with On-Device AI": "Edit with On-Device AI",
   Undo: "Undo",
+  "This SVG is too large to edit with on-device AI.":
+    "This SVG is too large to edit with on-device AI.",
 });

@@ -2,12 +2,9 @@ const minimumConfidence = 0.7;
 
 let detectorPromise: Promise<LanguageDetectorSession> | null = null;
 
-/** One detector serves every check on the page. */
+/** One detector serves every check on the page; if it cannot start, later checks give up too. */
 function getDetector() {
-  detectorPromise ??= LanguageDetector.create().catch(function forgetFailedDetector(error) {
-    detectorPromise = null;
-    throw error;
-  });
+  detectorPromise ??= LanguageDetector.create();
   return detectorPromise;
 }
 
