@@ -47,20 +47,10 @@ export function VideoPreview({
       style={{ aspectRatio }}
     >
       <video
-        ref={function attachVideo(video: HTMLVideoElement | null) {
-          videoRef.current = video;
-          if (!video) return;
-          // The file plays straight from disk through an object URL, released with the editor.
-          const url = URL.createObjectURL(file);
-          video.src = url;
-          return function releaseVideo() {
-            videoRef.current = null;
-            URL.revokeObjectURL(url);
-          };
-        }}
+        ref={videoRef}
         playsInline
         preload="auto"
-        className="size-full object-contain"
+        className="absolute inset-0 size-full object-contain"
         onClick={onTogglePlayback}
         onPlay={function markPlaying() {
           onPlayingChange(true);
@@ -75,6 +65,23 @@ export function VideoPreview({
           onTimeChange(event.currentTarget.currentTime);
         }}
       >
+        <source
+          ref={function attachSource(source: HTMLSourceElement | null) {
+            const video = source?.parentElement;
+            if (!source || !(video instanceof HTMLVideoElement)) return;
+            // The file plays straight from disk through an object URL, released with the editor.
+            // iOS Safari only starts blob URLs from a typed <source>, not the video's src, and
+            // the #t fragment makes it paint the first frame instead of a black box.
+            const url = URL.createObjectURL(file);
+            const type = findPlayableType(video, file);
+            if (type) source.type = type;
+            source.src = `${url}#t=0.001`;
+            video.load();
+            return function releaseSource() {
+              URL.revokeObjectURL(url);
+            };
+          }}
+        />
         <track kind="captions" src={captionsUrl} srcLang={locale} label={labels.captions} />
       </video>
       {caption ? (
@@ -99,4 +106,26 @@ export function VideoPreview({
       </button>
     </div>
   );
+}
+
+const typesByExtension: Record<string, string> = {
+  m4v: "video/mp4",
+  mkv: "video/x-matroska",
+  mov: "video/quicktime",
+  mp4: "video/mp4",
+  webm: "video/webm",
+};
+
+/**
+ * The MIME type to label the file's <source> with, so the browser does not skip it. Chrome
+ * reports no support for QuickTime but plays H.264 and HEVC movies labelled as MP4.
+ */
+function findPlayableType(video: HTMLVideoElement, file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const type = file.type || typesByExtension[extension];
+  if (!type) return undefined;
+  if (video.canPlayType(type)) return type;
+  if (type === "video/quicktime" && video.canPlayType("video/mp4")) return "video/mp4";
+  // An unlabelled source is still tried, which beats one the browser refuses outright.
+  return undefined;
 }
