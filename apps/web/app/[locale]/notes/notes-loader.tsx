@@ -1,3 +1,5 @@
+import { getOnDeviceAiLabels } from "../../../lib/on-device-ai/get-on-device-ai-labels";
+import { getTranslator } from "../../../messages/get-translator";
 import { loadNotesMessages } from "../../../messages/notes/load-messages";
 import { getRequestLocale } from "../../get-request-locale";
 import { NotesApp } from "./notes-app";
@@ -5,9 +7,13 @@ import { NotesApp } from "./notes-app";
 /** Notes in the visitor's language, with a welcome note written in it. */
 export async function NotesLoader() {
   const locale = await getRequestLocale();
-  const messages = await loadNotesMessages(locale);
+  const [messages, translate] = await Promise.all([
+    loadNotesMessages(locale),
+    getTranslator(locale),
+  ]);
   return (
     <NotesApp
+      aiLabels={getOnDeviceAiLabels(translate)}
       locale={locale}
       messages={messages}
       welcomeNoteHtml={createWelcomeNoteHtml(messages)}

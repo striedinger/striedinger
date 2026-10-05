@@ -98,4 +98,8 @@ export const messages = {
   "Playback position": "再生位置",
   Volume: "音量",
   "This episode can’t be played right now.": "現在このエピソードは再生できません。",
+  "Key Points": "重要なポイント",
+  "Translate from {language}": "{language}から翻訳",
+  "Translated from {language}": "{language}から翻訳",
+  Close: "閉じる",
 } satisfies TranslationCatalog<typeof englishMessages>;

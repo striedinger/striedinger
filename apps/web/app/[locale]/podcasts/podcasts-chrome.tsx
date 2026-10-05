@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
 
 import { IosErrorBoundary } from "../../../components/ios/ios-error-boundary";
@@ -26,6 +27,7 @@ import {
 import { useSearchInput } from "./use-search-input";
 
 interface PodcastsChromeProps {
+  aiLabels: OnDeviceAiLabels;
   children: ReactNode;
   locale: string;
   messages: PodcastMessages;
@@ -61,7 +63,7 @@ function readServerTime() {
  * Playing accessory and sheet, and status toasts. Screens render inside as `children` and
  * reach the app's actions through `PodcastsContext`.
  */
-export function PodcastsChrome({ children, locale, messages }: PodcastsChromeProps) {
+export function PodcastsChrome({ aiLabels, children, locale, messages }: PodcastsChromeProps) {
   const iosRouter = useIosRouter();
   const player = usePodcastPlayerItems();
   const now = useSyncExternalStore(subscribeToNothing, readAppOpenedAt, readServerTime);
@@ -153,6 +155,7 @@ export function PodcastsChrome({ children, locale, messages }: PodcastsChromePro
   }
 
   const podcastsContext: PodcastsContextValue = {
+    aiLabels,
     goToShow(item: PodcastQueueItem) {
       setIsNowPlayingOpen(false);
       rememberPodcast(item.podcast);

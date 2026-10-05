@@ -91,4 +91,17 @@ export const messages = {
   "Add a checklist from the toolbar": "ツールバーからチェックリストを追加",
   "Swipe a note in the list to pin, move, or delete it":
     "リストのメモをスワイプしてピンで固定、移動、削除",
+  "Writing Tools": "作文ツール",
+  "Close Writing Tools": "作文ツールを閉じる",
+  Proofread: "校正",
+  Rewrite: "書き直す",
+  Friendly: "フレンドリー",
+  Professional: "プロフェッショナル",
+  Concise: "簡潔",
+  Summary: "要約",
+  "Key Points": "重要なポイント",
+  Replace: "置き換える",
+  Copy: "コピー",
+  "No corrections needed.": "修正の必要はありません。",
+  "{count} corrections": "{count} 件の修正",
 } satisfies TranslationCatalog<typeof englishMessages>;

@@ -38,4 +38,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "One PDF at a time · processed locally": "一度に 1 つの PDF · ローカルで処理",
   "Restrictions removed": "制限を解除しました",
   "This PDF could not be opened in your browser.": "この PDF はブラウザで開けませんでした。",
+  Close: "閉じる",
+  "Copy Summary": "要約をコピー",
+  "This PDF has no text to summarize, such as a scanned document.":
+    "この PDF にはスキャンした文書など、要約できるテキストがありません。",
+  "Summarize Document": "文書を要約",
+  "Summary Copied": "要約をコピーしました",
+  "Key Points": "重要なポイント",
 };

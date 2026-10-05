@@ -9,12 +9,22 @@ import { FolderIcon } from "@workspace/icons/folder-icon";
 import { KeyboardDismissIcon } from "@workspace/icons/keyboard-dismiss-icon";
 import { PinIcon } from "@workspace/icons/pin-icon";
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
+import { SparklesIcon } from "@workspace/icons/sparkles-icon";
 import { TrashIcon } from "@workspace/icons/trash-icon";
 import { UndoIcon } from "@workspace/icons/undo-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+} from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { Note, NotesMessages } from "./types";
 
 import { IosAlert } from "../../../components/ios/ios-alert";
@@ -24,6 +34,7 @@ import { IosMenu, type IosMenuSection } from "../../../components/ios/ios-menu";
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { IosToast } from "../../../components/ios/ios-toast";
 import { copyText } from "../../../lib/copy-text";
+import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { insertImage, startNewLineAtEnd, toggleChecklist, undoEditing } from "./note-commands";
 import { formatNoteHeaderDate } from "./note-dates";
 import { NoteEditor } from "./note-editor";
@@ -31,9 +42,29 @@ import { NoteFormatControls } from "./note-format-controls";
 import { NoteFormatPanel } from "./note-format-panel";
 import { isSafeNoteImageSource, noteHtmlToPlainText } from "./note-html";
 import { prepareNoteImage } from "./note-image";
+import {
+  getProofreaderOptions,
+  getRewriterOptions,
+  getSummarizerOptions,
+} from "./note-writing-tools-options";
 import { NotesToolbar } from "./notes-toolbar";
 
+function loadWritingToolsPanel() {
+  return import("./note-writing-tools-panel");
+}
+
+const NoteWritingToolsPanel = lazy(function importWritingToolsPanel() {
+  return loadWritingToolsPanel().then(function selectPanel(module) {
+    return { default: module.NoteWritingToolsPanel };
+  });
+});
+
+function preloadWritingToolsPanel() {
+  void loadWritingToolsPanel();
+}
+
 interface NoteEditorPaneProps {
+  aiLabels: OnDeviceAiLabels;
   focusOnOpen: boolean;
   backLabel: string;
   className?: string;
@@ -51,6 +82,7 @@ interface NoteEditorPaneProps {
 }
 
 export function NoteEditorPane({
+  aiLabels,
   focusOnOpen,
   backLabel,
   className,
@@ -75,6 +107,29 @@ export function NoteEditorPane({
   const [isFormatOpen, setIsFormatOpen] = useState(false);
   const [isReadOnlyAlertOpen, setIsReadOnlyAlertOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [isWritingToolsOpen, setIsWritingToolsOpen] = useState(false);
+  // Writing Tools appear only for the tools this browser confirms it can run on the device.
+  const writingToolsAvailability = {
+    proofread: useOnDeviceAi(
+      defineOnDeviceAiProbe("Proofreader", `notes:${locale}`, function checkProofreader() {
+        return Proofreader.availability(getProofreaderOptions(locale));
+      }),
+    ),
+    rewrite: useOnDeviceAi(
+      defineOnDeviceAiProbe("Rewriter", `notes:${locale}`, function checkRewriter() {
+        return Rewriter.availability(getRewriterOptions(locale));
+      }),
+    ),
+    summarize: useOnDeviceAi(
+      defineOnDeviceAiProbe("Summarizer", `notes:${locale}`, function checkSummarizer() {
+        return Summarizer.availability(getSummarizerOptions(locale));
+      }),
+    ),
+  };
+  const hasWritingTools =
+    writingToolsAvailability.proofread ||
+    writingToolsAvailability.rewrite ||
+    writingToolsAvailability.summarize;
   const isDeleted = note?.deletedAt !== null && note?.deletedAt !== undefined;
 
   // The last selection inside the note survives taps on toolbars and menus, which can move
@@ -144,6 +199,20 @@ export function NoteEditorPane({
 
   function toggleFormat() {
     setIsFormatOpen(!isFormatOpen);
+    setIsWritingToolsOpen(false);
+  }
+
+  function toggleWritingTools() {
+    setIsWritingToolsOpen(!isWritingToolsOpen);
+    setIsFormatOpen(false);
+  }
+
+  /** The selection inside the note, if any text is selected. */
+  function getSelectedRange() {
+    const range = lastRangeRef.current;
+    const editor = editorRef.current;
+    if (!range || range.collapsed || !editor?.contains(range.commonAncestorContainer)) return null;
+    return range.cloneRange();
   }
 
   function addChecklist() {
@@ -304,6 +373,20 @@ export function NoteEditorPane({
                   />
                 )}
                 <IosGlassGroup label={messages.More}>
+                  {hasWritingTools && !isDeleted ? (
+                    <IosBarButton
+                      variant="plain"
+                      aria-label={messages["Writing Tools"]}
+                      aria-pressed={isWritingToolsOpen}
+                      className="text-ios-label aria-pressed:text-ios-tint"
+                      {...editingControlHandlers}
+                      onPointerEnter={preloadWritingToolsPanel}
+                      onFocus={preloadWritingToolsPanel}
+                      onClick={toggleWritingTools}
+                    >
+                      <SparklesIcon />
+                    </IosBarButton>
+                  ) : null}
                   {isEditing ? (
                     <IosBarButton
                       variant="plain"
@@ -402,6 +485,21 @@ export function NoteEditorPane({
         className="absolute inset-x-0 bottom-0 z-20 flex translate-y-above-keyboard flex-col md:top-safe-plus-14 md:right-4 md:bottom-auto md:left-auto md:w-95 md:translate-y-0"
         {...editingControlHandlers}
       >
+        {isWritingToolsOpen && note && !isDeleted ? (
+          <Suspense fallback={null}>
+            <NoteWritingToolsPanel
+              aiLabels={aiLabels}
+              availability={writingToolsAvailability}
+              editorRef={editorRef}
+              getSelectionRange={getSelectedRange}
+              locale={locale}
+              messages={messages}
+              onClose={function closeWritingTools() {
+                setIsWritingToolsOpen(false);
+              }}
+            />
+          </Suspense>
+        ) : null}
         {isFormatOpen && isEditing ? (
           <NoteFormatPanel
             editorRef={editorRef}
@@ -415,7 +513,10 @@ export function NoteEditorPane({
       </div>
       <NotesToolbar
         label={messages.Format}
-        className={cn("md:hidden", isFormatOpen && isEditing && "pointer-events-none opacity-0")}
+        className={cn(
+          "md:hidden",
+          ((isFormatOpen && isEditing) || isWritingToolsOpen) && "pointer-events-none opacity-0",
+        )}
       >
         {note && !isDeleted ? (
           <NoteFormatControls

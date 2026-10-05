@@ -95,4 +95,14 @@ export const messages = defineMessages({
   Stocks: "Stocks",
   Sudoku: "Sudoku",
   "Open apps menu": "Open apps menu",
+  "Downloading the on-device model… {percent}": "Downloading the on-device model… {percent}",
+  "This couldn’t be completed on this device. Try again.":
+    "This couldn’t be completed on this device. Try again.",
+  "Created on this device. Results may contain mistakes.":
+    "Created on this device. Results may contain mistakes.",
+  "Working on this device…": "Working on this device…",
+  "Downloading translation… {percent}": "Downloading translation… {percent}",
+  "Translated from {language}": "Translated from {language}",
+  "Translate from {language}": "Translate from {language}",
+  "Translating…": "Translating…",
 });

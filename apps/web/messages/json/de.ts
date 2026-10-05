@@ -24,4 +24,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
     "Dieses JSON ist zu groß, um es sicher im Browser zu verarbeiten.",
   "This JSON is valid but too complex to preview all at once.":
     "Dieses JSON ist gültig, aber zu komplex für eine vollständige Vorschau auf einmal.",
+  Close: "Schließen",
+  Copied: "Kopiert",
+  Copy: "Kopieren",
+  "Ask a question, like “How many items are there?”":
+    "Stelle eine Frage, z. B. „Wie viele Einträge gibt es?“",
+  "Generate JSON Schema": "JSON Schema erstellen",
+  Ask: "Fragen",
+  "Ask About This JSON": "Fragen zu diesem JSON",
 });

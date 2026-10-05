@@ -89,4 +89,17 @@ export const messages = defineMessages({
   "Add a checklist from the toolbar": "Add a checklist from the toolbar",
   "Swipe a note in the list to pin, move, or delete it":
     "Swipe a note in the list to pin, move, or delete it",
+  "Writing Tools": "Writing Tools",
+  "Close Writing Tools": "Close Writing Tools",
+  Proofread: "Proofread",
+  Rewrite: "Rewrite",
+  Friendly: "Friendly",
+  Professional: "Professional",
+  Concise: "Concise",
+  Summary: "Summary",
+  "Key Points": "Key Points",
+  Replace: "Replace",
+  Copy: "Copy",
+  "No corrections needed.": "No corrections needed.",
+  "{count} corrections": "{count} corrections",
 });

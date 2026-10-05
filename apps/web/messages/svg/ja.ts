@@ -40,4 +40,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "SVG actions": "SVG の操作",
   Details: "詳細",
   Share: "共有",
+  Close: "閉じる",
+  "Add Title and Description": "タイトルと説明を追加",
+  "Describe a change, like “make it blue”": "変更内容を入力（例：「青にして」）",
+  "Apply Change": "変更を適用",
+  "Edit with On-Device AI": "デバイス上の AI で編集",
+  Undo: "取り消す",
 });

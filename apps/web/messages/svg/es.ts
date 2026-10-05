@@ -40,4 +40,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "SVG actions": "Acciones de SVG",
   Details: "Detalles",
   Share: "Compartir",
+  Close: "Cerrar",
+  "Add Title and Description": "Añadir título y descripción",
+  "Describe a change, like “make it blue”": "Describe un cambio, como “hazlo azul”",
+  "Apply Change": "Aplicar cambio",
+  "Edit with On-Device AI": "Editar con IA en el dispositivo",
+  Undo: "Deshacer",
 });

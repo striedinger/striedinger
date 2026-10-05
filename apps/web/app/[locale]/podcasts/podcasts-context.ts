@@ -2,9 +2,11 @@
 
 import { createContext, use } from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { Podcast, PodcastMessages, PodcastQueueItem } from "./types";
 
 export interface PodcastsContextValue {
+  aiLabels: OnDeviceAiLabels;
   /** Closes Now Playing and pushes the item's show, unless it is already showing. */
   goToShow: (item: PodcastQueueItem) => void;
   locale: string;

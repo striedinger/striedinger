@@ -99,4 +99,8 @@ export const messages = {
   Volume: "Volumen",
   "This episode can’t be played right now.":
     "Este episodio no se puede reproducir en este momento.",
+  "Key Points": "Puntos clave",
+  "Translate from {language}": "Traducir del {language}",
+  "Translated from {language}": "Traducido del {language}",
+  Close: "Cerrar",
 } satisfies TranslationCatalog<typeof englishMessages>;

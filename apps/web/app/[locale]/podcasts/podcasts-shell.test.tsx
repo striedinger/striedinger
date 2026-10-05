@@ -7,6 +7,13 @@ import type { Podcast, PodcastEpisode } from "./types";
 
 import { messages } from "../../../messages/podcasts/en";
 
+const aiLabels = {
+  downloading: "Downloading {percent}",
+  failed: "Failed",
+  onDevice: "On device",
+  working: "Working",
+};
+
 const navigation = vi.hoisted(function createNavigationMocks() {
   return {
     router: {
@@ -74,7 +81,7 @@ async function renderInShell(segments: string[], renderScreen: () => Promise<Rea
   const { PodcastsShell } = await import("./podcasts-shell");
   const screenElement = await renderScreen();
   return render(
-    <PodcastsShell locale="en" messages={messages}>
+    <PodcastsShell aiLabels={aiLabels} locale="en" messages={messages}>
       {screenElement}
     </PodcastsShell>,
   );

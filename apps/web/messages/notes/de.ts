@@ -93,4 +93,17 @@ export const messages = {
   "Add a checklist from the toolbar": "Füge über die Symbolleiste eine Checkliste hinzu",
   "Swipe a note in the list to pin, move, or delete it":
     "Streiche in der Liste über eine Notiz, um sie anzupinnen, zu bewegen oder zu löschen",
+  "Writing Tools": "Schreibtools",
+  "Close Writing Tools": "Schreibtools schließen",
+  Proofread: "Korrekturlesen",
+  Rewrite: "Umschreiben",
+  Friendly: "Freundlich",
+  Professional: "Professionell",
+  Concise: "Prägnant",
+  Summary: "Zusammenfassung",
+  "Key Points": "Kernpunkte",
+  Replace: "Ersetzen",
+  Copy: "Kopieren",
+  "No corrections needed.": "Keine Korrekturen nötig.",
+  "{count} corrections": "{count} Korrekturen",
 } satisfies TranslationCatalog<typeof englishMessages>;

@@ -45,4 +45,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Vous pouvez optimiser jusqu’à 20 fichiers à la fois.",
   "One or more files use a format this browser cannot process.":
     "Un ou plusieurs fichiers utilisent un format que ce navigateur ne peut pas traiter.",
+  Close: "Fermer",
+  "Alt Text Copied": "Texte alternatif copié",
+  "Copy Alt Text": "Copier le texte alternatif",
+  Describe: "Décrire",
+  "Description of {name}": "Description de {name}",
+  Renamed: "Renommé",
+  "Rename to “{name}”": "Renommer en « {name} »",
 };

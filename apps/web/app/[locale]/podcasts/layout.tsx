@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
+import { getOnDeviceAiLabels } from "../../../lib/on-device-ai/get-on-device-ai-labels";
+import { getTranslator } from "../../../messages/get-translator";
 import { loadPodcastMessages } from "../../../messages/podcasts/load-messages";
 import { getRequestLocale } from "../../get-request-locale";
 import { podcastsFrameClassName } from "./podcasts-frame";
@@ -26,9 +28,10 @@ interface PodcastsLayoutProps {
  */
 export default async function PodcastsLayout({ children }: PodcastsLayoutProps) {
   const locale = await getRequestLocale();
-  const [messages, appSwitcherLabels] = await Promise.all([
+  const [messages, appSwitcherLabels, translate] = await Promise.all([
     loadPodcastMessages(locale),
     getAppSwitcherLabels(locale),
+    getTranslator(locale),
   ]);
 
   return (
@@ -36,7 +39,7 @@ export default async function PodcastsLayout({ children }: PodcastsLayoutProps) 
       className={podcastsFrameClassName}
       appSwitcher={{ currentHref: "/podcasts", labels: appSwitcherLabels }}
     >
-      <PodcastsShell locale={locale} messages={messages}>
+      <PodcastsShell aiLabels={getOnDeviceAiLabels(translate)} locale={locale} messages={messages}>
         {children}
       </PodcastsShell>
     </IosAppFrame>

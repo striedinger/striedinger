@@ -42,6 +42,14 @@ These guidelines apply to `apps/web` in addition to the root and `apps/` guideli
 - Start at most one view transition per navigation. Reveal streamed content with CSS animations (`IosRevealTransition`) rather than `<ViewTransition>`, which would cut a running slide short, and avoid entry animations on content inside routes Next.js hides and shows again, since they replay.
 - Bottom bars ride above the software keyboard with `translate-y-[calc(-1*var(--keyboard-inset,0px))]`, which `IosAppFrame` publishes, and subtract the same inset from their safe-area bottom padding.
 
+## On-device AI
+
+- Use only Chrome's built-in, on-device AI APIs (Prompt, Summarizer, Rewriter, Proofreader, Translator, Language Detector) so local-tool content never leaves the device. Never send it to a cloud model.
+- Treat every AI feature as progressive enhancement that is invisible where unsupported: gate it with `useOnDeviceAi` and a probe from `defineOnDeviceAiProbe` that calls the API's `availability()` with the same options the feature uses (including the visitor's locale as the output language). It renders nothing on the server, during hydration, or when the browser reports `unavailable`.
+- Load the code that creates sessions lazily, on first use, with `lazy()` and a preload on hover or focus. Keep option builders for probes in small `*-options.ts` files so probing does not pull in feature code.
+- Create sessions inside a tap handler (or an effect that a tap started) so the browser may download the model, report progress through `useOnDeviceAiTask`, stream long outputs, validate structured results before applying them, and destroy sessions when done.
+- Present results in `IosIntelligenceCard` with the shared labels from `getOnDeviceAiLabels`, and offer undo or confirmation before AI output replaces someone's content.
+
 ## URL state
 
 - Keep shareable, prefillable tool inputs in query parameters when the state belongs in the URL.

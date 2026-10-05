@@ -37,4 +37,10 @@ export const messages = defineMessages({
   "SVG actions": "SVG actions",
   Details: "Details",
   Share: "Share",
+  Close: "Close",
+  "Add Title and Description": "Add Title and Description",
+  "Describe a change, like “make it blue”": "Describe a change, like “make it blue”",
+  "Apply Change": "Apply Change",
+  "Edit with On-Device AI": "Edit with On-Device AI",
+  Undo: "Undo",
 });

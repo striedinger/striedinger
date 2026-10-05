@@ -43,6 +43,7 @@ export interface ChatLabels {
   continue: string;
   copied: string;
   devicesConnected: string;
+  downloadingTranslation: string;
   invalidAnswer: string;
   invalidInvite: string;
   inviteFailed: string;
@@ -70,6 +71,9 @@ export interface ChatLabels {
   shared: string;
   showCode: string;
   title: string;
+  translatedFrom: string;
+  translateFrom: string;
+  translating: string;
   you: string;
   youAre: string;
 }

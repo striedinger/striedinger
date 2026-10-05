@@ -22,4 +22,12 @@ export const messages = defineMessages({
     "This JSON is too large to process safely in the browser.",
   "This JSON is valid but too complex to preview all at once.":
     "This JSON is valid but too complex to preview all at once.",
+  Close: "Close",
+  Copied: "Copied",
+  Copy: "Copy",
+  "Ask a question, like “How many items are there?”":
+    "Ask a question, like “How many items are there?”",
+  "Generate JSON Schema": "Generate JSON Schema",
+  Ask: "Ask",
+  "Ask About This JSON": "Ask About This JSON",
 });

@@ -97,4 +97,15 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Stocks: "Bourse",
   Sudoku: "Sudoku",
   "Open apps menu": "Ouvrir le menu des apps",
+  "Downloading the on-device model… {percent}":
+    "Téléchargement du modèle sur l’appareil… {percent}",
+  "This couldn’t be completed on this device. Try again.":
+    "Impossible de terminer sur cet appareil. Réessayez.",
+  "Created on this device. Results may contain mistakes.":
+    "Créé sur cet appareil. Les résultats peuvent contenir des erreurs.",
+  "Working on this device…": "Traitement sur cet appareil…",
+  "Downloading translation… {percent}": "Téléchargement de la traduction… {percent}",
+  "Translated from {language}": "Traduit de : {language}",
+  "Translate from {language}": "Traduire de : {language}",
+  "Translating…": "Traduction…",
 };

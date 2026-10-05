@@ -97,4 +97,14 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Stocks: "株価",
   Sudoku: "数独",
   "Open apps menu": "アプリメニューを開く",
+  "Downloading the on-device model… {percent}": "デバイス上のモデルをダウンロード中… {percent}",
+  "This couldn’t be completed on this device. Try again.":
+    "このデバイスで完了できませんでした。もう一度お試しください。",
+  "Created on this device. Results may contain mistakes.":
+    "このデバイス上で作成されました。結果に誤りが含まれる場合があります。",
+  "Working on this device…": "このデバイスで処理中…",
+  "Downloading translation… {percent}": "翻訳をダウンロード中… {percent}",
+  "Translated from {language}": "{language}から翻訳",
+  "Translate from {language}": "{language}から翻訳",
+  "Translating…": "翻訳中…",
 };

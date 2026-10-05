@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { PdfToolLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
+import { getOnDeviceAiLabels } from "../../../lib/on-device-ai/get-on-device-ai-labels";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getPdfTranslator } from "../../../messages/pdf/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -23,6 +24,12 @@ export default async function PdfPage() {
   const locale = await getRequestLocale();
   const translate = await getPdfTranslator(locale);
   const labels: PdfToolLabels = {
+    closeSummary: translate("Close"),
+    copySummary: translate("Copy Summary"),
+    noText: translate("This PDF has no text to summarize, such as a scanned document."),
+    summarize: translate("Summarize Document"),
+    summaryCopied: translate("Summary Copied"),
+    summaryTitle: translate("Key Points"),
     balanced: translate("Balanced"),
     chooseFile: translate("Choose PDF"),
     compress: translate("Compress PDF"),
@@ -69,7 +76,7 @@ export default async function PdfPage() {
   return (
     <>
       <JsonLd value={structuredData} />
-      <PdfTool labels={labels} />
+      <PdfTool aiLabels={getOnDeviceAiLabels(translate)} labels={labels} locale={locale} />
     </>
   );
 }

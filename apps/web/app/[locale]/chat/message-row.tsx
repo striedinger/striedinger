@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
@@ -11,6 +13,8 @@ interface MessageRowProps {
   locale: string;
   message: VisibleChatMessage;
   placement: MessagePlacement;
+  /** The message in the reader's language, shown beneath the bubble when it differs. */
+  translation?: ReactNode;
 }
 
 const timestampFormatOptions: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
@@ -20,7 +24,7 @@ const timestampFormatOptions: Intl.DateTimeFormatOptions = { hour: "numeric", mi
  * gray on the left under the sender's name. Consecutive bubbles from one sender tighten the
  * corners they share, and a centered timestamp opens each group after a pause.
  */
-export function MessageRow({ labels, locale, message, placement }: MessageRowProps) {
+export function MessageRow({ labels, locale, message, placement, translation }: MessageRowProps) {
   const sentAt = new Date(message.sentAt);
   const showsSenderName = !message.isOwn && !placement.continuesGroup;
 
@@ -66,6 +70,7 @@ export function MessageRow({ labels, locale, message, placement }: MessageRowPro
       >
         {message.text}
       </Text>
+      {translation}
     </li>
   );
 }

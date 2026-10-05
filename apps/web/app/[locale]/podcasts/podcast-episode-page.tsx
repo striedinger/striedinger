@@ -5,12 +5,16 @@ import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { PauseFillIcon } from "@workspace/icons/pause-fill-icon";
 import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { Text } from "@workspace/ui/components/text";
+import { lazy, Suspense } from "react";
 
 import type { PodcastQueueItem } from "./types";
 
 import { IosNavigationBar } from "../../../components/ios/ios-navigation-bar";
 import { useIosRouter } from "../../../components/ios/ios-navigation-context";
 import { IosScreen } from "../../../components/ios/ios-screen";
+import { translationProbe } from "../../../lib/on-device-ai/translation-probe";
+import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
+import { getEpisodeSummaryOptions } from "./episode-intelligence-options";
 import { EpisodeMenu } from "./episode-menu";
 import { formatEpisodeDate, formatListeningDuration } from "./podcast-format";
 import { PodcastHero } from "./podcast-hero";
@@ -22,12 +26,24 @@ import { getShowHref } from "./podcast-route";
 import { usePodcasts } from "./podcasts-context";
 import { podcastsScreenClassName } from "./podcasts-screen";
 
+const EpisodeIntelligence = lazy(function importEpisodeIntelligence() {
+  return import("./episode-intelligence").then(function selectEpisodeIntelligence(module) {
+    return { default: module.EpisodeIntelligence };
+  });
+});
+
 interface PodcastEpisodePageProps {
   item: PodcastQueueItem;
 }
 
 export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
-  const { locale, messages, now } = usePodcasts();
+  const { aiLabels, locale, messages, now } = usePodcasts();
+  const canSummarize = useOnDeviceAi(
+    defineOnDeviceAiProbe("Summarizer", `podcast-episode:${locale}`, function checkSummaries() {
+      return Summarizer.availability(getEpisodeSummaryOptions(locale));
+    }),
+  );
+  const canTranslate = useOnDeviceAi(translationProbe);
   const iosRouter = useIosRouter();
   const library = usePodcastLibrary();
   const playingEpisode = usePlayingEpisode();
@@ -114,6 +130,18 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
         <Text className="text-ios-body leading-[24px] whitespace-pre-line text-ios-label">
           {item.episode.description || messages["This episode is no longer available."]}
         </Text>
+        {item.episode.description && (canSummarize || canTranslate) ? (
+          <Suspense fallback={null}>
+            <EpisodeIntelligence
+              aiLabels={aiLabels}
+              canSummarize={canSummarize}
+              canTranslate={canTranslate}
+              description={item.episode.description}
+              locale={locale}
+              messages={messages}
+            />
+          </Suspense>
+        ) : null}
       </div>
     </IosScreen>
   );

@@ -2,22 +2,29 @@
 
 import { DocIcon } from "@workspace/icons/doc-icon";
 import { PlusIcon } from "@workspace/icons/plus-icon";
+import { SparklesIcon } from "@workspace/icons/sparkles-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 import { lazy, Suspense, useRef, useState } from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { PdfCompressionMode, PdfOperationStage, PdfToolLabels } from "./types";
 
-import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
+import {
+  iosChipButtonClassName,
+  iosFilledButtonClassName,
+} from "../../../components/ios/ios-button-styles";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
+import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { PdfDropZone } from "./pdf-drop-zone";
 import { PdfOptionsSection } from "./pdf-options-section";
 import { PdfStatusSection } from "./pdf-status-section";
+import { getPdfSummaryOptions } from "./pdf-summary-options";
 
 // The preview pulls in pdf.js rendering, so it loads once a file is chosen.
 const PdfPreview = lazy(function importPdfPreview() {
@@ -25,6 +32,18 @@ const PdfPreview = lazy(function importPdfPreview() {
     return { default: module.PdfPreview };
   });
 });
+
+const PdfSummaryCard = lazy(function importPdfSummaryCard() {
+  return import("./pdf-summary-card").then(function selectPdfSummaryCard(module) {
+    return { default: module.PdfSummaryCard };
+  });
+});
+
+interface PdfToolProps {
+  aiLabels: OnDeviceAiLabels;
+  labels: PdfToolLabels;
+  locale: string;
+}
 
 interface Result {
   blob: Blob;
@@ -34,7 +53,7 @@ interface Result {
   unlocked: boolean;
 }
 
-export function PdfTool({ labels }: { labels: PdfToolLabels }) {
+export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
   const [file, setFile] = useState<File>();
   const [compressionMode, setCompressionMode] = useState<PdfCompressionMode>("balanced");
   const [quality, setQuality] = useState(70);
@@ -47,6 +66,13 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result>();
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  // Summaries appear only once the browser confirms it can write them on the device.
+  const canSummarize = useOnDeviceAi(
+    defineOnDeviceAiProbe("Summarizer", `pdf:${locale}`, function checkSummaries() {
+      return Summarizer.availability(getPdfSummaryOptions(locale));
+    }),
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handlePasswordResult(documentRequiresPassword: boolean, isValid: boolean) {
@@ -56,6 +82,7 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
 
   function selectFile(selectedFile: File) {
     setFile(selectedFile);
+    setIsSummaryOpen(false);
     setPassword("");
     setPasswordInput("");
     setRequiresPassword(false);
@@ -161,6 +188,36 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
               </button>
             </li>
           </IosListSection>
+          {canSummarize && !(requiresPassword && !passwordIsValid) ? (
+            isSummaryOpen ? (
+              <Suspense fallback={null}>
+                <PdfSummaryCard
+                  key={`${file.name}-${file.size}-${file.lastModified}`}
+                  aiLabels={aiLabels}
+                  file={file}
+                  labels={labels}
+                  locale={locale}
+                  onClose={function closeSummary() {
+                    setIsSummaryOpen(false);
+                  }}
+                  password={password}
+                />
+              </Suspense>
+            ) : (
+              <div className="flex px-1">
+                <button
+                  type="button"
+                  className={`${iosChipButtonClassName} h-9 gap-1.5 [&_svg]:size-4`}
+                  onClick={function openSummary() {
+                    setIsSummaryOpen(true);
+                  }}
+                >
+                  <SparklesIcon aria-hidden="true" />
+                  {labels.summarize}
+                </button>
+              </div>
+            )
+          ) : null}
           <PdfStatusSection
             isProcessing={isProcessing}
             labels={labels}

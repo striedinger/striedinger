@@ -93,4 +93,17 @@ export const messages = {
   "Add a checklist from the toolbar": "Ajoutez une liste de pointage depuis la barre d’outils",
   "Swipe a note in the list to pin, move, or delete it":
     "Balayez une note dans la liste pour l’épingler, la déplacer ou la supprimer",
+  "Writing Tools": "Outils d’écriture",
+  "Close Writing Tools": "Fermer les outils d’écriture",
+  Proofread: "Relire",
+  Rewrite: "Réécrire",
+  Friendly: "Amical",
+  Professional: "Professionnel",
+  Concise: "Concis",
+  Summary: "Résumé",
+  "Key Points": "Points clés",
+  Replace: "Remplacer",
+  Copy: "Copier",
+  "No corrections needed.": "Aucune correction nécessaire.",
+  "{count} corrections": "{count} corrections",
 } satisfies TranslationCatalog<typeof englishMessages>;

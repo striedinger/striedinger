@@ -4,15 +4,18 @@ import { PhotoIcon } from "@workspace/icons/photo-icon";
 import { PlusIcon } from "@workspace/icons/plus-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { CompressionMode, ImageOptimizerLabels, OptimizerItem, OutputFormat } from "./types";
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { downloadBlob } from "../../../lib/download-blob";
+import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { FileDropZone } from "./file-drop-zone";
+import { getImageDescriptionOptions } from "./image-description-options";
 import { targetRatioForMode } from "./optimization-settings";
 import { optimizeImage } from "./optimize-image";
 import { OptimizerFileList } from "./optimizer-file-list";
@@ -24,7 +27,19 @@ function download(item: OptimizerItem) {
   if (item.output) downloadBlob(item.output, item.outputName ?? item.file.name);
 }
 
-export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
+const ImageDescriptionCard = lazy(function importImageDescriptionCard() {
+  return import("./image-description-card").then(function selectCard(module) {
+    return { default: module.ImageDescriptionCard };
+  });
+});
+
+interface ImageOptimizerProps {
+  aiLabels: OnDeviceAiLabels;
+  labels: ImageOptimizerLabels;
+  locale: string;
+}
+
+export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps) {
   const [items, setItems] = useState<OptimizerItem[]>([]);
   const [compressionMode, setCompressionMode] = useState<CompressionMode>("balanced");
   const [quality, setQuality] = useState(68);
@@ -32,6 +47,16 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
   const [maxDimension, setMaxDimension] = useState(2560);
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("auto");
   const [notice, setNotice] = useState<string>();
+  const [describedItemId, setDescribedItemId] = useState<string | null>(null);
+  // Describing images appears only once the browser confirms it can do it on the device.
+  const canDescribe = useOnDeviceAi(
+    defineOnDeviceAiProbe("LanguageModel", `image-description:${locale}`, function checkImages() {
+      return LanguageModel.availability(getImageDescriptionOptions(locale));
+    }),
+  );
+  const describedItem = items.find(function isDescribed(item) {
+    return item.id === describedItemId;
+  });
   const processingRef = useRef(false);
   const autoSavingsTarget = Math.round((1 - targetRatioForMode(quality, compressionMode)) * 100);
 
@@ -157,6 +182,16 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
     requeueItems();
   }
 
+  function renameOutput(id: string, fileStem: string) {
+    setItems(function renameItem(current) {
+      return current.map(function applyName(item) {
+        if (item.id !== id) return item;
+        const extension = /\.[^.]+$/.exec(item.outputName ?? item.file.name)?.[0] ?? "";
+        return { ...item, outputName: `${fileStem}${extension}` };
+      });
+    });
+  }
+
   return (
     <div className="flex flex-col gap-2 pb-16">
       {items.length === 0 ? (
@@ -181,6 +216,7 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
           onClear={function clear() {
             setItems([]);
           }}
+          onDescribe={canDescribe ? setDescribedItemId : undefined}
           onDownload={download}
           onRemove={function remove(id) {
             setItems(function removeItem(current) {
@@ -191,6 +227,21 @@ export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {
           }}
         />
       )}
+      {describedItem ? (
+        <Suspense fallback={null}>
+          <ImageDescriptionCard
+            key={describedItem.id}
+            aiLabels={aiLabels}
+            item={describedItem}
+            labels={labels}
+            locale={locale}
+            onClose={function closeDescription() {
+              setDescribedItemId(null);
+            }}
+            onRename={renameOutput}
+          />
+        </Suspense>
+      ) : null}
       {notice ? (
         <Text role="alert" className="px-5 text-ios-footnote text-ios-red">
           {notice}

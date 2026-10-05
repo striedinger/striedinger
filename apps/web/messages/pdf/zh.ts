@@ -37,4 +37,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "One PDF at a time · processed locally": "一次处理一个 PDF · 本地处理",
   "Restrictions removed": "限制已移除",
   "This PDF could not be opened in your browser.": "无法在浏览器中打开此 PDF。",
+  Close: "关闭",
+  "Copy Summary": "拷贝摘要",
+  "This PDF has no text to summarize, such as a scanned document.":
+    "此 PDF 没有可供摘要的文本，例如扫描文档。",
+  "Summarize Document": "总结文档",
+  "Summary Copied": "已拷贝摘要",
+  "Key Points": "要点",
 };

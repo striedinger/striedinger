@@ -44,4 +44,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "You can optimize up to 20 files at once.": "一次最多可优化 20 个文件。",
   "One or more files use a format this browser cannot process.":
     "有文件使用了此浏览器无法处理的格式。",
+  Close: "关闭",
+  "Alt Text Copied": "已拷贝替代文本",
+  "Copy Alt Text": "拷贝替代文本",
+  Describe: "描述",
+  "Description of {name}": "{name} 的描述",
+  Renamed: "已重命名",
+  "Rename to “{name}”": "重命名为“{name}”",
 };

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { ImageOptimizerLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
+import { getOnDeviceAiLabels } from "../../../lib/on-device-ai/get-on-device-ai-labels";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getImageTranslator } from "../../../messages/image/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -21,6 +22,13 @@ export default async function ImageOptimizerPage() {
   const locale = await getRequestLocale();
   const translate = await getImageTranslator(locale);
   const labels: ImageOptimizerLabels = {
+    closeDescription: translate("Close"),
+    copiedAltText: translate("Alt Text Copied"),
+    copyAltText: translate("Copy Alt Text"),
+    describe: translate("Describe"),
+    describeTitle: translate("Description of {name}"),
+    renamed: translate("Renamed"),
+    renameTo: translate("Rename to “{name}”"),
     addMore: translate("Add more"),
     avif: "AVIF",
     autoFormat: translate("Auto"),
@@ -74,7 +82,7 @@ export default async function ImageOptimizerPage() {
   return (
     <>
       <JsonLd value={structuredData} />
-      <ImageOptimizer labels={labels} />
+      <ImageOptimizer aiLabels={getOnDeviceAiLabels(translate)} labels={labels} locale={locale} />
     </>
   );
 }

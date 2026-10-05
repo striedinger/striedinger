@@ -5,13 +5,23 @@ import { CircleHalfIcon } from "@workspace/icons/circle-half-icon";
 import { CopyIcon } from "@workspace/icons/copy-icon";
 import { DownloadIcon } from "@workspace/icons/download-icon";
 import { FileUpIcon } from "@workspace/icons/file-up-icon";
+import { GaugeIcon } from "@workspace/icons/gauge-icon";
 import { PhotoIcon } from "@workspace/icons/photo-icon";
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { SparklesIcon } from "@workspace/icons/sparkles-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useDeferredValue, useEffect, useState, useTransition, type ChangeEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useState,
+  useTransition,
+  type ChangeEvent,
+} from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { SvgEditorLabels, SvgInspection, SvgPreviewBackground } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
@@ -26,22 +36,39 @@ import { copyText } from "../../../lib/copy-text";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
 import { getNumberFormat } from "../../../lib/intl-cache";
+import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { optimizeSvgText } from "../../../lib/svg/optimize-svg-text";
 import { exportSvgAsPng } from "./export-svg-png";
 import { inspectSvg, maximumSvgCharacters } from "./inspect-svg";
 import { sampleSvg } from "./sample-svg";
 import { SvgCodeEditor } from "./svg-code-editor";
+import { getSvgDescribeOptions, getSvgEditOptions } from "./svg-intelligence-options";
 import { SvgPreview } from "./svg-preview";
 
 interface SvgEditorProps {
+  aiLabels: OnDeviceAiLabels;
   labels: SvgEditorLabels;
   locale: string;
+}
+
+function loadSvgIntelligencePanel() {
+  return import("./svg-intelligence-panel");
+}
+
+const SvgIntelligencePanel = lazy(function importSvgIntelligencePanel() {
+  return loadSvgIntelligencePanel().then(function selectPanel(module) {
+    return { default: module.SvgIntelligencePanel };
+  });
+});
+
+function preloadSvgIntelligencePanel() {
+  void loadSvgIntelligencePanel();
 }
 
 const sectionHeaderClassName = "flex min-h-9 items-end justify-between gap-3 px-5 pb-1.5";
 const sectionHeadingClassName = "text-ios-subheadline font-semibold text-ios-secondary-label";
 
-export function SvgEditor({ labels, locale }: SvgEditorProps) {
+export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
   const [source, setSource] = useState(sampleSvg);
   const [fileName, setFileName] = useState("drawing.svg");
   const [background, setBackground] = useState<SvgPreviewBackground>("grid");
@@ -50,6 +77,18 @@ export function SvgEditor({ labels, locale }: SvgEditorProps) {
   const [previewSource, setPreviewSource] = useState<string | null>(sampleSvg);
   const [isOptimizing, startOptimizing] = useTransition();
   const [isExporting, startExporting] = useTransition();
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  // On-device AI controls appear only once the browser confirms it can run them.
+  const canEdit = useOnDeviceAi(
+    defineOnDeviceAiProbe("LanguageModel", `svg-edit:${locale}`, function checkEditing() {
+      return LanguageModel.availability(getSvgEditOptions(locale));
+    }),
+  );
+  const canDescribe = useOnDeviceAi(
+    defineOnDeviceAiProbe("LanguageModel", `svg-describe:${locale}`, function checkDescribing() {
+      return LanguageModel.availability(getSvgDescribeOptions(locale));
+    }),
+  );
   // Parsing a large drawing on every keystroke would delay typing, so it trails the input.
   const deferredSource = useDeferredValue(source);
   const isHydrated = useIsHydrated();
@@ -253,70 +292,109 @@ export function SvgEditor({ labels, locale }: SvgEditorProps) {
       </IosListSection>
 
       <div
-        role="toolbar"
-        aria-label={labels.actions}
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-3 px-4 pt-8 pb-safe-min-3.5",
+          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-4 pt-8 pb-safe-min-3.5",
           iosBottomScrollEdgeClassName,
         )}
       >
-        <label
-          className={cn(
-            "pointer-events-auto flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-ios-tint transition-transform duration-150 focus-within:ring-2 focus-within:ring-ios-tint/60 active:scale-[0.92] motion-reduce:transition-none [&_svg]:size-5.25",
-            iosGlassClassName,
-          )}
-        >
-          <FileUpIcon aria-hidden="true" />
-          <span className="sr-only">{labels.open}</span>
-          <input type="file" accept=".svg,image/svg+xml" className="sr-only" onChange={openFile} />
-        </label>
-        <IosBarButton
-          className="pointer-events-auto min-w-40 text-ios-tint"
-          disabled={!canAct || isOptimizing}
-          aria-busy={isOptimizing}
-          onClick={optimize}
-        >
-          <SparklesIcon aria-hidden="true" />
-          {labels.optimize}
-        </IosBarButton>
-        <IosMenu
-          side="top"
-          sections={[
-            {
-              id: "export",
-              actions: [
-                {
-                  disabled: !canAct,
-                  icon: <CopyIcon />,
-                  id: "copy",
-                  label: labels.copy,
-                  onSelect: copySource,
-                },
-                {
-                  disabled: !canAct,
-                  icon: <DownloadIcon />,
-                  id: "download",
-                  label: labels.downloadSvg,
-                  onSelect() {
-                    downloadBlob(new Blob([source], { type: "image/svg+xml" }), fileName);
-                  },
-                },
-                {
-                  disabled: !canAct || isExporting,
-                  icon: <PhotoIcon />,
-                  id: "png",
-                  label: labels.exportPng,
-                  onSelect: exportPng,
-                },
-              ],
-            },
-          ]}
-          trigger={
-            <IosBarButton className="pointer-events-auto text-ios-tint" aria-label={labels.share}>
-              <ShareUpIcon />
+        {isAiOpen ? (
+          <Suspense fallback={null}>
+            <SvgIntelligencePanel
+              aiLabels={aiLabels}
+              canDescribe={canDescribe}
+              dimensions={{
+                height: validInspection?.height ?? null,
+                width: validInspection?.width ?? null,
+              }}
+              isSourceValid={canAct}
+              labels={labels}
+              locale={locale}
+              onClose={function closeAi() {
+                setIsAiOpen(false);
+              }}
+              onSourceChange={setSource}
+              source={source}
+            />
+          </Suspense>
+        ) : null}
+        <div role="toolbar" aria-label={labels.actions} className="flex items-center gap-3">
+          <label
+            className={cn(
+              "pointer-events-auto flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-ios-tint transition-transform duration-150 focus-within:ring-2 focus-within:ring-ios-tint/60 active:scale-[0.92] motion-reduce:transition-none [&_svg]:size-5.25",
+              iosGlassClassName,
+            )}
+          >
+            <FileUpIcon aria-hidden="true" />
+            <span className="sr-only">{labels.open}</span>
+            <input
+              type="file"
+              accept=".svg,image/svg+xml"
+              className="sr-only"
+              onChange={openFile}
+            />
+          </label>
+          <IosBarButton
+            className="pointer-events-auto min-w-40 text-ios-tint"
+            disabled={!canAct || isOptimizing}
+            aria-busy={isOptimizing}
+            onClick={optimize}
+          >
+            <GaugeIcon aria-hidden="true" />
+            {labels.optimize}
+          </IosBarButton>
+          {canEdit ? (
+            <IosBarButton
+              className="pointer-events-auto text-ios-tint"
+              aria-label={labels.aiTitle}
+              aria-pressed={isAiOpen}
+              onPointerEnter={preloadSvgIntelligencePanel}
+              onFocus={preloadSvgIntelligencePanel}
+              onClick={function toggleAi() {
+                setIsAiOpen(!isAiOpen);
+              }}
+            >
+              <SparklesIcon />
             </IosBarButton>
-          }
-        />
+          ) : null}
+          <IosMenu
+            side="top"
+            sections={[
+              {
+                id: "export",
+                actions: [
+                  {
+                    disabled: !canAct,
+                    icon: <CopyIcon />,
+                    id: "copy",
+                    label: labels.copy,
+                    onSelect: copySource,
+                  },
+                  {
+                    disabled: !canAct,
+                    icon: <DownloadIcon />,
+                    id: "download",
+                    label: labels.downloadSvg,
+                    onSelect() {
+                      downloadBlob(new Blob([source], { type: "image/svg+xml" }), fileName);
+                    },
+                  },
+                  {
+                    disabled: !canAct || isExporting,
+                    icon: <PhotoIcon />,
+                    id: "png",
+                    label: labels.exportPng,
+                    onSelect: exportPng,
+                  },
+                ],
+              },
+            ]}
+            trigger={
+              <IosBarButton className="pointer-events-auto text-ios-tint" aria-label={labels.share}>
+                <ShareUpIcon />
+              </IosBarButton>
+            }
+          />
+        </div>
       </div>
       <IosToast message={toastMessage} />
     </div>

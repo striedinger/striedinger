@@ -3,6 +3,7 @@
 import { cn } from "@workspace/ui/lib/utils";
 import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { Note, NoteFolder, NotesMessages } from "./types";
 
 import { IosAlert } from "../../../components/ios/ios-alert";
@@ -23,6 +24,7 @@ import {
 } from "./use-notes-store";
 
 interface NotesAppProps {
+  aiLabels: OnDeviceAiLabels;
   locale: string;
   messages: NotesMessages;
   welcomeNoteHtml: string;
@@ -39,7 +41,7 @@ const NoteMoveSheet = lazy(function importNoteMoveSheet() {
   });
 });
 
-export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
+export function NotesApp({ aiLabels, locale, messages, welcomeNoteHtml }: NotesAppProps) {
   const store = useNotesStore({ welcomeNoteHtml });
   const { goBack, navigate, route } = useNotesRoute();
   const keyboardWarmupRef = useRef<HTMLInputElement>(null);
@@ -334,6 +336,7 @@ export function NotesApp({ locale, messages, welcomeNoteHtml }: NotesAppProps) {
           </IosScreenTransition>
           <IosScreenTransition>
             <NoteEditorPane
+              aiLabels={aiLabels}
               className={cn(route.noteId ? "flex" : "hidden", "min-w-0 flex-1 md:flex")}
               focusOnOpen={selectedNote?.id === autoFocusNoteId}
               backButtonClassName="md:hidden"

@@ -4,6 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { messages } from "../../../messages/notes/en";
 import { NotesApp } from "./notes-app";
 
+const aiLabels = {
+  downloading: "Downloading {percent}",
+  failed: "Failed",
+  onDevice: "On device",
+  working: "Working",
+};
+
 vi.mock("next/navigation", async function mockNavigation() {
   const { useHistoryPathname } = await import("../../../test/history-navigation");
   return { usePathname: useHistoryPathname };
@@ -12,7 +19,14 @@ vi.mock("next/navigation", async function mockNavigation() {
 const welcomeNoteHtml = "<h1>Welcome to Notes</h1><p>Start writing</p>";
 
 function renderNotes() {
-  return render(<NotesApp locale="en" messages={messages} welcomeNoteHtml={welcomeNoteHtml} />);
+  return render(
+    <NotesApp
+      aiLabels={aiLabels}
+      locale="en"
+      messages={messages}
+      welcomeNoteHtml={welcomeNoteHtml}
+    />,
+  );
 }
 
 describe("NotesApp", function () {
@@ -56,6 +70,35 @@ describe("NotesApp", function () {
     fireEvent.click(within(secondDialog).getByRole("button", { name: "Save" }));
 
     expect(await screen.findByRole("alertdialog", { name: "Name Taken" })).toBeInTheDocument();
+  });
+
+  it("offers Writing Tools only when the browser can run them on the device", async function () {
+    const summarize = vi.fn<(text: string) => ReadableStream<string>>(function streamSummary() {
+      return new ReadableStream({
+        start(controller) {
+          controller.enqueue("Start writing.");
+          controller.close();
+        },
+      });
+    });
+    vi.stubGlobal("Summarizer", {
+      availability: vi.fn<() => Promise<string>>().mockResolvedValue("downloadable"),
+      create: vi
+        .fn<() => Promise<object>>()
+        .mockResolvedValue({ destroy() {}, summarizeStreaming: summarize }),
+    });
+    renderNotes();
+    fireEvent.click(await screen.findByRole("button", { name: /^Notes\s*1$/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Welcome to Notes/ }));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Writing Tools" }));
+    expect(await screen.findByRole("button", { name: "Summary" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Proofread" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Summary" }));
+
+    expect(await screen.findByText("Start writing.")).toBeInTheDocument();
+    expect(summarize).toHaveBeenCalledWith("Welcome to Notes\nStart writing", expect.anything());
+    vi.unstubAllGlobals();
   });
 
   it("moves a deleted note to Recently Deleted", async function () {

@@ -44,4 +44,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "You can optimize up to 20 files at once.": "一度に最適化できるのは 20 ファイルまでです。",
   "One or more files use a format this browser cannot process.":
     "このブラウザで処理できない形式のファイルがあります。",
+  Close: "閉じる",
+  "Alt Text Copied": "代替テキストをコピーしました",
+  "Copy Alt Text": "代替テキストをコピー",
+  Describe: "説明を作成",
+  "Description of {name}": "{name} の説明",
+  Renamed: "名前を変更しました",
+  "Rename to “{name}”": "「{name}」に名前を変更",
 };

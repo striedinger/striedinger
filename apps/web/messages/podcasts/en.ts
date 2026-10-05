@@ -96,4 +96,8 @@ export const messages = defineMessages({
   "Playback position": "Playback position",
   Volume: "Volume",
   "This episode can’t be played right now.": "This episode can’t be played right now.",
+  "Key Points": "Key Points",
+  "Translate from {language}": "Translate from {language}",
+  "Translated from {language}": "Translated from {language}",
+  Close: "Close",
 });

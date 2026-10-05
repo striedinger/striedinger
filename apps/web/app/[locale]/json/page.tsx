@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { JsonToolLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
+import { getOnDeviceAiLabels } from "../../../lib/on-device-ai/get-on-device-ai-labels";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getJsonTranslator } from "../../../messages/json/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -23,6 +24,13 @@ export default async function JsonPage() {
   const locale = await getRequestLocale();
   const translate = await getJsonTranslator(locale);
   const labels: JsonToolLabels = {
+    aiClose: translate("Close"),
+    aiCopied: translate("Copied"),
+    aiCopy: translate("Copy"),
+    aiPlaceholder: translate("Ask a question, like “How many items are there?”"),
+    aiSchema: translate("Generate JSON Schema"),
+    aiSubmit: translate("Ask"),
+    aiTitle: translate("Ask About This JSON"),
     collapseAll: translate("Collapse all"),
     collapseValue: translate("Collapse value"),
     description: translate(
@@ -54,7 +62,7 @@ export default async function JsonPage() {
   return (
     <>
       <JsonLd value={structuredData} />
-      <JsonTool labels={labels} />
+      <JsonTool aiLabels={getOnDeviceAiLabels(translate)} labels={labels} locale={locale} />
     </>
   );
 }

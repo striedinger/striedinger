@@ -40,6 +40,10 @@ export default async function ChatPage() {
     cancelPairing: translate("Cancel pairing"),
     closeDevices: translate("Close devices"),
     connect: translate("Connect"),
+    downloadingTranslation: translate("Downloading translation… {percent}"),
+    translatedFrom: translate("Translated from {language}"),
+    translateFrom: translate("Translate from {language}"),
+    translating: translate("Translating…"),
     connecting: translate("Connecting…"),
     connectionFailed: translate(
       "A local connection could not be established. Keep both devices on the same Wi-Fi network and try again.",

@@ -90,6 +90,8 @@
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
   /* A slight overshoot for things that pop into place, such as a selected control. */
   --ease-ios-bounce: cubic-bezier(0.34, 1.35, 0.64, 1);
+  /* The Apple Intelligence edge glow turning while on-device AI works. */
+  --animate-ios-intelligence: ios-intelligence-turn 2.4s linear infinite;
   --shadow-ios-icon: inset 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.12);
   --shadow-ios-highlight: inset 0 0.5px 0 0.5px rgb(255 255 255 / 0.25);
   --shadow-ios-panel: inset 0 0 0 0.5px var(--ios-separator), 0 8px 30px var(--ios-glass-shadow);
@@ -128,6 +130,28 @@
   margin-bottom: max(
     calc(env(safe-area-inset-bottom) - var(--keyboard-inset, 0px)),
     calc(var(--spacing) * --value(number))
+  );
+}
+/* Apple Intelligence's colors, as a gradient whose angle can turn while a model works. */
+@property --ios-intelligence-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes ios-intelligence-turn {
+  to {
+    --ios-intelligence-angle: 360deg;
+  }
+}
+@utility bg-ios-intelligence {
+  background-image: conic-gradient(
+    from var(--ios-intelligence-angle),
+    #ff9f0a,
+    #ff375f,
+    #bf5af2,
+    #5e5ce6,
+    #64d2ff,
+    #ff9f0a
   );
 }
 /* The transparency grid behind image previews, on the grouped cell surface. */

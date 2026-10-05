@@ -14,6 +14,7 @@ interface OptimizerFileListProps {
   labels: ImageOptimizerLabels;
   maxFiles: number;
   onClear: () => void;
+  onDescribe?: (id: string) => void;
   onDownload: (item: OptimizerItem) => void;
   onRemove: (id: string) => void;
 }
@@ -27,6 +28,7 @@ export function OptimizerFileList({
   labels,
   maxFiles,
   onClear,
+  onDescribe,
   onDownload,
   onRemove,
 }: OptimizerFileListProps) {
@@ -55,6 +57,7 @@ export function OptimizerFileList({
               key={item.id}
               item={item}
               labels={labels}
+              onDescribe={onDescribe}
               onDownload={onDownload}
               onRemove={onRemove}
             />

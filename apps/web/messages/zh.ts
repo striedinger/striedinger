@@ -95,4 +95,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Stocks: "股市",
   Sudoku: "数独",
   "Open apps menu": "打开应用菜单",
+  "Downloading the on-device model… {percent}": "正在下载设备端模型… {percent}",
+  "This couldn’t be completed on this device. Try again.": "无法在此设备上完成。请重试。",
+  "Created on this device. Results may contain mistakes.": "在此设备上生成。结果可能有误。",
+  "Working on this device…": "正在此设备上处理…",
+  "Downloading translation… {percent}": "正在下载翻译… {percent}",
+  "Translated from {language}": "译自{language}",
+  "Translate from {language}": "从{language}翻译",
+  "Translating…": "正在翻译…",
 };

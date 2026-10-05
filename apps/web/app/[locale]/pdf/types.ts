@@ -3,6 +3,12 @@ export type PdfCompressionMode = "balanced" | "lossless" | "smallest";
 export type PdfOperationStage = "preparing" | "decoding" | "compressing" | "comparing";
 
 export interface PdfToolLabels {
+  closeSummary: string;
+  copySummary: string;
+  noText: string;
+  summarize: string;
+  summaryCopied: string;
+  summaryTitle: string;
   balanced: string;
   chooseFile: string;
   compress: string;

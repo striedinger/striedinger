@@ -38,4 +38,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "SVG actions": "SVG 操作",
   Details: "详细信息",
   Share: "共享",
+  Close: "关闭",
+  "Add Title and Description": "添加标题和描述",
+  "Describe a change, like “make it blue”": "描述一项更改，例如“改成蓝色”",
+  "Apply Change": "应用更改",
+  "Edit with On-Device AI": "使用设备端 AI 编辑",
+  Undo: "撤销",
 });

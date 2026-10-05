@@ -2,6 +2,13 @@ type JsonPrimitive = boolean | null | number | string;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 export interface JsonToolLabels {
+  aiClose: string;
+  aiCopied: string;
+  aiCopy: string;
+  aiPlaceholder: string;
+  aiSchema: string;
+  aiSubmit: string;
+  aiTitle: string;
   collapseAll: string;
   collapseValue: string;
   description: string;

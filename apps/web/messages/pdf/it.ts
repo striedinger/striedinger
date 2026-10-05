@@ -38,4 +38,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "One PDF at a time · processed locally": "Un PDF alla volta · elaborato in locale",
   "Restrictions removed": "Restrizioni rimosse",
   "This PDF could not be opened in your browser.": "Impossibile aprire questo PDF nel browser.",
+  Close: "Chiudi",
+  "Copy Summary": "Copia riepilogo",
+  "This PDF has no text to summarize, such as a scanned document.":
+    "Questo PDF non contiene testo da riassumere, come nel caso di un documento scansionato.",
+  "Summarize Document": "Riassumi documento",
+  "Summary Copied": "Riepilogo copiato",
+  "Key Points": "Punti chiave",
 };

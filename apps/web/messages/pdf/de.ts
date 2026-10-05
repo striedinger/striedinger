@@ -39,4 +39,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Restrictions removed": "Einschränkungen entfernt",
   "This PDF could not be opened in your browser.":
     "Dieses PDF konnte im Browser nicht geöffnet werden.",
+  Close: "Schließen",
+  "Copy Summary": "Zusammenfassung kopieren",
+  "This PDF has no text to summarize, such as a scanned document.":
+    "Dieses PDF enthält keinen Text zum Zusammenfassen, etwa bei einem gescannten Dokument.",
+  "Summarize Document": "Dokument zusammenfassen",
+  "Summary Copied": "Zusammenfassung kopiert",
+  "Key Points": "Kernpunkte",
 };

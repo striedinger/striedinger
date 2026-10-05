@@ -38,6 +38,47 @@ function getScrollView() {
 }
 
 describe("message list", function () {
+  it("translates received messages written in another language on the device", async function () {
+    const translate = vi
+      .fn<(text: string) => Promise<string>>()
+      .mockResolvedValue("See you at the park");
+    vi.stubGlobal("LanguageDetector", {
+      availability: vi.fn<() => Promise<string>>().mockResolvedValue("available"),
+      create: vi.fn<() => Promise<object>>().mockResolvedValue({
+        destroy() {},
+        detect: vi
+          .fn<() => Promise<object[]>>()
+          .mockResolvedValue([{ confidence: 0.96, detectedLanguage: "es" }]),
+      }),
+    });
+    vi.stubGlobal("Translator", {
+      availability: vi.fn<() => Promise<string>>().mockResolvedValue("available"),
+      create: vi.fn<() => Promise<object>>().mockResolvedValue({ destroy() {}, translate }),
+    });
+
+    renderMessageList([
+      {
+        author: "Quiet Otter",
+        id: "spanish",
+        isOwn: false,
+        sentAt: 1_721_000_000_000,
+        text: "Nos vemos en el parque",
+      },
+      {
+        author: "Silver Finch",
+        id: "own",
+        isOwn: true,
+        sentAt: 1_721_000_001_000,
+        text: "Hasta luego, amigos míos",
+      },
+    ]);
+
+    expect(await screen.findByText("See you at the park")).toBeInTheDocument();
+    expect(screen.getByText("Translated from Spanish")).toBeInTheDocument();
+    expect(translate).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
   it("uses local ownership metadata instead of trusting the author name", function () {
     renderMessageList([
       {

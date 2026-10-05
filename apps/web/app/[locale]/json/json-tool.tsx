@@ -2,9 +2,12 @@
 
 import { BracesIcon } from "@workspace/icons/braces-icon";
 import { CheckCircleIcon } from "@workspace/icons/check-circle-icon";
+import { SparklesIcon } from "@workspace/icons/sparkles-icon";
 import { Text } from "@workspace/ui/components/text";
 import {
+  lazy,
   startTransition,
+  Suspense,
   useEffect,
   useOptimistic,
   useRef,
@@ -12,19 +15,39 @@ import {
   type ChangeEvent,
 } from "react";
 
+import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { JsonWorkerReply, JsonWorkerRequest, JsonWorkerResponse } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
 
+import { iosChipButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosGroupedPane } from "../../../components/ios/ios-grouped-pane";
+import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
+import { getJsonQuestionOptions } from "./json-intelligence-options";
 import { JsonTree } from "./json-tree";
 
 interface JsonToolProps {
+  aiLabels: OnDeviceAiLabels;
   labels: JsonToolLabels;
+  locale: string;
+}
+
+function loadJsonIntelligencePanel() {
+  return import("./json-intelligence-panel");
+}
+
+const JsonIntelligencePanel = lazy(function importJsonIntelligencePanel() {
+  return loadJsonIntelligencePanel().then(function selectPanel(module) {
+    return { default: module.JsonIntelligencePanel };
+  });
+});
+
+function preloadJsonIntelligencePanel() {
+  void loadJsonIntelligencePanel();
 }
 
 const maximumInputCharacters = 500_000;
 
-export function JsonTool({ labels }: JsonToolProps) {
+export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
   const [input, setInput] = useState("");
   const [validationResult, setValidationResult] = useState<JsonParseResult>({ status: "empty" });
   // The preview keeps showing the last valid document while new text is checked, instead of
@@ -34,6 +57,13 @@ export function JsonTool({ labels }: JsonToolProps) {
   const [treeVersion, setTreeVersion] = useState(0);
   const [defaultExpanded, setDefaultExpanded] = useState(true);
   const [displayedExpanded, setDisplayedExpanded] = useOptimistic(defaultExpanded);
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  // Questions about the document appear only once the browser confirms on-device AI.
+  const canAsk = useOnDeviceAi(
+    defineOnDeviceAiProbe("LanguageModel", `json-question:${locale}`, function checkQuestions() {
+      return LanguageModel.availability(getJsonQuestionOptions(locale));
+    }),
+  );
   const processedInput = useRef<string | undefined>(undefined);
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef(0);
@@ -224,6 +254,37 @@ export function JsonTool({ labels }: JsonToolProps) {
           )}
         </div>
       </IosGroupedPane>
+
+      {canAsk && validationResult.status === "valid" ? (
+        isAiOpen ? (
+          <Suspense fallback={null}>
+            <JsonIntelligencePanel
+              aiLabels={aiLabels}
+              json={input}
+              labels={labels}
+              locale={locale}
+              onClose={function closeAi() {
+                setIsAiOpen(false);
+              }}
+            />
+          </Suspense>
+        ) : (
+          <div className="flex lg:col-span-2">
+            <button
+              type="button"
+              className={`${iosChipButtonClassName} h-9 gap-1.5 [&_svg]:size-4`}
+              onPointerEnter={preloadJsonIntelligencePanel}
+              onFocus={preloadJsonIntelligencePanel}
+              onClick={function openAi() {
+                setIsAiOpen(true);
+              }}
+            >
+              <SparklesIcon aria-hidden="true" />
+              {labels.aiTitle}
+            </button>
+          </div>
+        )
+      ) : null}
     </div>
   );
 }

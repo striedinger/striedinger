@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import type { SvgEditorLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
+import { getOnDeviceAiLabels } from "../../../lib/on-device-ai/get-on-device-ai-labels";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getSvgTranslator } from "../../../messages/svg/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
@@ -23,6 +24,12 @@ export default async function SvgPage() {
   const locale = await getRequestLocale();
   const translate = await getSvgTranslator(locale);
   const labels: SvgEditorLabels = {
+    aiClose: translate("Close"),
+    aiDescribe: translate("Add Title and Description"),
+    aiPlaceholder: translate("Describe a change, like “make it blue”"),
+    aiSubmit: translate("Apply Change"),
+    aiTitle: translate("Edit with On-Device AI"),
+    aiUndo: translate("Undo"),
     actions: translate("SVG actions"),
     alreadyOptimized: translate("This SVG is already optimized."),
     background: translate("Background"),
@@ -71,7 +78,7 @@ export default async function SvgPage() {
   return (
     <>
       <JsonLd value={structuredData} />
-      <SvgEditor labels={labels} locale={locale} />
+      <SvgEditor aiLabels={getOnDeviceAiLabels(translate)} labels={labels} locale={locale} />
     </>
   );
 }

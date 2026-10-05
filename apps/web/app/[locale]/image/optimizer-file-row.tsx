@@ -4,6 +4,7 @@ import { CheckIcon } from "@workspace/icons/check-icon";
 import { CloseIcon } from "@workspace/icons/close-icon";
 import { DownloadIcon } from "@workspace/icons/download-icon";
 import { PhotoIcon } from "@workspace/icons/photo-icon";
+import { SparklesIcon } from "@workspace/icons/sparkles-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
@@ -14,6 +15,8 @@ import { formatBytes } from "../../../lib/format-bytes";
 interface OptimizerFileRowProps {
   item: OptimizerItem;
   labels: ImageOptimizerLabels;
+  /** Present only when the browser can describe images on the device. */
+  onDescribe?: (id: string) => void;
   onDownload: (item: OptimizerItem) => void;
   onRemove: (id: string) => void;
 }
@@ -22,7 +25,13 @@ const accessoryClassName =
   "flex size-9 shrink-0 items-center justify-center rounded-full bg-ios-fill outline-none focus-visible:ring-2 focus-visible:ring-ios-tint/50 active:opacity-60 [&_svg]:size-4.5";
 
 /** One image in the queue: a status glyph, its name, the size before and after, and actions. */
-export function OptimizerFileRow({ item, labels, onDownload, onRemove }: OptimizerFileRowProps) {
+export function OptimizerFileRow({
+  item,
+  labels,
+  onDescribe,
+  onDownload,
+  onRemove,
+}: OptimizerFileRowProps) {
   const savings = item.output ? Math.max(0, 1 - item.output.size / item.file.size) : 0;
   const progress = Math.round(item.progress ?? 0);
   const stageLabel = item.stage ? labels[item.stage] : labels.balanced;
@@ -92,6 +101,18 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
           )}
         </Text>
       </span>
+      {onDescribe && item.status === "done" ? (
+        <button
+          type="button"
+          aria-label={`${labels.describe} ${item.file.name}`}
+          className={cn(accessoryClassName, "text-ios-tint")}
+          onClick={function describe() {
+            onDescribe(item.id);
+          }}
+        >
+          <SparklesIcon />
+        </button>
+      ) : null}
       {item.output ? (
         <button
           type="button"

@@ -14,6 +14,13 @@ vi.mock("./optimize-image", function mockOptimizeImage() {
 });
 
 // Each label reads as its own key, so assertions name the label they expect.
+const aiLabels = {
+  downloading: "Downloading {percent}",
+  failed: "Failed",
+  onDevice: "On device",
+  working: "Working",
+};
+
 const labels = new Proxy(
   {},
   {
@@ -31,7 +38,7 @@ describe("ImageOptimizer", function () {
   afterEach(cleanup);
 
   it("queues images dropped anywhere on the screen", function () {
-    render(<ImageOptimizer labels={labels} />);
+    render(<ImageOptimizer aiLabels={aiLabels} labels={labels} locale="en" />);
 
     dropFiles([new File(["png"], "photo.png", { type: "image/png" })]);
 
@@ -40,7 +47,7 @@ describe("ImageOptimizer", function () {
   });
 
   it("explains when dropped files are not images", function () {
-    render(<ImageOptimizer labels={labels} />);
+    render(<ImageOptimizer aiLabels={aiLabels} labels={labels} locale="en" />);
 
     dropFiles([new File(["text"], "notes.txt", { type: "text/plain" })]);
 
@@ -49,7 +56,7 @@ describe("ImageOptimizer", function () {
   });
 
   it("returns to the empty drop target after removing the last image", function () {
-    render(<ImageOptimizer labels={labels} />);
+    render(<ImageOptimizer aiLabels={aiLabels} labels={labels} locale="en" />);
     dropFiles([new File(["png"], "photo.png", { type: "image/png" })]);
 
     fireEvent.click(screen.getByRole("button", { name: "remove photo.png" }));
@@ -59,7 +66,7 @@ describe("ImageOptimizer", function () {
   });
 
   it("keeps original dimensions and offers no JPEG output in lossless mode", function () {
-    render(<ImageOptimizer labels={labels} />);
+    render(<ImageOptimizer aiLabels={aiLabels} labels={labels} locale="en" />);
     expect(screen.getByRole("button", { name: "jpeg" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "losslessMode" }));

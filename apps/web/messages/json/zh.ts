@@ -23,4 +23,11 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
     "此 JSON 过大，无法在浏览器中安全处理。",
   "This JSON is valid but too complex to preview all at once.":
     "此 JSON 有效，但结构过于复杂，无法一次性完整预览。",
+  Close: "关闭",
+  Copied: "已拷贝",
+  Copy: "拷贝",
+  "Ask a question, like “How many items are there?”": "提出问题，例如“一共有多少项？”",
+  "Generate JSON Schema": "生成 JSON Schema",
+  Ask: "提问",
+  "Ask About This JSON": "询问此 JSON",
 });

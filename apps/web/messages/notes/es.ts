@@ -93,4 +93,17 @@ export const messages = {
     "Añade una lista de verificación desde la barra de herramientas",
   "Swipe a note in the list to pin, move, or delete it":
     "Desliza una nota de la lista para fijarla, moverla o eliminarla",
+  "Writing Tools": "Herramientas de escritura",
+  "Close Writing Tools": "Cerrar Herramientas de escritura",
+  Proofread: "Revisar",
+  Rewrite: "Reescribir",
+  Friendly: "Cordial",
+  Professional: "Profesional",
+  Concise: "Conciso",
+  Summary: "Resumen",
+  "Key Points": "Puntos clave",
+  Replace: "Reemplazar",
+  Copy: "Copiar",
+  "No corrections needed.": "No hace falta ninguna corrección.",
+  "{count} corrections": "{count} correcciones",
 } satisfies TranslationCatalog<typeof englishMessages>;

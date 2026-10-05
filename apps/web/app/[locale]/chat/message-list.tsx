@@ -1,12 +1,20 @@
 "use client";
 
 import { Text } from "@workspace/ui/components/text";
-import { useEffect, useRef, type ReactNode, type UIEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, type ReactNode, type UIEvent } from "react";
 
 import type { ChatLabels, VisibleChatMessage } from "./types";
 
+import { translationProbe } from "../../../lib/on-device-ai/translation-probe";
+import { useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { getMessagePlacement } from "./message-grouping";
 import { MessageRow } from "./message-row";
+
+const MessageTranslation = lazy(function importMessageTranslation() {
+  return import("./message-translation").then(function selectTranslation(module) {
+    return { default: module.MessageTranslation };
+  });
+});
 
 interface MessageListProps {
   emptyDescription: string;
@@ -30,6 +38,7 @@ export function MessageList({
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldFollowMessages = useRef(true);
+  const canTranslate = useOnDeviceAi(translationProbe);
 
   useEffect(
     function revealLatestMessage() {
@@ -88,6 +97,13 @@ export function MessageList({
               locale={locale}
               message={message}
               placement={getMessagePlacement(messages, index)}
+              translation={
+                canTranslate && !message.isOwn ? (
+                  <Suspense fallback={null}>
+                    <MessageTranslation labels={labels} locale={locale} text={message.text} />
+                  </Suspense>
+                ) : null
+              }
             />
           );
         })}

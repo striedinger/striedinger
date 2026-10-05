@@ -35,4 +35,11 @@ export const messages = defineMessages({
   "One PDF at a time · processed locally": "One PDF at a time · processed locally",
   "Restrictions removed": "Restrictions removed",
   "This PDF could not be opened in your browser.": "This PDF could not be opened in your browser.",
+  Close: "Close",
+  "Copy Summary": "Copy Summary",
+  "This PDF has no text to summarize, such as a scanned document.":
+    "This PDF has no text to summarize, such as a scanned document.",
+  "Summarize Document": "Summarize Document",
+  "Summary Copied": "Summary Copied",
+  "Key Points": "Key Points",
 });

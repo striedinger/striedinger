@@ -96,4 +96,8 @@ export const messages = {
   "Playback position": "播放位置",
   Volume: "音量",
   "This episode can’t be played right now.": "此单集目前无法播放。",
+  "Key Points": "要点",
+  "Translate from {language}": "从{language}翻译",
+  "Translated from {language}": "译自{language}",
+  Close: "关闭",
 } satisfies TranslationCatalog<typeof englishMessages>;

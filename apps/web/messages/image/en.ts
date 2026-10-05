@@ -41,4 +41,11 @@ export const messages = defineMessages({
   "You can optimize up to 20 files at once.": "You can optimize up to 20 files at once.",
   "One or more files use a format this browser cannot process.":
     "One or more files use a format this browser cannot process.",
+  Close: "Close",
+  "Alt Text Copied": "Alt Text Copied",
+  "Copy Alt Text": "Copy Alt Text",
+  Describe: "Describe",
+  "Description of {name}": "Description of {name}",
+  Renamed: "Renamed",
+  "Rename to “{name}”": "Rename to “{name}”",
 });

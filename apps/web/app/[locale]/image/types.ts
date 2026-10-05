@@ -18,6 +18,13 @@ export interface OptimizerItem {
 }
 
 export interface ImageOptimizerLabels {
+  closeDescription: string;
+  copiedAltText: string;
+  copyAltText: string;
+  describe: string;
+  describeTitle: string;
+  renamed: string;
+  renameTo: string;
   addMore: string;
   avif: string;
   autoFormat: string;

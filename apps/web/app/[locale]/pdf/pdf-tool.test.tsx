@@ -5,6 +5,13 @@ import type { PdfToolLabels } from "./types";
 
 import { PdfTool } from "./pdf-tool";
 
+const aiLabels = {
+  downloading: "Downloading {percent}",
+  failed: "Failed",
+  onDevice: "On device",
+  working: "Working",
+};
+
 vi.mock("./pdf-preview", function mockPdfPreview() {
   return { PdfPreview: vi.fn<() => null>().mockReturnValue(null) };
 });
@@ -23,7 +30,7 @@ describe("PdfTool", function () {
   afterEach(cleanup);
 
   it("opens the first PDF dropped on the screen and offers to compress it", function () {
-    render(<PdfTool labels={labels} />);
+    render(<PdfTool aiLabels={aiLabels} labels={labels} locale="en" />);
     expect(screen.getByRole("button", { name: "chooseFile" })).toBeTruthy();
 
     fireEvent.drop(window, {
@@ -43,7 +50,7 @@ describe("PdfTool", function () {
   });
 
   it("asks for a quality only for the smallest file mode", function () {
-    render(<PdfTool labels={labels} />);
+    render(<PdfTool aiLabels={aiLabels} labels={labels} locale="en" />);
     fireEvent.drop(window, {
       dataTransfer: {
         files: [new File(["pdf"], "report.pdf", { type: "application/pdf" })],
