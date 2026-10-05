@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { env, pipeline } from "@huggingface/transformers";
+import { env, pipeline, Tensor } from "@huggingface/transformers";
 import { AudioSampleSink, BlobSource, Input } from "mediabunny";
 
 import type { TranscriptionReply, TranscriptionRequest } from "./transcription-messages";
@@ -19,10 +19,17 @@ interface WhisperChunk {
   timestamp: [number, number | null];
 }
 
-type Transcriber = (
-  audio: Float32Array,
-  options: Record<string, unknown>,
-) => Promise<{ chunks?: WhisperChunk[]; text: string }>;
+interface Transcriber {
+  (
+    audio: Float32Array,
+    options: Record<string, unknown>,
+  ): Promise<{ chunks?: WhisperChunk[]; text: string }>;
+  model: {
+    (inputs: Record<string, Tensor>): Promise<{ logits: Tensor }>;
+    generation_config: { decoder_start_token_id: number; lang_to_id: Record<string, number> };
+  };
+  processor: (audio: Float32Array) => Promise<{ input_features: Tensor }>;
+}
 
 let transcriberPromise: Promise<Transcriber> | null = null;
 
@@ -119,6 +126,61 @@ async function readAudio(file: File, start: number, end: number) {
   }
 }
 
+/** The loudest 30 seconds, Whisper's window, which most likely holds speech. */
+function findLoudestWindow(audio: Float32Array) {
+  const windowLength = 30 * whisperSampleRate;
+  if (audio.length <= windowLength) return audio;
+  const blockLength = whisperSampleRate;
+  const blockEnergies = new Float64Array(Math.ceil(audio.length / blockLength));
+  for (let index = 0; index < audio.length; index += 1) {
+    const value = audio[index] ?? 0;
+    blockEnergies[Math.floor(index / blockLength)] += value * value;
+  }
+  const windowBlocks = windowLength / blockLength;
+  let windowEnergy = 0;
+  for (let block = 0; block < windowBlocks; block += 1) windowEnergy += blockEnergies[block] ?? 0;
+  let loudestEnergy = windowEnergy;
+  let loudestStart = 0;
+  for (let block = windowBlocks; block < blockEnergies.length; block += 1) {
+    windowEnergy += (blockEnergies[block] ?? 0) - (blockEnergies[block - windowBlocks] ?? 0);
+    if (windowEnergy > loudestEnergy) {
+      loudestEnergy = windowEnergy;
+      loudestStart = block - windowBlocks + 1;
+    }
+  }
+  const start = Math.min(loudestStart * blockLength, audio.length - windowLength);
+  return audio.subarray(start, start + windowLength);
+}
+
+/**
+ * Detects the spoken language the way Whisper does: one decoder step after the start token,
+ * where the model predicts a language token. transformers.js otherwise assumes English.
+ */
+async function detectLanguage(transcriber: Transcriber, audio: Float32Array) {
+  const config = transcriber.model.generation_config;
+  const { input_features } = await transcriber.processor(findLoudestWindow(audio));
+  const { logits } = await transcriber.model({
+    decoder_input_ids: new Tensor(
+      "int64",
+      BigInt64Array.of(BigInt(config.decoder_start_token_id)),
+      [1, 1],
+    ),
+    input_features,
+  });
+  // One position, so the logits are just the vocabulary's scores.
+  const scores = logits.data as Float32Array;
+  let language: string | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const [token, id] of Object.entries(config.lang_to_id)) {
+    const score = scores[id] ?? Number.NEGATIVE_INFINITY;
+    if (score > bestScore) {
+      bestScore = score;
+      language = token.slice(2, -2);
+    }
+  }
+  return language;
+}
+
 async function transcribe({ end, file, start }: TranscriptionRequest) {
   if (end - start > maximumTranscriptionSeconds) {
     reply({ kind: "error", reason: "too-long" });
@@ -131,10 +193,15 @@ async function transcribe({ end, file, start }: TranscriptionRequest) {
     return;
   }
   reply({ kind: "transcribing" });
+  const language = await detectLanguage(transcriber, audio).catch(function assumeNothing() {
+    return null;
+  });
   const result = await transcriber(audio, {
     chunk_length_s: 30,
+    language,
     return_timestamps: true,
     stride_length_s: 5,
+    task: "transcribe",
   });
   const captions: VideoCaption[] = (result.chunks ?? []).flatMap(function toCaptions(chunk) {
     const text = chunk.text.trim();

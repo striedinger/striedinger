@@ -1,4 +1,9 @@
-import type { InputAudioTrack, InputVideoTrack, WrappedCanvas } from "mediabunny";
+import type {
+  InputAudioTrack,
+  InputVideoTrack,
+  WrappedAudioBuffer,
+  WrappedCanvas,
+} from "mediabunny";
 
 import { AudioBufferSink, CanvasSink } from "mediabunny";
 
@@ -57,6 +62,8 @@ export function createVideoPlayback({
 
   let audioContext: AudioContext | null = null;
   let isPlaying = false;
+  /** Whether the audio clock is driving the playhead, which waits for old decoders to close. */
+  let isClockRunning = false;
   /** The media time playback started from, or the paused position. */
   let startTime = 0;
   /** The audio clock's time when playback started. */
@@ -66,11 +73,17 @@ export function createVideoPlayback({
   let animationFrame = 0;
   let nextFrame: WrappedCanvas | null = null;
   let videoFrames: AsyncGenerator<WrappedCanvas> | null = null;
+  let audioBuffers: AsyncGenerator<WrappedAudioBuffer> | null = null;
+  /**
+   * Settles once the decoders of earlier runs have closed. New decoders wait for it, so seeking
+   * quickly never stacks up hardware decoders, which iOS has few of and loses audio to.
+   */
+  let decodersClosed: Promise<unknown> = Promise.resolve();
   let isFetchingStill = false;
   let pendingStillTime: number | null = null;
 
   function getTime() {
-    if (!isPlaying || !audioContext) return startTime;
+    if (!isPlaying || !isClockRunning || !audioContext) return startTime;
     return Math.min(duration, startTime + audioContext.currentTime - contextStartTime);
   }
 
@@ -80,12 +93,18 @@ export function createVideoPlayback({
 
   function stopDecoding() {
     generation += 1;
+    isClockRunning = false;
     cancelAnimationFrame(animationFrame);
     nextFrame = null;
-    void videoFrames?.return(undefined);
-    videoFrames = null;
     for (const node of scheduledAudio) node.stop();
     scheduledAudio.clear();
+    decodersClosed = Promise.allSettled([
+      decodersClosed,
+      videoFrames?.return(undefined),
+      audioBuffers?.return(undefined),
+    ]);
+    videoFrames = null;
+    audioBuffers = null;
   }
 
   async function advanceFrame(run: number): Promise<void> {
@@ -110,14 +129,15 @@ export function createVideoPlayback({
     if (nextFrame && nextFrame.timestamp <= getTime()) {
       draw(nextFrame);
       nextFrame = null;
-      void advanceFrame(generation);
+      void advanceFrame(generation).catch(ignoreDecodeError);
     }
     animationFrame = requestAnimationFrame(render);
   }
 
   async function playVideo(run: number) {
-    videoFrames = videoSink.canvases(startTime);
-    const first = await videoFrames.next();
+    const frames = videoSink.canvases(startTime);
+    videoFrames = frames;
+    const first = await frames.next();
     if (run !== generation || first.done) return;
     draw(first.value);
     await advanceFrame(run);
@@ -126,25 +146,22 @@ export function createVideoPlayback({
   async function playAudio(run: number, clock: AudioContext) {
     if (!audioSink) return;
     const buffers = audioSink.buffers(startTime);
-    try {
-      for await (const { buffer, duration: bufferDuration, timestamp } of buffers) {
-        if (run !== generation) return;
-        const startAt = contextStartTime + timestamp - startTime;
-        const offset = Math.max(0, clock.currentTime - startAt);
-        if (offset < bufferDuration) {
-          const node = clock.createBufferSource();
-          node.buffer = buffer;
-          node.connect(clock.destination);
-          node.addEventListener("ended", function forgetNode() {
-            scheduledAudio.delete(node);
-          });
-          node.start(Math.max(startAt, clock.currentTime), offset);
-          scheduledAudio.add(node);
-        }
-        await waitUntilNear(timestamp, run);
+    audioBuffers = buffers;
+    for await (const { buffer, duration: bufferDuration, timestamp } of buffers) {
+      if (run !== generation) return;
+      const startAt = contextStartTime + timestamp - startTime;
+      const offset = Math.max(0, clock.currentTime - startAt);
+      if (offset < bufferDuration) {
+        const node = clock.createBufferSource();
+        node.buffer = buffer;
+        node.connect(clock.destination);
+        node.addEventListener("ended", function forgetNode() {
+          scheduledAudio.delete(node);
+        });
+        node.start(Math.max(startAt, clock.currentTime), offset);
+        scheduledAudio.add(node);
       }
-    } finally {
-      void buffers.return();
+      await waitUntilNear(timestamp, run);
     }
   }
 
@@ -171,6 +188,7 @@ export function createVideoPlayback({
   }
 
   async function drawPendingStill(): Promise<void> {
+    await decodersClosed;
     if (pendingStillTime === null) return;
     const target = pendingStillTime;
     const run = generation;
@@ -181,12 +199,27 @@ export function createVideoPlayback({
   }
 
   function startPlayback() {
-    if (!audioContext) return;
-    contextStartTime = audioContext.currentTime;
     const run = generation;
-    void playVideo(run).catch(ignoreDecodeError);
-    void playAudio(run, audioContext).catch(ignoreDecodeError);
-    animationFrame = requestAnimationFrame(render);
+    void decodersClosed.then(function beginPlayback() {
+      // A later seek or pause supersedes this run before it starts.
+      if (run !== generation || !audioContext) return undefined;
+      isClockRunning = true;
+      contextStartTime = audioContext.currentTime;
+      void playVideo(run).catch(ignoreDecodeError);
+      void playAudio(run, audioContext).catch(ignoreDecodeError);
+      animationFrame = requestAnimationFrame(render);
+      return undefined;
+    });
+  }
+
+  /**
+   * Starts a fresh audio context for each play. iOS can silence a context for good, for example
+   * when the system reclaims its media process, while it still reports that it is running.
+   */
+  function replaceAudioContext() {
+    void audioContext?.close().catch(ignoreDecodeError);
+    audioContext = new AudioContext();
+    void audioContext.resume();
   }
 
   function play() {
@@ -195,10 +228,9 @@ export function createVideoPlayback({
     // asks for media playback.
     const audioSession = (navigator as { audioSession?: { type: string } }).audioSession;
     if (audioSession) audioSession.type = "playback";
-    audioContext ??= new AudioContext();
-    void audioContext.resume();
     if (startTime >= duration) startTime = 0;
     stopDecoding();
+    replaceAudioContext();
     isPlaying = true;
     startPlayback();
     onPausedChange(false);
@@ -231,7 +263,7 @@ export function createVideoPlayback({
     dispose() {
       isPlaying = false;
       stopDecoding();
-      void audioContext?.close();
+      void audioContext?.close().catch(ignoreDecodeError);
     },
     pause,
     play,
