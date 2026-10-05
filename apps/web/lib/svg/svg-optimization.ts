@@ -1,16 +1,18 @@
 import { optimize } from "svgo/browser";
 
-import type { CompressionMode } from "./types";
+export interface SvgOptimizationOptions {
+  /** Keeps `width` and `height`, so the drawing keeps its intrinsic size. */
+  keepDimensions: boolean;
+}
 
-export interface SvgWorkerRequest {
-  compressionMode: CompressionMode;
+export interface SvgWorkerRequest extends SvgOptimizationOptions {
   source: string;
 }
 
 export type SvgWorkerResponse = { data: string } | { error: string };
 
-/** Multipass SVGO with the optimizer's precision settings. */
-export function optimizeSvgSource(source: string, compressionMode: CompressionMode): string {
+/** Multipass SVGO with three-decimal precision. */
+export function optimizeSvgSource(source: string, { keepDimensions }: SvgOptimizationOptions) {
   return optimize(source, {
     multipass: true,
     plugins: [
@@ -23,7 +25,7 @@ export function optimizeSvgSource(source: string, compressionMode: CompressionMo
           },
         },
       },
-      ...(compressionMode === "lossless" ? [] : ["removeDimensions" as const]),
+      ...(keepDimensions ? [] : ["removeDimensions" as const]),
     ],
   }).data;
 }

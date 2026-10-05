@@ -1,5 +1,7 @@
 import type { SudokuDifficulty, SudokuLabels } from "./types";
 
+import { downloadBlob } from "../../../lib/download-blob";
+
 interface ShareResultOptions {
   date: string;
   difficulty: SudokuDifficulty;
@@ -45,14 +47,7 @@ export async function shareSudokuResult({
     return "shared";
   }
 
-  const imageUrl = URL.createObjectURL(imageBlob);
-  const downloadLink = document.createElement("a");
-  downloadLink.href = imageUrl;
-  downloadLink.download = filename;
-  downloadLink.click();
-  window.setTimeout(function releaseImageUrl() {
-    URL.revokeObjectURL(imageUrl);
-  }, 1_000);
+  downloadBlob(imageBlob, filename);
   return "downloaded";
 }
 

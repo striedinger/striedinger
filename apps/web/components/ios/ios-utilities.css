@@ -130,6 +130,12 @@
     calc(var(--spacing) * --value(number))
   );
 }
+/* The transparency grid behind image previews, on the grouped cell surface. */
+@utility bg-ios-checkerboard {
+  background-color: var(--ios-grouped-cell);
+  background-image: repeating-conic-gradient(var(--ios-tertiary-fill) 0 25%, transparent 0 50%);
+  background-size: 1rem 1rem;
+}
 @utility translate-y-above-keyboard {
   translate: 0 calc(-1 * var(--keyboard-inset, 0px));
 }

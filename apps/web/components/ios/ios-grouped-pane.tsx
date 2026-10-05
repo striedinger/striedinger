@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { Text } from "@workspace/ui/components/text";
 
-interface JsonPaneProps {
+interface IosGroupedPaneProps {
   /** A control aligned with the section header, such as a tinted text button. */
   action?: ReactNode;
   children: ReactNode;
@@ -12,7 +12,13 @@ interface JsonPaneProps {
 }
 
 /** An inset grouped section with a header, one card, and an optional footnote. */
-export function JsonPane({ action, children, footer, heading, headingId }: JsonPaneProps) {
+export function IosGroupedPane({
+  action,
+  children,
+  footer,
+  heading,
+  headingId,
+}: IosGroupedPaneProps) {
   return (
     <section className="flex min-w-0 flex-col" aria-labelledby={headingId}>
       <div className="flex min-h-9 items-end justify-between gap-3 px-5 pb-1.5">

@@ -9,6 +9,8 @@ import { cn } from "@workspace/ui/lib/utils";
 
 import type { ImageOptimizerLabels, OptimizerItem } from "./types";
 
+import { formatBytes } from "../../../lib/format-bytes";
+
 interface OptimizerFileRowProps {
   item: OptimizerItem;
   labels: ImageOptimizerLabels;
@@ -114,10 +116,4 @@ export function OptimizerFileRow({ item, labels, onDownload, onRemove }: Optimiz
       </button>
     </li>
   );
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1_000) return `${bytes} B`;
-  if (bytes < 1_000_000) return `${(bytes / 1_000).toFixed(1)} KB`;
-  return `${(bytes / 1_000_000).toFixed(1)} MB`;
 }

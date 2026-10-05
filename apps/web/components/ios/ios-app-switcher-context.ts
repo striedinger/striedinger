@@ -19,6 +19,7 @@ export interface IosAppSwitcherLabels {
   podcasts: string;
   stocks: string;
   sudoku: string;
+  svg: string;
   tools: string;
   trains: string;
 }

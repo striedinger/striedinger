@@ -18,6 +18,7 @@ export const messages = defineMessages({
   "JSON Validator and Formatter": "JSON Validator and Formatter",
   "Image Optimizer": "Image Optimizer",
   "PDF Optimizer": "PDF Optimizer",
+  "SVG Editor": "SVG Editor",
   "Drop - Private file sharing": "Drop - Private file sharing",
   "Nearby Chat": "Nearby Chat",
   "Nearby Chat - Private local messaging": "Nearby Chat - Private local messaging",

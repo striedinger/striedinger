@@ -19,6 +19,7 @@ const publicPaths = [
   "/image",
   "/pdf",
   "/json",
+  "/svg",
   "/sudoku",
   "/mta",
   "/stocks",

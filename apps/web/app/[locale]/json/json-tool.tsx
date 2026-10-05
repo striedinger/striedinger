@@ -15,7 +15,7 @@ import {
 import type { JsonWorkerReply, JsonWorkerRequest, JsonWorkerResponse } from "./process-json";
 import type { JsonParseResult, JsonToolLabels } from "./types";
 
-import { JsonPane } from "./json-pane";
+import { IosGroupedPane } from "../../../components/ios/ios-grouped-pane";
 import { JsonTree } from "./json-tree";
 
 interface JsonToolProps {
@@ -145,7 +145,7 @@ export function JsonTool({ labels }: JsonToolProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-2 lg:gap-5">
-      <JsonPane
+      <IosGroupedPane
         heading={labels.inputLabel}
         headingId="json-input-heading"
         footer={
@@ -181,9 +181,9 @@ export function JsonTool({ labels }: JsonToolProps) {
             autoCorrect="off"
           />
         </div>
-      </JsonPane>
+      </IosGroupedPane>
 
-      <JsonPane
+      <IosGroupedPane
         heading={labels.preview}
         headingId="json-preview-heading"
         action={
@@ -223,7 +223,7 @@ export function JsonTool({ labels }: JsonToolProps) {
             </div>
           )}
         </div>
-      </JsonPane>
+      </IosGroupedPane>
     </div>
   );
 }

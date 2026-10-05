@@ -13,7 +13,8 @@ import { IosContentUnavailable } from "../../../components/ios/ios-content-unava
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
-import { formatBytes } from "./format-bytes";
+import { downloadBlob } from "../../../lib/download-blob";
+import { formatBytes } from "../../../lib/format-bytes";
 import { PdfDropZone } from "./pdf-drop-zone";
 import { PdfOptionsSection } from "./pdf-options-section";
 import { PdfStatusSection } from "./pdf-status-section";
@@ -270,12 +271,5 @@ export function PdfTool({ labels }: { labels: PdfToolLabels }) {
 }
 
 function download(result: Result) {
-  const url = URL.createObjectURL(result.blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = result.name;
-  anchor.click();
-  setTimeout(function releaseUrl() {
-    URL.revokeObjectURL(url);
-  }, 1_000);
+  downloadBlob(result.blob, result.name);
 }

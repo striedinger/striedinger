@@ -18,6 +18,7 @@ const labels = {
   og: "Open Graph Preview",
   open: "Open apps menu",
   pdf: "PDF Optimizer",
+  svg: "SVG Editor",
   podcasts: "Podcasts",
   stocks: "Stocks",
   sudoku: "Sudoku",

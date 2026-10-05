@@ -11,6 +11,7 @@ import type { CompressionMode, ImageOptimizerLabels, OptimizerItem, OutputFormat
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
+import { downloadBlob } from "../../../lib/download-blob";
 import { FileDropZone } from "./file-drop-zone";
 import { targetRatioForMode } from "./optimization-settings";
 import { optimizeImage } from "./optimize-image";
@@ -20,15 +21,7 @@ import { OptimizerSettings } from "./optimizer-settings";
 const MAX_FILES = 20;
 
 function download(item: OptimizerItem) {
-  if (!item.output) return;
-  const url = URL.createObjectURL(item.output);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = item.outputName ?? item.file.name;
-  anchor.click();
-  setTimeout(function releaseUrl() {
-    URL.revokeObjectURL(url);
-  }, 1_000);
+  if (item.output) downloadBlob(item.output, item.outputName ?? item.file.name);
 }
 
 export function ImageOptimizer({ labels }: { labels: ImageOptimizerLabels }) {

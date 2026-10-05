@@ -16,6 +16,7 @@ import { HouseFillIcon } from "@workspace/icons/house-fill-icon";
 import { LinkIcon } from "@workspace/icons/link-icon";
 import { NoteTextIcon } from "@workspace/icons/note-text-icon";
 import { NumberGridIcon } from "@workspace/icons/number-grid-icon";
+import { PencilIcon } from "@workspace/icons/pencil-icon";
 import { PhotoIcon } from "@workspace/icons/photo-icon";
 import { PodcastIcon } from "@workspace/icons/podcast-icon";
 import { TramIcon } from "@workspace/icons/tram-icon";
@@ -90,6 +91,7 @@ const tools: readonly SwitcherDestination[] = [
   { background: "bg-[#30b0c7]", href: "/ip", icon: <GlobeIcon />, label: "ip" },
   { background: "bg-[#ff9500]", href: "/javascript", icon: <CodeIcon />, label: "javascript" },
   { background: "bg-[#8e8e93]", href: "/json", icon: <BracesIcon />, label: "json" },
+  { background: "bg-[#af52de]", href: "/svg", icon: <PencilIcon />, label: "svg" },
   { background: "bg-[#ff2d55]", href: "/image", icon: <PhotoIcon />, label: "image" },
   { background: "bg-[#ff3b30]", href: "/pdf", icon: <DocIcon />, label: "pdf" },
 ];

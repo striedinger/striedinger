@@ -25,6 +25,7 @@ export async function getAppSwitcherLabels(locale: Locale): Promise<IosAppSwitch
     podcasts: translate("Podcasts"),
     stocks: translate("Stocks"),
     sudoku: translate("Sudoku"),
+    svg: translate("SVG Editor"),
     tools: translate("Tools"),
     trains: translate("Trains"),
   };

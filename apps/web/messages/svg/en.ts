@@ -1,0 +1,38 @@
+import { defineMessages } from "@workspace/i18n";
+
+export const messages = defineMessages({
+  "SVG Editor": "SVG Editor",
+  "SVG Viewer, Editor, and Optimizer": "SVG Viewer, Editor, and Optimizer",
+  "Edit SVG code with a live preview, then optimize it or export it as a PNG. Everything stays in your browser.":
+    "Edit SVG code with a live preview, then optimize it or export it as a PNG. Everything stays in your browser.",
+  "SVG code": "SVG code",
+  "Paste SVG code here": "Paste SVG code here",
+  Preview: "Preview",
+  "Valid SVG": "Valid SVG",
+  "Invalid SVG: {error}": "Invalid SVG: {error}",
+  "This document is not an SVG image.": "This document is not an SVG image.",
+  "This SVG is too large to edit safely in the browser.":
+    "This SVG is too large to edit safely in the browser.",
+  "Enter valid SVG code to see a preview.": "Enter valid SVG code to see a preview.",
+  "Your SVG stays in this browser and is never sent to the server.":
+    "Your SVG stays in this browser and is never sent to the server.",
+  Background: "Background",
+  Grid: "Grid",
+  Light: "Light",
+  Dark: "Dark",
+  Open: "Open",
+  Optimize: "Optimize",
+  Copy: "Copy",
+  Copied: "Copied",
+  "Download SVG": "Download SVG",
+  "Export PNG": "Export PNG",
+  "Optimized from {before} to {after}.": "Optimized from {before} to {after}.",
+  "This SVG is already optimized.": "This SVG is already optimized.",
+  "This SVG could not be optimized.": "This SVG could not be optimized.",
+  "This file could not be opened as an SVG.": "This file could not be opened as an SVG.",
+  "This SVG could not be exported as a PNG.": "This SVG could not be exported as a PNG.",
+  Dimensions: "Dimensions",
+  "File size": "File size",
+  Elements: "Elements",
+  "SVG actions": "SVG actions",
+});

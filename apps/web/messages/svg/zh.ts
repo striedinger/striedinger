@@ -1,0 +1,39 @@
+import { defineMessages, type TranslationCatalog } from "@workspace/i18n";
+
+import type { messages as englishMessages } from "./en";
+
+export const messages: TranslationCatalog<typeof englishMessages> = defineMessages({
+  "SVG Editor": "SVG 编辑器",
+  "SVG Viewer, Editor, and Optimizer": "SVG 查看器、编辑器和优化器",
+  "Edit SVG code with a live preview, then optimize it or export it as a PNG. Everything stays in your browser.":
+    "编辑 SVG 代码并实时预览，然后进行优化或导出为 PNG。所有内容都保留在你的浏览器中。",
+  "SVG code": "SVG 代码",
+  "Paste SVG code here": "在此粘贴 SVG 代码",
+  Preview: "预览",
+  "Valid SVG": "有效的 SVG",
+  "Invalid SVG: {error}": "无效的 SVG：{error}",
+  "This document is not an SVG image.": "此文档不是 SVG 图像。",
+  "This SVG is too large to edit safely in the browser.": "此 SVG 太大，无法在浏览器中安全编辑。",
+  "Enter valid SVG code to see a preview.": "输入有效的 SVG 代码以查看预览。",
+  "Your SVG stays in this browser and is never sent to the server.":
+    "你的 SVG 保留在此浏览器中，绝不会发送到服务器。",
+  Background: "背景",
+  Grid: "网格",
+  Light: "浅色",
+  Dark: "深色",
+  Open: "打开",
+  Optimize: "优化",
+  Copy: "拷贝",
+  Copied: "已拷贝",
+  "Download SVG": "下载 SVG",
+  "Export PNG": "导出 PNG",
+  "Optimized from {before} to {after}.": "已从 {before} 优化到 {after}。",
+  "This SVG is already optimized.": "此 SVG 已经过优化。",
+  "This SVG could not be optimized.": "无法优化此 SVG。",
+  "This file could not be opened as an SVG.": "无法将此文件作为 SVG 打开。",
+  "This SVG could not be exported as a PNG.": "无法将此 SVG 导出为 PNG。",
+  Dimensions: "尺寸",
+  "File size": "文件大小",
+  Elements: "元素",
+  "SVG actions": "SVG 操作",
+});

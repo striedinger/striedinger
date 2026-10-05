@@ -6,7 +6,7 @@ import { Text } from "@workspace/ui/components/text";
 import type { PdfToolLabels } from "./types";
 
 import { IosListSection } from "../../../components/ios/ios-list-section";
-import { formatBytes } from "./format-bytes";
+import { formatBytes } from "../../../lib/format-bytes";
 
 interface PdfStatusSectionProps {
   isProcessing: boolean;

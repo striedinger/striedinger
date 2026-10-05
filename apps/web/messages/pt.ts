@@ -20,6 +20,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "JSON Validator and Formatter": "Validador e formatador JSON",
   "Image Optimizer": "Otimizador de imagens",
   "PDF Optimizer": "Otimizador de PDF",
+  "SVG Editor": "Editor de SVG",
   "Drop - Private file sharing": "Drop - Compartilhamento privado de arquivos",
   "Nearby Chat": "Chat por proximidade",
   "Nearby Chat - Private local messaging": "Chat por proximidade - Mensagens locais privadas",

@@ -33,6 +33,7 @@ describe("SEO discovery routes", function () {
       "https://striedinger.co/image",
       "https://striedinger.co/pdf",
       "https://striedinger.co/json",
+      "https://striedinger.co/svg",
       "https://striedinger.co/sudoku",
       "https://striedinger.co/mta",
       "https://striedinger.co/stocks",
