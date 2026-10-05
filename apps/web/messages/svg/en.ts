@@ -35,4 +35,6 @@ export const messages = defineMessages({
   "File size": "File size",
   Elements: "Elements",
   "SVG actions": "SVG actions",
+  Details: "Details",
+  Share: "Share",
 });

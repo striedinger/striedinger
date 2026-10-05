@@ -38,4 +38,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "File size": "Tamanho do arquivo",
   Elements: "Elementos",
   "SVG actions": "Ações de SVG",
+  Details: "Detalhes",
+  Share: "Compartilhar",
 });

@@ -29,6 +29,7 @@ export default async function SvgPage() {
     copied: translate("Copied"),
     copy: translate("Copy"),
     darkBackground: translate("Dark"),
+    details: translate("Details"),
     description: translate(
       "Edit SVG code with a live preview, then optimize it or export it as a PNG. Everything stays in your browser.",
     ),
@@ -51,6 +52,7 @@ export default async function SvgPage() {
     optimizeFailed: translate("This SVG could not be optimized."),
     placeholder: translate("Paste SVG code here"),
     preview: translate("Preview"),
+    share: translate("Share"),
     privacy: translate("Your SVG stays in this browser and is never sent to the server."),
     title: translate("SVG Editor"),
     tooLarge: translate("This SVG is too large to edit safely in the browser."),

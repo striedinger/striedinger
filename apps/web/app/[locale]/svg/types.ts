@@ -3,6 +3,7 @@ export interface SvgEditorLabels {
   copied: string;
   copy: string;
   darkBackground: string;
+  details: string;
   description: string;
   dimensions: string;
   downloadSvg: string;
@@ -25,6 +26,7 @@ export interface SvgEditorLabels {
   placeholder: string;
   preview: string;
   privacy: string;
+  share: string;
   actions: string;
   title: string;
   tooLarge: string;

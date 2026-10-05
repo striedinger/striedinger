@@ -21,6 +21,7 @@ const labels: SvgEditorLabels = {
   copy: "Copy",
   darkBackground: "Dark",
   description: "Description",
+  details: "Details",
   dimensions: "Dimensions",
   downloadSvg: "Download SVG",
   elements: "Elements",
@@ -41,6 +42,7 @@ const labels: SvgEditorLabels = {
   placeholder: "Paste SVG code here",
   preview: "Preview",
   privacy: "Private",
+  share: "Share",
   title: "SVG Editor",
   tooLarge: "Too large",
   valid: "Valid SVG",
@@ -65,7 +67,7 @@ describe("SvgEditor", function () {
 
     expect(screen.getByText(/^Invalid SVG:/)).toBeInTheDocument();
     expect(screen.getByRole("img", { name: labels.preview })).toHaveAttribute("src", previewSource);
-    expect(screen.getByRole("button", { name: labels.downloadSvg })).toBeDisabled();
+    expect(screen.getByRole("button", { name: labels.optimize })).toBeDisabled();
   });
 
   it("replaces the code with the optimized markup and reports the savings", async function () {
