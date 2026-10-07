@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import {
-  // Next.js runs this with React canary; stable React used by unit tests has no transition types.
   addTransitionType,
   startTransition,
   useEffect,
@@ -54,7 +53,7 @@ function alwaysAnimate() {
 }
 
 function addIosNavigationType(direction: IosNavigationDirection) {
-  addTransitionType?.(iosNavigationTypes[direction]);
+  addTransitionType(iosNavigationTypes[direction]);
 }
 
 /**
