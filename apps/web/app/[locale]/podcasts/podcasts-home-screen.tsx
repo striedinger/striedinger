@@ -68,7 +68,7 @@ export function PodcastsHomeScreen({ popular }: PodcastsHomeScreenProps) {
         ) : isNewListener && popular.length > 0 ? (
           <ul
             aria-label={messages["Top Shows"]}
-            className="scrollbar-none m-0 flex snap-x snap-mandatory scroll-px-4 list-none gap-3 overflow-x-auto overscroll-x-contain px-4 [&::-webkit-scrollbar]:hidden"
+            className="m-0 flex snap-x snap-mandatory scroll-px-4 scrollbar-none list-none gap-3 overflow-x-auto overscroll-x-contain px-4 [&::-webkit-scrollbar]:hidden"
           >
             {popular.slice(0, 5).map(function renderFeatured(podcast, index) {
               return (

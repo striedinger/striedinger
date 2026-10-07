@@ -101,17 +101,17 @@ describe("Podcasts", function () {
     window.localStorage.clear();
     window.history.replaceState(null, "", "/podcasts/a-thoughtful-show-123");
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function skipLoading() {});
-    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(
-      function startPlaying(this: HTMLMediaElement) {
-        this.dispatchEvent(new Event("play"));
-        return Promise.resolve();
-      },
-    );
-    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(
-      function stopPlaying(this: HTMLMediaElement) {
-        this.dispatchEvent(new Event("pause"));
-      },
-    );
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(function startPlaying(
+      this: HTMLMediaElement,
+    ) {
+      this.dispatchEvent(new Event("play"));
+      return Promise.resolve();
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function stopPlaying(
+      this: HTMLMediaElement,
+    ) {
+      this.dispatchEvent(new Event("pause"));
+    });
   });
 
   afterEach(function restoreMocks() {

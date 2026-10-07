@@ -114,7 +114,7 @@ export function NoteFormatPanel({
           <CloseIcon className="size-3.5" strokeWidth={3} />
         </button>
       </div>
-      <div className="scrollbar-none -mx-4 flex snap-x gap-1 overflow-x-auto px-4">
+      <div className="-mx-4 flex snap-x scrollbar-none gap-1 overflow-x-auto px-4">
         {blockStyles.map(function renderBlockStyle(blockStyle) {
           const isActive = formatState.blockStyle === blockStyle.style;
           return (

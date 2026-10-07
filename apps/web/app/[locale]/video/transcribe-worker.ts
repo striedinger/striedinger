@@ -48,42 +48,44 @@ async function hasWebGpu() {
  * 8-bit decoder runs on the CPU either way, which keeps the download small and decoding fast.
  */
 function loadTranscriber() {
-  transcriberPromise ??= (async function createTranscriber() {
-    const useWebGpu = await hasWebGpu();
-    const runtimeVersion = env.backends.onnx.versions?.web;
-    const runtimeBuild = useWebGpu ? "ort-wasm-simd-threaded.asyncify" : "ort-wasm-simd-threaded";
-    const runtimeBase = new URL(`/vendor/onnxruntime-web/${runtimeVersion}/`, self.location.origin);
-    env.allowLocalModels = false;
-    if (env.backends.onnx.wasm) {
-      env.backends.onnx.wasm.wasmPaths = {
-        mjs: new URL(`${runtimeBuild}.mjs`, runtimeBase).href,
-        wasm: new URL(`${runtimeBuild}.wasm`, runtimeBase).href,
-      };
-    }
-    const downloads = new Map<string, { loaded: number; total: number }>();
-    const transcriber = await pipeline("automatic-speech-recognition", modelId, {
-      device: useWebGpu ? { decoder_model_merged: "wasm", encoder_model: "webgpu" } : "wasm",
-      dtype: useWebGpu
-        ? { decoder_model_merged: "q8", encoder_model: "q4" }
-        : { decoder_model_merged: "q8", encoder_model: "q8" },
-      progress_callback(event: { file?: string; loaded?: number; status: string; total?: number }) {
-        if (event.status !== "progress" || !event.file || !event.total) return;
-        downloads.set(event.file, { loaded: event.loaded ?? 0, total: event.total });
-        let loaded = 0;
-        let total = 0;
-        for (const download of downloads.values()) {
-          loaded += download.loaded;
-          total += download.total;
-        }
-        reply({ kind: "download", progress: total > 0 ? loaded / total : 0 });
-      },
-    });
-    return transcriber as unknown as Transcriber;
-  })().catch(function forgetFailedLoad(error) {
+  transcriberPromise ??= createTranscriber().catch(function forgetFailedLoad(error) {
     transcriberPromise = null;
     throw error;
   });
   return transcriberPromise;
+}
+
+async function createTranscriber() {
+  const useWebGpu = await hasWebGpu();
+  const runtimeVersion = env.backends.onnx.versions?.web;
+  const runtimeBuild = useWebGpu ? "ort-wasm-simd-threaded.asyncify" : "ort-wasm-simd-threaded";
+  const runtimeBase = new URL(`/vendor/onnxruntime-web/${runtimeVersion}/`, self.location.origin);
+  env.allowLocalModels = false;
+  if (env.backends.onnx.wasm) {
+    env.backends.onnx.wasm.wasmPaths = {
+      mjs: new URL(`${runtimeBuild}.mjs`, runtimeBase).href,
+      wasm: new URL(`${runtimeBuild}.wasm`, runtimeBase).href,
+    };
+  }
+  const downloads = new Map<string, { loaded: number; total: number }>();
+  const transcriber = await pipeline("automatic-speech-recognition", modelId, {
+    device: useWebGpu ? { decoder_model_merged: "wasm", encoder_model: "webgpu" } : "wasm",
+    dtype: useWebGpu
+      ? { decoder_model_merged: "q8", encoder_model: "q4" }
+      : { decoder_model_merged: "q8", encoder_model: "q8" },
+    progress_callback(event: { file?: string; loaded?: number; status: string; total?: number }) {
+      if (event.status !== "progress" || !event.file || !event.total) return;
+      downloads.set(event.file, { loaded: event.loaded ?? 0, total: event.total });
+      let loaded = 0;
+      let total = 0;
+      for (const download of downloads.values()) {
+        loaded += download.loaded;
+        total += download.total;
+      }
+      reply({ kind: "download", progress: total > 0 ? loaded / total : 0 });
+    },
+  });
+  return transcriber as unknown as Transcriber;
 }
 
 /** Decodes the audio between two times and mixes it down to 16 kHz mono by averaging. */

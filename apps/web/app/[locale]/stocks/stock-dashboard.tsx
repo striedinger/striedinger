@@ -249,7 +249,7 @@ export function StockDashboard({
         {!displayedSeries ? (
           <div
             role="alert"
-            className="aspect-1.5/1 flex items-center justify-center rounded-ios-lg bg-ios-grouped-background p-6 text-center sm:aspect-[2.35/1]"
+            className="flex aspect-1.5/1 items-center justify-center rounded-ios-lg bg-ios-grouped-background p-6 text-center sm:aspect-[2.35/1]"
           >
             <Text className="text-ios-subheadline text-ios-secondary-label">
               {labels.dataUnavailable}

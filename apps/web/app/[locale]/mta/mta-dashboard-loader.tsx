@@ -24,13 +24,15 @@ export async function MtaDashboardLoader({
     locationQuery,
   );
   const initialStations = await loadInitialStations(resolvedState);
+  // oxlint-disable-next-line react-hooks-js/purity -- Server component; runs once per request.
+  const updatedAt = new Date().toISOString();
 
   return (
     <MtaDashboard
       initialState={resolvedState}
       initialStations={initialStations}
       initialSearchFailed={searchFailed}
-      initialUpdatedAt={new Date().toISOString()}
+      initialUpdatedAt={updatedAt}
       labels={labels}
       locale={locale}
     />

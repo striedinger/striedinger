@@ -35,7 +35,7 @@ export function TrainFilter({
     <div
       role="group"
       aria-label={labels.filterByTrain}
-      className="scrollbar-none flex snap-x scroll-px-4 gap-1.5 overflow-x-auto overscroll-x-contain px-4 py-1 [&::-webkit-scrollbar]:hidden"
+      className="flex snap-x scroll-px-4 scrollbar-none gap-1.5 overflow-x-auto overscroll-x-contain px-4 py-1 [&::-webkit-scrollbar]:hidden"
     >
       <button
         type="button"
