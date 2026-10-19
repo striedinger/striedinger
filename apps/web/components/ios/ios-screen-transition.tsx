@@ -1,7 +1,4 @@
-import type { ReactNode } from "react";
-
-// Next.js runs these with React canary; stable React used by unit tests has no ViewTransition.
-import { ViewTransition } from "react";
+import { ViewTransition, type ReactNode } from "react";
 
 const screenTransitionClasses = {
   "ios-nav-forward": "ios-nav-forward",
@@ -19,7 +16,6 @@ interface IosScreenTransitionProps {
  * as tab switches and data arriving, render without animation.
  */
 export function IosScreenTransition({ children }: IosScreenTransitionProps) {
-  if (!ViewTransition) return children;
   return (
     <ViewTransition
       default="none"

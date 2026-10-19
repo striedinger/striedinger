@@ -22,6 +22,10 @@ function importLanguageSelect() {
   return import("./language-select");
 }
 
+function preloadSelect() {
+  void importLanguageSelect();
+}
+
 const LanguageSelect = lazy(function loadLanguageSelect() {
   return importLanguageSelect().then(function selectComponent(module) {
     return { default: module.LanguageSelect };
@@ -35,10 +39,6 @@ const LanguageSelect = lazy(function loadLanguageSelect() {
  */
 export function LanguagePicker({ label, locale }: LanguagePickerProps) {
   const [activation, setActivation] = useState<Activation | null>(null);
-
-  function preloadSelect() {
-    void importLanguageSelect();
-  }
 
   const placeholder = (
     <button

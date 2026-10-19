@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Podcast, PodcastEpisode } from "./types";
@@ -101,17 +102,17 @@ describe("Podcasts", function () {
     window.localStorage.clear();
     window.history.replaceState(null, "", "/podcasts/a-thoughtful-show-123");
     vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function skipLoading() {});
-    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(
-      function startPlaying(this: HTMLMediaElement) {
-        this.dispatchEvent(new Event("play"));
-        return Promise.resolve();
-      },
-    );
-    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(
-      function stopPlaying(this: HTMLMediaElement) {
-        this.dispatchEvent(new Event("pause"));
-      },
-    );
+    vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(function startPlaying(
+      this: HTMLMediaElement,
+    ) {
+      this.dispatchEvent(new Event("play"));
+      return Promise.resolve();
+    });
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function stopPlaying(
+      this: HTMLMediaElement,
+    ) {
+      this.dispatchEvent(new Event("pause"));
+    });
   });
 
   afterEach(function restoreMocks() {
@@ -139,6 +140,33 @@ describe("Podcasts", function () {
       const { PodcastsLibraryScreen } = await import("./podcasts-library-screen");
       return <PodcastsLibraryScreen view={null} />;
     });
+    expect(await screen.findByRole("link", { name: /^Shows\s*1/ })).toHaveAttribute(
+      "href",
+      "/podcasts/library/shows",
+    );
+  });
+
+  it("leaves the stored library to the browser when the server renders it", async function () {
+    const { unmount } = await renderShow();
+    fireEvent.click(await screen.findByRole("button", { name: "Follow" }));
+    unmount();
+
+    navigation.segments = ["library"];
+    const { PodcastsShell } = await import("./podcasts-shell");
+    const { PodcastsLibraryScreen } = await import("./podcasts-library-screen");
+    const libraryPage = (
+      <PodcastsShell aiLabels={aiLabels} locale="en" messages={messages}>
+        <PodcastsLibraryScreen view={null} />
+      </PodcastsShell>
+    );
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(libraryPage);
+    document.body.append(container);
+
+    expect(within(container).getByRole("status", { name: "Library" })).toBeInTheDocument();
+    expect(within(container).queryByRole("link", { name: /^Shows/ })).not.toBeInTheDocument();
+
+    render(libraryPage, { container, hydrate: true });
     expect(await screen.findByRole("link", { name: /^Shows\s*1/ })).toHaveAttribute(
       "href",
       "/podcasts/library/shows",

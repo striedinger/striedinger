@@ -493,6 +493,18 @@ function finishCurrentEpisode() {
   else closePlayer();
 }
 
+function seekBackward(details: MediaSessionActionDetails) {
+  skipBy(-(details.seekOffset ?? skipBackwardSeconds));
+}
+
+function seekForward(details: MediaSessionActionDetails) {
+  skipBy(details.seekOffset ?? skipForwardSeconds);
+}
+
+function seekToPosition(details: MediaSessionActionDetails) {
+  if (typeof details.seekTime === "number") seekTo(details.seekTime);
+}
+
 function updateMediaSessionMetadata(item: PodcastQueueItem) {
   if (!("mediaSession" in navigator) || typeof MediaMetadata === "undefined") return;
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -504,24 +516,9 @@ function updateMediaSessionMetadata(item: PodcastQueueItem) {
   const handlers: Array<[MediaSessionAction, MediaSessionActionHandler]> = [
     ["play", togglePlayback],
     ["pause", pausePlayback],
-    [
-      "seekbackward",
-      function seekBackward(details) {
-        skipBy(-(details.seekOffset ?? skipBackwardSeconds));
-      },
-    ],
-    [
-      "seekforward",
-      function seekForward(details) {
-        skipBy(details.seekOffset ?? skipForwardSeconds);
-      },
-    ],
-    [
-      "seekto",
-      function seekToPosition(details) {
-        if (typeof details.seekTime === "number") seekTo(details.seekTime);
-      },
-    ],
+    ["seekbackward", seekBackward],
+    ["seekforward", seekForward],
+    ["seekto", seekToPosition],
     ["nexttrack", playNextInQueue],
   ];
   for (const [action, handler] of handlers) {

@@ -14,6 +14,7 @@ interface SudokuGameLoaderProps {
 /** Today's puzzles, chosen at request time so the rest of the page can be prerendered. */
 export async function SudokuGameLoader({ labels, locale }: SudokuGameLoaderProps) {
   await connection();
+  // oxlint-disable-next-line react-hooks-js/purity -- Server component; runs once per request.
   const date = new Date().toISOString().slice(0, 10);
   const puzzles = await getDailyPuzzles(date);
   return <SudokuGame labels={labels} locale={locale} puzzles={puzzles} />;
