@@ -73,4 +73,22 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   Original: "Original",
   "About {size}": "Etwa {size}",
   "Detected language: {language}": "Erkannte Sprache: {language}",
+  Watermark: "Wasserzeichen",
+  "Watermark text": "Wasserzeichentext",
+  "Text, like @yourname": "Text, z. B. @deinname",
+  "Add Logo": "Logo hinzufügen",
+  "Replace Logo": "Logo ersetzen",
+  "Remove Logo": "Logo entfernen",
+  Motion: "Bewegung",
+  Moving: "Bewegt",
+  Fixed: "Fest",
+  Size: "Größe",
+  Small: "Klein",
+  Medium: "Mittel",
+  Large: "Groß",
+  Opacity: "Deckkraft",
+  "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.":
+    "Verwende ein PNG-, JPEG-, WebP- oder SVG-Bild mit bis zu 5 MB und 4096 Pixeln pro Seite.",
+  "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.":
+    "Bewegte Wasserzeichen springen alle paar Sekunden in eine andere Ecke. Wasserzeichen werden in jedes Bild gezeichnet, daher wird das Video neu codiert.",
 });

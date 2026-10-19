@@ -8,19 +8,24 @@ import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
 import type { OpenedVideo } from "./open-video";
+import type { VideoWatermark } from "./types";
 import type { VideoPlayback } from "./video-playback";
 
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
+import { VideoWatermarkOverlay } from "./video-watermark-overlay";
 
 interface VideoPreviewProps {
   aspectRatio: number;
   caption: string | null;
+  /** Seconds from the start of the trimmed clip, for the watermark's position. */
+  clipTime: number;
   isPlaying: boolean;
   labels: { pause: string; play: string };
   onPlayingChange: (isPlaying: boolean) => void;
   onTogglePlayback: () => void;
   opened: OpenedVideo;
   playbackRef: RefObject<VideoPlayback | null>;
+  watermark: VideoWatermark | null;
 }
 
 /**
@@ -30,17 +35,20 @@ interface VideoPreviewProps {
 export function VideoPreview({
   aspectRatio,
   caption,
+  clipTime,
   isPlaying,
   labels,
   onPlayingChange,
   onTogglePlayback,
   opened,
   playbackRef,
+  watermark,
 }: VideoPreviewProps) {
   return (
     <div
       className="relative mx-auto flex max-h-[min(60dvh,36rem)] w-full items-center justify-center overflow-hidden rounded-ios-2xl bg-black"
-      style={{ aspectRatio }}
+      // A size container, so overlays can be sized relative to the frame like the export's.
+      style={{ aspectRatio, containerType: "size" }}
     >
       <canvas
         ref={function attachPlayback(canvas: HTMLCanvasElement | null) {
@@ -58,6 +66,7 @@ export function VideoPreview({
         className="absolute inset-0 size-full object-contain"
         onClick={onTogglePlayback}
       />
+      {watermark ? <VideoWatermarkOverlay clipTime={clipTime} watermark={watermark} /> : null}
       {caption ? (
         <Text
           aria-live="polite"

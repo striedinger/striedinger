@@ -73,4 +73,22 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   Original: "Originale",
   "About {size}": "Environ {size}",
   "Detected language: {language}": "Langue détectée : {language}",
+  Watermark: "Filigrane",
+  "Watermark text": "Texte du filigrane",
+  "Text, like @yourname": "Texte, comme @votrenom",
+  "Add Logo": "Ajouter un logo",
+  "Replace Logo": "Remplacer le logo",
+  "Remove Logo": "Supprimer le logo",
+  Motion: "Mouvement",
+  Moving: "Mobile",
+  Fixed: "Fixe",
+  Size: "Taille",
+  Small: "Petite",
+  Medium: "Moyenne",
+  Large: "Grande",
+  Opacity: "Opacité",
+  "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.":
+    "Utilisez une image PNG, JPEG, WebP ou SVG de 5 Mo maximum et 4096 pixels par côté.",
+  "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.":
+    "Les filigranes mobiles changent de coin toutes les quelques secondes. Les filigranes sont dessinés dans chaque image, la vidéo est donc réencodée.",
 });

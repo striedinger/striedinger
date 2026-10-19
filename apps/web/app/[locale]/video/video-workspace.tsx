@@ -15,6 +15,8 @@ import type {
   VideoDetails,
   VideoEditorLabels,
   VideoTrim,
+  VideoWatermark,
+  WatermarkLogo,
 } from "./types";
 import type { VideoPlayback } from "./video-playback";
 import type { WaveformReply, WaveformRequest } from "./waveform-worker";
@@ -43,6 +45,7 @@ import { VideoDetailsSection } from "./video-details-section";
 import { VideoExportSizeSection } from "./video-export-size-section";
 import { VideoPreview } from "./video-preview";
 import { minimumClipSeconds, VideoTrimBar } from "./video-trim-bar";
+import { VideoWatermarkSection } from "./video-watermark-section";
 
 interface VideoWorkspaceProps {
   aiLabels: OnDeviceAiLabels;
@@ -73,6 +76,7 @@ export function VideoWorkspace({
 }: VideoWorkspaceProps) {
   const playbackRef = useRef<VideoPlayback | null>(null);
   const coverUrlRef = useRef<string | null>(null);
+  const logoUrlRef = useRef<string | null>(null);
   const [opened, setOpened] = useState<OpenedVideo | null>(null);
   const [hasOpenError, setHasOpenError] = useState(false);
   const [selectedTrim, setTrim] = useState<VideoTrim>({ end: 0, start: 0 });
@@ -90,6 +94,13 @@ export function VideoWorkspace({
     title: "",
   });
   const [exactCuts, setExactCuts] = useState(false);
+  const [watermark, setWatermark] = useState<VideoWatermark>({
+    logo: null,
+    motion: "hop",
+    opacity: 0.75,
+    size: "medium",
+    text: "",
+  });
   const [resolution, setResolution] = useState<ExportResolution>("original");
   const [cover, setCover] = useState<VideoCover | null>(null);
   const [isCapturing, startCapturing] = useTransition();
@@ -219,9 +230,10 @@ export function VideoWorkspace({
     [isPlaying, selectedTrim.end],
   );
 
-  useEffect(function releaseCoverOnClose() {
-    return function revokeCoverUrl() {
+  useEffect(function releaseImagesOnClose() {
+    return function revokeImageUrls() {
       if (coverUrlRef.current) URL.revokeObjectURL(coverUrlRef.current);
+      if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
     };
   }, []);
 
@@ -261,10 +273,13 @@ export function VideoWorkspace({
     resizeDimensions && resolution !== "original"
       ? { ...resizeDimensions, bitrate: resolveExportBitrate(resolution, info.frameRate) }
       : null;
+  const hasWatermark = watermark.text.trim() !== "" || watermark.logo !== null;
   // Re-encoding cuts on any frame. Copying starts at a keyframe, so the start snaps to the one
   // the export will actually begin at.
   const snapKeyframes =
-    exactCuts || resize !== null || (captionMode === "burned" && hasCaptionText) ? null : keyframes;
+    exactCuts || resize !== null || hasWatermark || (captionMode === "burned" && hasCaptionText)
+      ? null
+      : keyframes;
   const trim = snapKeyframes
     ? {
         end: selectedTrim.end,
@@ -284,6 +299,7 @@ export function VideoWorkspace({
     exactCuts,
     resize,
     trim,
+    watermark: hasWatermark ? { ...watermark, logo: watermark.logo?.url ?? null } : null,
   });
   const exportState = videoExport.state;
   const hasCurrentExport = exportState.kind === "done" && exportState.settingsKey === settingsKey;
@@ -327,6 +343,14 @@ export function VideoWorkspace({
     });
   }
 
+  function changeWatermarkLogo(logo: WatermarkLogo | null) {
+    if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
+    logoUrlRef.current = logo?.url ?? null;
+    setWatermark(function applyLogo(current) {
+      return { ...current, logo };
+    });
+  }
+
   function saveCover() {
     if (!cover) return;
     const stem = file.name.replace(/\.[^.]+$/, "");
@@ -347,6 +371,7 @@ export function VideoWorkspace({
         outputName: `${stem}-edited.mp4`,
         resize,
         trim,
+        watermark: hasWatermark ? { ...watermark, logo: watermark.logo?.blob ?? null } : null,
       },
       settingsKey,
     );
@@ -404,12 +429,14 @@ export function VideoWorkspace({
       <VideoPreview
         aspectRatio={info.width / info.height}
         caption={visibleCaption}
+        clipTime={currentTime - trim.start}
         isPlaying={isPlaying}
         labels={labels}
         onPlayingChange={setIsPlaying}
         onTogglePlayback={togglePlayback}
         opened={opened}
         playbackRef={playbackRef}
+        watermark={hasWatermark ? watermark : null}
       />
 
       <div className="flex flex-col gap-2">
@@ -451,6 +478,14 @@ export function VideoWorkspace({
         onLanguageDetected={setCaptionLanguage}
         onSeek={seek}
         trim={trim}
+      />
+
+      <VideoWatermarkSection
+        labels={labels}
+        locale={locale}
+        onLogoChange={changeWatermarkLogo}
+        onWatermarkChange={setWatermark}
+        watermark={watermark}
       />
 
       <VideoCoverSection

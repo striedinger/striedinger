@@ -5,6 +5,7 @@ import { IosSwitchRow } from "../../../components/ios/ios-switch-row";
 import { IosValueRow } from "../../../components/ios/ios-value-row";
 import { formatBytes } from "../../../lib/format-bytes";
 import { formatClock } from "./captions";
+import { fieldClassName, fieldRowClassName } from "./video-field-styles";
 
 interface VideoDetailsSectionProps {
   details: VideoDetails;
@@ -13,11 +14,6 @@ interface VideoDetailsSectionProps {
   labels: VideoEditorLabels;
   onDetailsChange: (details: VideoDetails) => void;
 }
-
-const fieldRowClassName =
-  "relative px-4 not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator";
-const fieldClassName =
-  "block w-full resize-none bg-transparent py-2.75 text-ios-body text-ios-label caret-ios-tint outline-none placeholder:text-ios-tertiary-label";
 
 /** The metadata written into the exported file, and facts about the original. */
 export function VideoDetailsSection({

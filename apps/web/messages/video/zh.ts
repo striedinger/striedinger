@@ -70,4 +70,22 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   Original: "原始",
   "About {size}": "约 {size}",
   "Detected language: {language}": "检测到的语言：{language}",
+  Watermark: "水印",
+  "Watermark text": "水印文字",
+  "Text, like @yourname": "文字，例如 @你的名字",
+  "Add Logo": "添加标志",
+  "Replace Logo": "替换标志",
+  "Remove Logo": "移除标志",
+  Motion: "动态",
+  Moving: "移动",
+  Fixed: "固定",
+  Size: "大小",
+  Small: "小",
+  Medium: "中",
+  Large: "大",
+  Opacity: "不透明度",
+  "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.":
+    "请使用不超过 5 MB、每边不超过 4096 像素的 PNG、JPEG、WebP 或 SVG 图片。",
+  "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.":
+    "移动水印每隔几秒在各角之间跳动。水印会绘制到每一帧中，因此视频会重新编码。",
 });

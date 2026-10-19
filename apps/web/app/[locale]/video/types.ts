@@ -1,20 +1,21 @@
 export interface VideoEditorLabels {
   about: string;
   addCaption: string;
+  addLogo: string;
   cancel: string;
   captionBurned: string;
   captionMode: string;
+  captions: string;
   captionText: string;
   captionTrack: string;
-  captions: string;
   chooseAnother: string;
   chooseVideo: string;
   cover: string;
   coverFooter: string;
   deleteCaption: string;
   description: string;
-  detectedLanguage: string;
   details: string;
+  detectedLanguage: string;
   downloadCaptions: string;
   dropActive: string;
   dropPrompt: string;
@@ -23,8 +24,8 @@ export interface VideoEditorLabels {
   exactCutsFooter: string;
   export: string;
   exportFailed: string;
-  exportSize: string;
   exporting: string;
+  exportSize: string;
   fileSize: string;
   format: string;
   frameRate: string;
@@ -32,6 +33,7 @@ export interface VideoEditorLabels {
   generateCaptions: string;
   generateFooter: string;
   listening: string;
+  logoInvalid: string;
   noAudio: string;
   noCaptions: string;
   noSpeech: string;
@@ -43,10 +45,15 @@ export interface VideoEditorLabels {
   privacy: string;
   removeLocation: string;
   removeLocationFooter: string;
+  removeLogo: string;
+  replaceLogo: string;
   resolution: string;
   saveCoverImage: string;
   saveVideo: string;
   selected: string;
+  sizeLarge: string;
+  sizeMedium: string;
+  sizeSmall: string;
   supported: string;
   title: string;
   tooLongToTranscribe: string;
@@ -57,6 +64,15 @@ export interface VideoEditorLabels {
   useCurrentFrame: string;
   videoDescription: string;
   videoTitle: string;
+  watermark: string;
+  watermarkFixed: string;
+  watermarkFooter: string;
+  watermarkMotion: string;
+  watermarkMoving: string;
+  watermarkOpacity: string;
+  watermarkPlaceholder: string;
+  watermarkSize: string;
+  watermarkText: string;
 }
 
 export interface VideoCaption {
@@ -68,6 +84,26 @@ export interface VideoCaption {
 }
 
 export type CaptionExportMode = "track" | "burned";
+
+export type WatermarkMotion = "hop" | "fixed";
+export type WatermarkSize = "small" | "medium" | "large";
+
+/** A logo redrawn as a small PNG, so whatever was uploaded is bounded and inert. */
+export interface WatermarkLogo {
+  blob: Blob;
+  height: number;
+  /** An object URL of `blob` for the preview, released when the logo is replaced. */
+  url: string;
+  width: number;
+}
+
+export interface VideoWatermark {
+  logo: WatermarkLogo | null;
+  motion: WatermarkMotion;
+  opacity: number;
+  size: WatermarkSize;
+  text: string;
+}
 
 export interface VideoTrim {
   end: number;

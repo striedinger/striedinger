@@ -70,4 +70,22 @@ export const messages = defineMessages({
   Original: "Original",
   "About {size}": "About {size}",
   "Detected language: {language}": "Detected language: {language}",
+  Watermark: "Watermark",
+  "Watermark text": "Watermark text",
+  "Text, like @yourname": "Text, like @yourname",
+  "Add Logo": "Add Logo",
+  "Replace Logo": "Replace Logo",
+  "Remove Logo": "Remove Logo",
+  Motion: "Motion",
+  Moving: "Moving",
+  Fixed: "Fixed",
+  Size: "Size",
+  Small: "Small",
+  Medium: "Medium",
+  Large: "Large",
+  Opacity: "Opacity",
+  "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.":
+    "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.",
+  "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.":
+    "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.",
 });

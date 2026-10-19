@@ -24,6 +24,26 @@ export default async function VideoPage() {
   const locale = await getRequestLocale();
   const translate = await getVideoTranslator(locale);
   const labels: VideoEditorLabels = {
+    watermark: translate("Watermark"),
+    watermarkText: translate("Watermark text"),
+    watermarkPlaceholder: translate("Text, like @yourname"),
+    addLogo: translate("Add Logo"),
+    replaceLogo: translate("Replace Logo"),
+    removeLogo: translate("Remove Logo"),
+    watermarkMotion: translate("Motion"),
+    watermarkMoving: translate("Moving"),
+    watermarkFixed: translate("Fixed"),
+    watermarkSize: translate("Size"),
+    sizeSmall: translate("Small"),
+    sizeMedium: translate("Medium"),
+    sizeLarge: translate("Large"),
+    watermarkOpacity: translate("Opacity"),
+    logoInvalid: translate(
+      "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.",
+    ),
+    watermarkFooter: translate(
+      "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.",
+    ),
     about: translate("About {size}"),
     addCaption: translate("Add Caption"),
     cancel: translate("Cancel"),

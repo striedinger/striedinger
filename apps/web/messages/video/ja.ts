@@ -72,4 +72,22 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   Original: "オリジナル",
   "About {size}": "約 {size}",
   "Detected language: {language}": "検出された言語：{language}",
+  Watermark: "ウォーターマーク",
+  "Watermark text": "ウォーターマークのテキスト",
+  "Text, like @yourname": "テキスト（例: @yourname）",
+  "Add Logo": "ロゴを追加",
+  "Replace Logo": "ロゴを置き換え",
+  "Remove Logo": "ロゴを削除",
+  Motion: "動き",
+  Moving: "移動",
+  Fixed: "固定",
+  Size: "サイズ",
+  Small: "小",
+  Medium: "中",
+  Large: "大",
+  Opacity: "不透明度",
+  "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.":
+    "5 MB以下、各辺4096ピクセル以下のPNG、JPEG、WebP、SVG画像を使用してください。",
+  "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.":
+    "移動するウォーターマークは数秒ごとに角から角へ移動します。ウォーターマークはすべてのフレームに描画されるため、ビデオは再エンコードされます。",
 });

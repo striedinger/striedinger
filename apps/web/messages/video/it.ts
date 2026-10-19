@@ -72,4 +72,22 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   Original: "Originale",
   "About {size}": "Circa {size}",
   "Detected language: {language}": "Lingua rilevata: {language}",
+  Watermark: "Filigrana",
+  "Watermark text": "Testo della filigrana",
+  "Text, like @yourname": "Testo, ad esempio @tuonome",
+  "Add Logo": "Aggiungi logo",
+  "Replace Logo": "Sostituisci logo",
+  "Remove Logo": "Rimuovi logo",
+  Motion: "Movimento",
+  Moving: "In movimento",
+  Fixed: "Fissa",
+  Size: "Dimensione",
+  Small: "Piccola",
+  Medium: "Media",
+  Large: "Grande",
+  Opacity: "Opacità",
+  "Use a PNG, JPEG, WebP, or SVG image up to 5 MB and 4096 pixels on each side.":
+    "Usa un’immagine PNG, JPEG, WebP o SVG fino a 5 MB e 4096 pixel per lato.",
+  "Moving watermarks hop between corners every few seconds. Watermarks are drawn into every frame, so the video is re-encoded.":
+    "Le filigrane in movimento saltano da un angolo all’altro ogni pochi secondi. Le filigrane vengono disegnate in ogni fotogramma, quindi il video viene ricodificato.",
 });

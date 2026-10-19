@@ -1,3 +1,6 @@
+/** The system font, which is what the preview's overlays render in. */
+export const burnedInFontFamily = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+
 /**
  * Draws a caption the way the preview shows it: white semibold text on a rounded translucent
  * black box, centered near the bottom and wrapped to most of the frame's width.
@@ -12,7 +15,7 @@ export function drawCaption(
   const lineHeight = Math.round(fontSize * 1.3);
   const padding = Math.round(fontSize * 0.45);
   const maxTextWidth = width * 0.84 - padding * 2;
-  context.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  context.font = `600 ${fontSize}px ${burnedInFontFamily}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
 

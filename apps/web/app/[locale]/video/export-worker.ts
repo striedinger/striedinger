@@ -20,6 +20,7 @@ import type { ExportCommand, ExportReply, ExportRequest } from "./export-message
 import { toIso6392, toLanguageTag } from "./caption-language";
 import { captionsToWebVtt, findCaptionAt } from "./captions";
 import { drawCaption } from "./draw-caption";
+import { createWatermarkPainter } from "./draw-watermark";
 import { isLocationTag, videoInputFormats } from "./video-input";
 
 let activeConversion: Conversion | null = null;
@@ -137,15 +138,28 @@ async function createTags(request: ExportRequest, inputTags: MetadataTags): Prom
   };
 }
 
-/** Burns captions into each frame; frames arrive with rotation already applied. */
-function createCaptionBurner(request: ExportRequest) {
+/**
+ * Draws burned-in captions and the watermark onto each frame in one pass. Frames arrive rotated
+ * upright and already resized; frames with nothing to draw pass through untouched.
+ */
+function createFrameOverlay(
+  request: ExportRequest,
+  burnsCaptions: boolean,
+  logo: ImageBitmap | null,
+) {
   let canvas: OffscreenCanvas | null = null;
   let timeOffset: number | null = null;
-  return function burnCaption(sample: VideoSample) {
+  const paintWatermark = request.watermark
+    ? createWatermarkPainter({ ...request.watermark, logo })
+    : null;
+  return function drawOverlay(sample: VideoSample) {
     // Frames may be timed from the trim start or from the original video; the first frame tells.
     timeOffset ??= sample.timestamp < request.trim.start - 0.25 ? request.trim.start : 0;
-    const caption = findCaptionAt(request.captions, sample.timestamp + timeOffset);
-    if (!caption?.text.trim()) return sample;
+    const sourceTime = sample.timestamp + timeOffset;
+    const captionText = burnsCaptions
+      ? (findCaptionAt(request.captions, sourceTime)?.text.trim() ?? "")
+      : "";
+    if (!captionText && !paintWatermark) return sample;
     const width = sample.displayWidth;
     const height = sample.displayHeight;
     if (!canvas || canvas.width !== width || canvas.height !== height) {
@@ -154,7 +168,8 @@ function createCaptionBurner(request: ExportRequest) {
     const context = canvas.getContext("2d");
     if (!context) return sample;
     sample.draw(context, 0, 0, width, height);
-    drawCaption(context, caption.text.trim(), width, height);
+    if (captionText) drawCaption(context, captionText, width, height);
+    paintWatermark?.(context, sourceTime - request.trim.start, width, height);
     return canvas;
   };
 }
@@ -163,6 +178,7 @@ async function exportVideo(request: ExportRequest) {
   const input = new Input({ formats: videoInputFormats, source: new BlobSource(request.file) });
   const { discard, finish, target } = await createTarget(request.outputName);
   const output = new Output({ format: new Mp4OutputFormat(), target });
+  let watermarkLogo: ImageBitmap | null = null;
   try {
     const hasCaptions = request.captions.some(function hasText(caption) {
       return caption.text.trim() !== "";
@@ -173,6 +189,10 @@ async function exportVideo(request: ExportRequest) {
     if (subtitles)
       output.addSubtitleTrack(subtitles, describeSubtitleTrack(request.captionLanguage));
 
+    watermarkLogo = request.watermark?.logo
+      ? await createImageBitmap(request.watermark.logo)
+      : null;
+    const drawsOverlay = burnsCaptions || request.watermark !== null;
     const highQuality = new Quality("high");
     const { resize } = request;
     // Resizing re-encodes frames rotated upright, so the size is the one people see.
@@ -192,10 +212,10 @@ async function exportVideo(request: ExportRequest) {
       output,
       showWarnings: false,
       trim: request.trim,
-      video: burnsCaptions
+      video: drawsOverlay
         ? {
             allowTransformationMetadata: false,
-            process: createCaptionBurner(request),
+            process: createFrameOverlay(request, burnsCaptions, watermarkLogo),
             ...resizeOptions,
           }
         : { forceTranscode: request.exactCuts, ...resizeOptions },
@@ -230,6 +250,7 @@ async function exportVideo(request: ExportRequest) {
     reply(error instanceof ConversionCanceledError ? { kind: "canceled" } : { kind: "error" });
   } finally {
     activeConversion = null;
+    watermarkLogo?.close();
     input.dispose();
   }
 }
