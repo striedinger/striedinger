@@ -38,6 +38,15 @@ export function getRelativeTimeFormat(locale: string, options: Intl.RelativeTime
   );
 }
 
+export function getDisplayNames(locale: string, options: Intl.DisplayNamesOptions) {
+  return getCachedFormatter(
+    `display-names|${locale}|${JSON.stringify(options)}`,
+    function createDisplayNames() {
+      return new Intl.DisplayNames(locale, options);
+    },
+  );
+}
+
 export function getCollator(locale: string, options: Intl.CollatorOptions) {
   return getCachedFormatter(
     `collator|${locale}|${JSON.stringify(options)}`,

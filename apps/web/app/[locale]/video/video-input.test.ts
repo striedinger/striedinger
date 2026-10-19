@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isLocationTag } from "./open-video";
+import { isLocationTag } from "./video-input";
 
 describe("isLocationTag", function () {
   it("recognizes the location tags cameras write, and nothing else", function () {

@@ -13,23 +13,29 @@ import type { VideoTrim } from "./types";
 
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { formatClock } from "./captions";
+import { snapToKeyframe, stepKeyframe } from "./keyframes";
+import { VideoWaveform } from "./video-waveform";
 
 interface VideoTrimBarProps {
   currentTime: number;
   duration: number;
   isPlaying: boolean;
+  /** Keyframe times the start handle snaps to, or `null` when cuts can land on any frame. */
+  keyframes: readonly number[] | null;
   labels: { pause: string; play: string; playhead: string; trimEnd: string; trimStart: string };
   onSeek: (time: number) => void;
   onTogglePlayback: () => void;
   onTrimChange: (trim: VideoTrim) => void;
   thumbnails: readonly { time: number; url: string }[];
   trim: VideoTrim;
+  /** Audio peaks drawn under the filmstrip, once measured. */
+  waveform: Float32Array | null;
 }
 
 type DragTarget = "start" | "end" | "playhead";
 
 /** The shortest clip the handles allow, so they never cross. */
-const minimumClipSeconds = 0.2;
+export const minimumClipSeconds = 0.2;
 
 /**
  * The Photos trim bar: a filmstrip framed by yellow handles that set the clip, with a
@@ -39,12 +45,14 @@ export function VideoTrimBar({
   currentTime,
   duration,
   isPlaying,
+  keyframes,
   labels,
   onSeek,
   onTogglePlayback,
   onTrimChange,
   thumbnails,
   trim,
+  waveform,
 }: VideoTrimBarProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragTarget | null>(null);
@@ -62,9 +70,12 @@ export function VideoTrimBar({
 
   function moveTarget(target: DragTarget, time: number) {
     if (target === "start") {
-      const start = Math.min(time, trim.end - minimumClipSeconds);
-      onTrimChange({ end: trim.end, start: Math.max(0, start) });
-      onSeek(Math.max(0, start));
+      const latest = trim.end - minimumClipSeconds;
+      const start = keyframes
+        ? snapToKeyframe(keyframes, time, latest)
+        : Math.max(0, Math.min(time, latest));
+      if (start !== trim.start) onTrimChange({ end: trim.end, start });
+      onSeek(start);
     } else if (target === "end") {
       const end = Math.max(time, trim.start + minimumClipSeconds);
       onTrimChange({ end: Math.min(duration, end), start: trim.start });
@@ -91,13 +102,25 @@ export function VideoTrimBar({
   }
 
   function nudge(target: DragTarget, event: KeyboardEvent<HTMLElement>) {
+    const direction =
+      event.key === "ArrowLeft" || event.key === "ArrowDown"
+        ? -1
+        : event.key === "ArrowRight" || event.key === "ArrowUp"
+          ? 1
+          : 0;
+    if (direction === 0) return;
+    event.preventDefault();
+    if (target === "start" && keyframes) {
+      // Snapped starts move a keyframe at a time; smaller steps would snap straight back.
+      moveTarget(
+        target,
+        stepKeyframe(keyframes, trim.start, direction, trim.end - minimumClipSeconds),
+      );
+      return;
+    }
     const step = event.shiftKey ? 1 : 0.1;
     const value = target === "start" ? trim.start : target === "end" ? trim.end : currentTime;
-    if (event.key === "ArrowLeft" || event.key === "ArrowDown") moveTarget(target, value - step);
-    else if (event.key === "ArrowRight" || event.key === "ArrowUp")
-      moveTarget(target, value + step);
-    else return;
-    event.preventDefault();
+    moveTarget(target, value + direction * step);
   }
 
   const handleClassName =
@@ -126,7 +149,7 @@ export function VideoTrimBar({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        <div className="flex size-full overflow-hidden rounded-ios-sm bg-ios-fill">
+        <div className="relative flex size-full overflow-hidden rounded-ios-sm bg-ios-fill">
           {thumbnails.map(function renderThumbnail(thumbnail) {
             return (
               // Filmstrip frames are decorative blob data from the person's own video.
@@ -140,6 +163,7 @@ export function VideoTrimBar({
               />
             );
           })}
+          {waveform ? <VideoWaveform peaks={waveform} /> : null}
         </div>
         <div
           aria-hidden="true"

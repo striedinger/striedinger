@@ -66,4 +66,8 @@ export const messages = defineMessages({
   "This video couldn’t be exported.": "This video couldn’t be exported.",
   "Save Video": "Save Video",
   "{fps} fps": "{fps} fps",
+  "Export Size": "Export Size",
+  Original: "Original",
+  "About {size}": "About {size}",
+  "Detected language: {language}": "Detected language: {language}",
 });

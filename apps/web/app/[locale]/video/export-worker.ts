@@ -10,18 +10,23 @@ import {
   Input,
   Mp4OutputFormat,
   Output,
-  QUALITY_HIGH,
+  Quality,
   StreamTarget,
   TextSubtitleSource,
 } from "mediabunny";
 
 import type { ExportCommand, ExportReply, ExportRequest } from "./export-messages";
 
+import { toIso6392, toLanguageTag } from "./caption-language";
 import { captionsToWebVtt, findCaptionAt } from "./captions";
 import { drawCaption } from "./draw-caption";
-import { isLocationTag, videoInputFormats } from "./open-video";
+import { isLocationTag, videoInputFormats } from "./video-input";
 
 let activeConversion: Conversion | null = null;
+
+/** Progress is reported at most this often, since each message re-renders the editor. */
+const progressIntervalMilliseconds = 100;
+const exportFilePrefix = "export-";
 
 function reply(message: ExportReply) {
   self.postMessage(message);
@@ -41,7 +46,13 @@ interface ExportTarget {
 async function createTarget(outputName: string): Promise<ExportTarget> {
   try {
     const directory = await navigator.storage.getDirectory();
-    const handle = await directory.getFileHandle(`export-${outputName}`, { create: true });
+    // Cleanup is best effort; older Safari cannot list a directory, which must not cost OPFS.
+    await removeEarlierExports(directory).catch(function keepEarlierExports() {
+      return undefined;
+    });
+    const handle = await directory.getFileHandle(`${exportFilePrefix}${outputName}`, {
+      create: true,
+    });
     const access = await handle.createSyncAccessHandle();
     access.truncate(0);
     const writable = new WritableStream<{ data: Uint8Array; position: number }>({
@@ -71,6 +82,36 @@ async function createTarget(outputName: string): Promise<ExportTarget> {
       target,
     };
   }
+}
+
+/**
+ * Deletes the files earlier exports left behind. Only the latest export is ever offered for
+ * saving, and phones have little storage to spare for old ones.
+ */
+async function removeEarlierExports(directory: FileSystemDirectoryHandle) {
+  const names: string[] = [];
+  for await (const name of directory.keys()) {
+    if (name.startsWith(exportFilePrefix)) names.push(name);
+  }
+  await Promise.allSettled(
+    names.map(function removeExport(name) {
+      return directory.removeEntry(name);
+    }),
+  );
+}
+
+/** Tags the subtitle track with its language and that language's own name, like "français". */
+function describeSubtitleTrack(language: string | null) {
+  if (!language) return {};
+  const languageCode = toIso6392(language);
+  let name: string | undefined;
+  try {
+    const tag = toLanguageTag(language);
+    name = new Intl.DisplayNames([tag], { type: "language" }).of(tag);
+  } catch {
+    name = undefined;
+  }
+  return { languageCode, name };
 }
 
 async function createTags(request: ExportRequest, inputTags: MetadataTags): Promise<MetadataTags> {
@@ -129,10 +170,23 @@ async function exportVideo(request: ExportRequest) {
     const burnsCaptions = hasCaptions && request.captionMode === "burned";
     const addsSubtitleTrack = hasCaptions && request.captionMode === "track";
     const subtitles = addsSubtitleTrack ? new TextSubtitleSource("webvtt") : null;
-    if (subtitles) output.addSubtitleTrack(subtitles);
+    if (subtitles)
+      output.addSubtitleTrack(subtitles, describeSubtitleTrack(request.captionLanguage));
 
+    const highQuality = new Quality("high");
+    const { resize } = request;
+    // Resizing re-encodes frames rotated upright, so the size is the one people see.
+    const resizeOptions = resize
+      ? {
+          allowTransformationMetadata: false,
+          fit: "fill" as const,
+          height: resize.height,
+          quality: new Quality({ bitrate: resize.bitrate }),
+          width: resize.width,
+        }
+      : { quality: highQuality };
     const conversion = await Conversion.init({
-      audio: { quality: QUALITY_HIGH },
+      audio: { quality: highQuality },
       composable: true,
       input,
       output,
@@ -142,13 +196,17 @@ async function exportVideo(request: ExportRequest) {
         ? {
             allowTransformationMetadata: false,
             process: createCaptionBurner(request),
-            quality: QUALITY_HIGH,
+            ...resizeOptions,
           }
-        : { forceTranscode: request.exactCuts, quality: QUALITY_HIGH },
+        : { forceTranscode: request.exactCuts, ...resizeOptions },
     });
     if (!conversion.isValid) throw new Error("This video cannot be converted");
     activeConversion = conversion;
+    let lastProgressTime = 0;
     conversion.onProgress = function reportProgress(progress) {
+      const now = performance.now();
+      if (now - lastProgressTime < progressIntervalMilliseconds) return;
+      lastProgressTime = now;
       reply({ kind: "progress", progress });
     };
     output.setMetadataTags(await createTags(request, await input.getMetadataTags()));

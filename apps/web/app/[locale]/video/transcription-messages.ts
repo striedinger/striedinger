@@ -9,7 +9,7 @@ export interface TranscriptionRequest {
 export type TranscriptionReply =
   | { kind: "download"; progress: number }
   | { kind: "transcribing" }
-  | { captions: VideoCaption[]; kind: "done" }
+  | { captions: VideoCaption[]; kind: "done"; language: string | null }
   | { kind: "error"; reason: "no-audio" | "too-long" | "failed" };
 
 /** Longer stretches would hold too much audio in memory on a phone. */

@@ -7,6 +7,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
+import type { ExportResolution } from "./export-size";
 import type { OpenedVideo } from "./open-video";
 import type {
   CaptionExportMode,
@@ -16,6 +17,7 @@ import type {
   VideoTrim,
 } from "./types";
 import type { VideoPlayback } from "./video-playback";
+import type { WaveformReply, WaveformRequest } from "./waveform-worker";
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
@@ -26,13 +28,21 @@ import { IosSwitchRow } from "../../../components/ios/ios-switch-row";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
 import { createCaptionAt, findCaptionAt, formatClock } from "./captions";
+import {
+  estimateExportBytes,
+  listExportResolutions,
+  resolveExportBitrate,
+  resolveExportDimensions,
+} from "./export-size";
+import { snapToKeyframe } from "./keyframes";
 import { openVideo } from "./open-video";
 import { useVideoExport } from "./use-video-export";
 import { VideoCaptionsSection } from "./video-captions-section";
 import { VideoCoverSection } from "./video-cover-section";
 import { VideoDetailsSection } from "./video-details-section";
+import { VideoExportSizeSection } from "./video-export-size-section";
 import { VideoPreview } from "./video-preview";
-import { VideoTrimBar } from "./video-trim-bar";
+import { minimumClipSeconds, VideoTrimBar } from "./video-trim-bar";
 
 interface VideoWorkspaceProps {
   aiLabels: OnDeviceAiLabels;
@@ -50,6 +60,8 @@ interface VideoCover {
 
 const thumbnailCount = 10;
 const thumbnailHeight = 96;
+/** Enough peaks for a sharp waveform across the widest trim bar. */
+const waveformBuckets = 600;
 
 /** Everything for one video: preview, trim, captions, cover, details, and export. */
 export function VideoWorkspace({
@@ -63,11 +75,14 @@ export function VideoWorkspace({
   const coverUrlRef = useRef<string | null>(null);
   const [opened, setOpened] = useState<OpenedVideo | null>(null);
   const [hasOpenError, setHasOpenError] = useState(false);
-  const [trim, setTrim] = useState<VideoTrim>({ end: 0, start: 0 });
+  const [selectedTrim, setTrim] = useState<VideoTrim>({ end: 0, start: 0 });
+  const [keyframes, setKeyframes] = useState<number[] | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [waveform, setWaveform] = useState<Float32Array | null>(null);
   const [thumbnails, setThumbnails] = useState<{ time: number; url: string }[]>([]);
   const [captions, setCaptions] = useState<VideoCaption[]>([]);
+  const [captionLanguage, setCaptionLanguage] = useState<string | null>(null);
   const [captionMode, setCaptionMode] = useState<CaptionExportMode>("track");
   const [details, setDetails] = useState<VideoDetails>({
     description: "",
@@ -75,6 +90,7 @@ export function VideoWorkspace({
     title: "",
   });
   const [exactCuts, setExactCuts] = useState(false);
+  const [resolution, setResolution] = useState<ExportResolution>("original");
   const [cover, setCover] = useState<VideoCover | null>(null);
   const [isCapturing, startCapturing] = useTransition();
   const videoExport = useVideoExport();
@@ -111,6 +127,26 @@ export function VideoWorkspace({
   );
 
   useEffect(
+    function readKeyframes() {
+      if (!opened) return;
+      let isCurrent = true;
+      opened
+        .readKeyframeTimes()
+        .then(function storeKeyframes(times) {
+          if (isCurrent) setKeyframes(times);
+          return undefined;
+        })
+        .catch(function cutAnywhere() {
+          return undefined;
+        });
+      return function stopReadingKeyframes() {
+        isCurrent = false;
+      };
+    },
+    [opened],
+  );
+
+  useEffect(
     function renderFilmstrip() {
       if (!opened) return;
       let isCurrent = true;
@@ -127,14 +163,38 @@ export function VideoWorkspace({
           });
         }
       }
-      collectThumbnails().catch(function keepEmptyFilmstrip() {
-        return undefined;
-      });
+      let waveformWorker: Worker | null = null;
+      // The waveform decodes all of the audio, so it waits for the filmstrip rather than slowing it.
+      function measureWaveform() {
+        if (!isCurrent || !opened?.info.hasAudio) return;
+        const worker = new Worker(new URL("./waveform-worker.ts", import.meta.url), {
+          type: "module",
+        });
+        waveformWorker = worker;
+        worker.addEventListener(
+          "message",
+          function showWaveform(event: MessageEvent<WaveformReply>) {
+            if (isCurrent) setWaveform(event.data.peaks);
+            worker.terminate();
+          },
+        );
+        const request: WaveformRequest = { bucketCount: waveformBuckets, duration, file };
+        worker.postMessage(request);
+      }
+      collectThumbnails()
+        .catch(function keepEmptyFilmstrip() {
+          return undefined;
+        })
+        .finally(measureWaveform)
+        .catch(function skipWaveform() {
+          return undefined;
+        });
       return function stopFilmstrip() {
         isCurrent = false;
+        waveformWorker?.terminate();
       };
     },
-    [opened],
+    [file, opened],
   );
 
   useEffect(
@@ -144,9 +204,9 @@ export function VideoWorkspace({
       function readPlayhead() {
         const playback = playbackRef.current;
         if (!playback) return;
-        if (playback.currentTime >= trim.end) {
+        if (playback.currentTime >= selectedTrim.end) {
           playback.pause();
-          playback.seek(trim.end);
+          playback.seek(selectedTrim.end);
         }
         setCurrentTime(playback.currentTime);
         frame = requestAnimationFrame(readPlayhead);
@@ -156,7 +216,7 @@ export function VideoWorkspace({
         cancelAnimationFrame(frame);
       };
     },
-    [isPlaying, trim.end],
+    [isPlaying, selectedTrim.end],
   );
 
   useEffect(function releaseCoverOnClose() {
@@ -193,12 +253,36 @@ export function VideoWorkspace({
   const canGenerateCaptions =
     info.hasAudio && typeof WebAssembly === "object" && typeof AudioDecoder === "function";
   const visibleCaption = findCaptionAt(captions, currentTime)?.text.trim() || null;
+  const hasCaptionText = captions.some(function hasText(caption) {
+    return caption.text.trim() !== "";
+  });
+  const resizeDimensions = resolveExportDimensions(info.width, info.height, resolution);
+  const resize =
+    resizeDimensions && resolution !== "original"
+      ? { ...resizeDimensions, bitrate: resolveExportBitrate(resolution, info.frameRate) }
+      : null;
+  // Re-encoding cuts on any frame. Copying starts at a keyframe, so the start snaps to the one
+  // the export will actually begin at.
+  const snapKeyframes =
+    exactCuts || resize !== null || (captionMode === "burned" && hasCaptionText) ? null : keyframes;
+  const trim = snapKeyframes
+    ? {
+        end: selectedTrim.end,
+        start: snapToKeyframe(
+          snapKeyframes,
+          selectedTrim.start,
+          selectedTrim.end - minimumClipSeconds,
+        ),
+      }
+    : selectedTrim;
   const settingsKey = JSON.stringify({
+    captionLanguage,
     captionMode,
     captions,
     coverTime: cover?.time ?? null,
     details,
     exactCuts,
+    resize,
     trim,
   });
   const exportState = videoExport.state;
@@ -253,6 +337,7 @@ export function VideoWorkspace({
     const stem = file.name.replace(/\.[^.]+$/, "");
     videoExport.startExport(
       {
+        captionLanguage,
         captionMode,
         captions,
         cover: cover?.blob ?? null,
@@ -260,6 +345,7 @@ export function VideoWorkspace({
         exactCuts,
         file,
         outputName: `${stem}-edited.mp4`,
+        resize,
         trim,
       },
       settingsKey,
@@ -331,12 +417,14 @@ export function VideoWorkspace({
           currentTime={currentTime}
           duration={info.duration}
           isPlaying={isPlaying}
+          keyframes={snapKeyframes}
           labels={labels}
           onSeek={seek}
           onTogglePlayback={togglePlayback}
           onTrimChange={setTrim}
           thumbnails={thumbnails}
           trim={trim}
+          waveform={waveform}
         />
         <Text className="px-1 text-center text-ios-footnote text-ios-secondary-label tabular-nums">
           {formatClock(trim.start)} – {formatClock(trim.end)} ·{" "}
@@ -360,6 +448,7 @@ export function VideoWorkspace({
         onAddCaption={addCaption}
         onCaptionModeChange={setCaptionMode}
         onCaptionsChange={setCaptions}
+        onLanguageDetected={setCaptionLanguage}
         onSeek={seek}
         trim={trim}
       />
@@ -378,6 +467,22 @@ export function VideoWorkspace({
         info={info}
         labels={labels}
         onDetailsChange={setDetails}
+      />
+
+      <VideoExportSizeSection
+        estimatedBytes={estimateExportBytes({
+          audioBitrate: info.audioBitrate,
+          clipDuration: trim.end - trim.start,
+          duration: info.duration,
+          fileSize: file.size,
+          frameRate: info.frameRate,
+          hasAudio: info.hasAudio,
+          resolution: resize ? resolution : "original",
+        })}
+        labels={labels}
+        onResolutionChange={setResolution}
+        resolution={resolution}
+        resolutions={listExportResolutions(info.width, info.height)}
       />
 
       {exportState.kind === "error" ? (

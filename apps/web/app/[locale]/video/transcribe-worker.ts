@@ -7,8 +7,8 @@ import type { TranscriptionReply, TranscriptionRequest } from "./transcription-m
 import type { VideoCaption } from "./types";
 
 import { splitLongCaption } from "./captions";
-import { videoInputFormats } from "./open-video";
 import { maximumTranscriptionSeconds } from "./transcription-messages";
+import { videoInputFormats } from "./video-input";
 
 // Whisper hears 16 kHz mono audio.
 const whisperSampleRate = 16_000;
@@ -214,7 +214,7 @@ async function transcribe({ end, file, start }: TranscriptionRequest) {
       text,
     });
   });
-  reply({ captions, kind: "done" });
+  reply({ captions, kind: "done", language });
 }
 
 self.addEventListener("message", function handleRequest(event: MessageEvent<TranscriptionRequest>) {

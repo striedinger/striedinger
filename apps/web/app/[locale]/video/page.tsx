@@ -24,6 +24,7 @@ export default async function VideoPage() {
   const locale = await getRequestLocale();
   const translate = await getVideoTranslator(locale);
   const labels: VideoEditorLabels = {
+    about: translate("About {size}"),
     addCaption: translate("Add Caption"),
     cancel: translate("Cancel"),
     captionBurned: translate("Burned In"),
@@ -39,6 +40,7 @@ export default async function VideoPage() {
     description: translate(
       "Trim videos, edit details, pick a cover frame, and add captions entirely in your browser. Your video never leaves this device.",
     ),
+    detectedLanguage: translate("Detected language: {language}"),
     details: translate("Details"),
     downloadCaptions: translate("Download Captions"),
     dropActive: translate("Drop to open the video"),
@@ -49,6 +51,7 @@ export default async function VideoPage() {
       "Exact cuts re-encode the video, which takes longer. Otherwise cuts snap to the nearest keyframe and the video is copied without quality loss.",
     ),
     export: translate("Export Video"),
+    exportSize: translate("Export Size"),
     exportFailed: translate("This video couldn’t be exported."),
     exporting: translate("Exporting… {percent}"),
     fileSize: translate("File Size"),
@@ -63,6 +66,7 @@ export default async function VideoPage() {
     noAudio: translate("This video has no audio to caption."),
     noCaptions: translate("Add captions at the playhead, or generate them from the audio."),
     noSpeech: translate("No speech was found in this part of the video."),
+    original: translate("Original"),
     openFailed: translate("This file couldn’t be opened as a video."),
     pause: translate("Pause"),
     play: translate("Play"),

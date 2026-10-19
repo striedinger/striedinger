@@ -1,12 +1,12 @@
-import { BlobSource, CanvasSink, Input, MATROSKA, MP4, QTFF, WEBM } from "mediabunny";
+import type { EncodedPacket } from "mediabunny";
+
+import { BlobSource, CanvasSink, EncodedPacketSink, Input } from "mediabunny";
 
 import type { VideoInfo } from "./types";
 import type { VideoPlayback } from "./video-playback";
 
+import { isLocationTag, videoInputFormats } from "./video-input";
 import { createVideoPlayback } from "./video-playback";
-
-/** The containers phones and browsers record; reading only these keeps the code small. */
-export const videoInputFormats = [MP4, QTFF, WEBM, MATROSKA];
 
 export interface OpenedVideo {
   /** Plays the video onto a canvas; see `createVideoPlayback`. */
@@ -16,6 +16,8 @@ export interface OpenedVideo {
   ) => VideoPlayback;
   dispose: () => void;
   info: VideoInfo;
+  /** The times of the video's keyframes, read from the container's index without decoding. */
+  readKeyframeTimes: () => Promise<number[]>;
   /** Renders frames at the given times as small JPEG data URLs, for the trim filmstrip. */
   renderThumbnails: (
     times: readonly number[],
@@ -25,10 +27,8 @@ export interface OpenedVideo {
   renderFrame: (time: number) => Promise<Blob | null>;
 }
 
-/** Location tags written by iPhones and other cameras, in QuickTime and MP4 metadata. */
-export function isLocationTag(key: string) {
-  return /xyz|loci|location|iso6709/i.test(key);
-}
+/** Enough for a keyframe every second of a long video; snapping beyond it is not useful. */
+const maximumKeyframes = 20_000;
 
 function canvasToBlob(canvas: HTMLCanvasElement | OffscreenCanvas) {
   if ("convertToBlob" in canvas) return canvas.convertToBlob({ type: "image/jpeg", quality: 0.9 });
@@ -49,11 +49,18 @@ export async function openVideo(file: File): Promise<OpenedVideo> {
       input.getMetadataTags(),
       videoTrack.canDecode(),
     ]);
-    const packetStats = await videoTrack.computePacketStats(120).catch(function unknownRate() {
-      return null;
-    });
+    // Packet statistics come from container metadata, so both tracks are read side by side.
+    const [packetStats, audioStats] = await Promise.all([
+      videoTrack.computePacketStats(120).catch(function unknownRate() {
+        return null;
+      }),
+      audioTrack?.computePacketStats(500).catch(function unknownBitrate() {
+        return null;
+      }) ?? null,
+    ]);
     const rotated = videoTrack.rotation === 90 || videoTrack.rotation === 270;
     const info: VideoInfo = {
+      audioBitrate: audioStats?.averageBitrate ?? null,
       audioCodec: audioTrack?.codec ?? null,
       description: tags.description ?? "",
       duration,
@@ -84,6 +91,16 @@ export async function openVideo(file: File): Promise<OpenedVideo> {
         input.dispose();
       },
       info,
+      async readKeyframeTimes() {
+        const sink = new EncodedPacketSink(videoTrack);
+        const times: number[] = [];
+        async function collectFrom(packet: EncodedPacket | null): Promise<number[]> {
+          if (!packet || times.length >= maximumKeyframes) return times;
+          times.push(packet.timestamp);
+          return collectFrom(await sink.getNextKeyPacket(packet, { metadataOnly: true }));
+        }
+        return collectFrom(await sink.getKeyPacket(0, { metadataOnly: true }));
+      },
       async *renderThumbnails(times, height) {
         if (!canDecode) return;
         const width = Math.max(1, Math.round((height * info.width) / info.height));

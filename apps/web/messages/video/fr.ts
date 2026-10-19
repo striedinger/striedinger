@@ -69,4 +69,8 @@ export const messages: TranslationCatalog<typeof englishMessages> = defineMessag
   "This video couldn’t be exported.": "Impossible d’exporter cette vidéo.",
   "Save Video": "Enregistrer la vidéo",
   "{fps} fps": "{fps} i/s",
+  "Export Size": "Taille d’exportation",
+  Original: "Originale",
+  "About {size}": "Environ {size}",
+  "Detected language: {language}": "Langue détectée : {language}",
 });

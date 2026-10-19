@@ -1,4 +1,5 @@
 export interface VideoEditorLabels {
+  about: string;
   addCaption: string;
   cancel: string;
   captionBurned: string;
@@ -12,6 +13,7 @@ export interface VideoEditorLabels {
   coverFooter: string;
   deleteCaption: string;
   description: string;
+  detectedLanguage: string;
   details: string;
   downloadCaptions: string;
   dropActive: string;
@@ -21,6 +23,7 @@ export interface VideoEditorLabels {
   exactCutsFooter: string;
   export: string;
   exportFailed: string;
+  exportSize: string;
   exporting: string;
   fileSize: string;
   format: string;
@@ -33,6 +36,7 @@ export interface VideoEditorLabels {
   noCaptions: string;
   noSpeech: string;
   openFailed: string;
+  original: string;
   pause: string;
   play: string;
   playhead: string;
@@ -77,6 +81,8 @@ export interface VideoDetails {
 }
 
 export interface VideoInfo {
+  /** The audio track's average bitrate in bits per second, when known. */
+  audioBitrate: number | null;
   audioCodec: string | null;
   description: string;
   duration: number;

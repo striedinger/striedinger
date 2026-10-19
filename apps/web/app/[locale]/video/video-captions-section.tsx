@@ -14,6 +14,7 @@ import { iosChipButtonClassName } from "../../../components/ios/ios-button-style
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { IosSegmentedControl } from "../../../components/ios/ios-segmented-control";
 import { downloadBlob } from "../../../lib/download-blob";
+import { getNumberFormat } from "../../../lib/intl-cache";
 import { captionsToWebVtt, findCaptionAt, formatClock, sortCaptions } from "./captions";
 import { whisperDownloadMegabytes } from "./transcription-messages";
 
@@ -43,6 +44,8 @@ interface VideoCaptionsSectionProps {
   onAddCaption: () => void;
   onCaptionModeChange: (mode: CaptionExportMode) => void;
   onCaptionsChange: (captions: VideoCaption[]) => void;
+  /** Receives the spoken language of generated captions, as a Whisper language code. */
+  onLanguageDetected: (language: string | null) => void;
   onSeek: (time: number) => void;
   trim: VideoTrim;
 }
@@ -63,13 +66,14 @@ export function VideoCaptionsSection({
   onAddCaption,
   onCaptionModeChange,
   onCaptionsChange,
+  onLanguageDetected,
   onSeek,
   trim,
 }: VideoCaptionsSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const sortedCaptions = sortCaptions(captions);
   const showingCaption = findCaptionAt(captions, currentTime);
-  const megabytes = new Intl.NumberFormat(locale, { style: "unit", unit: "megabyte" }).format(
+  const megabytes = getNumberFormat(locale, { style: "unit", unit: "megabyte" }).format(
     whisperDownloadMegabytes,
   );
 
@@ -89,7 +93,8 @@ export function VideoCaptionsSection({
     );
   }
 
-  function replaceWithGenerated(generated: VideoCaption[]) {
+  function replaceWithGenerated(generated: VideoCaption[], language: string | null) {
+    onLanguageDetected(language);
     // Generated captions replace the ones in the transcribed range and keep the rest.
     onCaptionsChange([
       ...captions.filter(function isOutsideRange(caption) {
@@ -191,6 +196,7 @@ export function VideoCaptionsSection({
             aiLabels={aiLabels}
             file={file}
             labels={labels}
+            locale={locale}
             onCaptions={replaceWithGenerated}
             onClose={function closeGenerator() {
               setIsGenerating(false);

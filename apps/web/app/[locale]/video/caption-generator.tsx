@@ -11,14 +11,29 @@ import type { TranscriptionReply } from "./transcription-messages";
 import type { VideoCaption, VideoEditorLabels, VideoTrim } from "./types";
 
 import { IosIntelligenceCard } from "../../../components/ios/ios-intelligence-card";
+import { getDisplayNames } from "../../../lib/intl-cache";
+import { toLanguageTag } from "./caption-language";
 
 interface CaptionGeneratorProps {
   aiLabels: OnDeviceAiLabels;
   file: File;
   labels: VideoEditorLabels;
-  onCaptions: (captions: VideoCaption[]) => void;
+  locale: string;
+  /** Receives the captions and the spoken language Whisper detected, as its language code. */
+  onCaptions: (captions: VideoCaption[], language: string | null) => void;
   onClose: () => void;
   trim: VideoTrim;
+}
+
+/** The language's name in the visitor's language, or its code if the browser lacks a name. */
+function describeLanguage(whisperCode: string, locale: string) {
+  try {
+    return (
+      getDisplayNames(locale, { type: "language" }).of(toLanguageTag(whisperCode)) ?? whisperCode
+    );
+  } catch {
+    return whisperCode;
+  }
 }
 
 // One worker per page keeps Whisper loaded between runs.
@@ -36,6 +51,7 @@ export function CaptionGenerator({
   aiLabels,
   file,
   labels,
+  locale,
   onCaptions,
   onClose,
   trim,
@@ -63,8 +79,19 @@ export function CaptionGenerator({
       worker.removeEventListener("message", handleReply);
       if (reply.kind === "done") {
         setStatus({ kind: "done" });
-        setMessage(reply.captions.length === 0 ? labels.noSpeech : null);
-        if (reply.captions.length > 0) onCaptions(reply.captions);
+        if (reply.captions.length === 0) {
+          setMessage(labels.noSpeech);
+          return;
+        }
+        setMessage(
+          reply.language
+            ? labels.detectedLanguage.replace(
+                "{language}",
+                describeLanguage(reply.language, locale),
+              )
+            : null,
+        );
+        onCaptions(reply.captions, reply.language);
         return;
       }
       setStatus(reply.reason === "failed" ? { kind: "error" } : { kind: "done" });
