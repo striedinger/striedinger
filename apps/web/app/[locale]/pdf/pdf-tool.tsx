@@ -14,10 +14,10 @@ import {
   iosChipButtonClassName,
   iosFilledButtonClassName,
 } from "../../../components/ios/ios-button-styles";
-import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosFileDropZone } from "../../../components/ios/ios-file-drop-zone";
+import { IosFileEmptyState } from "../../../components/ios/ios-file-empty-state";
+import { IosFloatingActionBar } from "../../../components/ios/ios-floating-action-bar";
 import { IosListSection } from "../../../components/ios/ios-list-section";
-import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
@@ -333,19 +333,12 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
           </Suspense>
         </>
       ) : (
-        <div className="flex flex-col pt-2">
-          <div className="rounded-ios-2xl border-2 border-dashed border-ios-separator bg-ios-grouped-cell">
-            <IosContentUnavailable
-              className="px-6 pt-12 pb-12"
-              icon={<DocIcon />}
-              title={labels.dropPrompt}
-              description={labels.supported}
-            />
-          </div>
-          <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">
-            {labels.fileStaysLocal}
-          </Text>
-        </div>
+        <IosFileEmptyState
+          icon={<DocIcon />}
+          title={labels.dropPrompt}
+          description={labels.supported}
+          note={labels.fileStaysLocal}
+        />
       )}
       <IosFileDropZone label={labels.dropActive} onFiles={selectFiles} />
       <input
@@ -360,12 +353,7 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
           event.target.value = "";
         }}
       />
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-safe-min-3.5",
-          iosBottomScrollEdgeClassName,
-        )}
-      >
+      <IosFloatingActionBar>
         <button
           type="button"
           disabled={file ? !canCompress : false}
@@ -381,7 +369,7 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
           {file ? null : <PlusIcon strokeWidth={2.8} />}
           {file ? labels.compress : labels.chooseFile}
         </button>
-      </div>
+      </IosFloatingActionBar>
     </div>
   );
 }

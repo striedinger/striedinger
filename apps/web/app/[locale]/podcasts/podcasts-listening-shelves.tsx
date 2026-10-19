@@ -63,7 +63,7 @@ export function PodcastsListeningShelves({ popular }: PodcastsListeningShelvesPr
         >
           {popular.slice(0, 5).map(function renderFeatured(podcast, index) {
             return (
-              <FeaturedPodcastCard key={podcast.id} podcast={podcast} priority={index === 0} />
+              <FeaturedPodcastCard key={podcast.id} loadsEagerly={index === 0} podcast={podcast} />
             );
           })}
         </ul>

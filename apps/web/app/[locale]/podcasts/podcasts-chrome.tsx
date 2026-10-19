@@ -14,7 +14,7 @@ import { IosToast } from "../../../components/ios/ios-toast";
 import { useHasOpened } from "../../../components/use-has-opened";
 import { copyText } from "../../../lib/copy-text";
 import { rememberPodcast } from "./podcast-catalog";
-import { pausePlayback, usePodcastPlayerItems } from "./podcast-player-store";
+import { pausePlayback, usePlayingEpisode } from "./podcast-player-store";
 import { getEpisodeHref, getPodcastPathScope, getSearchHref, getShowHref } from "./podcast-route";
 import { PodcastsBars } from "./podcasts-bars";
 import { PodcastsBarsPlaceholder } from "./podcasts-bars-placeholder";
@@ -65,7 +65,8 @@ function readServerTime() {
  */
 export function PodcastsChrome({ aiLabels, children, locale, messages }: PodcastsChromeProps) {
   const iosRouter = useIosRouter();
-  const player = usePodcastPlayerItems();
+  // Only whether an episode is loaded, so queue edits leave the chrome alone.
+  const { currentEpisodeId } = usePlayingEpisode();
   const now = useSyncExternalStore(subscribeToNothing, readAppOpenedAt, readServerTime);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
   const [isTabBarMinimized, setIsTabBarMinimized] = useState(false);
@@ -75,7 +76,7 @@ export function PodcastsChrome({ aiLabels, children, locale, messages }: Podcast
   const nowPlayingOpenedAtRef = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInput = useSearchInput(urlSearchQuery, search);
-  const isNowPlayingVisible = isNowPlayingOpen && player.current !== null;
+  const isNowPlayingVisible = isNowPlayingOpen && currentEpisodeId !== null;
 
   // Like iOS 26, the tab bar shrinks while scrolling down and returns when scrolling up.
   useEffect(function minimizeTabBarWhileScrolling() {

@@ -9,6 +9,7 @@ import type { Note, NoteFolder, NotesMessages } from "./types";
 import { IosAlert } from "../../../components/ios/ios-alert";
 import { IosScreenTransition } from "../../../components/ios/ios-screen-transition";
 import { useHasOpened } from "../../../components/use-has-opened";
+import { getCollator } from "../../../lib/intl-cache";
 import { FoldersPane } from "./folders-pane";
 import { groupNotes, sortNotes } from "./note-dates";
 import { NoteEditorPane } from "./note-editor-pane";
@@ -57,8 +58,9 @@ export function NotesApp({ aiLabels, locale, messages, welcomeNoteHtml }: NotesA
   const [folderPendingDeletion, setFolderPendingDeletion] = useState<NoteFolder | null>(null);
   const [noteIdToMove, setNoteIdToMove] = useState<string | null>(null);
 
+  const folderCollator = getCollator(locale, { numeric: true, sensitivity: "base" });
   const userFolders = store.folders.toSorted(function compareFolders(first, second) {
-    return first.name.localeCompare(second.name, locale, { numeric: true, sensitivity: "base" });
+    return folderCollator.compare(first.name, second.name);
   });
   const folderNames = new Map<string, string>([
     [defaultFolderId, messages.Notes],

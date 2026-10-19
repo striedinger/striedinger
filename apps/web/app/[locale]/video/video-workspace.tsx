@@ -22,14 +22,14 @@ import type { VideoPlayback } from "./video-playback";
 import type { WaveformReply, WaveformRequest } from "./waveform-worker";
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
+import { IosFloatingActionBar } from "../../../components/ios/ios-floating-action-bar";
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { IosListSection } from "../../../components/ios/ios-list-section";
-import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 import { IosSwitchRow } from "../../../components/ios/ios-switch-row";
 import { downloadBlob } from "../../../lib/download-blob";
 import { formatBytes } from "../../../lib/format-bytes";
-import { createCaptionAt, findCaptionAt, formatClock } from "./captions";
+import { createCaptionAt, formatClock } from "./captions";
 import {
   estimateExportBytes,
   listExportResolutions,
@@ -38,6 +38,7 @@ import {
 } from "./export-size";
 import { snapToKeyframe } from "./keyframes";
 import { openVideo } from "./open-video";
+import { createPlayheadStore } from "./playhead-store";
 import { useVideoExport } from "./use-video-export";
 import { VideoCaptionsSection } from "./video-captions-section";
 import { VideoCoverSection } from "./video-cover-section";
@@ -81,7 +82,7 @@ export function VideoWorkspace({
   const [hasOpenError, setHasOpenError] = useState(false);
   const [selectedTrim, setTrim] = useState<VideoTrim>({ end: 0, start: 0 });
   const [keyframes, setKeyframes] = useState<number[] | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [playhead] = useState(createPlayheadStore);
   const [isPlaying, setIsPlaying] = useState(false);
   const [waveform, setWaveform] = useState<Float32Array | null>(null);
   const [thumbnails, setThumbnails] = useState<{ time: number; url: string }[]>([]);
@@ -219,7 +220,7 @@ export function VideoWorkspace({
           playback.pause();
           playback.seek(selectedTrim.end);
         }
-        setCurrentTime(playback.currentTime);
+        playhead.set(playback.currentTime);
         frame = requestAnimationFrame(readPlayhead);
       }
       frame = requestAnimationFrame(readPlayhead);
@@ -227,7 +228,7 @@ export function VideoWorkspace({
         cancelAnimationFrame(frame);
       };
     },
-    [isPlaying, selectedTrim.end],
+    [isPlaying, playhead, selectedTrim.end],
   );
 
   useEffect(function releaseImagesOnClose() {
@@ -264,7 +265,6 @@ export function VideoWorkspace({
   const { info } = opened;
   const canGenerateCaptions =
     info.hasAudio && typeof WebAssembly === "object" && typeof AudioDecoder === "function";
-  const visibleCaption = findCaptionAt(captions, currentTime)?.text.trim() || null;
   const hasCaptionText = captions.some(function hasText(caption) {
     return caption.text.trim() !== "";
   });
@@ -306,7 +306,7 @@ export function VideoWorkspace({
 
   function seek(time: number) {
     playbackRef.current?.seek(time);
-    setCurrentTime(time);
+    playhead.set(time);
   }
 
   function togglePlayback() {
@@ -324,13 +324,16 @@ export function VideoWorkspace({
 
   function addCaption() {
     // New captions start at the playhead and stay inside the trimmed clip.
-    const start = Math.min(Math.max(currentTime, trim.start), Math.max(trim.start, trim.end - 0.5));
+    const start = Math.min(
+      Math.max(playhead.get(), trim.start),
+      Math.max(trim.start, trim.end - 0.5),
+    );
     setCaptions([...captions, createCaptionAt(captions, start, trim.end)]);
   }
 
   function useCurrentFrame() {
     if (!opened) return;
-    const time = playbackRef.current?.currentTime ?? currentTime;
+    const time = playbackRef.current?.currentTime ?? playhead.get();
     startCapturing(async function captureCover() {
       const blob = await opened.renderFrame(time);
       if (!blob) return;
@@ -428,20 +431,20 @@ export function VideoWorkspace({
 
       <VideoPreview
         aspectRatio={info.width / info.height}
-        caption={visibleCaption}
-        clipTime={currentTime - trim.start}
+        captions={captions}
         isPlaying={isPlaying}
         labels={labels}
         onPlayingChange={setIsPlaying}
         onTogglePlayback={togglePlayback}
         opened={opened}
         playbackRef={playbackRef}
+        playhead={playhead}
+        trimStart={trim.start}
         watermark={hasWatermark ? watermark : null}
       />
 
       <div className="flex flex-col gap-2">
         <VideoTrimBar
-          currentTime={currentTime}
           duration={info.duration}
           isPlaying={isPlaying}
           keyframes={snapKeyframes}
@@ -449,6 +452,7 @@ export function VideoWorkspace({
           onSeek={seek}
           onTogglePlayback={togglePlayback}
           onTrimChange={setTrim}
+          playhead={playhead}
           thumbnails={thumbnails}
           trim={trim}
           waveform={waveform}
@@ -468,7 +472,6 @@ export function VideoWorkspace({
         canGenerate={canGenerateCaptions}
         captionMode={captionMode}
         captions={captions}
-        currentTime={currentTime}
         file={file}
         labels={labels}
         locale={locale}
@@ -477,6 +480,7 @@ export function VideoWorkspace({
         onCaptionsChange={setCaptions}
         onLanguageDetected={setCaptionLanguage}
         onSeek={seek}
+        playhead={playhead}
         trim={trim}
       />
 
@@ -526,12 +530,7 @@ export function VideoWorkspace({
         </Text>
       ) : null}
 
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-3 px-4 pt-8 pb-safe-min-3.5",
-          iosBottomScrollEdgeClassName,
-        )}
-      >
+      <IosFloatingActionBar className="items-center gap-3">
         {exportState.kind === "exporting" ? (
           <>
             <div
@@ -591,7 +590,7 @@ export function VideoWorkspace({
             {labels.export}
           </button>
         )}
-      </div>
+      </IosFloatingActionBar>
     </div>
   );
 }

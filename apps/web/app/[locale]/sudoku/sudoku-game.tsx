@@ -173,7 +173,12 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
       <div className="flex h-14 shrink-0 items-stretch gap-2.5">
         <div className="flex min-w-0 flex-1 flex-col justify-center rounded-ios-lg bg-ios-grouped-cell px-3.5">
           <Text className="truncate text-ios-footnote text-ios-secondary-label">{labels.time}</Text>
-          <SudokuTimer completedSeconds={completedSeconds} startedAt={startedAt} />
+          <SudokuTimer
+            // A new run starts from zero instead of flashing the last run's time for a frame.
+            key={startedAt ?? "not-started"}
+            completedSeconds={completedSeconds}
+            startedAt={startedAt}
+          />
         </div>
         <div className="flex min-w-0 flex-1 flex-col justify-center rounded-ios-lg bg-ios-grouped-cell px-3.5">
           <Text className="truncate text-ios-footnote text-ios-secondary-label">

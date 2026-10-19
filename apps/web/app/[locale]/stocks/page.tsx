@@ -4,13 +4,13 @@ import { Suspense } from "react";
 
 import type { StocksLabels } from "./types";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getStocksTranslator } from "../../../messages/stocks/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
 import { StockDashboardSkeleton } from "./stock-dashboard-skeleton";
-import { StocksScreen } from "./stocks-screen";
 
 interface StocksPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -79,11 +79,11 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
   });
 
   return (
-    <StocksScreen title={labels.title}>
+    <IosToolScreen title={labels.title} contentWidth="72rem" contentClassName="">
       <JsonLd value={structuredData} />
       <Suspense fallback={<StockDashboardSkeleton />}>
         <StockDashboardLoader searchParams={searchParams} labels={labels} locale={locale} />
       </Suspense>
-    </StocksScreen>
+    </IosToolScreen>
   );
 }

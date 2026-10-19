@@ -8,6 +8,7 @@ import { cn } from "@workspace/ui/lib/utils";
 import { lazy, Suspense, useState } from "react";
 
 import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
+import type { PlayheadStore } from "./playhead-store";
 import type { CaptionExportMode, VideoCaption, VideoEditorLabels, VideoTrim } from "./types";
 
 import { iosChipButtonClassName } from "../../../components/ios/ios-button-styles";
@@ -16,6 +17,7 @@ import { IosSegmentedControl } from "../../../components/ios/ios-segmented-contr
 import { downloadBlob } from "../../../lib/download-blob";
 import { getNumberFormat } from "../../../lib/intl-cache";
 import { captionsToWebVtt, findCaptionAt, formatClock, sortCaptions } from "./captions";
+import { usePlayheadSelection } from "./playhead-store";
 import { whisperDownloadMegabytes } from "./transcription-messages";
 
 function loadCaptionGenerator() {
@@ -37,7 +39,6 @@ interface VideoCaptionsSectionProps {
   canGenerate: boolean;
   captionMode: CaptionExportMode;
   captions: readonly VideoCaption[];
-  currentTime: number;
   file: File;
   labels: VideoEditorLabels;
   locale: string;
@@ -47,6 +48,7 @@ interface VideoCaptionsSectionProps {
   /** Receives the spoken language of generated captions, as a Whisper language code. */
   onLanguageDetected: (language: string | null) => void;
   onSeek: (time: number) => void;
+  playhead: PlayheadStore;
   trim: VideoTrim;
 }
 
@@ -59,7 +61,6 @@ export function VideoCaptionsSection({
   canGenerate,
   captionMode,
   captions,
-  currentTime,
   file,
   labels,
   locale,
@@ -68,11 +69,15 @@ export function VideoCaptionsSection({
   onCaptionsChange,
   onLanguageDetected,
   onSeek,
+  playhead,
   trim,
 }: VideoCaptionsSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const sortedCaptions = sortCaptions(captions);
-  const showingCaption = findCaptionAt(captions, currentTime);
+  // Re-renders only when playback crosses into another caption, not on every frame.
+  const showingCaptionId = usePlayheadSelection(playhead, function findShowingCaption(time) {
+    return findCaptionAt(captions, time)?.id ?? null;
+  });
   const megabytes = getNumberFormat(locale, { style: "unit", unit: "megabyte" }).format(
     whisperDownloadMegabytes,
   );
@@ -127,7 +132,7 @@ export function VideoCaptionsSection({
           return (
             <li
               key={caption.id}
-              className={cn(rowClassName, caption === showingCaption && "bg-ios-tint/10")}
+              className={cn(rowClassName, caption.id === showingCaptionId && "bg-ios-tint/10")}
             >
               <button
                 type="button"

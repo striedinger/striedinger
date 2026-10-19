@@ -6,10 +6,13 @@ import "server-only";
 
 import type { PreviewErrorCode } from "../../../lib/og/types";
 
+import { getClientIdentifier } from "../../../lib/client-identifier";
 import { fetchPageHtml } from "../../../lib/og/fetch-page-html";
 import { parsePageMetadata } from "../../../lib/og/parse-page-metadata";
 import { PreviewError } from "../../../lib/og/preview-error";
+import { enforcePreviewRateLimit } from "../../../lib/og/rate-limit";
 import { validatePublicUrl } from "../../../lib/og/validate-public-url";
+import { singleSearchParam } from "../../../lib/search-params";
 
 const targetCacheSeconds = 300;
 
@@ -28,7 +31,7 @@ export type CardPreview =
     };
 
 export function getCardParams(searchParams: CardSearchParams) {
-  return { targetUrl: singleValue(searchParams.url)?.trim() ?? "" };
+  return { targetUrl: singleSearchParam(searchParams.url)?.trim() ?? "" };
 }
 
 export const resolveCardPreview = cache(async function resolveCardPreview(
@@ -36,6 +39,18 @@ export const resolveCardPreview = cache(async function resolveCardPreview(
 ): Promise<CardPreview> {
   if (!targetUrl) {
     return { status: "idle" };
+  }
+
+  // Every new URL is a server-side fetch, so each visitor gets a few per minute. React's cache
+  // makes the page and its metadata share one check per request.
+  try {
+    await enforcePreviewRateLimit(await getClientIdentifier());
+  } catch (error) {
+    return {
+      status: "error",
+      targetUrl,
+      error: error instanceof PreviewError ? error.code : "unreachable",
+    };
   }
 
   const target = await fetchTargetCard(targetUrl);
@@ -114,10 +129,6 @@ async function fetchTargetCard(targetUrl: string): Promise<TargetCardResult> {
       error: error instanceof PreviewError ? error.code : "unreachable",
     };
   }
-}
-
-function singleValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
 }
 
 async function sanitizeRenderImage(value: string): Promise<string> {

@@ -3,7 +3,11 @@
 import { env, pipeline, Tensor } from "@huggingface/transformers";
 import { AudioSampleSink, BlobSource, Input } from "mediabunny";
 
-import type { TranscriptionReply, TranscriptionRequest } from "./transcription-messages";
+import type {
+  TranscriptionCommand,
+  TranscriptionReply,
+  TranscriptionRequest,
+} from "./transcription-messages";
 import type { VideoCaption } from "./types";
 
 import { splitLongCaption } from "./captions";
@@ -32,6 +36,14 @@ interface Transcriber {
 }
 
 let transcriberPromise: Promise<Transcriber> | null = null;
+/** The job whose model download is being reported, so progress reaches the right card. */
+let downloadingJobId = "";
+/** Jobs run one at a time; Whisper on two clips at once would only slow both down. */
+let jobQueue: Promise<unknown> = Promise.resolve();
+const pendingJobs = new Set<string>();
+const canceledJobs = new Set<string>();
+
+class JobCanceled extends Error {}
 
 function reply(message: TranscriptionReply) {
   self.postMessage(message);
@@ -82,7 +94,7 @@ async function createTranscriber() {
         loaded += download.loaded;
         total += download.total;
       }
-      reply({ kind: "download", progress: total > 0 ? loaded / total : 0 });
+      reply({ id: downloadingJobId, kind: "download", progress: total > 0 ? loaded / total : 0 });
     },
   });
   return transcriber as unknown as Transcriber;
@@ -183,21 +195,28 @@ async function detectLanguage(transcriber: Transcriber, audio: Float32Array) {
   return language;
 }
 
-async function transcribe({ end, file, start }: TranscriptionRequest) {
+async function transcribe({ end, file, id, start }: TranscriptionRequest) {
+  function checkCanceled() {
+    if (canceledJobs.has(id)) throw new JobCanceled();
+  }
   if (end - start > maximumTranscriptionSeconds) {
-    reply({ kind: "error", reason: "too-long" });
+    reply({ id, kind: "error", reason: "too-long" });
     return;
   }
+  checkCanceled();
+  downloadingJobId = id;
   // The model downloads while the audio decodes.
   const [transcriber, audio] = await Promise.all([loadTranscriber(), readAudio(file, start, end)]);
+  checkCanceled();
   if (!audio) {
-    reply({ kind: "error", reason: "no-audio" });
+    reply({ id, kind: "error", reason: "no-audio" });
     return;
   }
-  reply({ kind: "transcribing" });
+  reply({ id, kind: "transcribing" });
   const language = await detectLanguage(transcriber, audio).catch(function assumeNothing() {
     return null;
   });
+  checkCanceled();
   const result = await transcriber(audio, {
     chunk_length_s: 30,
     language,
@@ -205,6 +224,7 @@ async function transcribe({ end, file, start }: TranscriptionRequest) {
     stride_length_s: 5,
     task: "transcribe",
   });
+  checkCanceled();
   const captions: VideoCaption[] = (result.chunks ?? []).flatMap(function toCaptions(chunk) {
     const text = chunk.text.trim();
     const [chunkStart, chunkEnd] = chunk.timestamp;
@@ -216,11 +236,25 @@ async function transcribe({ end, file, start }: TranscriptionRequest) {
       text,
     });
   });
-  reply({ captions, kind: "done", language });
+  reply({ captions, id, kind: "done", language });
 }
 
-self.addEventListener("message", function handleRequest(event: MessageEvent<TranscriptionRequest>) {
-  transcribe(event.data).catch(function reportFailure() {
-    reply({ kind: "error", reason: "failed" });
+self.addEventListener("message", function handleCommand(event: MessageEvent<TranscriptionCommand>) {
+  const command = event.data;
+  if (command.kind === "cancel") {
+    if (pendingJobs.has(command.id)) canceledJobs.add(command.id);
+    return;
+  }
+  pendingJobs.add(command.id);
+  jobQueue = jobQueue.then(function runJob() {
+    return transcribe(command)
+      .catch(function reportFailure(error) {
+        if (!(error instanceof JobCanceled))
+          reply({ id: command.id, kind: "error", reason: "failed" });
+      })
+      .finally(function forgetJob() {
+        pendingJobs.delete(command.id);
+        canceledJobs.delete(command.id);
+      });
   });
 });

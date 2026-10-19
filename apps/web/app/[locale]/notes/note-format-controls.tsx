@@ -26,6 +26,8 @@ interface NoteFormatControlsProps {
   /** Where the photo menu opens: above a bottom toolbar or below the top one. */
   menuSide: "top" | "bottom";
   onAddChecklist: () => void;
+  /** Starts loading the format panel when the Aa button is about to be used. */
+  onPrepareFormat: () => void;
   onToggleFormat: () => void;
   photoMenuSections: IosMenuSection[];
 }
@@ -42,6 +44,7 @@ export function NoteFormatControls({
   messages,
   menuSide,
   onAddChecklist,
+  onPrepareFormat,
   onToggleFormat,
   photoMenuSections,
 }: NoteFormatControlsProps) {
@@ -53,6 +56,8 @@ export function NoteFormatControls({
           aria-label={messages.Format}
           aria-pressed={isFormatOpen}
           {...editingControlHandlers}
+          onPointerEnter={onPrepareFormat}
+          onFocus={onPrepareFormat}
           onClick={onToggleFormat}
         >
           <TextFormatIcon />

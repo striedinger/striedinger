@@ -4,13 +4,13 @@ import { Suspense } from "react";
 
 import type { MtaLabels } from "./types";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getMtaTranslator } from "../../../messages/mta/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { MtaDashboardLoader } from "./mta-dashboard-loader";
 import { MtaDashboardSkeleton } from "./mta-dashboard-skeleton";
-import { MtaScreen } from "./mta-screen";
 
 interface MtaPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -79,11 +79,16 @@ export default async function MtaPage({ searchParams }: MtaPageProps) {
   });
 
   return (
-    <MtaScreen title={labels.title}>
+    <IosToolScreen
+      title={labels.title}
+      contentWidth="64rem"
+      contentClassName=""
+      scrollClassName="pb-safe-plus-26"
+    >
       <JsonLd value={structuredData} />
       <Suspense fallback={<MtaDashboardSkeleton />}>
         <MtaDashboardLoader searchParams={searchParams} labels={labels} locale={locale} />
       </Suspense>
-    </MtaScreen>
+    </IosToolScreen>
   );
 }

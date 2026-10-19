@@ -80,7 +80,6 @@ async function loadPopularPodcasts(): Promise<Podcast[]> {
 async function fetchChart(): Promise<AppleChartResponse> {
   const response = await fetch(appleChartsUrl, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 3_600 },
     signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error("Podcast chart request failed");
@@ -108,7 +107,6 @@ async function loadPodcastCatalog({ query }: { query: string }): Promise<Podcast
   });
   const response = await fetch(`${appleSearchBaseUrl}/search?${parameters}`, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 3_600 },
     signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error("Podcast search request failed");
@@ -136,7 +134,6 @@ async function loadPodcastShow({
   });
   const response = await fetch(`${appleSearchBaseUrl}/lookup?${parameters}`, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 900 },
     signal: AbortSignal.timeout(8_000),
   });
   if (!response.ok) throw new Error("Podcast episode request failed");

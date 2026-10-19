@@ -6,10 +6,16 @@ import { cloneElement, lazy, Suspense, useRef, useState } from "react";
 
 import type { IosMenuSection } from "./ios-menu-types";
 
+import { useHasOpened } from "../use-has-opened";
+
 export type { IosMenuAction, IosMenuSection } from "./ios-menu-types";
 
-const loadMenuPopup = () => import("./ios-menu-popup");
-const IosMenuPopup = lazy(function importMenuPopup() {
+function loadMenuPopup() {
+  return import("./ios-menu-popup");
+}
+
+/** The menu surface, loaded on first use; shared by pull-down and context menus. */
+export const IosMenuPopup = lazy(function importMenuPopup() {
   return loadMenuPopup().then(function selectMenuPopup(module) {
     return { default: module.IosMenuPopup };
   });
@@ -41,7 +47,7 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
   const triggerRef = useRef<HTMLElement>(null);
   const closedAtRef = useRef(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [hasOpened, setHasOpened] = useState(false);
+  const hasOpened = useHasOpened(isOpen);
 
   function updateOpen(nextOpen: boolean, timeStamp: number) {
     if (!nextOpen) closedAtRef.current = timeStamp;
@@ -54,14 +60,23 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
         ref: triggerRef,
         "aria-haspopup": "menu",
         "aria-expanded": isOpen,
-        onPointerEnter: preloadIosMenu,
-        onTouchStart: preloadIosMenu,
-        onFocus: preloadIosMenu,
+        // The trigger's own handlers still run; the menu just starts loading alongside them.
+        onPointerEnter: function preloadOnHover() {
+          trigger.props.onPointerEnter?.();
+          preloadIosMenu();
+        },
+        onTouchStart: function preloadOnTouch() {
+          trigger.props.onTouchStart?.();
+          preloadIosMenu();
+        },
+        onFocus: function preloadOnFocus() {
+          trigger.props.onFocus?.();
+          preloadIosMenu();
+        },
         onClick: function toggleMenu(event: MouseEvent<HTMLElement>) {
           trigger.props.onClick?.(event);
           // A press on the trigger first closes an open menu as an outside press; ignore the click.
           if (event.timeStamp - closedAtRef.current < reopenGuardMilliseconds) return;
-          setHasOpened(true);
           updateOpen(!isOpen, event.timeStamp);
         },
       } as Record<string, unknown>)}

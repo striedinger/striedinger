@@ -26,6 +26,7 @@ import {
   playbackRates,
   setPlaybackRate,
   setSleepTimer,
+  previewVolume,
   setVolume,
   skipBackward,
   skipBackwardSeconds,
@@ -111,7 +112,7 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                     <PodcastArtwork
                       src={item.podcast.artworkUrl}
                       sizes="(min-width: 768px) 420px, 90vw"
-                      priority
+                      loadsEagerly
                       className={cn(
                         "mx-auto w-[min(100cqw,100cqh)] max-w-105 shrink-0 rounded-ios-md shadow-ios-overlay transition-transform duration-500 ease-ios-bounce motion-reduce:transition-none",
                         player.isPlaying ? "scale-100" : "scale-[0.82]",
@@ -195,7 +196,8 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                       value={player.volume}
                       valueText={`${Math.round(player.volume * 100)}%`}
                       keyboardStep={0.1}
-                      onChange={setVolume}
+                      // Dragging sets the audio's volume directly; the store updates once on release.
+                      onChange={previewVolume}
                       onCommit={setVolume}
                     />
                     <SpeakerWaveIcon className="size-5 shrink-0" />

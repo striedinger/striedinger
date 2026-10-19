@@ -88,6 +88,16 @@ describe("proxy", () => {
     expect(response.headers.get("set-cookie")).toContain("locale=es");
   });
 
+  it("leaves the cookie alone when it already holds the route's language", () => {
+    const request = new NextRequest("https://striedinger.co/es/image", {
+      headers: { cookie: "locale=es" },
+    });
+
+    const response = proxy(request);
+
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
   it("redirects English-prefixed URLs to their canonical unprefixed route", () => {
     const request = new NextRequest("https://striedinger.co/en/json?example=1");
 

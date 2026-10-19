@@ -93,18 +93,19 @@ function getServerLibrarySnapshot(): PodcastLibraryState {
   return emptyLibrary;
 }
 
+/** Another tab's writes arrive as storage events; one listener re-reads them for every subscriber. */
+function synchronizeOtherTabs(event: StorageEvent) {
+  if (event.key !== null && !event.key.startsWith("podcast-")) return;
+  libraryState = readLibrary();
+  for (const listener of listeners) listener();
+}
+
 function subscribeToLibrary(listener: () => void) {
+  if (listeners.size === 0) window.addEventListener("storage", synchronizeOtherTabs);
   listeners.add(listener);
-  function synchronizeOtherTabs(event: StorageEvent) {
-    if (event.key === null || event.key.startsWith("podcast-")) {
-      libraryState = readLibrary();
-      listener();
-    }
-  }
-  window.addEventListener("storage", synchronizeOtherTabs);
   return function unsubscribeFromLibrary() {
     listeners.delete(listener);
-    window.removeEventListener("storage", synchronizeOtherTabs);
+    if (listeners.size === 0) window.removeEventListener("storage", synchronizeOtherTabs);
   };
 }
 
@@ -124,6 +125,71 @@ function getServerFollowedSnapshot() {
 /** Subscribes only to followed shows, so progress saves during playback do not re-render. */
 export function useFollowedPodcasts() {
   return useSyncExternalStore(subscribeToLibrary, getFollowedSnapshot, getServerFollowedSnapshot);
+}
+
+/**
+ * One answer from the library, re-rendering only when that answer changes. Progress is saved
+ * every few seconds during playback, so rows and screens subscribe to just what they show.
+ * `select` must return a primitive or an item from the library, never a new object.
+ */
+function useLibrarySelection<Selection>(select: (library: PodcastLibraryState) => Selection) {
+  function getSelection() {
+    return select(getLibrarySnapshot());
+  }
+  function getServerSelection() {
+    return select(emptyLibrary);
+  }
+  return useSyncExternalStore(subscribeToLibrary, getSelection, getServerSelection);
+}
+
+export function useIsEpisodeSaved(episodeId: string) {
+  return useLibrarySelection(function findSaved(library) {
+    return library.saved.some(function matchesEpisode(item) {
+      return item.episode.id === episodeId;
+    });
+  });
+}
+
+export function useIsEpisodePlayed(episodeId: string) {
+  return useLibrarySelection(function findPlayed(library) {
+    return library.playedEpisodeIds.has(episodeId);
+  });
+}
+
+export function useEpisodeProgress(episodeId: string) {
+  return useLibrarySelection(function findProgress(library) {
+    return library.progress.find(function matchesEpisode(item) {
+      return item.episode.id === episodeId;
+    });
+  });
+}
+
+export function useIsPodcastFollowed(podcastId: string) {
+  return useLibrarySelection(function findFollowed(library) {
+    return library.followed.some(function matchesPodcast(item) {
+      return item.id === podcastId;
+    });
+  });
+}
+
+/** The show's most recently listened episode, to resume from its page. */
+export function useShowResumeItem(podcastId: string) {
+  return useLibrarySelection(function findResumeItem(library) {
+    return library.progress.find(function belongsToShow(item) {
+      return item.podcast.id === podcastId;
+    });
+  });
+}
+
+/** A saved or in-progress episode, so its screen can render before the show loads. */
+export function useLibraryEpisode(podcastId: string | null, episodeId: string | null) {
+  return useLibrarySelection(function findEpisode(library) {
+    if (!podcastId || !episodeId) return undefined;
+    function matchesRoute(item: PodcastQueueItem) {
+      return item.podcast.id === podcastId && item.episode.id === episodeId;
+    }
+    return library.saved.find(matchesRoute) ?? library.progress.find(matchesRoute);
+  });
 }
 
 export function usePodcastLibrary() {

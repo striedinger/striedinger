@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 
 import type { ChatLabels } from "./types";
 
+import { getDisplayNames } from "../../../lib/intl-cache";
 import { findTranslatableLanguage } from "../../../lib/on-device-ai/find-translatable-language";
 import { monitorDownload } from "../../../lib/on-device-ai/on-device-ai-session";
-import { translateMessage } from "./message-translation-service";
+import { retainTranslators, translateMessage } from "./message-translation-service";
 
 interface MessageTranslationProps {
   labels: ChatLabels;
@@ -29,6 +30,10 @@ type TranslationState =
  */
 export function MessageTranslation({ labels, locale, text }: MessageTranslationProps) {
   const [state, setState] = useState<TranslationState>({ kind: "none" });
+
+  useEffect(function holdTranslators() {
+    return retainTranslators();
+  }, []);
 
   useEffect(
     function translateWhenForeign() {
@@ -64,8 +69,7 @@ export function MessageTranslation({ labels, locale, text }: MessageTranslationP
 
   if (state.kind === "none") return null;
   const languageName =
-    new Intl.DisplayNames([locale], { type: "language" }).of(state.sourceLanguage) ??
-    state.sourceLanguage;
+    getDisplayNames(locale, { type: "language" }).of(state.sourceLanguage) ?? state.sourceLanguage;
 
   async function downloadAndTranslate(sourceLanguage: string) {
     setState({ kind: "translating", progress: null, sourceLanguage });

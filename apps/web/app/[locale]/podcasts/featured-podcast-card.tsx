@@ -10,10 +10,10 @@ import { useArtworkColor } from "./use-artwork-color";
 
 interface FeaturedPodcastCardProps {
   podcast: Podcast;
-  priority: boolean;
+  loadsEagerly: boolean;
 }
 
-export function FeaturedPodcastCard({ podcast, priority }: FeaturedPodcastCardProps) {
+export function FeaturedPodcastCard({ loadsEagerly, podcast }: FeaturedPodcastCardProps) {
   const artworkColor = useArtworkColor(podcast.artworkUrl);
   return (
     <li className="w-[min(86vw,420px)] shrink-0 snap-start">
@@ -25,7 +25,7 @@ export function FeaturedPodcastCard({ podcast, priority }: FeaturedPodcastCardPr
         <PodcastArtwork
           src={podcast.artworkUrl}
           sizes="120px"
-          priority={priority}
+          loadsEagerly={loadsEagerly}
           className="w-30 rounded-ios-md shadow-ios-floating"
         />
         <span className="flex min-w-0 flex-col gap-1">

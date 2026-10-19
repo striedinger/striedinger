@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const serverOnlyAlias = fileURLToPath(new URL("./test/server-only.ts", import.meta.url));
+const nextFontGoogleAlias = fileURLToPath(new URL("./test/next-font-google.ts", import.meta.url));
 
 export default defineConfig({
   resolve: {
@@ -41,7 +42,7 @@ export default defineConfig({
       },
       {
         resolve: {
-          alias: { "server-only": serverOnlyAlias },
+          alias: { "next/font/google": nextFontGoogleAlias, "server-only": serverOnlyAlias },
         },
         test: {
           name: "web-ui",

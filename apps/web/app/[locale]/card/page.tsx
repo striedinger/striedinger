@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { IosSubmitButton } from "../../../components/ios/ios-submit-button";
 import { createCardMetadata, getCardParams, resolveCardPreview } from "./card-preview";
 import { CardResult } from "./card-result";
+import { CardResultSkeleton } from "./card-result-skeleton";
 
 interface CardPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -49,7 +50,7 @@ export default async function CardPage({ searchParams }: CardPageProps) {
         <IosSubmitButton label="Create link" checkingLabel="Creating…" />
       </Form>
 
-      <Suspense key={targetUrl} fallback={null}>
+      <Suspense key={targetUrl} fallback={targetUrl ? <CardResultSkeleton /> : null}>
         <CardResult targetUrl={targetUrl} />
       </Suspense>
     </>

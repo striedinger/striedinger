@@ -25,6 +25,19 @@ describe("note HTML", function () {
     );
   });
 
+  it("lists a photo by its small thumbnail and keeps only safe thumbnails", function () {
+    const photo = "data:image/jpeg;base64,AAAA";
+    const thumbnail = "data:image/jpeg;base64,BBBB";
+    const html = sanitizeNoteHtml(
+      `<p>Trip</p><img src="${photo}" data-thumbnail="${thumbnail}"><img src="${photo}" data-thumbnail="https://tracker.example/pixel.gif">`,
+    );
+
+    expect(summarizeNoteHtml(html).thumbnail).toBe(thumbnail);
+    expect(html).not.toContain("tracker.example");
+    // Photos from before thumbnails existed still show in the list.
+    expect(summarizeNoteHtml(`<img src="${photo}">`).thumbnail).toBe(photo);
+  });
+
   it("uses the first line as the title and the following lines as the preview", function () {
     const summary = summarizeNoteHtml(
       '<h1>Groceries</h1><p>For the weekend</p><ul data-type="checklist"><li data-checked="false">Apples</li></ul>',

@@ -8,7 +8,7 @@ import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } fr
 import type { DropLabels } from "./types";
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
-import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
+import { IosFloatingActionBar } from "../../../components/ios/ios-floating-action-bar";
 
 interface FileDropZoneProps {
   children: ReactNode;
@@ -71,14 +71,7 @@ export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
         </span>
         <Text className="text-ios-title3 font-semibold text-ios-label">{labels.dropFiles}</Text>
       </div>
-      <div
-        role="toolbar"
-        aria-label={labels.addFiles}
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-safe-min-3.5",
-          iosBottomScrollEdgeClassName,
-        )}
-      >
+      <IosFloatingActionBar role="toolbar" aria-label={labels.addFiles}>
         <label
           htmlFor="drop-file-input"
           className={cn(
@@ -100,7 +93,7 @@ export function FileDropZone({ children, labels, onFiles }: FileDropZoneProps) {
         <span id="drop-file-limits" className="sr-only">
           {labels.privacy}
         </span>
-      </div>
+      </IosFloatingActionBar>
     </div>
   );
 }

@@ -56,11 +56,13 @@ worker.addEventListener(
       const height = Math.max(1, Math.round(bitmap.height * scale));
       const canvas = new OffscreenCanvas(width, height);
       const context = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
-
-      if (!context) throw new Error("Canvas is unavailable in this browser.");
-
-      context.drawImage(bitmap, 0, 0, width, height);
-      bitmap.close();
+      // The decoded bitmap can be tens of megabytes, so it is released even if drawing fails.
+      try {
+        if (!context) throw new Error("Canvas is unavailable in this browser.");
+        context.drawImage(bitmap, 0, 0, width, height);
+      } finally {
+        bitmap.close();
+      }
 
       reportProgress(id, 34, "compressing");
       const imageData = context.getImageData(0, 0, width, height);

@@ -78,6 +78,10 @@ function createSanitizedElement(source: Element, tagName: string): Element | nul
     const image = document.createElement("img");
     image.setAttribute("src", imageSource);
     image.setAttribute("alt", source.getAttribute("alt")?.slice(0, 200) ?? "");
+    const thumbnail = source.getAttribute("data-thumbnail");
+    if (thumbnail && isSafeNoteImageSource(thumbnail)) {
+      image.setAttribute("data-thumbnail", thumbnail);
+    }
     return image;
   }
   const element = document.createElement(tagName.toLowerCase());
@@ -113,7 +117,9 @@ export function summarizeNoteHtml(html: string): NoteSummary {
   const template = document.createElement("template");
   template.innerHTML = html;
   const lines = collectTextLines(template.content);
-  const thumbnail = template.content.querySelector("img")?.getAttribute("src") ?? null;
+  const image = template.content.querySelector("img");
+  // Photos added since thumbnails existed carry a small copy; older ones fall back to the photo.
+  const thumbnail = image?.getAttribute("data-thumbnail") ?? image?.getAttribute("src") ?? null;
   return {
     title: (lines[0] ?? "").slice(0, 200),
     preview: lines.slice(1).join(" ").slice(0, 240),

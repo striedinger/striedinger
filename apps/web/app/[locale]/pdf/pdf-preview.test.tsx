@@ -12,7 +12,7 @@ const mocks = vi.hoisted(function createPdfMocks() {
   };
 });
 vi.mock("pdfjs-dist/legacy/build/pdf.mjs", function mockPdfjs() {
-  return { GlobalWorkerOptions: {}, getDocument: mocks.getDocument };
+  return { GlobalWorkerOptions: {}, getDocument: mocks.getDocument, version: "test" };
 });
 
 describe("PDF preview resources", function () {

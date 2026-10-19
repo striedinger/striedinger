@@ -1,6 +1,10 @@
 // Formatting commands for the contenteditable note body. They use the browser's editing
 // commands so each change joins the native undo stack, then normalize the markup Notes needs.
 
+import type { PreparedNoteImage } from "./note-image";
+
+import { isSafeNoteImageSource } from "./note-html";
+
 export type NoteBlockStyle = "h1" | "h2" | "h3" | "p" | "pre";
 export type NoteInlineStyle = "bold" | "italic" | "underline" | "strikeThrough";
 export type NoteListStyle = "bulleted" | "dashed" | "numbered";
@@ -188,8 +192,10 @@ export function normalizeChecklistItem(editor: HTMLElement) {
   }
 }
 
-export function insertImage(source: string) {
-  runCommand("insertHTML", `<img src="${source}" alt=""><p><br></p>`);
+export function insertImage({ source, thumbnail }: PreparedNoteImage) {
+  const thumbnailAttribute =
+    thumbnail && isSafeNoteImageSource(thumbnail) ? ` data-thumbnail="${thumbnail}"` : "";
+  runCommand("insertHTML", `<img src="${source}"${thumbnailAttribute} alt=""><p><br></p>`);
 }
 
 export function insertSanitizedHtml(html: string) {
@@ -202,6 +208,9 @@ export function insertPlainText(text: string) {
 
 /** An emptied note starts again with a Title line, as it does in Notes. */
 export function ensureTitleLine(editor: HTMLElement) {
+  // Runs on every keystroke, so a note with more than one block returns before reading any
+  // text: building a long note's textContent each time would cost more than the check.
+  if (editor.childElementCount > 1) return;
   if (editor.textContent || editor.querySelector("img, li")) return;
   if (editor.firstElementChild?.tagName === "H1") return;
   runCommand("formatBlock", "<h1>");

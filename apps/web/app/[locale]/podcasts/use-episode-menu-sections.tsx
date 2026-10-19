@@ -11,7 +11,12 @@ import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import type { IosMenuAction, IosMenuSection } from "../../../components/ios/ios-menu";
 import type { PodcastQueueItem } from "./types";
 
-import { setEpisodePlayed, toggleSavedEpisode, usePodcastLibrary } from "./podcast-library-store";
+import {
+  setEpisodePlayed,
+  toggleSavedEpisode,
+  useIsEpisodePlayed,
+  useIsEpisodeSaved,
+} from "./podcast-library-store";
 import { enqueueEpisode, playEpisode } from "./podcast-player-store";
 import { usePodcasts } from "./podcasts-context";
 
@@ -31,11 +36,8 @@ export function useEpisodeMenuSections({
   showsGoToShow = true,
 }: EpisodeMenuSectionsOptions): IosMenuSection[] {
   const { goToShow, messages, shareEpisode } = usePodcasts();
-  const library = usePodcastLibrary();
-  const isSaved = library.saved.some(function matchesEpisode(savedItem) {
-    return savedItem.episode.id === item.episode.id;
-  });
-  const isPlayed = library.playedEpisodeIds.has(item.episode.id);
+  const isSaved = useIsEpisodeSaved(item.episode.id);
+  const isPlayed = useIsEpisodePlayed(item.episode.id);
 
   return [
     {

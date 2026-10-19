@@ -14,11 +14,11 @@ interface PodcastTileProps {
   className?: string;
   detail?: string;
   podcast: Podcast;
-  priority?: boolean;
+  loadsEagerly?: boolean;
   sizes: string;
 }
 
-export function PodcastTile({ className, detail, podcast, priority, sizes }: PodcastTileProps) {
+export function PodcastTile({ className, detail, loadsEagerly, podcast, sizes }: PodcastTileProps) {
   const menuSections = usePodcastMenuSections(podcast);
 
   return (
@@ -30,7 +30,7 @@ export function PodcastTile({ className, detail, podcast, priority, sizes }: Pod
         <PodcastArtwork
           src={podcast.artworkUrl}
           sizes={sizes}
-          priority={priority}
+          loadsEagerly={loadsEagerly}
           className="w-full rounded-ios-md shadow-ios-raised transition-transform duration-150 group-focus-visible:ring-2 group-focus-visible:ring-ios-tint group-active:scale-[0.97] motion-reduce:transition-none"
         />
         <span className="flex min-w-0 flex-col">

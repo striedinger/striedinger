@@ -3,6 +3,8 @@
 import { Text } from "@workspace/ui/components/text";
 import { useEffect, useState } from "react";
 
+import { getDateTimeFormat } from "../../../lib/intl-cache";
+
 interface MarketSessionIndicatorProps {
   exchange: string;
   labels: {
@@ -33,13 +35,17 @@ export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndica
     function updateMarketSession() {
       if (!isSupportedExchange) return;
       function refreshSession() {
+        // A hidden tab shows nothing, so it skips ticks and catches up when shown again.
+        if (document.hidden) return;
         setSession(getUnitedStatesMarketSession(new Date()));
       }
       const timeoutId = window.setTimeout(refreshSession, 0);
       const intervalId = window.setInterval(refreshSession, 30_000);
+      document.addEventListener("visibilitychange", refreshSession);
       return function stopSessionUpdates() {
         window.clearTimeout(timeoutId);
         window.clearInterval(intervalId);
+        document.removeEventListener("visibilitychange", refreshSession);
       };
     },
     [isSupportedExchange],
@@ -71,7 +77,7 @@ export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndica
 }
 
 export function getUnitedStatesMarketSession(date: Date): MarketSession {
-  const dateParts = new Intl.DateTimeFormat("en-US", {
+  const dateParts = getDateTimeFormat("en-US", {
     timeZone: "America/New_York",
     weekday: "short",
     hour: "2-digit",

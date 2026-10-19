@@ -2,7 +2,7 @@ import type { DocumentInitParameters } from "pdfjs-dist/types/src/display/api";
 
 import type { PdfOperationStage } from "./types";
 
-import { getPdfjsAssetOptions } from "./pdfjs-asset-options";
+import { openPdfDocument } from "./open-pdf-document";
 
 /* oxlint-disable no-await-in-loop -- Rasterize one page at a time to bound canvas and decoded-image memory. */
 
@@ -33,23 +33,14 @@ export async function rasterizePdfDocument<Canvas extends PageCanvas>(
   onProgress?: RasterizeProgressCallback,
 ): Promise<ArrayBuffer> {
   onProgress?.(8, "preparing");
-  // The legacy build polyfills recent JavaScript (such as Map#getOrInsertComputed) that
-  // pdf.js 6's default build assumes, so PDFs open in current Safari and Chromium releases.
-  const [{ PDFDocument }, pdfjs] = await Promise.all([
+  const [{ PDFDocument }, loadingTask] = await Promise.all([
     import("pdf-lib"),
-    import("pdfjs-dist/legacy/build/pdf.mjs"),
+    openPdfDocument({
+      ...environment.documentOptions,
+      data,
+      password: options.password || undefined,
+    }),
   ]);
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-    import.meta.url,
-  ).toString();
-
-  const loadingTask = pdfjs.getDocument({
-    ...getPdfjsAssetOptions(pdfjs.version),
-    ...environment.documentOptions,
-    data,
-    password: options.password || undefined,
-  });
   try {
     const input = await loadingTask.promise;
     const output = await PDFDocument.create();

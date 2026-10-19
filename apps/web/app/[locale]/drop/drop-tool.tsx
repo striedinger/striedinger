@@ -56,6 +56,8 @@ export function DropTool({ labels }: DropToolProps) {
     sharedFiles: [],
   });
   const copyResetTimeoutIds = useRef(new Set<number>());
+  /** The room this tab is in, so following an invite to the same room keeps the session. */
+  const activeRoomCode = useRef<string | null>(null);
 
   useEffect(function initializeRoomFromFragment() {
     let cancelled = false;
@@ -63,7 +65,10 @@ export function DropTool({ labels }: DropToolProps) {
     function syncFragmentRoom() {
       if (cancelled) return;
       const fragmentCode = parseRoomCode(window.location.hash.slice(1));
+      // Resetting for the room already open would drop the connection without reconnecting.
+      if (fragmentCode !== undefined && fragmentCode === activeRoomCode.current) return;
       const nextRoomCode = fragmentCode ?? createRoomCode();
+      activeRoomCode.current = nextRoomCode;
       resetRoomSession(session.current);
       setRoomCode(nextRoomCode);
       setConnectionError(false);
@@ -254,6 +259,7 @@ export function DropTool({ labels }: DropToolProps) {
     const nextRoomCode = parseRoomCode(rawRoomCode);
 
     if (!nextRoomCode) return false;
+    activeRoomCode.current = nextRoomCode;
     resetRoomSession(session.current);
     setConnectionError(false);
     setCopyFailed(false);

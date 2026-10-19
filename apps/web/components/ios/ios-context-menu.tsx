@@ -3,17 +3,11 @@
 import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
-import { lazy, Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 import type { IosMenuSection, IosMenuVirtualAnchor } from "./ios-menu-types";
 
-import { preloadIosMenu } from "./ios-menu";
-
-const IosMenuPopup = lazy(function importMenuPopup() {
-  return import("./ios-menu-popup").then(function selectMenuPopup(module) {
-    return { default: module.IosMenuPopup };
-  });
-});
+import { IosMenuPopup, preloadIosMenu } from "./ios-menu";
 
 interface IosContextMenuProps {
   children: ReactNode;
@@ -50,6 +44,14 @@ export function IosContextMenu({ children, className, sections, style }: IosCont
   const suppressClickRef = useRef(false);
   const [anchor, setAnchor] = useState<IosMenuVirtualAnchor | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // A row can unmount mid-press, as when a list updates; its pending long press must not fire.
+  useEffect(function cancelPressOnUnmount() {
+    return function clearPendingPress() {
+      const press = pressRef.current;
+      if (press) window.clearTimeout(press.timeout);
+    };
+  }, []);
 
   function openAt(x: number, y: number) {
     setAnchor(createPointAnchor(x, y));

@@ -5,12 +5,12 @@ import { PinIcon } from "@workspace/icons/pin-icon";
 import { TrashIcon } from "@workspace/icons/trash-icon";
 import { Text } from "@workspace/ui/components/text";
 
-import type { IosMenuSection } from "../../../components/ios/ios-menu";
 import type { Note, NotesMessages } from "./types";
 
 import { IosContextMenu } from "../../../components/ios/ios-context-menu";
 import { IosSwipeActions } from "../../../components/ios/ios-swipe-actions";
 import { formatNoteListDate } from "./note-dates";
+import { createNoteMenuSections } from "./note-menu-sections";
 
 interface NoteRowProps {
   folderName: string | null;
@@ -42,68 +42,12 @@ export function NoteRow({
   const isDeleted = note.deletedAt !== null;
   const title = note.title || messages["New Note"];
   const preview = note.preview || messages["No additional text"];
-  const menuSections: IosMenuSection[] = isDeleted
-    ? [
-        {
-          id: "deleted",
-          actions: [
-            {
-              id: "recover",
-              label: messages.Recover,
-              icon: <FolderIcon />,
-              onSelect: function recoverNote() {
-                onRecover(note);
-              },
-            },
-            {
-              id: "delete",
-              label: messages.Delete,
-              icon: <TrashIcon />,
-              destructive: true,
-              onSelect: function deleteNote() {
-                onDelete(note);
-              },
-            },
-          ],
-        },
-      ]
-    : [
-        {
-          id: "note",
-          actions: [
-            {
-              id: "pin",
-              label: note.pinned ? messages["Unpin Note"] : messages["Pin Note"],
-              icon: <PinIcon />,
-              onSelect: function togglePinned() {
-                onTogglePinned(note);
-              },
-            },
-            {
-              id: "move",
-              label: messages["Move Note"],
-              icon: <FolderIcon />,
-              onSelect: function moveNote() {
-                onMove(note);
-              },
-            },
-          ],
-        },
-        {
-          id: "delete",
-          actions: [
-            {
-              id: "delete",
-              label: messages["Delete Note"],
-              icon: <TrashIcon />,
-              destructive: true,
-              onSelect: function deleteNote() {
-                onDelete(note);
-              },
-            },
-          ],
-        },
-      ];
+  const menuSections = createNoteMenuSections(note, messages, {
+    onDelete,
+    onMove,
+    onRecover,
+    onTogglePinned,
+  });
 
   return (
     <li className="relative bg-ios-grouped-cell not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-4 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator md:bg-ios-background md:not-last:after:right-3 md:not-last:after:left-3">

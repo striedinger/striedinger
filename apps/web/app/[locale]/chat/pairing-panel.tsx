@@ -2,7 +2,7 @@
 
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import type { ChatLabels, PairingState } from "./types";
 
@@ -44,20 +44,19 @@ export function PairingPanel({
   const [connectionPath, setConnectionPath] = useState<ConnectionPath>("choose");
   const [deliveryState, setDeliveryState] = useState<DeliveryState>("idle");
   const [inviteCode, setInviteCode] = useState("");
-  const previousPairingState = useRef(pairingState);
+  const [previousPairingState, setPreviousPairingState] = useState(pairingState);
 
-  useEffect(
-    function resetCompletedPairingFlow() {
-      const previousState = previousPairingState.current;
-      previousPairingState.current = pairingState;
-      if (pairingState !== "idle" || previousState === "idle") return;
+  // When pairing finishes or is canceled, the panel starts over at the first step. Adjusting
+  // state during render skips the extra pass an effect would cost.
+  if (pairingState !== previousPairingState) {
+    setPreviousPairingState(pairingState);
+    if (pairingState === "idle") {
       setAnswerCode("");
       setConnectionPath("choose");
       setDeliveryState("idle");
       setInviteCode("");
-    },
-    [pairingState],
-  );
+    }
+  }
 
   async function handleSendCode() {
     if (navigator.share) {

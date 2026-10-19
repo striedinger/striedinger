@@ -8,10 +8,11 @@ import { useEffect, useState } from "react";
 import type { IosAppSwitcherLabels } from "./ios-app-switcher-context";
 
 import { IosAppSwitcher } from "./ios-app-switcher";
+import { iosFallbackFont } from "./ios-font";
 import { IosPortalContainerContext } from "./ios-portal-container";
-import { useKeyboardInset } from "./use-keyboard-inset";
 import "./ios-utilities.css";
 import "./ios-view-transitions.css";
+import { useKeyboardInset } from "./use-keyboard-inset";
 
 // Apple's iOS system colors for the light and dark appearances. Native replicas use these
 // instead of the site palette so materials, labels, and separators match the real apps.
@@ -78,6 +79,7 @@ export function IosAppFrame({ appSwitcher, children, className, ...props }: IosA
       data-slot="ios-app-frame"
       className={cn(
         "relative flex h-dvh w-full touch-manipulation overflow-hidden bg-ios-background font-[-apple-system,BlinkMacSystemFont,'SF_Pro_Text','SF_Pro',var(--font-ios-fallback),system-ui,sans-serif] font-features-['cv11','ss03'] text-ios-label antialiased [-webkit-tap-highlight-color:transparent] [text-rendering:optimizeLegibility]",
+        iosFallbackFont.variable,
         systemColorClasses,
         className,
       )}

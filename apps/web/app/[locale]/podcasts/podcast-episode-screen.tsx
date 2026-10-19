@@ -7,7 +7,7 @@ import type { PodcastQueueItem, PodcastShow } from "./types";
 
 import { findKnownEpisode } from "./podcast-catalog";
 import { PodcastEpisodePage } from "./podcast-episode-page";
-import { usePodcastLibrary } from "./podcast-library-store";
+import { useLibraryEpisode } from "./podcast-library-store";
 import { usePodcastPlayerItems } from "./podcast-player-store";
 import { readSlugSegmentId } from "./podcast-route";
 import { PodcastStackPlaceholder } from "./podcast-stack-placeholder";
@@ -26,7 +26,7 @@ export function PodcastEpisodeScreen({ show }: PodcastEpisodeScreenProps) {
   const params = useParams<{ episode: string; show: string }>();
   const podcastId = readSlugSegmentId(params.show);
   const episodeId = readSlugSegmentId(params.episode);
-  const library = usePodcastLibrary();
+  const libraryItem = useLibraryEpisode(podcastId, episodeId);
   const player = usePodcastPlayerItems();
 
   function matchesRoute(item: PodcastQueueItem) {
@@ -36,12 +36,8 @@ export function PodcastEpisodeScreen({ show }: PodcastEpisodeScreenProps) {
   const knownItem =
     podcastId && episodeId
       ? (findKnownEpisode(podcastId, episodeId) ??
-        [
-          ...(player.current ? [player.current] : []),
-          ...player.queue,
-          ...library.saved,
-          ...library.progress,
-        ].find(matchesRoute))
+        [...(player.current ? [player.current] : []), ...player.queue].find(matchesRoute) ??
+        libraryItem)
       : undefined;
 
   if (knownItem) {

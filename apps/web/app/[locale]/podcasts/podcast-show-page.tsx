@@ -16,7 +16,7 @@ import { IosRevealTransition } from "../../../components/ios/ios-reveal-transiti
 import { IosScreen } from "../../../components/ios/ios-screen";
 import { EpisodeListSkeleton } from "./episode-list-skeleton";
 import { PodcastHero } from "./podcast-hero";
-import { toggleFollowedPodcast, usePodcastLibrary } from "./podcast-library-store";
+import { toggleFollowedPodcast, useIsPodcastFollowed } from "./podcast-library-store";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
 import { getTabHref } from "./podcast-route";
 import { PodcastShowDescription } from "./podcast-show-description";
@@ -35,11 +35,8 @@ interface PodcastShowPageProps {
 export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
   const { messages } = usePodcasts();
   const iosRouter = useIosRouter();
-  const library = usePodcastLibrary();
   const menuSections = usePodcastMenuSections(podcast);
-  const isFollowed = library.followed.some(function matchesPodcast(item) {
-    return item.id === podcast.id;
-  });
+  const isFollowed = useIsPodcastFollowed(podcast.id);
   const episodesSkeleton = <EpisodeListSkeleton label={messages["Loading episodes"]} />;
 
   return (

@@ -7,7 +7,8 @@ import { useState } from "react";
 interface PodcastArtworkProps {
   alt?: string;
   className?: string;
-  priority?: boolean;
+  /** Fetches the artwork at high priority for images seen first, instead of lazily. */
+  loadsEagerly?: boolean;
   sizes: string;
   src: string;
 }
@@ -19,12 +20,12 @@ interface PodcastArtworkProps {
 export function PodcastArtwork({
   alt = "",
   className,
-  priority = false,
+  loadsEagerly = false,
   sizes,
   src,
 }: PodcastArtworkProps) {
   const [loadedSource, setLoadedSource] = useState<string | null>(null);
-  const isLoaded = priority || loadedSource === src;
+  const isLoaded = loadsEagerly || loadedSource === src;
 
   return (
     <span
@@ -39,7 +40,8 @@ export function PodcastArtwork({
         fill
         sizes={sizes}
         quality={75}
-        priority={priority}
+        loading={loadsEagerly ? "eager" : "lazy"}
+        fetchPriority={loadsEagerly ? "high" : "auto"}
         className={cn(
           "object-cover transition-opacity duration-300 motion-reduce:transition-none",
           isLoaded ? "opacity-100" : "opacity-0",

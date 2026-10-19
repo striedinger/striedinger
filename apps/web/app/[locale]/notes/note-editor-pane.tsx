@@ -5,12 +5,9 @@ import { CheckIcon } from "@workspace/icons/check-icon";
 import { ChevronLeftIcon } from "@workspace/icons/chevron-left-icon";
 import { ComposeIcon } from "@workspace/icons/compose-icon";
 import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
-import { FolderIcon } from "@workspace/icons/folder-icon";
 import { KeyboardDismissIcon } from "@workspace/icons/keyboard-dismiss-icon";
-import { PinIcon } from "@workspace/icons/pin-icon";
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { SparklesIcon } from "@workspace/icons/sparkles-icon";
-import { TrashIcon } from "@workspace/icons/trash-icon";
 import { UndoIcon } from "@workspace/icons/undo-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
@@ -39,15 +36,30 @@ import { insertImage, startNewLineAtEnd, toggleChecklist, undoEditing } from "./
 import { formatNoteHeaderDate } from "./note-dates";
 import { NoteEditor } from "./note-editor";
 import { NoteFormatControls } from "./note-format-controls";
-import { NoteFormatPanel } from "./note-format-panel";
 import { isSafeNoteImageSource, noteHtmlToPlainText } from "./note-html";
-import { prepareNoteImage } from "./note-image";
+import { type PreparedNoteImage, prepareNoteImage } from "./note-image";
+import { createNoteMenuSections } from "./note-menu-sections";
 import {
   getProofreaderOptions,
   getRewriterOptions,
   getSummarizerOptions,
 } from "./note-writing-tools-options";
 import { NotesToolbar } from "./notes-toolbar";
+
+function loadFormatPanel() {
+  return import("./note-format-panel");
+}
+
+// The format panel opens from the Aa button, so it loads on first use like the other panels.
+const NoteFormatPanel = lazy(function importFormatPanel() {
+  return loadFormatPanel().then(function selectPanel(module) {
+    return { default: module.NoteFormatPanel };
+  });
+});
+
+function preloadFormatPanel() {
+  void loadFormatPanel();
+}
 
 function loadWritingToolsPanel() {
   return import("./note-writing-tools-panel");
@@ -226,12 +238,12 @@ export function NoteEditorPane({
 
   async function insertPhotos(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const preparedSources = await Promise.all(Array.from(files, prepareNoteImage));
-    const sources = preparedSources.filter(function isSafeSource(source): source is string {
-      return source !== null && isSafeNoteImageSource(source);
+    const preparedImages = await Promise.all(Array.from(files, prepareNoteImage));
+    const images = preparedImages.filter(function isSafeImage(image): image is PreparedNoteImage {
+      return image !== null && isSafeNoteImageSource(image.source);
     });
-    if (sources.length === 0 || !focusEditorAtSelection()) return;
-    for (const source of sources) insertImage(source);
+    if (images.length === 0 || !focusEditorAtSelection()) return;
+    for (const image of images) insertImage(image);
   }
 
   async function shareNote() {
@@ -248,70 +260,14 @@ export function NoteEditorPane({
     if (await copyText(text)) setStatusMessage(messages["Copied to Clipboard"]);
   }
 
-  const menuSections: IosMenuSection[] = !note
-    ? []
-    : isDeleted
-      ? [
-          {
-            id: "deleted",
-            actions: [
-              {
-                id: "recover",
-                label: messages.Recover,
-                icon: <FolderIcon />,
-                onSelect: function recoverNote() {
-                  onRecoverNote(note);
-                },
-              },
-              {
-                id: "delete",
-                label: messages.Delete,
-                icon: <TrashIcon />,
-                destructive: true,
-                onSelect: function deleteNote() {
-                  onDeleteNote(note);
-                },
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            id: "note",
-            actions: [
-              {
-                id: "pin",
-                label: note.pinned ? messages["Unpin Note"] : messages["Pin Note"],
-                icon: <PinIcon />,
-                onSelect: function togglePinned() {
-                  onTogglePinned(note);
-                },
-              },
-              {
-                id: "move",
-                label: messages["Move Note"],
-                icon: <FolderIcon />,
-                onSelect: function moveNote() {
-                  onMoveNote(note);
-                },
-              },
-            ],
-          },
-          {
-            id: "delete",
-            actions: [
-              {
-                id: "delete",
-                label: messages["Delete Note"],
-                icon: <TrashIcon />,
-                destructive: true,
-                onSelect: function deleteNote() {
-                  onDeleteNote(note);
-                },
-              },
-            ],
-          },
-        ];
+  const menuSections = note
+    ? createNoteMenuSections(note, messages, {
+        onDelete: onDeleteNote,
+        onMove: onMoveNote,
+        onRecover: onRecoverNote,
+        onTogglePinned,
+      })
+    : [];
 
   const photoMenuSections: IosMenuSection[] = [
     {
@@ -369,6 +325,7 @@ export function NoteEditorPane({
                     menuSide="bottom"
                     photoMenuSections={photoMenuSections}
                     onAddChecklist={addChecklist}
+                    onPrepareFormat={preloadFormatPanel}
                     onToggleFormat={toggleFormat}
                   />
                 )}
@@ -503,14 +460,16 @@ export function NoteEditorPane({
           </Suspense>
         ) : null}
         {isFormatOpen && isEditing ? (
-          <NoteFormatPanel
-            editorRef={editorRef}
-            focusEditor={focusEditorAtSelection}
-            messages={messages}
-            onClose={function closeFormat() {
-              setIsFormatOpen(false);
-            }}
-          />
+          <Suspense fallback={null}>
+            <NoteFormatPanel
+              editorRef={editorRef}
+              focusEditor={focusEditorAtSelection}
+              messages={messages}
+              onClose={function closeFormat() {
+                setIsFormatOpen(false);
+              }}
+            />
+          </Suspense>
         ) : null}
       </div>
       <NotesToolbar
@@ -529,6 +488,7 @@ export function NoteEditorPane({
             menuSide="top"
             photoMenuSections={photoMenuSections}
             onAddChecklist={addChecklist}
+            onPrepareFormat={preloadFormatPanel}
             onToggleFormat={toggleFormat}
           />
         ) : null}

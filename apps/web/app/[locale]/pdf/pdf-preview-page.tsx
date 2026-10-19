@@ -7,31 +7,29 @@ import { useEffect, useRef, useState } from "react";
 
 interface PdfPreviewPageProps {
   document: PDFDocumentProxy;
-  height: number;
+  /** The size to reserve until this page reports its own, usually the first page's. */
+  estimatedSize: { height: number; width: number };
   pageNumber: number;
-  width: number;
 }
 
-export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPreviewPageProps) {
+/**
+ * One page, drawn only while it is near the viewport. Pages that scroll far away give their
+ * canvas memory back, which iOS Safari caps, and draw again when they return.
+ */
+export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPreviewPageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [shouldRender, setShouldRender] = useState(false);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+  const [size, setSize] = useState(estimatedSize);
   const [status, setStatus] = useState<"idle" | "loading" | "ready">("idle");
 
   useEffect(function watchVisibility() {
     const container = containerRef.current;
     if (!container) return;
-
     const observer = new IntersectionObserver(
       function handleIntersection(entries) {
-        if (
-          !entries.some(function isVisible(entry) {
-            return entry.isIntersecting;
-          })
-        )
-          return;
-        setShouldRender(true);
-        observer.disconnect();
+        const entry = entries.at(-1);
+        if (entry) setIsNearViewport(entry.isIntersecting);
       },
       { rootMargin: "800px 0px" },
     );
@@ -43,7 +41,15 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
 
   useEffect(
     function renderPage() {
-      if (!shouldRender) return;
+      const canvas = canvasRef.current;
+      if (!isNearViewport) {
+        // Shrinking the canvas releases its backing store; the reserved size keeps the layout.
+        if (canvas) {
+          canvas.width = 0;
+          canvas.height = 0;
+        }
+        return;
+      }
       let cancelled = false;
       let cancelRender: (() => void) | undefined;
 
@@ -53,12 +59,13 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
         try {
           page = await document.getPage(pageNumber);
           const container = containerRef.current;
-          const canvas = canvasRef.current;
           const context = canvas?.getContext("2d", { alpha: false });
           if (!container || !canvas || !context || cancelled) return;
 
-          const displayWidth = Math.min(width, container.clientWidth);
-          const viewport = page.getViewport({ scale: displayWidth / width });
+          const naturalViewport = page.getViewport({ scale: 1 });
+          setSize({ height: naturalViewport.height, width: naturalViewport.width });
+          const displayWidth = Math.min(naturalViewport.width, container.clientWidth);
+          const viewport = page.getViewport({ scale: displayWidth / naturalViewport.width });
           const outputScale = Math.min(window.devicePixelRatio || 1, 2);
           canvas.width = Math.floor(viewport.width * outputScale);
           canvas.height = Math.floor(viewport.height * outputScale);
@@ -86,24 +93,24 @@ export function PdfPreviewPage({ document, height, pageNumber, width }: PdfPrevi
         cancelRender?.();
       };
     },
-    [document, pageNumber, shouldRender, width],
+    [document, isNearViewport, pageNumber],
   );
+
+  // A page that scrolled away has given up its pixels, whatever it last finished drawing.
+  const isShowing = status === "ready" && isNearViewport;
 
   return (
     <div
       ref={containerRef}
       className="relative w-full shrink-0 overflow-hidden rounded-ios-xs bg-white shadow-ios-raised [content-visibility:auto]"
-      style={{ aspectRatio: `${width} / ${height}`, maxWidth: width }}
+      style={{ aspectRatio: `${size.width} / ${size.height}`, maxWidth: size.width }}
     >
-      <canvas
-        ref={canvasRef}
-        className={status === "ready" ? "size-full" : "invisible size-full"}
-      />
-      {status !== "ready" ? (
+      <canvas ref={canvasRef} className={isShowing ? "size-full" : "invisible size-full"} />
+      {isShowing ? null : (
         <div className="absolute inset-0 flex items-center justify-center bg-white">
           <span className="size-7 animate-spin rounded-full border-[3px] border-black/10 border-t-black/45 motion-reduce:animate-pulse" />
         </div>
-      ) : null}
+      )}
       <Text
         as="span"
         className="absolute right-2 bottom-2 rounded-full bg-black/55 px-2.5 py-0.5 text-ios-caption1 font-medium text-white tabular-nums backdrop-blur-md"

@@ -109,9 +109,9 @@ export function NoteEditor({
   );
 
   async function insertImageFiles(files: readonly File[]) {
-    const sources = await Promise.all(files.map(prepareNoteImage));
-    for (const source of sources) {
-      if (source && isSafeNoteImageSource(source)) insertImage(source);
+    const images = await Promise.all(files.map(prepareNoteImage));
+    for (const image of images) {
+      if (image && isSafeNoteImageSource(image.source)) insertImage(image);
     }
     scheduleSave();
   }

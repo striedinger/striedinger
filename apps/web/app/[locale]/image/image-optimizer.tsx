@@ -10,14 +10,14 @@ import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-
 import type { CompressionMode, ImageOptimizerLabels, OptimizerItem, OutputFormat } from "./types";
 
 import { iosFilledButtonClassName } from "../../../components/ios/ios-button-styles";
-import { IosContentUnavailable } from "../../../components/ios/ios-content-unavailable";
 import { IosFileDropZone } from "../../../components/ios/ios-file-drop-zone";
-import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
+import { IosFileEmptyState } from "../../../components/ios/ios-file-empty-state";
+import { IosFloatingActionBar } from "../../../components/ios/ios-floating-action-bar";
 import { downloadBlob } from "../../../lib/download-blob";
 import { defineOnDeviceAiProbe, useOnDeviceAi } from "../../../lib/on-device-ai/use-on-device-ai";
 import { getImageDescriptionOptions } from "./image-description-options";
 import { targetRatioForMode } from "./optimization-settings";
-import { optimizeImage } from "./optimize-image";
+import { cancelImageOptimizations, optimizeImage } from "./optimize-image";
 import { OptimizerFileList } from "./optimizer-file-list";
 import { OptimizerSettings } from "./optimizer-settings";
 
@@ -65,7 +65,8 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
   const describedItem = items.find(function isDescribed(item) {
     return item.id === describedItemId;
   });
-  const processingRef = useRef(false);
+  /** The encode in progress; results from a job that is no longer current are ignored. */
+  const activeJobRef = useRef<{ itemId: string } | null>(null);
   const autoSavingsTarget = Math.round((1 - targetRatioForMode(quality, compressionMode)) * 100);
 
   useEffect(
@@ -73,9 +74,10 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
       const next = items.find(function findQueued(item) {
         return item.status === "queued";
       });
-      if (!next || processingRef.current) return;
+      if (!next || activeJobRef.current) return;
 
-      processingRef.current = true;
+      const job = { itemId: next.id };
+      activeJobRef.current = job;
       const activeId = next.id;
       setItems(function markOptimizing(current) {
         return current.map(function updateItem(item) {
@@ -86,7 +88,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
       });
 
       function updateProgress(progress: number, stage: OptimizerItem["stage"]) {
-        if (!stage) return;
+        if (!stage || activeJobRef.current !== job) return;
         setItems(function storeProgress(current) {
           return current.map(function updateItem(item) {
             return item.id === activeId && item.status === "optimizing"
@@ -117,6 +119,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
 
       void operation
         .then(function complete(output) {
+          if (activeJobRef.current !== job) return undefined;
           setItems(function storeOutput(current) {
             return current.map(function updateItem(item) {
               return item.id === next.id && item.status === "optimizing"
@@ -132,6 +135,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
           return undefined;
         })
         .catch(function fail(error) {
+          if (activeJobRef.current !== job) return;
           setItems(function storeError(current) {
             return current.map(function updateItem(item) {
               return item.id === next.id && item.status === "optimizing"
@@ -145,7 +149,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
           });
         })
         .finally(function continueQueue() {
-          processingRef.current = false;
+          if (activeJobRef.current === job) activeJobRef.current = null;
         });
     },
     [compressionMode, items, labels.unsupported, maxDimension, outputFormat, quality],
@@ -173,7 +177,16 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
     requeueItems();
   }
 
+  /** Stops the current encode so the queue moves straight on to work that is still wanted. */
+  function cancelActiveJob(itemId?: string) {
+    const job = activeJobRef.current;
+    if (!job || (itemId !== undefined && job.itemId !== itemId)) return;
+    activeJobRef.current = null;
+    cancelImageOptimizations();
+  }
+
   function requeueItems() {
+    cancelActiveJob();
     setItems(function resetItems(current) {
       return current.map(function resetItem(item) {
         return { file: item.file, id: item.id, status: "queued" };
@@ -203,31 +216,26 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
   return (
     <div className="flex flex-col gap-2 pb-16">
       {items.length === 0 ? (
-        <div className="flex flex-col pt-2">
-          <div className="rounded-ios-2xl border-2 border-dashed border-ios-separator bg-ios-grouped-cell">
-            <IosContentUnavailable
-              className="px-6 pt-12 pb-12"
-              icon={<PhotoIcon />}
-              title={labels.dropPrompt}
-              description={labels.supported}
-            />
-          </div>
-          <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">
-            {labels.privacy}
-          </Text>
-        </div>
+        <IosFileEmptyState
+          icon={<PhotoIcon />}
+          title={labels.dropPrompt}
+          description={labels.supported}
+          note={labels.privacy}
+        />
       ) : (
         <OptimizerFileList
           items={items}
           labels={labels}
           maxFiles={MAX_FILES}
           onClear={function clear() {
+            cancelActiveJob();
             setItems([]);
           }}
           onDescribe={canDescribe ? setDescribedItemId : undefined}
           onPrepareDescribe={preloadImageDescriptionCard}
           onDownload={download}
           onRemove={function remove(id) {
+            cancelActiveJob(id);
             setItems(function removeItem(current) {
               return current.filter(function keep(entry) {
                 return entry.id !== id;
@@ -276,12 +284,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
         quality={quality}
       />
       <IosFileDropZone label={labels.dropActive} onFiles={addFiles} />
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pt-8 pb-safe-min-3.5",
-          iosBottomScrollEdgeClassName,
-        )}
-      >
+      <IosFloatingActionBar>
         <label
           htmlFor="image-file-input"
           className={cn(
@@ -307,7 +310,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
         <span id="image-file-limits" className="sr-only">
           {labels.supported}
         </span>
-      </div>
+      </IosFloatingActionBar>
     </div>
   );
 }

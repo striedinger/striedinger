@@ -22,7 +22,7 @@ export function PodcastHero({ artworkUrl, children }: PodcastHeroProps) {
       <PodcastArtwork
         src={artworkUrl}
         sizes="(min-width: 768px) 240px, 200px"
-        priority
+        loadsEagerly
         className="w-50 rounded-xl shadow-ios-overlay md:w-60"
       />
       {children}

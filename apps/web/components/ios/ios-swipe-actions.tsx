@@ -209,7 +209,7 @@ export function IosSwipeActions({
       ) : null}
       <div
         ref={contentRef}
-        className="relative touch-pan-y bg-inherit will-change-transform"
+        className="relative touch-pan-y bg-inherit"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerEnd}

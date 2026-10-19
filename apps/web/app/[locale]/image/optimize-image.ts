@@ -55,6 +55,19 @@ export async function optimizeImage(
   });
 }
 
+/**
+ * Stops the encode in progress, which can take seconds for AVIF, when its result is no longer
+ * wanted. The worker restarts on the next request; the browser keeps its codecs cached.
+ */
+export function cancelImageOptimizations() {
+  for (const pending of pendingOptimizations.values()) {
+    pending.reject(new DOMException("The optimization was canceled.", "AbortError"));
+  }
+  pendingOptimizations.clear();
+  sharedWorker?.terminate();
+  sharedWorker = undefined;
+}
+
 async function decodeHeic(file: File, onProgress?: ProgressCallback) {
   onProgress?.(8, "decoding");
   const { heicTo } = await import("heic-to/next");

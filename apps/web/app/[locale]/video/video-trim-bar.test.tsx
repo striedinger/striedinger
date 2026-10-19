@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { createPlayheadStore } from "./playhead-store";
 import { VideoTrimBar } from "./video-trim-bar";
 
 const labels = {
@@ -16,7 +17,6 @@ function renderTrimBar(trim = { end: 10, start: 0 }, keyframes: readonly number[
   const onSeek = vi.fn<(time: number) => void>();
   render(
     <VideoTrimBar
-      currentTime={0}
       duration={10}
       isPlaying={false}
       keyframes={keyframes}
@@ -24,6 +24,7 @@ function renderTrimBar(trim = { end: 10, start: 0 }, keyframes: readonly number[
       onSeek={onSeek}
       onTogglePlayback={vi.fn<() => void>()}
       onTrimChange={onTrimChange}
+      playhead={createPlayheadStore()}
       thumbnails={[]}
       trim={trim}
       waveform={null}

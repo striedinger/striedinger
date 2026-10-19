@@ -4,12 +4,13 @@ import { EllipsisIcon } from "@workspace/icons/ellipsis-icon";
 import { Text } from "@workspace/ui/components/text";
 
 import type { IosMenuAction } from "../../../components/ios/ios-menu";
-import type { PodcastProgress, PodcastQueueItem } from "./types";
+import type { PodcastQueueItem } from "./types";
 
 import { IosContextMenu } from "../../../components/ios/ios-context-menu";
 import { IosMenu } from "../../../components/ios/ios-menu";
 import { EpisodePlayButton } from "./episode-play-button";
 import { formatEpisodeDate } from "./podcast-format";
+import { useEpisodeProgress, useIsEpisodePlayed } from "./podcast-library-store";
 import { PodcastLink } from "./podcast-link";
 import { usePodcasts } from "./podcasts-context";
 import { useEpisodeMenuSections } from "./use-episode-menu-sections";
@@ -17,10 +18,8 @@ import { useEpisodeMenuSections } from "./use-episode-menu-sections";
 interface EpisodeRowProps {
   extraActions?: readonly IosMenuAction[];
   isCurrent: boolean;
-  isPlayed: boolean;
   isPlaying: boolean;
   item: PodcastQueueItem;
-  progress: PodcastProgress | undefined;
   showsGoToShow?: boolean;
   showsPodcastTitle?: boolean;
 }
@@ -28,15 +27,17 @@ interface EpisodeRowProps {
 export function EpisodeRow({
   extraActions,
   isCurrent,
-  isPlayed,
   isPlaying,
   item,
-  progress,
   showsGoToShow,
   showsPodcastTitle = false,
 }: EpisodeRowProps) {
   const { locale, messages, now } = usePodcasts();
   const menuSections = useEpisodeMenuSections({ extraActions, item, showsGoToShow });
+  // Each row reads only its own episode's state, so saving progress during playback
+  // re-renders the playing row rather than every row in every list.
+  const isPlayed = useIsEpisodePlayed(item.episode.id);
+  const progress = useEpisodeProgress(item.episode.id);
 
   return (
     <li className="relative transition-colors duration-150 [contain-intrinsic-size:auto_180px] [content-visibility:auto] not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:left-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator has-[a:active]:bg-ios-fill/40 has-[a:hover]:bg-ios-fill/20 motion-reduce:transition-none">

@@ -43,6 +43,9 @@ export function proxy(request: NextRequest) {
 
   if (routeLocale) {
     const response = NextResponse.next(requestOverrides);
+    // Only a change of language writes the cookie: a Set-Cookie header on every response would
+    // keep shared caches from storing these statically generated pages.
+    if (request.cookies.get(localeCookieName)?.value === routeLocale) return response;
     response.cookies.set(localeCookieName, routeLocale, {
       maxAge: 60 * 60 * 24 * 365,
       path: "/",

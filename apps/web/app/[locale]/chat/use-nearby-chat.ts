@@ -18,9 +18,9 @@ import {
 } from "./message-crypto";
 import { MessageRateLimiter } from "./message-rate-limiter";
 import { RecentMessageIds } from "./recent-message-ids";
+import { decodePairingBundle, encodePairingBundle, waitForIceGathering } from "./signaling";
 
 const maximumMessagesPerPeerPerSecond = 30;
-import { decodePairingBundle, encodePairingBundle, waitForIceGathering } from "./signaling";
 
 const maximumRememberedMessageIds = 1_000;
 const maximumVisibleMessages = 500;
@@ -196,6 +196,9 @@ export function useNearbyChat(labels: ChatLabels) {
     channel.addEventListener("close", function removePeer() {
       peers.current.delete(peerId);
       setPeerCount(peers.current.size);
+      // A dropped peer's connection would otherwise hold its network resources until the page
+      // closes, and browsers limit how many can be open.
+      connection.close();
     });
     channel.addEventListener("message", function receiveMessage(event) {
       if (

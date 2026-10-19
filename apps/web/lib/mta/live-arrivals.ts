@@ -52,16 +52,30 @@ const feedByRoute: Readonly<Record<string, string>> = {
   SI: "gtfs-si",
 };
 
-export function getNearbyStations(
+export async function getNearbyStations(
   latitude: number,
   longitude: number,
   selectedRoute?: string,
 ): Promise<NearbyStation[]> {
-  return loadNearbyStations({
+  const cachedStations = await loadNearbyStations({
     latitude: roundCoordinate(latitude),
     longitude: roundCoordinate(longitude),
     selectedRoute: selectedRoute ?? "",
   });
+  // A cached result can be a couple of minutes old, so countdowns are measured from now rather
+  // than from when the feed was read, and trains that have left are dropped. Cached objects
+  // may be shared between requests, so they are copied rather than changed.
+  const now = Date.now();
+  const currentStations: NearbyStation[] = [];
+  for (const station of cachedStations) {
+    const arrivals = station.arrivals.flatMap(function updateMinutes(arrival) {
+      const millisecondsAway = Date.parse(arrival.arrivalAt) - now;
+      if (millisecondsAway < -30_000) return [];
+      return [{ ...arrival, minutes: Math.max(0, Math.round(millisecondsAway / 60_000)) }];
+    });
+    currentStations.push({ ...station, arrivals });
+  }
+  return currentStations;
 }
 
 async function loadNearbyStations({

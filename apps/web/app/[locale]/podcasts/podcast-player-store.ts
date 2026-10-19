@@ -400,6 +400,11 @@ export function setPlaybackRate(rate: number) {
   synchronizeMediaSessionState();
 }
 
+/** Applies a volume while the slider is dragged, without notifying every player subscriber. */
+export function previewVolume(volume: number) {
+  getAudio().volume = Math.min(1, Math.max(0, volume));
+}
+
 export function setVolume(volume: number) {
   const normalizedVolume = Math.min(1, Math.max(0, volume));
   getAudio().volume = normalizedVolume;

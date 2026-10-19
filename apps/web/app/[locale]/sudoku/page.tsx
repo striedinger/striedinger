@@ -4,13 +4,13 @@ import { Suspense } from "react";
 
 import type { SudokuLabels } from "./types";
 
+import { IosToolScreen } from "../../../components/ios/ios-tool-screen";
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
 import { getSudokuTranslator } from "../../../messages/sudoku/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { SudokuGameLoader } from "./sudoku-game-loader";
 import { SudokuGameSkeleton } from "./sudoku-game-skeleton";
-import { SudokuScreen } from "./sudoku-screen";
 
 const descriptionKey =
   "Play a fresh daily Sudoku puzzle with easy, medium, and hard levels. Track your time and share your result as an image." as const;
@@ -75,11 +75,17 @@ export default async function SudokuPage() {
   });
 
   return (
-    <SudokuScreen title={labels.title}>
+    <IosToolScreen
+      title={labels.title}
+      contentWidth="36rem"
+      // The board takes the room the title and controls leave, so the game fits without scrolling.
+      contentClassName="min-h-104 flex-1 px-4 pb-safe-min-3.5"
+      scrollClassName=""
+    >
       <JsonLd value={structuredData} />
       <Suspense fallback={<SudokuGameSkeleton />}>
         <SudokuGameLoader labels={labels} locale={locale} />
       </Suspense>
-    </SudokuScreen>
+    </IosToolScreen>
   );
 }

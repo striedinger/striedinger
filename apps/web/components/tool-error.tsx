@@ -2,9 +2,12 @@
 
 import { useEffect } from "react";
 
+import { useErrorMessages } from "./use-error-messages";
+
 interface ToolErrorProps {
   error: Error & { digest?: string };
-  reset: () => void;
+  /** Fetches the failed segment again and re-renders it, which can recover server errors. */
+  retry: () => void;
 }
 
 /**
@@ -12,7 +15,8 @@ interface ToolErrorProps {
  * uses plain elements rather than the UI kit's components, which would add their class
  * merging code to the home page's JavaScript.
  */
-export function ToolError({ error, reset }: ToolErrorProps) {
+export function ToolError({ error, retry }: ToolErrorProps) {
+  const messages = useErrorMessages();
   useEffect(
     function reportUnexpectedError() {
       console.error(error);
@@ -33,13 +37,11 @@ export function ToolError({ error, reset }: ToolErrorProps) {
           !
         </div>
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold text-foreground">This page hit a snag</h1>
-          <p className="max-w-xl leading-relaxed text-muted-foreground">
-            The problem may be temporary. Try loading this part of the app again, or return home.
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">{messages.title}</h1>
+          <p className="max-w-xl leading-relaxed text-muted-foreground">{messages.description}</p>
           {error.digest ? (
             <p className="mt-1 font-mono text-xs text-muted-foreground">
-              Reference: {error.digest}
+              {messages.reference.replace("{digest}", error.digest)}
             </p>
           ) : null}
         </div>
@@ -47,9 +49,9 @@ export function ToolError({ error, reset }: ToolErrorProps) {
           <button
             type="button"
             className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity duration-150 outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/35 motion-reduce:transition-none"
-            onClick={reset}
+            onClick={retry}
           >
-            Try again
+            {messages.retry}
           </button>
           {/* A full page load resets whatever state broke the page. */}
           {/* oxlint-disable-next-line nextjs/no-html-link-for-pages */}
@@ -57,7 +59,7 @@ export function ToolError({ error, reset }: ToolErrorProps) {
             href="/"
             className="inline-flex h-9 items-center rounded-md border border-input bg-card px-4 text-sm font-medium text-foreground transition-colors duration-150 outline-none hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/35 motion-reduce:transition-none"
           >
-            Return home
+            {messages.home}
           </a>
         </div>
       </section>

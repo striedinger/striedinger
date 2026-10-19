@@ -5,7 +5,7 @@ import { use } from "react";
 
 import type { Podcast, PodcastMessages, PodcastShow } from "./types";
 
-import { usePodcastLibrary } from "./podcast-library-store";
+import { useShowResumeItem } from "./podcast-library-store";
 import { playEpisode } from "./podcast-player-store";
 
 interface PodcastShowPlayButtonProps {
@@ -17,11 +17,8 @@ interface PodcastShowPlayButtonProps {
 
 /** Resumes the show's last listened episode, or plays its latest one once episodes arrive. */
 export function PodcastShowPlayButton({ messages, podcast, show }: PodcastShowPlayButtonProps) {
-  const library = usePodcastLibrary();
   const latestEpisode = show ? use(show)?.episodes[0] : undefined;
-  const resumeItem = library.progress.find(function belongsToShow(item) {
-    return item.podcast.id === podcast.id;
-  });
+  const resumeItem = useShowResumeItem(podcast.id);
 
   return (
     <button

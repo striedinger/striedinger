@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 import type { PdfToolLabels } from "./types";
 
+import { openPdfDocument } from "./open-pdf-document";
 import { PdfPreviewPage } from "./pdf-preview-page";
 
 interface PdfPreviewProps {
@@ -16,15 +17,18 @@ interface PdfPreviewProps {
   password: string;
 }
 
-interface PageSize {
-  height: number;
-  pageNumber: number;
-  width: number;
+interface OpenedPreview {
+  document: PDFDocumentProxy;
+  /** The first page's size, which later pages show until they render with their own. */
+  pageSize: { height: number; width: number };
 }
 
+/** Pages mount in batches as the reader nears the end, so long documents stay light. */
+const pageBatchSize = 24;
+
 export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPreviewProps) {
-  const [document, setDocument] = useState<PDFDocumentProxy>();
-  const [pageSizes, setPageSizes] = useState<PageSize[]>([]);
+  const [preview, setPreview] = useState<OpenedPreview>();
+  const [mountedPageCount, setMountedPageCount] = useState(pageBatchSize);
   const [status, setStatus] = useState<"error" | "loading" | "ready">("loading");
   const [error, setError] = useState("");
 
@@ -36,40 +40,38 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
       async function load() {
         setStatus("loading");
         setError("");
-        setDocument(undefined);
-        setPageSizes([]);
+        setPreview(undefined);
+        setMountedPageCount(pageBatchSize);
         try {
-          // The legacy build polyfills recent JavaScript (such as Map#getOrInsertComputed) that
-          // pdf.js 6's default build assumes, so PDFs open in current Safari and Chromium releases.
-          const [pdfjs, buffer] = await Promise.all([
-            import("pdfjs-dist/legacy/build/pdf.mjs"),
+          // pdf.js starts downloading while the file is read.
+          const [buffer] = await Promise.all([
             file.arrayBuffer(),
+            import("pdfjs-dist/legacy/build/pdf.mjs"),
           ]);
           if (cancelled) return;
-          pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-            "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-            import.meta.url,
-          ).toString();
-          loadingTask = pdfjs.getDocument({
+          const task = await openPdfDocument({
             data: new Uint8Array(buffer),
             password: password || undefined,
           });
-          const loadedDocument = await loadingTask.promise;
+          loadingTask = task;
+          if (cancelled) {
+            void task.destroy();
+            return;
+          }
+          const loadedDocument = await task.promise;
           if (cancelled) return;
 
-          const sizes = await Promise.all(
-            Array.from({ length: loadedDocument.numPages }, async function measurePage(_, index) {
-              const page = await loadedDocument.getPage(index + 1);
-              const viewport = page.getViewport({ scale: 1 });
-              page.cleanup();
-              return { height: viewport.height, pageNumber: index + 1, width: viewport.width };
-            }),
-          );
+          // Only the first page is measured up front; the rest size themselves as they render.
+          const firstPage = await loadedDocument.getPage(1);
+          const viewport = firstPage.getViewport({ scale: 1 });
+          firstPage.cleanup();
           if (cancelled) return;
 
           onPasswordResult(Boolean(password), true);
-          setDocument(loadedDocument);
-          setPageSizes(sizes);
+          setPreview({
+            document: loadedDocument,
+            pageSize: { height: viewport.height, width: viewport.width },
+          });
           setStatus("ready");
         } catch (cause) {
           await loadingTask?.destroy();
@@ -102,6 +104,9 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
     ],
   );
 
+  const pageCount = preview?.document.numPages ?? 0;
+  const visiblePageCount = Math.min(pageCount, mountedPageCount);
+
   return (
     <section aria-label={labels.preview} className="flex flex-col">
       <Text
@@ -109,26 +114,46 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
         className="flex items-center justify-between gap-3 px-5 pt-4 pb-1.5 text-ios-subheadline font-semibold text-ios-secondary-label"
       >
         {labels.preview}
-        {pageSizes.length > 0 ? (
+        {pageCount > 0 ? (
           <span className="font-normal tabular-nums">
-            {pageSizes.length} {labels.pages}
+            {pageCount} {labels.pages}
           </span>
         ) : null}
       </Text>
       <div className="relative flex min-h-96 flex-col rounded-ios-xl bg-ios-grouped-cell p-4 sm:p-6">
-        {status === "ready" && document ? (
+        {status === "ready" && preview ? (
           <div className="flex w-full flex-col items-center gap-5">
-            {pageSizes.map(function renderPage(size) {
+            {Array.from({ length: visiblePageCount }, function renderPage(_, index) {
               return (
                 <PdfPreviewPage
-                  key={size.pageNumber}
-                  document={document}
-                  height={size.height}
-                  pageNumber={size.pageNumber}
-                  width={size.width}
+                  key={index + 1}
+                  document={preview.document}
+                  estimatedSize={preview.pageSize}
+                  pageNumber={index + 1}
                 />
               );
             })}
+            {visiblePageCount < pageCount ? (
+              <div
+                // A new sentinel per batch, so it reports again if it is still in range.
+                key={visiblePageCount}
+                aria-hidden="true"
+                className="h-px w-full"
+                ref={function watchForMorePages(sentinel: HTMLDivElement | null) {
+                  if (!sentinel) return;
+                  const observer = new IntersectionObserver(
+                    function mountNextBatch(entries) {
+                      if (entries.some(isIntersecting)) setMountedPageCount(addBatch);
+                    },
+                    { rootMargin: "1200px 0px" },
+                  );
+                  observer.observe(sentinel);
+                  return function stopWatching() {
+                    observer.disconnect();
+                  };
+                }}
+              />
+            ) : null}
           </div>
         ) : null}
         {status === "loading" ? (
@@ -156,4 +181,12 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
       </div>
     </section>
   );
+}
+
+function isIntersecting(entry: IntersectionObserverEntry) {
+  return entry.isIntersecting;
+}
+
+function addBatch(count: number) {
+  return count + pageBatchSize;
 }

@@ -1,9 +1,9 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { headers } from "next/headers";
 
 import type { PageMetadata, PreviewErrorCode, PreviewState } from "../../../lib/og/types";
 
+import { getClientIdentifier } from "../../../lib/client-identifier";
 import { fetchPageHtml } from "../../../lib/og/fetch-page-html";
 import { parsePageMetadata } from "../../../lib/og/parse-page-metadata";
 import { PreviewError } from "../../../lib/og/preview-error";
@@ -18,12 +18,7 @@ export async function loadPreviewMetadata(url: string): Promise<PreviewState> {
   const requestStartedAt = performance.now();
 
   try {
-    const requestHeaders = await headers();
-    const clientIdentifier =
-      requestHeaders.get("x-vercel-forwarded-for")?.split(",")[0].trim() ??
-      requestHeaders.get("x-forwarded-for")?.split(",")[0].trim() ??
-      "unknown";
-    await enforcePreviewRateLimit(clientIdentifier);
+    await enforcePreviewRateLimit(await getClientIdentifier());
   } catch (error) {
     return {
       status: "error",

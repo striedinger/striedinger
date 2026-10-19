@@ -18,7 +18,7 @@ import { getEpisodeSummaryOptions } from "./episode-intelligence-options";
 import { EpisodeMenu } from "./episode-menu";
 import { formatEpisodeDate, formatListeningDuration } from "./podcast-format";
 import { PodcastHero } from "./podcast-hero";
-import { usePodcastLibrary } from "./podcast-library-store";
+import { useEpisodeProgress, useIsEpisodePlayed } from "./podcast-library-store";
 import { PodcastLink } from "./podcast-link";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
 import { playEpisode, togglePlayback, usePlayingEpisode } from "./podcast-player-store";
@@ -45,14 +45,11 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
   );
   const canTranslate = useOnDeviceAi(translationProbe);
   const iosRouter = useIosRouter();
-  const library = usePodcastLibrary();
   const playingEpisode = usePlayingEpisode();
   const isCurrent = playingEpisode.currentEpisodeId === item.episode.id;
   const isPlaying = isCurrent && playingEpisode.isPlaying;
-  const isPlayed = library.playedEpisodeIds.has(item.episode.id);
-  const progress = library.progress.find(function matchesEpisode(progressItem) {
-    return progressItem.episode.id === item.episode.id;
-  });
+  const isPlayed = useIsEpisodePlayed(item.episode.id);
+  const progress = useEpisodeProgress(item.episode.id);
   const durationSeconds = progress?.durationSeconds || item.episode.durationMilliseconds / 1_000;
   const remainingSeconds = progress ? Math.max(0, durationSeconds - progress.positionSeconds) : 0;
   const playLabel = isPlaying ? messages.Pause : progress ? messages.Resume : messages.Play;

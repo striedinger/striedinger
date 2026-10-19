@@ -7,10 +7,12 @@ import { useEffect } from "react";
 
 import type { ToolErrorProps } from "../tool-error";
 
+import { useErrorMessages } from "../use-error-messages";
 import { iosFilledButtonClassName } from "./ios-button-styles";
 
 /** The error boundary screen for native apps, styled like an iOS content-unavailable view. */
-export function IosToolError({ error, reset }: ToolErrorProps) {
+export function IosToolError({ error, retry }: ToolErrorProps) {
+  const messages = useErrorMessages();
   useEffect(
     function reportUnexpectedError() {
       console.error(error);
@@ -31,26 +33,26 @@ export function IosToolError({ error, reset }: ToolErrorProps) {
       </span>
       <div className="flex max-w-sm flex-col gap-1.5">
         <Text as="h1" className="text-ios-title2 font-bold text-ios-label">
-          This page hit a snag
+          {messages.title}
         </Text>
         <Text className="text-ios-subheadline text-ios-secondary-label">
-          The problem may be temporary. Try loading this part of the app again, or return home.
+          {messages.description}
         </Text>
         {error.digest ? (
           <Text className="pt-1 font-mono text-ios-caption1 text-ios-tertiary-label">
-            Reference: {error.digest}
+            {messages.reference.replace("{digest}", error.digest)}
           </Text>
         ) : null}
       </div>
       <div className="flex w-full max-w-xs flex-col items-center gap-2">
-        <button type="button" className={cn(iosFilledButtonClassName, "w-full")} onClick={reset}>
-          Try again
+        <button type="button" className={cn(iosFilledButtonClassName, "w-full")} onClick={retry}>
+          {messages.retry}
         </button>
         <Link
           href="/"
           className="flex h-11 items-center px-4 text-ios-body text-ios-tint outline-none active:opacity-50"
         >
-          Return home
+          {messages.home}
         </Link>
       </div>
     </div>

@@ -4,44 +4,48 @@ import type { RefObject } from "react";
 
 import { PauseFillIcon } from "@workspace/icons/pause-fill-icon";
 import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
-import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
 import type { OpenedVideo } from "./open-video";
-import type { VideoWatermark } from "./types";
+import type { PlayheadStore } from "./playhead-store";
+import type { VideoCaption, VideoWatermark } from "./types";
 import type { VideoPlayback } from "./video-playback";
 
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
+import { VideoCaptionOverlay } from "./video-caption-overlay";
 import { VideoWatermarkOverlay } from "./video-watermark-overlay";
 
 interface VideoPreviewProps {
   aspectRatio: number;
-  caption: string | null;
-  /** Seconds from the start of the trimmed clip, for the watermark's position. */
-  clipTime: number;
+  captions: readonly VideoCaption[];
   isPlaying: boolean;
   labels: { pause: string; play: string };
   onPlayingChange: (isPlaying: boolean) => void;
   onTogglePlayback: () => void;
   opened: OpenedVideo;
   playbackRef: RefObject<VideoPlayback | null>;
+  playhead: PlayheadStore;
+  /** Where the trimmed clip starts, which the watermark's movement is timed from. */
+  trimStart: number;
   watermark: VideoWatermark | null;
 }
 
 /**
- * The video, decoded onto a canvas, with the caption at the playhead drawn the way iOS shows
- * subtitles. Tapping the picture plays or pauses.
+ * The video, decoded onto a canvas, with the caption and watermark over it. Overlays follow the
+ * playhead themselves, so playback never re-renders the preview. Tapping the picture plays or
+ * pauses.
  */
 export function VideoPreview({
   aspectRatio,
-  caption,
-  clipTime,
+  captions,
   isPlaying,
   labels,
   onPlayingChange,
   onTogglePlayback,
   opened,
   playbackRef,
+  playhead,
+  trimStart,
   watermark,
 }: VideoPreviewProps) {
   return (
@@ -66,15 +70,10 @@ export function VideoPreview({
         className="absolute inset-0 size-full object-contain"
         onClick={onTogglePlayback}
       />
-      {watermark ? <VideoWatermarkOverlay clipTime={clipTime} watermark={watermark} /> : null}
-      {caption ? (
-        <Text
-          aria-live="polite"
-          className="pointer-events-none absolute inset-x-[8%] bottom-[7%] mx-auto w-fit max-w-[84%] rounded-ios-xs bg-black/70 px-2.5 py-1 text-center text-ios-callout font-semibold whitespace-pre-line text-white"
-        >
-          {caption}
-        </Text>
+      {watermark ? (
+        <VideoWatermarkOverlay playhead={playhead} trimStart={trimStart} watermark={watermark} />
       ) : null}
+      <VideoCaptionOverlay captions={captions} playhead={playhead} />
       <button
         type="button"
         aria-label={isPlaying ? labels.pause : labels.play}

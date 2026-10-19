@@ -9,15 +9,16 @@ import { PlayFillIcon } from "@workspace/icons/play-fill-icon";
 import { cn } from "@workspace/ui/lib/utils";
 import { useRef } from "react";
 
+import type { PlayheadStore } from "./playhead-store";
 import type { VideoTrim } from "./types";
 
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { formatClock } from "./captions";
 import { snapToKeyframe, stepKeyframe } from "./keyframes";
+import { VideoTrimPlayhead } from "./video-trim-playhead";
 import { VideoWaveform } from "./video-waveform";
 
 interface VideoTrimBarProps {
-  currentTime: number;
   duration: number;
   isPlaying: boolean;
   /** Keyframe times the start handle snaps to, or `null` when cuts can land on any frame. */
@@ -26,6 +27,7 @@ interface VideoTrimBarProps {
   onSeek: (time: number) => void;
   onTogglePlayback: () => void;
   onTrimChange: (trim: VideoTrim) => void;
+  playhead: PlayheadStore;
   thumbnails: readonly { time: number; url: string }[];
   trim: VideoTrim;
   /** Audio peaks drawn under the filmstrip, once measured. */
@@ -42,7 +44,6 @@ export const minimumClipSeconds = 0.2;
  * playhead that scrubs. Dragging a handle shows that frame in the preview.
  */
 export function VideoTrimBar({
-  currentTime,
   duration,
   isPlaying,
   keyframes,
@@ -50,6 +51,7 @@ export function VideoTrimBar({
   onSeek,
   onTogglePlayback,
   onTrimChange,
+  playhead,
   thumbnails,
   trim,
   waveform,
@@ -59,8 +61,6 @@ export function VideoTrimBar({
   const safeDuration = duration || 1;
   const startPercent = (trim.start / safeDuration) * 100;
   const endPercent = (trim.end / safeDuration) * 100;
-  const playheadPercent =
-    (Math.min(Math.max(currentTime, trim.start), trim.end) / safeDuration) * 100;
 
   function readTime(clientX: number) {
     const rect = stripRef.current?.getBoundingClientRect();
@@ -119,7 +119,7 @@ export function VideoTrimBar({
       return;
     }
     const step = event.shiftKey ? 1 : 0.1;
-    const value = target === "start" ? trim.start : target === "end" ? trim.end : currentTime;
+    const value = target === "start" ? trim.start : target === "end" ? trim.end : playhead.get();
     moveTarget(target, value + direction * step);
   }
 
@@ -222,16 +222,11 @@ export function VideoTrimBar({
             <ChevronRightIcon strokeWidth={3.2} />
           </span>
         </div>
-        <span
-          role="slider"
-          tabIndex={0}
-          aria-label={labels.playhead}
-          aria-valuemin={Math.round(trim.start * 10) / 10}
-          aria-valuemax={Math.round(trim.end * 10) / 10}
-          aria-valuenow={Math.round(currentTime * 10) / 10}
-          aria-valuetext={formatClock(currentTime)}
-          className="absolute -inset-y-1 z-20 w-1 -translate-x-1/2 rounded-full bg-white shadow-ios-raised outline-none focus-visible:ring-2 focus-visible:ring-ios-tint"
-          style={{ left: `${playheadPercent}%` }}
+        <VideoTrimPlayhead
+          duration={duration}
+          label={labels.playhead}
+          playhead={playhead}
+          trim={trim}
           onKeyDown={function nudgePlayhead(event) {
             nudge("playhead", event);
           }}

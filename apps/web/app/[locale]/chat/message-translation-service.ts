@@ -2,6 +2,31 @@
 // language pair and reused for the whole conversation.
 
 const translatorPromises = new Map<string, Promise<TranslatorSession>>();
+let retainCount = 0;
+
+/**
+ * Keeps translator sessions alive while a translated message is on screen. When the last one
+ * goes, as when leaving the chat, the sessions and the model memory they hold are released.
+ */
+export function retainTranslators() {
+  retainCount += 1;
+  return function releaseTranslators() {
+    retainCount -= 1;
+    if (retainCount > 0) return;
+    const sessions = [...translatorPromises.values()];
+    translatorPromises.clear();
+    for (const session of sessions) {
+      session
+        .then(function destroySession(translator) {
+          translator.destroy();
+          return undefined;
+        })
+        .catch(function ignoreFailedSession() {
+          return undefined;
+        });
+    }
+  };
+}
 
 export async function translateMessage(
   text: string,

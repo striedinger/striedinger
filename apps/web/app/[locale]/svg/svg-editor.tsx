@@ -25,10 +25,10 @@ import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-
 import type { SvgEditorLabels, SvgInspection, SvgPreviewBackground } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
+import { IosFloatingActionBar } from "../../../components/ios/ios-floating-action-bar";
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { IosMenu } from "../../../components/ios/ios-menu";
-import { iosBottomScrollEdgeClassName } from "../../../components/ios/ios-scroll-edge";
 import { IosToast } from "../../../components/ios/ios-toast";
 import { IosValueRow } from "../../../components/ios/ios-value-row";
 import { useIsHydrated } from "../../../components/use-is-hydrated";
@@ -44,6 +44,10 @@ import { sampleSvg } from "./sample-svg";
 import { SvgCodeEditor } from "./svg-code-editor";
 import { getSvgDescribeOptions, getSvgEditOptions } from "./svg-intelligence-options";
 import { SvgPreview } from "./svg-preview";
+
+/** Past this size, the same point where the editor stops highlighting, inspection waits. */
+const largeSourceCharacters = 60_000;
+const largeSourcePauseMilliseconds = 300;
 
 interface SvgEditorProps {
   aiLabels: OnDeviceAiLabels;
@@ -91,11 +95,28 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
   );
   // Parsing a large drawing on every keystroke would delay typing, so it trails the input.
   const deferredSource = useDeferredValue(source);
+  // One parse of a very large file can't be interrupted, so those wait for a pause in typing.
+  const [settledLargeSource, setSettledLargeSource] = useState(source);
+  const isLargeSource = deferredSource.length > largeSourceCharacters;
+  const inspectedSource = isLargeSource ? settledLargeSource : deferredSource;
   const isHydrated = useIsHydrated();
-  const inspection: SvgInspection | null = isHydrated ? inspectSvg(deferredSource) : null;
+  const inspection: SvgInspection | null = isHydrated ? inspectSvg(inspectedSource) : null;
 
-  if (inspection?.status === "valid" && previewSource !== deferredSource) {
-    setPreviewSource(deferredSource);
+  useEffect(
+    function settleLargeSource() {
+      if (!isLargeSource) return;
+      const timeout = window.setTimeout(function inspectAfterPause() {
+        setSettledLargeSource(deferredSource);
+      }, largeSourcePauseMilliseconds);
+      return function cancelSettling() {
+        window.clearTimeout(timeout);
+      };
+    },
+    [deferredSource, isLargeSource],
+  );
+
+  if (inspection?.status === "valid" && previewSource !== inspectedSource) {
+    setPreviewSource(inspectedSource);
   }
   if (inspection?.status === "empty" && previewSource !== null) {
     setPreviewSource(null);
@@ -115,7 +136,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
   );
 
   const validInspection = inspection?.status === "valid" ? inspection : null;
-  const canAct = validInspection !== null && source === deferredSource;
+  const canAct = validInspection !== null && source === inspectedSource;
   const numberFormat = getNumberFormat(locale, { maximumFractionDigits: 2 });
 
   async function openFile(event: ChangeEvent<HTMLInputElement>) {
@@ -210,7 +231,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
         <SvgPreview
           background={background}
           emptyLabel={labels.emptyPreview}
-          isStale={source !== deferredSource || inspection?.status === "invalid"}
+          isStale={source !== inspectedSource || inspection?.status === "invalid"}
           label={labels.preview}
           source={previewSource}
           accessory={
@@ -299,12 +320,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
         />
       </IosListSection>
 
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-4 pt-8 pb-safe-min-3.5",
-          iosBottomScrollEdgeClassName,
-        )}
-      >
+      <IosFloatingActionBar className="flex-col items-center gap-3">
         {isAiOpen ? (
           <Suspense fallback={null}>
             <SvgIntelligencePanel
@@ -403,7 +419,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
             }
           />
         </div>
-      </div>
+      </IosFloatingActionBar>
       <IosToast message={toastMessage} />
     </div>
   );

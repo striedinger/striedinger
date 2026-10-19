@@ -7,7 +7,7 @@ import type {
   IosIntelligenceStatus,
   OnDeviceAiLabels,
 } from "../../../components/ios/ios-intelligence-card";
-import type { TranscriptionReply } from "./transcription-messages";
+import type { TranscriptionCommand, TranscriptionReply } from "./transcription-messages";
 import type { VideoCaption, VideoEditorLabels, VideoTrim } from "./types";
 
 import { IosIntelligenceCard } from "../../../components/ios/ios-intelligence-card";
@@ -61,8 +61,14 @@ export function CaptionGenerator({
 
   const startTranscription = useEffectEvent(function transcribe() {
     const worker = getTranscriptionWorker();
+    const id = crypto.randomUUID();
+    function send(command: TranscriptionCommand) {
+      worker.postMessage(command);
+    }
     function handleReply(event: MessageEvent<TranscriptionReply>) {
       const reply = event.data;
+      // The worker may still be finishing a job this card no longer wants.
+      if (reply.id !== id) return;
       if (reply.kind === "download") {
         setStatus(
           reply.progress < 1
@@ -104,9 +110,11 @@ export function CaptionGenerator({
       );
     }
     worker.addEventListener("message", handleReply);
-    worker.postMessage({ end: trim.end, file, start: trim.start });
-    return function stopListening() {
+    send({ end: trim.end, file, id, kind: "transcribe", start: trim.start });
+    return function stopTranscription() {
       worker.removeEventListener("message", handleReply);
+      // Closing the card stops the job at its next stage instead of leaving Whisper running.
+      send({ id, kind: "cancel" });
     };
   });
 

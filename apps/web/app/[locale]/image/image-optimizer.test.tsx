@@ -1,13 +1,15 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ImageOptimizerLabels } from "./types";
 
 import { ImageOptimizer } from "./image-optimizer";
+import { cancelImageOptimizations, optimizeImage } from "./optimize-image";
 
 vi.mock("./optimize-image", function mockOptimizeImage() {
   return {
-    optimizeImage: vi.fn<() => Promise<Blob>>(function optimizeImage() {
+    cancelImageOptimizations: vi.fn<() => void>(),
+    optimizeImage: vi.fn<() => Promise<Blob>>(function neverFinish() {
       return new Promise(function pending() {});
     }),
   };
@@ -64,6 +66,18 @@ describe("ImageOptimizer", function () {
 
     expect(screen.getByText("dropPrompt")).toBeTruthy();
     expect(screen.queryByText("photo.png")).toBeNull();
+  });
+
+  it("stops the encode in progress when the image it was for is removed", async function () {
+    render(<ImageOptimizer aiLabels={aiLabels} labels={labels} locale="en" />);
+    dropFiles([new File(["png"], "photo.png", { type: "image/png" })]);
+    await waitFor(function startsEncoding() {
+      expect(vi.mocked(optimizeImage)).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "remove photo.png" }));
+
+    expect(vi.mocked(cancelImageOptimizations)).toHaveBeenCalled();
   });
 
   it("keeps original dimensions and offers no JPEG output in lossless mode", function () {

@@ -1,11 +1,8 @@
 import type { Viewport } from "next";
 import type { ReactNode } from "react";
 
-import { cn } from "@workspace/ui/lib/utils";
-
 import { getAppSwitcherLabels } from "../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../components/ios/ios-app-frame";
-import { iosFallbackFont } from "../../components/ios/ios-font";
 import { IosToolScreen } from "../../components/ios/ios-tool-screen";
 import { getRequestLocale } from "../get-request-locale";
 
@@ -46,7 +43,7 @@ export async function NativeToolLayout({
 
   return (
     <IosAppFrame
-      className={cn(iosFallbackFont.variable, tintClassName)}
+      className={tintClassName}
       appSwitcher={{ currentHref: href, labels: appSwitcherLabels }}
     >
       {title ? (
