@@ -14,7 +14,7 @@ export default async function JavascriptLayout({ children }: Readonly<{ children
     <NativeToolLayout
       href="/javascript"
       tintClassName="[--ios-tint:#e07a00] dark:[--ios-tint:#ff9f0a]"
-      title={translate("JavaScript Browser Information")}
+      title={translate("Browser Info")}
     >
       {children}
     </NativeToolLayout>

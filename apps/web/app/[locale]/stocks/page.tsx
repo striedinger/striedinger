@@ -11,6 +11,7 @@ import { getStocksTranslator } from "../../../messages/stocks/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
 import { StockDashboardSkeleton } from "./stock-dashboard-skeleton";
+import { StocksDateline } from "./stocks-dateline";
 
 interface StocksPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -33,8 +34,8 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
     "Your watchlist is stored only in this browser and works without creating an account.",
   );
   const labels: StocksLabels = {
-    add: translate("Add"),
     added: translate("Added"),
+    addToWatchlist: translate("Add to Watchlist"),
     afterHours: translate("After hours"),
     attribution: translate(
       "Market data provided by Twelve Data. Quotes may be delayed and are for informational purposes only.",
@@ -64,7 +65,8 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
     searchHelp: translate("Type a company name or symbol. Use arrow keys to browse results."),
     searchPlaceholder: translate("Search by company or ticker"),
     share: translate("Share chart"),
-    title: translate("Stock watchlist"),
+    title: translate("Stocks"),
+    toggleChange: translate("Switch between percentage and price change"),
     volume: translate("Volume"),
     watchlist: translate("Watchlist"),
   };
@@ -79,7 +81,13 @@ export default async function StocksPage({ searchParams }: StocksPageProps) {
   });
 
   return (
-    <IosToolScreen title={labels.title} contentWidth="72rem" contentClassName="">
+    <IosToolScreen
+      background="plain"
+      title={labels.title}
+      contentWidth="42rem"
+      contentClassName="pt-1"
+    >
+      <StocksDateline locale={locale} />
       <JsonLd value={structuredData} />
       <Suspense fallback={<StockDashboardSkeleton />}>
         <StockDashboardLoader searchParams={searchParams} labels={labels} locale={locale} />

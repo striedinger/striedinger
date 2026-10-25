@@ -14,7 +14,9 @@ export const messages = defineMessages({
   Watchlist: "Watchlist",
   "Your watchlist is empty. Search for a stock to begin.":
     "Your watchlist is empty. Search for a stock to begin.",
-  Add: "Add",
+  Stocks: "Stocks",
+  "Add to Watchlist": "Add to Watchlist",
+  "Switch between percentage and price change": "Switch between percentage and price change",
   Added: "Added",
   "After hours": "After hours",
   Remove: "Remove",

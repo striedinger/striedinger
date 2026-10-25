@@ -54,8 +54,6 @@ export const messages = {
   Music: "ミュージック",
   "Kids & Family": "キッズ/ファミリー",
   Fiction: "フィクション",
-  Follow: "フォロー",
-  Following: "フォロー中",
   "Unfollow Show": "番組のフォローを解除",
   "Follow Show": "番組をフォロー",
   "Latest Episode": "最新エピソード",

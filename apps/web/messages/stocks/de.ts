@@ -15,7 +15,9 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Watchlist: "Watchlist",
   "Your watchlist is empty. Search for a stock to begin.":
     "Deine Watchlist ist leer. Suche zum Start nach einer Aktie.",
-  Add: "Hinzufügen",
+  Stocks: "Aktien",
+  "Add to Watchlist": "Zur Watchlist hinzufügen",
+  "Switch between percentage and price change": "Zwischen prozentualer und Preisänderung wechseln",
   Added: "Hinzugefügt",
   "After hours": "Nachbörslich",
   Remove: "Entfernen",

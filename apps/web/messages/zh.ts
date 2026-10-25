@@ -105,4 +105,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Translating…": "正在翻译…",
   "Try Again": "重试",
   "Video Editor": "视频编辑器",
+  "IP Address": "IP 地址",
+  "Browser Info": "浏览器信息",
 };

@@ -54,8 +54,6 @@ export const messages = {
   Music: "Música",
   "Kids & Family": "Niños y familia",
   Fiction: "Ficción",
-  Follow: "Seguir",
-  Following: "Siguiendo",
   "Unfollow Show": "Dejar de seguir el programa",
   "Follow Show": "Seguir el programa",
   "Latest Episode": "Último episodio",

@@ -125,8 +125,8 @@ describe("Podcasts", function () {
   it("follows a show and counts it in the library", async function () {
     const { unmount } = await renderShow();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Follow" }));
-    expect(screen.getByRole("button", { name: "Following" })).toHaveAttribute(
+    fireEvent.click(await screen.findByRole("button", { name: "Follow Show" }));
+    expect(screen.getByRole("button", { name: "Unfollow Show" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -148,7 +148,7 @@ describe("Podcasts", function () {
 
   it("leaves the stored library to the browser when the server renders it", async function () {
     const { unmount } = await renderShow();
-    fireEvent.click(await screen.findByRole("button", { name: "Follow" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Follow Show" }));
     unmount();
 
     navigation.segments = ["library"];

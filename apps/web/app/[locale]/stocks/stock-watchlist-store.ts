@@ -6,9 +6,9 @@ import type { StockIdentity } from "./types";
 
 import { readStoredValue, writeStoredValue } from "../../../lib/browser-storage";
 import { defaultStocks, spaceXStock } from "./stock-defaults";
+import { maximumWatchlistSymbols } from "./stock-page-state";
 
 const storageKey = "stocks-watchlist:v1";
-const maximumStocks = 30;
 const previousDefaultSymbols = new Set(["AAPL", "MSFT", "NVDA"]);
 
 /** The stored string the cached watchlist was parsed from, so reads only parse after a change. */
@@ -20,7 +20,7 @@ function parseWatchlist(storedValue: string | null): readonly StockIdentity[] {
   try {
     const parsedValue = JSON.parse(storedValue) as unknown;
     if (!Array.isArray(parsedValue)) return defaultStocks;
-    const validStocks = parsedValue.filter(isStockIdentity).slice(0, maximumStocks);
+    const validStocks = parsedValue.filter(isStockIdentity).slice(0, maximumWatchlistSymbols);
     if (validStocks.length === 0 && parsedValue.length > 0) return defaultStocks;
     return isPreviousDefaultWatchlist(validStocks) ? [...validStocks, spaceXStock] : validStocks;
   } catch {

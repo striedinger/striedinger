@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { StockSeries, StocksLabels } from "./types";
+import type { StockDetail, StockQuote, StocksLabels } from "./types";
 
 import { StockDashboard } from "./stock-dashboard";
 
@@ -21,16 +21,12 @@ vi.mock("./haptics", function mockStockHaptics() {
   return { playStockHaptic: vi.fn<(pattern: "select" | "success" | "remove") => void>() };
 });
 
-const apple = {
-  symbol: "AAPL",
-  name: "Apple",
-  exchange: "NASDAQ",
-  currency: "USD",
-};
+const apple = { symbol: "AAPL", name: "Apple", exchange: "NASDAQ", currency: "USD" };
+const tesla = { symbol: "TSLA", name: "Tesla", exchange: "NASDAQ", currency: "USD" };
 
 const labels: StocksLabels = {
-  add: "Add",
   added: "Added",
+  addToWatchlist: "Add to Watchlist",
   afterHours: "After hours",
   attribution: "Attribution",
   chart: "Chart",
@@ -54,12 +50,20 @@ const labels: StocksLabels = {
   searchHelp: "Search help",
   searchPlaceholder: "Search by company or ticker",
   share: "Share chart",
-  title: "Stock watchlist",
+  title: "Stocks",
+  toggleChange: "Switch change",
   volume: "Volume",
   watchlist: "Watchlist",
 };
 
-const initialSeries = createSeries("1M", 100);
+const appleQuote: StockQuote = {
+  change: 2,
+  changePercent: 1,
+  currency: "USD",
+  price: 202,
+  sparkline: [200, 201, 202],
+  symbol: "AAPL",
+};
 
 describe("StockDashboard", function () {
   beforeEach(function resetDashboard() {
@@ -74,57 +78,82 @@ describe("StockDashboard", function () {
     vi.restoreAllMocks();
   });
 
+  it("keeps the URL as it is for the default watchlist", async function () {
+    await renderDashboard();
+    expect(screen.getByRole("button", { name: /^AAPL/ })).toBeInTheDocument();
+    expect(navigationMocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("mirrors a saved watchlist into the URL so the server quotes it", async function () {
+    window.localStorage.setItem("stocks-watchlist:v1", JSON.stringify([tesla]));
+    await renderDashboard();
+    expect(screen.getByRole("button", { name: /^TSLA/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^AAPL/ })).not.toBeInTheDocument();
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?list=TSLA", { scroll: false });
+  });
+
   it("restores an intentionally empty watchlist", async function () {
     window.localStorage.setItem("stocks-watchlist:v1", "[]");
     await renderDashboard();
     expect(screen.getByText(labels.emptyWatchlist)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove AAPL" })).not.toBeInTheDocument();
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?list=", { scroll: false });
   });
 
-  it("shows a saved watchlist without replacing the server's selection", async function () {
-    window.localStorage.setItem(
-      "stocks-watchlist:v1",
-      JSON.stringify([{ symbol: "TSLA", name: "Tesla", exchange: "NASDAQ", currency: "USD" }]),
+  it("switches every row between the percentage and the price change", async function () {
+    await renderDashboard();
+    const change = screen.getByRole("button", { name: `+1.00%. ${labels.toggleChange}` });
+
+    fireEvent.click(change);
+
+    expect(screen.getByRole("button", { name: `+2.00. ${labels.toggleChange}` })).toBe(change);
+  });
+
+  it("removes a stock from its row's menu and updates the URL", async function () {
+    await renderDashboard();
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: /^AAPL/ }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: `${labels.remove} AAPL` }));
+
+    expect(screen.queryByRole("button", { name: /^AAPL/ })).not.toBeInTheDocument();
+    expect(
+      JSON.parse(window.localStorage.getItem("stocks-watchlist:v1") ?? "[]"),
+    ).not.toContainEqual(expect.objectContaining({ symbol: "AAPL" }));
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?list=MSFT,NVDA,SPCX", {
+      scroll: false,
+    });
+  });
+
+  it("opens a tapped stock in the URL and in a sheet", async function () {
+    await renderDashboard();
+
+    await act(async function openStock() {
+      fireEvent.click(screen.getByRole("button", { name: /^AAPL/ }));
+    });
+
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?symbol=AAPL", {
+      scroll: false,
+    });
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Apple");
+  });
+
+  it("changes the open stock's timeframe and adds a stock from its sheet", async function () {
+    await renderDashboard({
+      detail: { stock: tesla, series: null },
+      selectedSymbol: "TSLA",
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "1W" }));
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?symbol=TSLA&timeframe=1W", {
+      scroll: false,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: labels.addToWatchlist }));
+    expect(JSON.parse(window.localStorage.getItem("stocks-watchlist:v1") ?? "[]")).toContainEqual(
+      tesla,
     );
-    await renderDashboard();
-    expect(screen.getByRole("button", { name: "Remove TSLA" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Remove AAPL" })).not.toBeInTheDocument();
-    expect(navigationMocks.replace).not.toHaveBeenCalled();
-    expect(navigationMocks.push).not.toHaveBeenCalled();
   });
 
-  it("still navigates after removing a stock when persistence fails", async function () {
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function denyWrite() {
-      throw new DOMException("Full", "QuotaExceededError");
-    });
-    await renderDashboard();
-    fireEvent.click(screen.getByRole("button", { name: "Remove AAPL" }));
-    expect(navigationMocks.push).toHaveBeenCalledWith("/stocks?symbol=MSFT&timeframe=1M", {
-      scroll: false,
-    });
-  });
-
-  it("does not enter a loading state when the selected timeframe is pressed again", async function () {
-    await renderDashboard();
-
-    fireEvent.click(screen.getByRole("button", { name: "1M" }));
-
-    expect(navigationMocks.push).not.toHaveBeenCalled();
-    expect(screen.queryByRole("status", { name: labels.loading })).not.toBeInTheDocument();
-  });
-
-  it("keeps the chart visible while a timeframe navigation is requested", async function () {
-    await renderDashboard();
-
-    fireEvent.click(screen.getByRole("button", { name: "1W" }));
-
-    expect(screen.getByRole("slider", { name: "AAPL Chart" })).toBeInTheDocument();
-    expect(navigationMocks.push).toHaveBeenCalledWith("/stocks?symbol=AAPL&timeframe=1W", {
-      scroll: false,
-    });
-  });
-
-  it("requests server suggestions while typing without requiring a submit button", async function () {
+  it("requests server suggestions while typing", async function () {
     vi.useFakeTimers();
     await renderDashboard();
 
@@ -135,82 +164,50 @@ describe("StockDashboard", function () {
       vi.advanceTimersByTime(180);
     });
 
-    expect(screen.queryByRole("button", { name: labels.search })).not.toBeInTheDocument();
-    expect(navigationMocks.replace).toHaveBeenCalledWith(
-      "/stocks?symbol=AAPL&timeframe=1M&q=Tesla",
-      { scroll: false },
-    );
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?q=Tesla", { scroll: false });
 
     fireEvent.click(screen.getByRole("button", { name: labels.close }));
-    expect(navigationMocks.replace).toHaveBeenLastCalledWith("/stocks?symbol=AAPL&timeframe=1M", {
-      scroll: false,
-    });
+    expect(navigationMocks.replace).toHaveBeenLastCalledWith("/stocks", { scroll: false });
   });
 
-  it("supports choosing a typeahead result with the keyboard", async function () {
-    await renderDashboard({ searchQuery: "app", searchResults: [apple] });
+  it("opens a search result chosen with the keyboard", async function () {
+    await renderDashboard({ searchQuery: "tes", searchResults: [tesla] });
     const searchInput = screen.getByRole("combobox", { name: labels.search });
 
     fireEvent.keyDown(searchInput, { key: "ArrowDown" });
     fireEvent.keyDown(searchInput, { key: "Enter" });
 
     expect(searchInput).toHaveValue("");
-    expect(navigationMocks.push).toHaveBeenCalledWith("/stocks?symbol=AAPL&timeframe=1M", {
-      scroll: false,
-    });
-  });
-
-  it("removes a stock from the watchlist with an always-available control", async function () {
-    await renderDashboard();
-
-    fireEvent.click(screen.getByRole("button", { name: `${labels.remove} AAPL` }));
-
-    expect(screen.queryByRole("button", { name: `${labels.remove} AAPL` })).not.toBeInTheDocument();
-    expect(
-      JSON.parse(window.localStorage.getItem("stocks-watchlist:v1") ?? "[]"),
-    ).not.toContainEqual(expect.objectContaining({ symbol: "AAPL" }));
-    expect(navigationMocks.push).toHaveBeenCalledWith("/stocks?symbol=MSFT&timeframe=1M", {
+    expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?symbol=TSLA", {
       scroll: false,
     });
   });
 });
 
 async function renderDashboard({
+  detail = null,
   searchQuery = "",
   searchResults = [],
+  selectedSymbol = null,
 }: {
+  detail?: StockDetail | null;
   searchQuery?: string;
   searchResults?: (typeof apple)[];
+  selectedSymbol?: string | null;
 } = {}) {
-  await act(async function renderWithStreamedSuggestions() {
+  await act(async function renderWithStreamedData() {
     render(
       <StockDashboard
-        initialSeries={initialSeries}
-        initialStock={apple}
-        initialTimeframe="1M"
+        detail={Promise.resolve(detail)}
         labels={labels}
+        listParameter={null}
         locale="en-US"
+        quotes={Promise.resolve({ AAPL: appleQuote })}
         searchQuery={searchQuery}
         searchResults={Promise.resolve(searchResults)}
+        selectedSymbol={selectedSymbol}
+        timeframe="1D"
       />,
     );
   });
-}
-
-function createSeries(timeframe: StockSeries["timeframe"], close: number): StockSeries {
-  return {
-    identity: apple,
-    isDemo: false,
-    timeframe,
-    points: [
-      {
-        close,
-        date: "2026-07-17T16:00:00.000Z",
-        high: close + 2,
-        low: close - 2,
-        open: close - 1,
-        volume: 1_000_000,
-      },
-    ],
-  };
 }

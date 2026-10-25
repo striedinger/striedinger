@@ -52,8 +52,6 @@ export const messages = {
   Music: "音乐",
   "Kids & Family": "儿童与家庭",
   Fiction: "小说",
-  Follow: "关注",
-  Following: "已关注",
   "Unfollow Show": "取消关注节目",
   "Follow Show": "关注节目",
   "Latest Episode": "最新单集",

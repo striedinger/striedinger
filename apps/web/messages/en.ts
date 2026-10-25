@@ -107,4 +107,6 @@ export const messages = defineMessages({
   "Translating…": "Translating…",
   "Try Again": "Try Again",
   "Video Editor": "Video Editor",
+  "IP Address": "IP Address",
+  "Browser Info": "Browser Info",
 });

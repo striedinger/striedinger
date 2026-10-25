@@ -1,41 +1,40 @@
 "use client";
 
+import { CheckIcon } from "@workspace/icons/check-icon";
 import { CircleXFillIcon } from "@workspace/icons/circle-x-fill-icon";
 import { SearchIcon } from "@workspace/icons/search-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState, useTransition, type KeyboardEvent } from "react";
 
-import type { StockIdentity, StocksLabels, StockTimeframe } from "./types";
+import type { StockIdentity, StocksLabels } from "./types";
 
-import { iosGlassClassName, iosStrongGlassClassName } from "../../../components/ios/ios-glass";
+import { iosGlassClassName } from "../../../components/ios/ios-glass";
 
 interface StockSearchProps {
+  /** The page's URL with the search query changed, which the server answers with suggestions. */
+  getSearchHref: (query: string) => string;
   initialQuery: string;
   labels: StocksLabels;
   onSelectStock: (stock: StockIdentity) => void;
   /** Suggestions for `initialQuery`, streaming from the server. */
   searchResults: Promise<StockIdentity[]>;
-  selectedSymbol: string;
-  timeframe: StockTimeframe;
   watchlist: readonly StockIdentity[];
 }
 
 const searchDelayMilliseconds = 180;
 
 export function StockSearch({
+  getSearchHref,
   initialQuery,
   labels,
   onSelectStock,
   searchResults: searchResultsPromise,
-  selectedSymbol,
-  timeframe,
   watchlist,
 }: StockSearchProps) {
   const searchResults = use(searchResultsPromise);
   const router = useRouter();
-  const pathname = usePathname();
   const [query, setQuery] = useState(initialQuery);
   const [isOpen, setIsOpen] = useState(true);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -66,10 +65,8 @@ export function StockSearch({
     const normalizedNextQuery = normalizeSearchQuery(nextQuery);
     if (normalizedNextQuery === lastRequestedQueryRef.current) return;
     lastRequestedQueryRef.current = normalizedNextQuery;
-    const parameters = new URLSearchParams({ symbol: selectedSymbol, timeframe });
-    if (normalizedNextQuery) parameters.set("q", normalizedNextQuery);
     startSearchNavigation(function showServerSuggestions() {
-      router.replace(`${pathname}?${parameters}`, { scroll: false });
+      router.replace(getSearchHref(normalizedNextQuery), { scroll: false });
     });
   }
 
@@ -197,7 +194,8 @@ export function StockSearch({
           role="listbox"
           className={cn(
             "absolute top-[calc(100%+0.5rem)] right-0 left-0 max-h-80 overflow-y-auto rounded-ios-xl p-1.5",
-            iosStrongGlassClassName,
+            // Opaque, so the watchlist underneath never shows through the results.
+            "bg-ios-grouped-cell shadow-ios-floating",
           )}
         >
           {searchResults.map(function renderSuggestion(stock, index) {
@@ -232,15 +230,15 @@ export function StockSearch({
                       {stock.name} · {stock.exchange}
                     </Text>
                   </span>
-                  <Text
-                    as="span"
-                    className={cn(
-                      "shrink-0 text-ios-subheadline font-semibold",
-                      isAdded ? "text-ios-secondary-label" : "text-ios-tint",
-                    )}
-                  >
-                    {isAdded ? labels.added : labels.add}
-                  </Text>
+                  {isAdded ? (
+                    <CheckIcon
+                      aria-hidden={false}
+                      aria-label={labels.added}
+                      role="img"
+                      className="size-4.5 shrink-0 text-ios-tint"
+                      strokeWidth={2.6}
+                    />
+                  ) : null}
                 </button>
               </div>
             );

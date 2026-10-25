@@ -110,4 +110,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Translating…": "Wird übersetzt …",
   "Try Again": "Erneut versuchen",
   "Video Editor": "Video-Editor",
+  "IP Address": "IP-Adresse",
+  "Browser Info": "Browser-Info",
 };

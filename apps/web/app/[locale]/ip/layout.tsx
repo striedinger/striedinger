@@ -14,7 +14,7 @@ export default async function IpLayout({ children }: Readonly<{ children: ReactN
     <NativeToolLayout
       href="/ip"
       tintClassName="[--ios-tint:#0a84c7] dark:[--ios-tint:#40c8e0]"
-      title={translate("IP Address Information")}
+      title={translate("IP Address")}
     >
       {children}
     </NativeToolLayout>

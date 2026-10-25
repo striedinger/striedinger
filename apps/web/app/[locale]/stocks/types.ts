@@ -35,9 +35,26 @@ export interface StockSeries {
   timeframe: StockTimeframe;
 }
 
+/** A watchlist row's latest price, its change today, and a small line of today's prices. */
+export interface StockQuote {
+  change: number;
+  changePercent: number;
+  currency: string;
+  price: number;
+  /** Today's closing prices, thinned to a few dozen points for the row's sparkline. */
+  sparkline: number[];
+  symbol: string;
+}
+
+/** The stock in the open detail sheet and its series for the chosen timeframe. */
+export interface StockDetail {
+  series: StockSeries | null;
+  stock: StockIdentity;
+}
+
 export interface StocksLabels {
-  add: string;
   added: string;
+  addToWatchlist: string;
   afterHours: string;
   attribution: string;
   chart: string;
@@ -62,6 +79,7 @@ export interface StocksLabels {
   searchPlaceholder: string;
   share: string;
   title: string;
+  toggleChange: string;
   volume: string;
   watchlist: string;
 }

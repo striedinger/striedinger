@@ -52,8 +52,6 @@ export const messages = defineMessages({
   Music: "Music",
   "Kids & Family": "Kids & Family",
   Fiction: "Fiction",
-  Follow: "Follow",
-  Following: "Following",
   "Unfollow Show": "Unfollow Show",
   "Follow Show": "Follow Show",
   "Latest Episode": "Latest Episode",

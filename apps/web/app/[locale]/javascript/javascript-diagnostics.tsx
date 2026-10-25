@@ -8,6 +8,7 @@ import type { BrowserDiagnosticsLabels, DiagnosticSection } from "./types";
 
 import { IosBarButton } from "../../../components/ios/ios-bar-button";
 import { IosListSection } from "../../../components/ios/ios-list-section";
+import { IosToolActions } from "../../../components/ios/ios-tool-actions";
 import { IosValueRow, type IosValueStatus } from "../../../components/ios/ios-value-row";
 import { collectBrowserDiagnostics } from "./browser-diagnostics";
 import { DiagnosticSectionSkeleton } from "./diagnostic-section-skeleton";
@@ -73,12 +74,16 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <IosBarButton variant="plain" onClick={refreshDetails} disabled={!sections || isRefreshing}>
+      <IosToolActions>
+        <IosBarButton
+          aria-label={labels.refresh}
+          className="text-ios-tint"
+          onClick={refreshDetails}
+          disabled={!sections || isRefreshing}
+        >
           <RefreshIcon />
-          {labels.refresh}
         </IosBarButton>
-      </div>
+      </IosToolActions>
 
       <div className="flex flex-col gap-6" aria-live="polite" aria-busy={!sections || isRefreshing}>
         {sections ? (

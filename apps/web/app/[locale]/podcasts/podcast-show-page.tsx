@@ -96,21 +96,6 @@ export function PodcastShowPage({ podcast, show }: PodcastShowPageProps) {
               >
                 <PodcastShowPlayButton messages={messages} podcast={podcast} show={show} />
               </Suspense>
-              <button
-                type="button"
-                aria-pressed={isFollowed}
-                className="flex h-12 items-center justify-center gap-1.5 rounded-ios-md bg-white/20 px-4 text-ios-body font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/70 active:opacity-70"
-                onClick={function toggleFollow() {
-                  toggleFollowedPodcast(podcast);
-                }}
-              >
-                {isFollowed ? (
-                  <CheckIcon className="size-4" strokeWidth={3} />
-                ) : (
-                  <PlusIcon className="size-4" strokeWidth={3} />
-                )}
-                {isFollowed ? messages.Following : messages.Follow}
-              </button>
             </div>
             <Suspense fallback={null}>
               <PodcastShowDescription messages={messages} show={show} />
