@@ -22,4 +22,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Playback position": "播放位置",
   "{elapsed} of {total}": "{elapsed} / {total}",
   "{album} cover": "{album} 封面",
+  "Hugo’s Spotify": "Hugo 的 Spotify",
+  "Press play for what’s on now": "点按播放，看看现在在放什么",
 };

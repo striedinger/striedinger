@@ -36,6 +36,17 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: publicMetadataCacheControl }],
       },
       {
+        // The listening card shows the current song, so the edge keeps it for seconds rather
+        // than a day. Listed after the general rule above, so this value wins.
+        source: "/:locale(es|de|it|fr|pt|zh|ja)?/listening/opengraph-image",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, s-maxage=30, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
         source: "/vendor/pdfjs-dist/:version/:path*",
         headers: [
           {

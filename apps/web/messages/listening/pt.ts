@@ -22,4 +22,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Playback position": "Posição da reprodução",
   "{elapsed} of {total}": "{elapsed} de {total}",
   "{album} cover": "Capa de {album}",
+  "Hugo’s Spotify": "O Spotify do Hugo",
+  "Press play for what’s on now": "Toque em reproduzir para ver o que está tocando",
 };

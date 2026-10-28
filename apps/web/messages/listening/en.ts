@@ -20,4 +20,6 @@ export const messages = defineMessages({
   "Playback position": "Playback position",
   "{elapsed} of {total}": "{elapsed} of {total}",
   "{album} cover": "{album} cover",
+  "Hugo’s Spotify": "Hugo’s Spotify",
+  "Press play for what’s on now": "Press play for what’s on now",
 });

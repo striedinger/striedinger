@@ -86,16 +86,29 @@ function parseItem(value: unknown): ListeningTrack | null {
     title,
     subtitle,
     album: isEpisode ? "" : readText(item.album?.name),
-    artworkUrl: isEpisode
-      ? pickArtwork(item.images) || pickArtwork(item.show?.images)
-      : pickArtwork(item.album?.images),
+    ...pickArtwork(isEpisode ? pickEpisodeImages(item) : item.album?.images),
     spotifyUrl: readHttpsUrl(item.external_urls?.spotify, spotifyHost),
     durationMs: Math.max(0, readNumber(item.duration_ms)),
   };
 }
 
 function pickArtwork(images: SpotifyImage[] | undefined) {
-  const candidates = (images ?? [])
+  const candidates = readArtwork(images);
+  const preferred =
+    candidates.find(function isLargeEnough(image) {
+      return image.width >= preferredArtworkWidth;
+    }) ?? candidates.at(-1);
+  return { artworkUrl: preferred?.url ?? "" };
+}
+
+/** An episode's own artwork, or its show's when the episode has none. */
+function pickEpisodeImages(item: SpotifyItem) {
+  return readArtwork(item.images).length > 0 ? item.images : item.show?.images;
+}
+
+/** Spotify's own artwork URLs, smallest first. */
+function readArtwork(images: SpotifyImage[] | undefined) {
+  return (images ?? [])
     .map(function readImage(image) {
       return { url: readHttpsUrl(image.url, artworkHost), width: readNumber(image.width) };
     })
@@ -105,11 +118,6 @@ function pickArtwork(images: SpotifyImage[] | undefined) {
     .toSorted(function byWidth(first, second) {
       return first.width - second.width;
     });
-  const preferred =
-    candidates.find(function isLargeEnough(image) {
-      return image.width >= preferredArtworkWidth;
-    }) ?? candidates.at(-1);
-  return preferred?.url ?? "";
 }
 
 function readHttpsUrl(value: unknown, hostname: string) {

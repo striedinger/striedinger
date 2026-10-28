@@ -22,4 +22,6 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Playback position": "再生位置",
   "{elapsed} of {total}": "{elapsed} / {total}",
   "{album} cover": "{album} のジャケット",
+  "Hugo’s Spotify": "Hugo の Spotify",
+  "Press play for what’s on now": "再生をタップして今の曲を見る",
 };
