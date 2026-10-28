@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import type { ListeningState } from "../../../lib/spotify/parse-listening-state";
 import type { NowPlayingLabels } from "./now-playing-card";
 
+import { IosRevealTransition } from "../../../components/ios/ios-reveal-transition";
 import { getRelativeTimeFormat } from "../../../lib/intl-cache";
 import { getListeningState } from "../../../lib/spotify/listening-state";
 import { getListeningTranslator } from "../../../messages/listening/get-translator";
@@ -41,7 +42,7 @@ export async function NowPlayingLoader({ locale }: NowPlayingLoaderProps) {
   };
 
   return (
-    <>
+    <IosRevealTransition className="size-full">
       <NowPlayingCard
         elapsedMs={elapsedMs}
         labels={labels}
@@ -53,7 +54,7 @@ export async function NowPlayingLoader({ locale }: NowPlayingLoaderProps) {
           state.status === "playing" ? state.track.durationMs - (elapsedMs ?? 0) : null
         }
       />
-    </>
+    </IosRevealTransition>
   );
 }
 

@@ -4,9 +4,16 @@ import Image from "next/image";
 
 import type { ListeningState } from "../../../lib/spotify/parse-listening-state";
 
-import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { EqualizerBars } from "./equalizer-bars";
 import { ListeningAppSwitcherButton } from "./listening-app-switcher-button";
+import {
+  nowPlayingArtworkClassName,
+  nowPlayingDetailsClassName,
+  nowPlayingFrameClassName,
+  nowPlayingPlatterClassName,
+  nowPlayingSubtitleClassName,
+  nowPlayingTitleClassName,
+} from "./now-playing-layout";
 import { PlaybackProgress } from "./playback-progress";
 import { SpotifyLogo } from "./spotify-logo";
 
@@ -46,10 +53,7 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
   const isPlaying = state.status === "playing";
 
   return (
-    <article
-      aria-label={labels.title}
-      className="relative isolate flex size-full items-center justify-center overflow-hidden p-[clamp(0.875rem,4.2vw,2.5rem)]"
-    >
+    <article aria-label={labels.title} className={nowPlayingFrameClassName}>
       {track?.artworkUrl ? (
         <Image
           src={track.artworkUrl}
@@ -64,21 +68,15 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
       )}
       <div className="absolute inset-0 -z-10 bg-ios-background/10 dark:bg-ios-background/35" />
 
-      <div className="absolute top-3 left-3">
+      <div className="absolute top-3 left-3 z-10">
         <ListeningAppSwitcherButton />
       </div>
 
-      {/* The Lock Screen media platter: one sheet of glass over the artwork's own colors, with
-          the cover's corners concentric to the platter's. */}
-      <section
-        className={cn(
-          iosGlassClassName,
-          "flex w-full max-w-3xl items-center gap-[clamp(0.75rem,3.4vw,2rem)] rounded-(--platter-radius) p-(--platter-padding) [--platter-padding:clamp(0.625rem,2.6vw,1.5rem)] [--platter-radius:clamp(1.375rem,5.6vw,2.75rem)]",
-        )}
-      >
+      <section className={nowPlayingPlatterClassName}>
         <div
           className={cn(
-            "relative aspect-square size-[clamp(5.5rem,min(28vw,50dvh),16rem)] shrink-0 overflow-hidden rounded-[calc(var(--platter-radius)-var(--platter-padding))] shadow-ios-floating after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-black/10 dark:after:border-white/10",
+            nowPlayingArtworkClassName,
+            "shadow-ios-floating after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-black/10 dark:after:border-white/10",
             !track?.artworkUrl && "grid place-items-center bg-ios-fill",
           )}
         >
@@ -97,7 +95,7 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-[clamp(0.375rem,1.8vw,1rem)]">
+        <div className={nowPlayingDetailsClassName}>
           <div className="flex min-w-0 flex-col gap-0.5">
             <Text className="flex items-center gap-1.5 text-ios-caption1 font-semibold text-ios-secondary-label">
               <EqualizerBars isPlaying={isPlaying} />
@@ -106,7 +104,7 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
             <Text
               as="h2"
               weight="semibold"
-              className="truncate text-[clamp(1rem,4.2vw,2.25rem)] leading-tight tracking-[-0.02em] text-ios-label"
+              className={cn(nowPlayingTitleClassName, "truncate text-ios-label")}
             >
               {track?.spotifyUrl ? (
                 <a href={track.spotifyUrl} target="_blank" rel="noopener noreferrer">
@@ -116,7 +114,7 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
                 (track?.title ?? labels.nothingPlaying)
               )}
             </Text>
-            <Text className="truncate text-[clamp(0.8125rem,3.4vw,1.5rem)] leading-snug text-ios-secondary-label">
+            <Text className={cn(nowPlayingSubtitleClassName, "truncate text-ios-secondary-label")}>
               {track ? describeTrack(track) : labels.checkBack}
             </Text>
           </div>

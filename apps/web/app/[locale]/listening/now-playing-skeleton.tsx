@@ -1,25 +1,45 @@
-import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import { cn } from "@workspace/ui/lib/utils";
 
-/** The Now Playing card's shape while Spotify answers. */
+import { IosSkeleton } from "../../../components/ios/ios-skeleton";
+import {
+  nowPlayingArtworkClassName,
+  nowPlayingDetailsClassName,
+  nowPlayingFrameClassName,
+  nowPlayingPlatterClassName,
+  nowPlayingSubtitleClassName,
+  nowPlayingTitleClassName,
+} from "./now-playing-layout";
+
+/**
+ * The Now Playing platter while Spotify answers, built from the card's own geometry so the
+ * cover, the lines of text, and the button sit exactly where the loaded card puts them.
+ */
 export function NowPlayingSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      className="flex size-full flex-col bg-ios-secondary-background p-[clamp(0.875rem,4.2vw,2.5rem)]"
-    >
-      <div className="flex items-center justify-between">
-        <IosSkeleton className="h-6.5 w-28 rounded-full" />
-        <IosSkeleton className="h-6.5 w-14 rounded-full" />
-      </div>
-      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 items-center gap-[clamp(0.875rem,4vw,2.5rem)] pt-[clamp(0.625rem,3vw,1.5rem)]">
-        <IosSkeleton className="size-[clamp(5.75rem,min(30vw,52dvh),17.5rem)] shrink-0 rounded-[clamp(0.625rem,2.6vw,1.25rem)]" />
-        <div className="flex min-w-0 flex-1 flex-col gap-[clamp(0.5rem,2.4vw,1.25rem)]">
-          <div className="flex flex-col gap-1.5">
-            <IosSkeleton className="h-5 w-3/4" />
-            <IosSkeleton className="h-4 w-1/2" />
+    <div aria-busy="true" className={cn(nowPlayingFrameClassName, "bg-ios-secondary-background")}>
+      <div className={nowPlayingPlatterClassName}>
+        <IosSkeleton className={nowPlayingArtworkClassName} />
+        <div className={nowPlayingDetailsClassName}>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex h-4 items-center">
+              <IosSkeleton className="h-3 w-2/5 rounded-full" />
+            </div>
+            <div className={cn(nowPlayingTitleClassName, "flex h-lh items-center")}>
+              <IosSkeleton className="h-[0.8em] w-3/4 rounded-full" />
+            </div>
+            <div className={cn(nowPlayingSubtitleClassName, "flex h-lh items-center")}>
+              <IosSkeleton className="h-[0.8em] w-1/2 rounded-full" />
+            </div>
           </div>
-          <IosSkeleton className="h-1.25 w-full rounded-full" />
-          <IosSkeleton className="h-7.5 w-32 rounded-full" />
+          {/* The scrubber and its two times, as PlaybackProgress lays them out. */}
+          <div className="flex flex-col gap-1.5">
+            <IosSkeleton className="h-1.25 w-full rounded-full" />
+            <div className="flex h-3.25 justify-between">
+              <IosSkeleton className="h-full w-7 rounded-full" />
+              <IosSkeleton className="h-full w-8 rounded-full" />
+            </div>
+          </div>
+          <IosSkeleton className="h-7.5 w-36 rounded-full" />
         </div>
       </div>
     </div>
