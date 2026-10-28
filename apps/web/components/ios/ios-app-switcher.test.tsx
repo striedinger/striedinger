@@ -13,6 +13,7 @@ const labels = {
   ip: "IP Address Information",
   javascript: "JavaScript Browser Information",
   json: "JSON Validator and Formatter",
+  listening: "Now Playing",
   navigation: "Navigation",
   notes: "Notes",
   og: "Open Graph Preview",
@@ -42,6 +43,7 @@ describe("IosAppSwitcher", function () {
     expect(screen.getByRole("link", { name: "Trains" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Notes" })).toHaveAttribute("href", "/notes");
     expect(screen.getByRole("link", { name: "Drop" })).toHaveAttribute("href", "/drop");
+    expect(screen.getByRole("link", { name: "Now Playing" })).toHaveAttribute("href", "/listening");
     expect(screen.getByRole("link", { name: "PDF Optimizer" })).toHaveAttribute("href", "/pdf");
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
 

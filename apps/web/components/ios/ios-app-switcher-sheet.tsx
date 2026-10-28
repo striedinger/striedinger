@@ -15,6 +15,7 @@ import { FilmIcon } from "@workspace/icons/film-icon";
 import { GlobeIcon } from "@workspace/icons/globe-icon";
 import { HouseFillIcon } from "@workspace/icons/house-fill-icon";
 import { LinkIcon } from "@workspace/icons/link-icon";
+import { MusicNoteIcon } from "@workspace/icons/music-note-icon";
 import { NoteTextIcon } from "@workspace/icons/note-text-icon";
 import { NumberGridIcon } from "@workspace/icons/number-grid-icon";
 import { PencilIcon } from "@workspace/icons/pencil-icon";
@@ -83,6 +84,12 @@ const apps: readonly SwitcherDestination[] = [
     href: "/stocks",
     icon: <ChartLineIcon />,
     label: "stocks",
+  },
+  {
+    background: "bg-linear-to-b from-[#1ed760] to-[#169c46]",
+    href: "/listening",
+    icon: <MusicNoteIcon />,
+    label: "listening",
   },
 ];
 

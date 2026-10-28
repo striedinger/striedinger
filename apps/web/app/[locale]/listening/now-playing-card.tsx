@@ -1,12 +1,12 @@
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 import Image from "next/image";
-import Link from "next/link";
 
 import type { ListeningState } from "../../../lib/spotify/parse-listening-state";
 
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
 import { EqualizerBars } from "./equalizer-bars";
+import { ListeningAppSwitcherButton } from "./listening-app-switcher-button";
 import { PlaybackProgress } from "./playback-progress";
 import { SpotifyLogo } from "./spotify-logo";
 
@@ -36,10 +36,6 @@ interface NowPlayingCardProps {
 // downloads the cover once.
 const artworkSizes = "(max-width: 40rem) 30vw, 17.5rem";
 const artworkQuality = 75;
-const chipClassName = cn(
-  iosGlassClassName,
-  "flex h-6.5 items-center gap-1.75 rounded-full px-2.75 text-ios-caption1 font-semibold whitespace-nowrap",
-);
 
 /**
  * The iOS Now Playing player, scaled to whatever frame holds it: the X player card on a phone
@@ -52,7 +48,7 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
   return (
     <article
       aria-label={labels.title}
-      className="relative isolate flex size-full flex-col overflow-hidden p-[clamp(0.875rem,4.2vw,2.5rem)]"
+      className="relative isolate flex size-full items-center justify-center overflow-hidden p-[clamp(0.875rem,4.2vw,2.5rem)]"
     >
       {track?.artworkUrl ? (
         <Image
@@ -66,27 +62,24 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
       ) : (
         <div className="absolute inset-0 -z-20 bg-linear-to-br from-ios-purple/45 via-ios-blue/30 to-ios-tint/35" />
       )}
-      <div className="absolute inset-0 -z-10 bg-ios-background/15 dark:bg-ios-background/40" />
+      <div className="absolute inset-0 -z-10 bg-ios-background/10 dark:bg-ios-background/35" />
 
-      <header className="flex items-center justify-between gap-2">
-        <Text className={cn(chipClassName, "text-ios-label")}>
-          <EqualizerBars isPlaying={isPlaying} />
-          {statusLabel}
-        </Text>
-        <Link
-          href="/"
-          target="_blank"
-          className={cn(chipClassName, "font-medium text-ios-secondary-label")}
-        >
-          Hugo
-        </Link>
-      </header>
+      <div className="absolute top-3 left-3">
+        <ListeningAppSwitcherButton />
+      </div>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 items-center gap-[clamp(0.875rem,4vw,2.5rem)] pt-[clamp(0.625rem,3vw,1.5rem)]">
+      {/* The Lock Screen media platter: one sheet of glass over the artwork's own colors, with
+          the cover's corners concentric to the platter's. */}
+      <section
+        className={cn(
+          iosGlassClassName,
+          "flex w-full max-w-3xl items-center gap-[clamp(0.75rem,3.4vw,2rem)] rounded-(--platter-radius) p-(--platter-padding) [--platter-padding:clamp(0.625rem,2.6vw,1.5rem)] [--platter-radius:clamp(1.375rem,5.6vw,2.75rem)]",
+        )}
+      >
         <div
           className={cn(
-            "relative aspect-square size-[clamp(5.75rem,min(30vw,52dvh),17.5rem)] shrink-0 overflow-hidden rounded-[clamp(0.625rem,2.6vw,1.25rem)] shadow-ios-overlay after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-black/10 dark:after:border-white/10",
-            !track?.artworkUrl && cn(iosGlassClassName, "grid place-items-center"),
+            "relative aspect-square size-[clamp(5.5rem,min(28vw,50dvh),16rem)] shrink-0 overflow-hidden rounded-[calc(var(--platter-radius)-var(--platter-padding))] shadow-ios-floating after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:border-[0.5px] after:border-black/10 dark:after:border-white/10",
+            !track?.artworkUrl && "grid place-items-center bg-ios-fill",
           )}
         >
           {track?.artworkUrl ? (
@@ -104,8 +97,12 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-[clamp(0.5rem,2.4vw,1.25rem)]">
-          <div className="flex min-w-0 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col gap-[clamp(0.375rem,1.8vw,1rem)]">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <Text className="flex items-center gap-1.5 text-ios-caption1 font-semibold text-ios-secondary-label">
+              <EqualizerBars isPlaying={isPlaying} />
+              <span className="truncate">{statusLabel}</span>
+            </Text>
             <Text
               as="h2"
               weight="semibold"
@@ -142,16 +139,13 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
             href={track?.spotifyUrl || "https://open.spotify.com"}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn(
-              iosGlassClassName,
-              "flex h-7.5 items-center gap-1.5 self-start rounded-full px-3.25 text-ios-footnote font-semibold whitespace-nowrap transition-transform duration-150 ease-ios active:scale-95 motion-reduce:transition-none",
-            )}
+            className="flex h-7.5 items-center gap-1.5 self-start rounded-full bg-ios-fill px-3.25 text-ios-footnote font-semibold whitespace-nowrap text-ios-label shadow-ios-highlight transition-transform duration-150 ease-ios active:scale-95 motion-reduce:transition-none"
           >
             <SpotifyLogo className="size-3.75 text-ios-tint" />
             {track?.spotifyUrl ? labels.openInSpotify : labels.openSpotify}
           </a>
         </div>
-      </div>
+      </section>
     </article>
   );
 }

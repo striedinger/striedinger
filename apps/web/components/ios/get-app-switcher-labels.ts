@@ -17,6 +17,7 @@ export async function getAppSwitcherLabels(locale: Locale): Promise<IosAppSwitch
     ip: translate("IP Address"),
     javascript: translate("Browser Info"),
     json: "JSON",
+    listening: translate("Now Playing"),
     navigation: translate("Navigation"),
     notes: translate("Notes"),
     og: "Open Graph",

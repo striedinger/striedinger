@@ -93,6 +93,7 @@ export const messages = defineMessages({
   Home: "Home",
   Trains: "Trains",
   Stocks: "Stocks",
+  "Now Playing": "Now Playing",
   Sudoku: "Sudoku",
   "Open apps menu": "Open apps menu",
   "Downloading the on-device model… {percent}": "Downloading the on-device model… {percent}",

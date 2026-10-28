@@ -95,6 +95,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Home: "Accueil",
   Trains: "Trains",
   Stocks: "Bourse",
+  "Now Playing": "À l’écoute",
   Sudoku: "Sudoku",
   "Open apps menu": "Ouvrir le menu des apps",
   "Downloading the on-device model… {percent}":

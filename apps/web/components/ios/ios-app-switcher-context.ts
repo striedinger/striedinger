@@ -11,6 +11,7 @@ export interface IosAppSwitcherLabels {
   ip: string;
   javascript: string;
   json: string;
+  listening: string;
   navigation: string;
   notes: string;
   og: string;

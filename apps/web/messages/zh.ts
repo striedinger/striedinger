@@ -93,6 +93,7 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   Home: "主页",
   Trains: "列车",
   Stocks: "股市",
+  "Now Playing": "正在播放",
   Sudoku: "数独",
   "Open apps menu": "打开应用菜单",
   "Downloading the on-device model… {percent}": "正在下载设备端模型… {percent}",

@@ -1,7 +1,9 @@
 import type { Viewport } from "next";
 import type { ReactNode } from "react";
 
+import { getAppSwitcherLabels } from "../../../components/ios/get-app-switcher-labels";
 import { IosAppFrame } from "../../../components/ios/ios-app-frame";
+import { getRequestLocale } from "../../get-request-locale";
 
 /** The page also runs inside X's player card, which has no safe areas to cover. */
 export const viewport: Viewport = {
@@ -15,9 +17,19 @@ export const viewport: Viewport = {
 const listeningFrameClassName = "[--ios-tint:#1db954] dark:[--ios-tint:#1ed760]";
 
 /**
- * Now Playing fills whatever frame holds it, usually the iframe of an X player card, so it
- * leaves out the app switcher and navigation bar the other native apps carry.
+ * Now Playing fills whatever frame holds it, usually the iframe of an X player card. It has no
+ * navigation bar; its app switcher button shows only when the page is opened directly.
  */
-export default function ListeningLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <IosAppFrame className={listeningFrameClassName}>{children}</IosAppFrame>;
+export default async function ListeningLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const locale = await getRequestLocale();
+  const appSwitcherLabels = await getAppSwitcherLabels(locale);
+
+  return (
+    <IosAppFrame
+      className={listeningFrameClassName}
+      appSwitcher={{ currentHref: "/listening", labels: appSwitcherLabels }}
+    >
+      {children}
+    </IosAppFrame>
+  );
 }
