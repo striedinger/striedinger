@@ -93,6 +93,8 @@
   --ease-ios-bounce: cubic-bezier(0.34, 1.35, 0.64, 1);
   /* The Apple Intelligence edge glow turning while on-device AI works. */
   --animate-ios-intelligence: ios-intelligence-turn 2.4s linear infinite;
+  /* A now-playing equalizer bar bouncing to the music. */
+  --animate-ios-equalizer: ios-equalizer 0.9s ease-in-out infinite;
   --shadow-ios-icon: inset 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.12);
   --shadow-ios-highlight: inset 0 0.5px 0 0.5px rgb(255 255 255 / 0.25);
   --shadow-ios-panel: inset 0 0 0 0.5px var(--ios-separator), 0 8px 30px var(--ios-glass-shadow);
@@ -154,6 +156,15 @@
     #64d2ff,
     #ff9f0a
   );
+}
+@keyframes ios-equalizer {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 /* The transparency grid behind image previews, on the grouped cell surface. */
 @utility bg-ios-checkerboard {
