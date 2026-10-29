@@ -384,7 +384,7 @@ export function VideoWorkspace({
     if (exportState.kind !== "done") return;
     const exported = exportState.file;
     // On phones the share sheet offers Save Video to the photo library.
-    if (navigator.canShare?.({ files: [exported] })) {
+    if ("canShare" in navigator && navigator.canShare({ files: [exported] })) {
       try {
         await navigator.share({ files: [exported] });
         return;

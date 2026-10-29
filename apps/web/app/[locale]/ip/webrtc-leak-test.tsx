@@ -62,7 +62,9 @@ export function WebRtcLeakTest({ labels }: WebRtcLeakTestProps) {
             aria-disabled={isTesting}
             aria-busy={isTesting}
             className="flex min-h-11 w-full items-center px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed aria-disabled:text-ios-secondary-label motion-reduce:transition-none"
-            onClick={runTest}
+            onClick={function startTest() {
+              void runTest();
+            }}
           >
             {isTesting ? labels.testing : labels.runTest}
           </button>

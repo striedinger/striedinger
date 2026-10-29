@@ -97,7 +97,8 @@ beforeEach(function resetPeerState() {
   });
   peerState.room.onPeerJoin = null;
   peerState.room.onPeerLeave = null;
-  for (const peerId of Object.keys(peerState.peers)) delete peerState.peers[peerId];
+  for (const peerId of Object.keys(peerState.peers))
+    Reflect.deleteProperty(peerState.peers, peerId);
 });
 
 afterEach(function cleanUpDropTool() {
@@ -113,11 +114,7 @@ describe("DropTool", function () {
       expect(screen.queryByText(labels.preparing)).not.toBeInTheDocument();
     });
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
-    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-    expect(fileInput).not.toBeNull();
-    fireEvent.change(fileInput as HTMLInputElement, {
-      target: { files: [file] },
-    });
+    selectFiles([file]);
 
     expect(screen.getByText(file.name)).toBeInTheDocument();
     expect(screen.getByText(/Ready to send/)).toBeInTheDocument();
@@ -125,7 +122,7 @@ describe("DropTool", function () {
     await waitFor(function waitForPeerHandler() {
       expect(peerState.room.onPeerJoin).toBeTypeOf("function");
     });
-    await act(async function connectPeer() {
+    await actAndSettle(function connectPeer() {
       peerState.room.onPeerJoin?.("peer-1");
     });
 
@@ -151,7 +148,7 @@ describe("DropTool", function () {
     await waitFor(function waitForNewRoom() {
       expect(screen.queryByText(file.name)).not.toBeInTheDocument();
     });
-    await act(async function connectPeerInNewRoom() {
+    await actAndSettle(function connectPeerInNewRoom() {
       peerState.room.onPeerJoin?.("new-room-peer");
     });
     expect(peerState.action.send).not.toHaveBeenCalled();
@@ -165,7 +162,7 @@ describe("DropTool", function () {
     selectFiles([oversizedFile]);
 
     expect(screen.getByText(labels.fileTooLarge, { exact: false })).toBeInTheDocument();
-    await act(async function connectPeer() {
+    await actAndSettle(function connectPeer() {
       peerState.room.onPeerJoin?.("peer-1");
     });
     expect(peerState.action.send).not.toHaveBeenCalled();
@@ -184,7 +181,7 @@ describe("DropTool", function () {
       });
     render(<DropTool labels={labels} />);
     await waitForForRoom();
-    await act(async function connectPeer() {
+    await actAndSettle(function connectPeer() {
       peerState.room.onPeerJoin?.("peer-1");
     });
     selectFiles([new File(["one"], "one.txt"), new File(["two"], "two.txt")]);
@@ -192,7 +189,7 @@ describe("DropTool", function () {
     await waitFor(function waitForFirstTransfer() {
       expect(peerState.action.send).toHaveBeenCalledTimes(1);
     });
-    await act(async function completeFirstTransfer() {
+    await actAndSettle(function completeFirstTransfer() {
       finishFirstTransfer?.();
     });
     await waitFor(function waitForSecondTransfer() {
@@ -206,7 +203,7 @@ describe("DropTool", function () {
       .mockResolvedValueOnce();
     render(<DropTool labels={labels} />);
     await waitForForRoom();
-    await act(async function connectPeer() {
+    await actAndSettle(function connectPeer() {
       peerState.room.onPeerJoin?.("peer-1");
     });
     selectFiles([new File(["retry"], "retry.txt")]);
@@ -311,7 +308,9 @@ describe("DropTool", function () {
       expect(share).toHaveBeenCalledWith({
         title: labels.title,
         text: labels.description,
-        url: expect.stringMatching(new RegExp(`^${window.location.origin}/drop#[A-Z0-9-]+$`)),
+        url: expect.stringMatching(
+          new RegExp(`^${window.location.origin}/drop#[A-Z0-9-]+$`),
+        ) as string,
       });
     });
   });
@@ -319,14 +318,14 @@ describe("DropTool", function () {
   it("exposes throttled transfer progress with progressbar semantics", async function () {
     let finishTransfer: (() => void) | undefined;
     peerState.action.send.mockImplementationOnce(function reportProgress(_data, options) {
-      (options as { onProgress?: (progress: number) => void })?.onProgress?.(0.42);
+      (options as { onProgress?: (progress: number) => void }).onProgress?.(0.42);
       return new Promise<void>(function waitForResolution(resolve) {
         finishTransfer = resolve;
       });
     });
     render(<DropTool labels={labels} />);
     await waitForForRoom();
-    await act(async function connectPeer() {
+    await actAndSettle(function connectPeer() {
       peerState.room.onPeerJoin?.("peer-1");
     });
     selectFiles([new File(["progress"], "progress.txt")]);
@@ -337,7 +336,7 @@ describe("DropTool", function () {
     await waitFor(function waitForThrottledProgress() {
       expect(progressbar).toHaveAttribute("aria-valuenow", "42");
     });
-    await act(async function completeTransfer() {
+    await actAndSettle(function completeTransfer() {
       finishTransfer?.();
     });
   });
@@ -352,10 +351,18 @@ async function waitForForRoom() {
   });
 }
 
+// An async act callback makes act wait for the promise work it starts, such as queued sends.
+async function actAndSettle(callback: () => void) {
+  // oxlint-disable-next-line typescript/require-await -- Only an async callback selects act's asynchronous flushing.
+  await act(async function runCallback() {
+    callback();
+  });
+}
+
 function selectFiles(files: File[]) {
   const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-  expect(fileInput).not.toBeNull();
-  fireEvent.change(fileInput as HTMLInputElement, { target: { files } });
+  if (fileInput === null) throw new Error("Expected the drop zone to render a file input");
+  fireEvent.change(fileInput, { target: { files } });
 }
 
 function MockRTCPeerConnection() {}

@@ -43,34 +43,48 @@ export async function openVideo(file: File): Promise<OpenedVideo> {
   try {
     const videoTrack = await input.getPrimaryVideoTrack();
     if (!videoTrack) throw new Error("The file has no video track");
-    const [audioTrack, duration, tags, canDecode] = await Promise.all([
+    const [
+      audioTrack,
+      duration,
+      tags,
+      canDecode,
+      rotation,
+      videoCodec,
+      squarePixelWidth,
+      squarePixelHeight,
+    ] = await Promise.all([
       input.getPrimaryAudioTrack(),
       input.computeDuration(),
       input.getMetadataTags(),
       videoTrack.canDecode(),
+      videoTrack.getRotation(),
+      videoTrack.getCodec(),
+      videoTrack.getSquarePixelWidth(),
+      videoTrack.getSquarePixelHeight(),
     ]);
     // Packet statistics come from container metadata, so both tracks are read side by side.
-    const [packetStats, audioStats] = await Promise.all([
+    const [packetStats, audioStats, audioCodec] = await Promise.all([
       videoTrack.computePacketStats(120).catch(function unknownRate() {
         return null;
       }),
       audioTrack?.computePacketStats(500).catch(function unknownBitrate() {
         return null;
       }) ?? null,
+      audioTrack?.getCodec() ?? null,
     ]);
-    const rotated = videoTrack.rotation === 90 || videoTrack.rotation === 270;
+    const rotated = rotation === 90 || rotation === 270;
     const info: VideoInfo = {
       audioBitrate: audioStats?.averageBitrate ?? null,
-      audioCodec: audioTrack?.codec ?? null,
+      audioCodec,
       description: tags.description ?? "",
       duration,
       frameRate: packetStats ? Math.round(packetStats.averagePacketRate * 100) / 100 : null,
       hasAudio: audioTrack !== null,
       hasLocation: Object.keys(tags.raw ?? {}).some(isLocationTag),
-      height: rotated ? videoTrack.squarePixelWidth : videoTrack.squarePixelHeight,
+      height: rotated ? squarePixelWidth : squarePixelHeight,
       title: tags.title ?? "",
-      videoCodec: videoTrack.codec,
-      width: rotated ? videoTrack.squarePixelHeight : videoTrack.squarePixelWidth,
+      videoCodec,
+      width: rotated ? squarePixelHeight : squarePixelWidth,
     };
     const fullSizeSink = canDecode ? new CanvasSink(videoTrack, { poolSize: 1 }) : null;
     const playableAudioTrack = audioTrack && (await audioTrack.canDecode()) ? audioTrack : null;

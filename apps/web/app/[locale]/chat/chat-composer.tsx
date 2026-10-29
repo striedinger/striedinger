@@ -2,7 +2,7 @@
 
 import { ArrowUpIcon } from "@workspace/icons/arrow-up-icon";
 import { cn } from "@workspace/ui/lib/utils";
-import { useState, type FormEvent, type KeyboardEvent, type PointerEvent } from "react";
+import { useState, type SubmitEvent, type KeyboardEvent, type PointerEvent } from "react";
 
 import type { ChatLabels } from "./types";
 
@@ -25,10 +25,18 @@ export function ChatComposer({ disabled, labels, onSend }: ChatComposerProps) {
   const [draft, setDraft] = useState("");
   const canSend = !disabled && draft.trim().length > 0;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSend) return;
-    if (await onSend(draft)) setDraft("");
+    void sendDraft();
+  }
+
+  async function sendDraft() {
+    try {
+      if (await onSend(draft)) setDraft("");
+    } catch {
+      // A failed send keeps the draft in the field so it can be sent again.
+    }
   }
 
   return (

@@ -4,8 +4,8 @@ import { translateLongText } from "./translate-long-text";
 
 describe("translateLongText", function () {
   it("translates long text in paragraph pieces, in order, reporting progress", async function () {
-    const translate = vi.fn<(text: string) => Promise<string>>(async function upperCase(text) {
-      return text.toUpperCase();
+    const translate = vi.fn<(text: string) => Promise<string>>(function upperCase(text) {
+      return Promise.resolve(text.toUpperCase());
     });
     const paragraphs = Array.from({ length: 6 }, function createParagraph(_, index) {
       return `${index} ${"word ".repeat(60)}`.trim();

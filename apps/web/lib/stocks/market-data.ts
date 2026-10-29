@@ -102,9 +102,9 @@ async function loadStockSymbols({
       return [
         {
           symbol,
-          name: item.instrument_name?.trim() || symbol,
-          exchange: item.exchange?.trim() || "Market",
-          currency: item.currency?.trim() || "USD",
+          name: textOrFallback(item.instrument_name?.trim(), symbol),
+          exchange: textOrFallback(item.exchange?.trim(), "Market"),
+          currency: textOrFallback(item.currency?.trim(), "USD"),
         },
       ];
     });
@@ -133,8 +133,8 @@ export async function getStockSeries(
   return {
     identity: {
       ...normalizedIdentity,
-      currency: currency || normalizedIdentity.currency,
-      exchange: exchange || normalizedIdentity.exchange,
+      currency: textOrFallback(currency, normalizedIdentity.currency),
+      exchange: textOrFallback(exchange, normalizedIdentity.exchange),
     },
     timeframe,
     points,
@@ -147,7 +147,12 @@ export async function getStockSeries(
 async function loadStockSeries(
   symbol: string,
   timeframe: StockTimeframe,
-): Promise<{ currency?: string; exchange?: string; isDemo: boolean; points: StockPoint[] }> {
+): Promise<{
+  currency?: string | undefined;
+  exchange?: string | undefined;
+  isDemo: boolean;
+  points: StockPoint[];
+}> {
   "use cache";
   const freshnessSeconds = stockTimeframeFreshnessSeconds[timeframe];
   cacheLife({
@@ -214,6 +219,11 @@ function validateIdentity(identity: StockIdentity): StockIdentity {
   };
 }
 
+/** The API sends empty strings for missing fields, so they fall back like absent ones. */
+function textOrFallback(value: string | undefined, fallback: string): string {
+  return value === undefined || value === "" ? fallback : value;
+}
+
 function uniqueStocks(stocks: StockIdentity[]) {
   const seen = new Set<string>();
   return stocks.filter(function keepFirstSymbol(stock) {
@@ -226,7 +236,7 @@ function uniqueStocks(stocks: StockIdentity[]) {
 function createDemoSeries(identity: StockIdentity, timeframe: StockTimeframe): StockSeries {
   const { demoPoints } = timeframeRequests[timeframe];
   const seed = Array.from(identity.symbol).reduce(function hashSymbol(total, character) {
-    return total + character.charCodeAt(0);
+    return total + (character.codePointAt(0) ?? 0);
   }, 0);
   const basePrice = 70 + (seed % 210);
   const points = Array.from({ length: demoPoints }, function createPoint(_, index) {

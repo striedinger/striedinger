@@ -117,7 +117,7 @@ function decodeHeaderValue(value: string | null): string | null {
 }
 
 function row(label: string, value: string | null, unavailable: string): IpDiagnosticRow {
-  const displayValue = value || unavailable;
+  const displayValue = value === null || value === "" ? unavailable : value;
   return {
     label,
     value: displayValue.length > 4_096 ? `${displayValue.slice(0, 4_096)}…` : displayValue,

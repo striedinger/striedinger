@@ -53,6 +53,12 @@ export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPrevi
       let cancelled = false;
       let cancelRender: (() => void) | undefined;
 
+      // The cleanup sets `cancelled` during the awaits below; reading it through a call keeps
+      // TypeScript from narrowing the later checks away.
+      function isCancelled() {
+        return cancelled;
+      }
+
       async function render() {
         setStatus("loading");
         let page: PDFPageProxy | undefined;
@@ -60,7 +66,7 @@ export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPrevi
           page = await document.getPage(pageNumber);
           const container = containerRef.current;
           const context = canvas?.getContext("2d", { alpha: false });
-          if (!container || !canvas || !context || cancelled) return;
+          if (!container || !canvas || !context || isCancelled()) return;
 
           const naturalViewport = page.getViewport({ scale: 1 });
           setSize({ height: naturalViewport.height, width: naturalViewport.width });
@@ -79,9 +85,9 @@ export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPrevi
             renderTask.cancel();
           };
           await renderTask.promise;
-          if (!cancelled) setStatus("ready");
+          if (!isCancelled()) setStatus("ready");
         } catch {
-          if (!cancelled) setStatus("idle");
+          if (!isCancelled()) setStatus("idle");
         } finally {
           page?.cleanup();
         }

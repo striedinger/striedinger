@@ -81,15 +81,15 @@ export async function validatePublicUrl(
         reject(new PreviewError("unreachable"));
       }
       signal.addEventListener("abort", abortLookup, { once: true });
-      void lookup(hostname, { all: true, verbatim: true }).then(
+      void lookup(hostname, { all: true, order: "verbatim" }).then(
         function resolved(result) {
           signal.removeEventListener("abort", abortLookup);
           resolve(result as Array<{ address: string; family: 4 | 6 }>);
           return undefined;
         },
-        function failed(error: unknown) {
+        function failed() {
           signal.removeEventListener("abort", abortLookup);
-          reject(error);
+          reject(new PreviewError("unreachable"));
           return undefined;
         },
       );
@@ -98,7 +98,8 @@ export async function validatePublicUrl(
     throw new PreviewError("unreachable");
   }
 
-  if (addresses.length === 0) {
+  const selectedAddress = addresses[0];
+  if (!selectedAddress) {
     throw new PreviewError("unreachable");
   }
 
@@ -106,7 +107,6 @@ export async function validatePublicUrl(
     assertPublicAddress(resolvedAddress.address);
   }
 
-  const selectedAddress = addresses[0];
   return {
     address: selectedAddress.address,
     family: selectedAddress.family,
@@ -121,7 +121,8 @@ function assertPublicAddress(address: string) {
 }
 
 function isBlockedAddress(address: string): boolean {
-  const normalizedAddress = address.toLowerCase().split("%")[0];
+  // An empty address is not an IP, so it is blocked below.
+  const [normalizedAddress = ""] = address.toLowerCase().split("%");
   const family = isIP(normalizedAddress);
 
   if (family === 4) {
@@ -145,7 +146,7 @@ function isBlockedIpv4(address: string): boolean {
     return true;
   }
 
-  const [first, second, third] = octets;
+  const [first, second, third] = octets as [number, number, number, number];
 
   return (
     first === 0 ||

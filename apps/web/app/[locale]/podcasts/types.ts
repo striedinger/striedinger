@@ -7,11 +7,11 @@ export type PodcastMessages = TranslationCatalog<typeof englishMessages>;
 export interface Podcast {
   author: string;
   artworkUrl: string;
-  episodeCount?: number;
+  episodeCount?: number | undefined;
   explicit?: boolean;
   genre: string;
   id: string;
-  latestReleaseAt?: string;
+  latestReleaseAt?: string | undefined;
   title: string;
   url: string;
 }

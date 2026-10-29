@@ -53,6 +53,6 @@ describe("captions", function () {
     ]);
     expect(pieces[0]?.start).toBe(0);
     expect(pieces.at(-1)?.end).toBe(11);
-    expect(pieces[1]?.start).toBeCloseTo(pieces[0]?.end ?? 0);
+    expect(pieces[1]?.start).toBe(pieces[0]?.end);
   });
 });

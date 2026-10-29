@@ -6,13 +6,13 @@ import { createPageMetadata } from "../../../lib/seo";
 import { getPodcastTranslator } from "../../../messages/podcasts/get-translator";
 
 interface PodcastsMetadataOptions {
-  description?: string;
+  description?: string | undefined;
   /** Screens that only make sense inside the app, such as search results, stay out of indexes. */
   indexable?: boolean;
   locale: Locale;
   path: SitePath;
   /** The screen's own title, shown before the app name. */
-  title?: string;
+  title?: string | undefined;
 }
 
 /** Metadata for a Podcasts screen, sharing the app's social card. */

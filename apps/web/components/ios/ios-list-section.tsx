@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { hasContent } from "./has-content";
+
 type IosListSectionHeaderVariant = "default" | "prominent";
 
 interface IosListSectionProps {
@@ -27,7 +29,7 @@ export function IosListSection({
 }: IosListSectionProps) {
   return (
     <section aria-label={label} className={cn("flex flex-col px-4", className)}>
-      {header ? (
+      {hasContent(header) ? (
         <Text
           as="h2"
           className={cn(
@@ -47,7 +49,7 @@ export function IosListSection({
       >
         {children}
       </ul>
-      {footer ? (
+      {hasContent(footer) ? (
         <Text className="px-5 pt-2 text-ios-footnote text-ios-secondary-label">{footer}</Text>
       ) : null}
     </section>

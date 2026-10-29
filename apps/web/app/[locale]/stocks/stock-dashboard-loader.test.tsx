@@ -1,7 +1,10 @@
+import type { ComponentProps } from "react";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { StockIdentity, StockSeries, StocksLabels } from "./types";
 
+import { StockDashboard } from "./stock-dashboard";
 import { StockDashboardLoader } from "./stock-dashboard-loader";
 
 const data = vi.hoisted(function createDataMocks() {
@@ -29,7 +32,8 @@ describe("stock dashboard loading", function () {
         return stock.symbol;
       });
       expect(quotedSymbols).toEqual(["MSFT", "NVDA"]);
-      await expect(dashboard.props.quotes).resolves.toEqual({});
+      const dashboardProps = dashboard.props as ComponentProps<typeof StockDashboard>;
+      await expect(dashboardProps.quotes).resolves.toEqual({});
     } finally {
       suggestions.resolve([]);
     }

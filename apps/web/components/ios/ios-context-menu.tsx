@@ -13,7 +13,7 @@ interface IosContextMenuProps {
   children: ReactNode;
   className?: string;
   sections: readonly IosMenuSection[];
-  style?: CSSProperties;
+  style?: CSSProperties | undefined;
 }
 
 interface PressState {

@@ -14,12 +14,13 @@ import { PodcastArtwork } from "./podcast-artwork";
 import { formatEpisodeDate, formatListeningDuration } from "./podcast-format";
 import { PodcastLink } from "./podcast-link";
 import { playEpisode, togglePlayback } from "./podcast-player-store";
+import { getEpisodeDurationSeconds } from "./podcast-progress";
 import { usePodcasts } from "./podcasts-context";
 import { useArtworkColor } from "./use-artwork-color";
 import { useEpisodeMenuSections } from "./use-episode-menu-sections";
 
 interface UpNextCardProps {
-  extraActions?: readonly IosMenuAction[];
+  extraActions?: readonly IosMenuAction[] | undefined;
   isCurrent: boolean;
   isPlaying: boolean;
   item: PodcastQueueItem;
@@ -35,7 +36,7 @@ export function UpNextCard({
 }: UpNextCardProps) {
   const { locale, messages, now } = usePodcasts();
   const artworkColor = useArtworkColor(item.podcast.artworkUrl);
-  const durationSeconds = progress?.durationSeconds || item.episode.durationMilliseconds / 1_000;
+  const durationSeconds = getEpisodeDurationSeconds(item.episode, progress);
   const remainingSeconds = progress
     ? Math.max(0, durationSeconds - progress.positionSeconds)
     : durationSeconds;

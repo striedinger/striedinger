@@ -44,6 +44,7 @@ export async function recordVisit(visitId: string, data: VisitServerData) {
   const restToken = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!restUrl || !restToken) {
+    // oxlint-disable-next-line no-console -- server logs are the visit record when no KV store is configured
     console.log(`[card-visit] ${visitId}`, JSON.stringify(data));
     return;
   }
@@ -66,9 +67,11 @@ export async function recordVisit(visitId: string, data: VisitServerData) {
     });
 
     if (!response.ok) {
+      // oxlint-disable-next-line no-console -- surfaces KV failures in the server logs
       console.error(`[card-visit] KV write failed with status ${response.status}`);
     }
   } catch (error) {
+    // oxlint-disable-next-line no-console -- surfaces KV failures in the server logs
     console.error("[card-visit] KV write failed", error);
   }
 }

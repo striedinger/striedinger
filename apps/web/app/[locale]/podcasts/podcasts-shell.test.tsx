@@ -78,6 +78,12 @@ function createResolvedPromise<Value>(value: Value) {
   return Object.assign(Promise.resolve(value), { status: "fulfilled", value });
 }
 
+function readStoredJson(key: string): unknown {
+  const storedValue = window.localStorage.getItem(key);
+  if (storedValue === null) throw new Error(`Expected ${key} in localStorage`);
+  return JSON.parse(storedValue) as unknown;
+}
+
 async function renderInShell(segments: string[], renderScreen: () => Promise<ReactNode>) {
   navigation.segments = segments;
   const { PodcastsShell } = await import("./podcasts-shell");
@@ -130,7 +136,7 @@ describe("Podcasts", function () {
       "aria-pressed",
       "true",
     );
-    expect(JSON.parse(window.localStorage.getItem("podcast-library:v1") ?? "{}")).toMatchObject({
+    expect(readStoredJson("podcast-library:v1")).toMatchObject({
       version: 2,
       podcasts: [{ id: "123" }],
     });
@@ -206,9 +212,7 @@ describe("Podcasts", function () {
     const miniPlayer = screen.getByRole("region", { name: "Now Playing" });
     expect(within(miniPlayer).getByText("The Newest Episode")).toBeInTheDocument();
     expect(within(miniPlayer).getByRole("button", { name: "Pause" })).toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem("podcast-now-playing:v1") ?? "{}")).toMatchObject(
-      { episode: { id: "1001" } },
-    );
+    expect(readStoredJson("podcast-now-playing:v1")).toMatchObject({ episode: { id: "1001" } });
   });
 
   it("keeps Now Playing open while the episode plays", async function () {

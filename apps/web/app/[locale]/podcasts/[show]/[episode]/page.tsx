@@ -24,8 +24,9 @@ export async function generateMetadata({ params }: PodcastEpisodePageProps): Pro
   const episode = show?.episodes.find(function matchesRoute(showEpisode) {
     return showEpisode.id === episodeId;
   });
+  const description = episode?.description.slice(0, 200);
   return createPodcastsMetadata({
-    description: episode?.description.slice(0, 200) || undefined,
+    description: description === "" ? undefined : description,
     indexable: episode !== undefined,
     locale,
     path:

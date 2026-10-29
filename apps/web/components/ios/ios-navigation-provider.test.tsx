@@ -33,7 +33,9 @@ function PushButton() {
   );
 }
 
-function returnToList(state: unknown = { __NA: true }) {
+const nextAppHistoryState = { __NA: true };
+
+function returnToList(state: unknown = nextAppHistoryState) {
   window.history.replaceState(state, "", "/list");
   window.dispatchEvent(new PopStateEvent("popstate", { state }));
 }

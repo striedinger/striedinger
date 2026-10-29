@@ -62,7 +62,7 @@ export function waitForIceGathering(connection: RTCPeerConnection): Promise<void
 }
 
 function isPairingBundle(value: unknown): value is PairingBundle {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const bundle = value as Partial<PairingBundle>;
   const description = bundle.description;
   return (
@@ -78,7 +78,7 @@ function isPairingBundle(value: unknown): value is PairingBundle {
 
 function encodeBase64Url(bytes: Uint8Array): string {
   let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (const byte of bytes) binary += String.fromCodePoint(byte);
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
@@ -88,7 +88,7 @@ function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
+    bytes[index] = binary.codePointAt(index) ?? 0;
   }
   return bytes;
 }
@@ -104,7 +104,7 @@ async function transformBytes(
   let outputLength = 0;
 
   try {
-    while (true) {
+    for (;;) {
       // oxlint-disable-next-line no-await-in-loop -- Stream chunks must be read in order.
       const result = await reader.read();
       if (result.done) break;

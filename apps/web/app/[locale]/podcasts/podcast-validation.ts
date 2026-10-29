@@ -1,7 +1,7 @@
 import type { Podcast, PodcastEpisode, PodcastQueueItem } from "./types";
 
 export function isPodcast(value: unknown): value is Podcast {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const podcast = value as Partial<Podcast>;
   return (
     typeof podcast.id === "string" &&
@@ -18,7 +18,7 @@ export function isPodcast(value: unknown): value is Podcast {
 }
 
 export function isEpisode(value: unknown): value is PodcastEpisode {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const episode = value as Partial<PodcastEpisode>;
   return (
     typeof episode.id === "string" &&
@@ -31,7 +31,7 @@ export function isEpisode(value: unknown): value is PodcastEpisode {
 }
 
 export function isQueueItem(value: unknown): value is PodcastQueueItem {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const item = value as Partial<PodcastQueueItem>;
   return isPodcast(item.podcast) && isEpisode(item.episode);
 }

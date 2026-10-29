@@ -5,6 +5,7 @@ import { SparklesIcon } from "@workspace/icons/sparkles-icon";
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { hasContent } from "./has-content";
 import { IosBarButton } from "./ios-bar-button";
 import { iosChipButtonClassName } from "./ios-button-styles";
 
@@ -95,7 +96,7 @@ export function IosIntelligenceCard({
           ) : null}
         </div>
         {children}
-        {status.kind === "working" && !children ? (
+        {status.kind === "working" && !hasContent(children) ? (
           <div aria-hidden="true" className="flex flex-col gap-2">
             <span className="h-3 w-11/12 animate-pulse rounded-full bg-ios-fill" />
             <span className="h-3 w-3/4 animate-pulse rounded-full bg-ios-fill" />
@@ -134,7 +135,7 @@ export function IosIntelligenceCard({
             </button>
           </div>
         ) : null}
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {hasContent(actions) ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </section>
     </div>
   );

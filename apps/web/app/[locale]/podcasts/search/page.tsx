@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function PodcastsSearchPage({ searchParams }: PodcastsSearchPageProps) {
   const results = searchParams.then(function searchCatalog(parameters) {
-    return loadSearchResults(readSearchParameter(parameters.q));
+    return loadSearchResults(readSearchParameter(parameters["q"]));
   });
   return <PodcastsSearchScreen results={results} />;
 }

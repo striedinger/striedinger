@@ -12,8 +12,8 @@ const transformersRequire = createRequire(
 // The package does not export package.json, so walk up from its entry point.
 let runtimeDirectory = dirname(transformersRequire.resolve("onnxruntime-web"));
 while (!runtimeDirectory.endsWith("onnxruntime-web")) runtimeDirectory = dirname(runtimeDirectory);
-const RUNTIME_VERSION = JSON.parse(
-  await readFile(join(runtimeDirectory, "package.json"), "utf8"),
+const RUNTIME_VERSION = /** @type {{ version: string }} */ (
+  JSON.parse(await readFile(join(runtimeDirectory, "package.json"), "utf8"))
 ).version;
 const outputDirectory = fileURLToPath(
   new URL(`../public/vendor/onnxruntime-web/${RUNTIME_VERSION}/`, import.meta.url),

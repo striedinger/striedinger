@@ -20,7 +20,7 @@ export async function loadPdfMessages(
       return (await import("./pt")).messages;
     case "zh":
       return (await import("./zh")).messages;
-    default:
+    case "en":
       return (await import("./en")).messages;
   }
 }

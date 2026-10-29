@@ -204,7 +204,7 @@ async function loadFeedArrivals(feed: string): Promise<FeedArrival[]> {
   );
   const arrivals: FeedArrival[] = [];
   for (const entity of message.entity) {
-    const route = normalizeRoute(entity.tripUpdate?.trip?.routeId?.replace(/X$/, "") ?? "");
+    const route = normalizeRoute(entity.tripUpdate?.trip.routeId?.replace(/X$/, "") ?? "");
     if (!route) continue;
     for (const update of entity.tripUpdate?.stopTimeUpdate ?? []) {
       const stopId = update.stopId;

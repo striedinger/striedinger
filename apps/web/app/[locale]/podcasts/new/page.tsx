@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function PodcastsNewPage({ searchParams }: PodcastsNewPageProps) {
   const episodes = searchParams.then(function loadEpisodesForShows(parameters) {
-    return loadNewEpisodes(readSearchParameter(parameters.shows));
+    return loadNewEpisodes(readSearchParameter(parameters["shows"]));
   });
   return <PodcastsNewScreen episodes={episodes} />;
 }

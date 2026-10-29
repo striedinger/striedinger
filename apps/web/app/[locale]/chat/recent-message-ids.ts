@@ -1,10 +1,12 @@
 export class RecentMessageIds {
   readonly #ids = new Set<string>();
+  readonly maximumSize: number;
 
-  constructor(readonly maximumSize: number) {
+  constructor(maximumSize: number) {
     if (!Number.isSafeInteger(maximumSize) || maximumSize < 1) {
       throw new Error("Maximum size must be a positive integer");
     }
+    this.maximumSize = maximumSize;
   }
 
   add(id: string) {

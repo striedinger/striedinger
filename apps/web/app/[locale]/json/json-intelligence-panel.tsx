@@ -39,7 +39,7 @@ export function JsonIntelligencePanel({
   const isBusy = task.status.kind === "working" || task.status.kind === "downloading";
 
   // An answer about an earlier version of the document no longer applies.
-  const visibleAnswer = answer && answer.json === json ? answer : null;
+  const visibleAnswer = answer?.json === json ? answer : null;
   const canAsk = json !== null && !isBusy;
 
   function ask(question: string) {
@@ -60,6 +60,7 @@ export function JsonIntelligencePanel({
     });
   }
 
+  // task.run reports failures through task.status and resolves to undefined instead of rejecting.
   async function draftSchema() {
     if (json === null) return;
     const document = json;
@@ -71,6 +72,7 @@ export function JsonIntelligencePanel({
     if (schema !== undefined) setAnswer({ json: document, kind: "schema", text: schema });
   }
 
+  // copyText resolves to false when the clipboard is unavailable instead of rejecting.
   async function copyAnswer() {
     if (visibleAnswer && (await copyText(visibleAnswer.text))) setIsCopied(true);
   }
@@ -89,12 +91,20 @@ export function JsonIntelligencePanel({
             type="button"
             className={iosChipButtonClassName}
             disabled={!canAsk}
-            onClick={draftSchema}
+            onClick={function startDraftingSchema() {
+              void draftSchema();
+            }}
           >
             {labels.aiSchema}
           </button>
           {visibleAnswer && !isBusy ? (
-            <button type="button" className={iosChipButtonClassName} onClick={copyAnswer}>
+            <button
+              type="button"
+              className={iosChipButtonClassName}
+              onClick={function startCopyingAnswer() {
+                void copyAnswer();
+              }}
+            >
               {isCopied ? labels.aiCopied : labels.aiCopy}
             </button>
           ) : null}

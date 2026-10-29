@@ -12,7 +12,7 @@ const sitemap = await sitemapResponse.text();
 const urlList = Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g), function selectUrl(match) {
   return match[1];
 }).filter(function isSiteUrl(url) {
-  return url?.startsWith(siteUrl);
+  return url.startsWith(siteUrl);
 });
 
 if (urlList.length === 0) {

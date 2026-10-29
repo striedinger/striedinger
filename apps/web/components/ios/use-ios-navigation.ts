@@ -43,7 +43,7 @@ const depthKey = "iosNavigationDepth";
 /** The depth stored with the current history entry, if Next.js has not replaced its state. */
 function readHistoryDepth() {
   const state: unknown = window.history.state;
-  if (!state || typeof state !== "object") return null;
+  if (typeof state !== "object" || state === null) return null;
   const depth = (state as Record<string, unknown>)[depthKey];
   return typeof depth === "number" && Number.isSafeInteger(depth) && depth >= 0 ? depth : null;
 }

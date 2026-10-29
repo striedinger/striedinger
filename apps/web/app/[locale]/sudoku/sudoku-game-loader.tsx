@@ -20,6 +20,7 @@ export async function SudokuGameLoader({ labels, locale }: SudokuGameLoaderProps
   return <SudokuGame labels={labels} locale={locale} puzzles={puzzles} />;
 }
 
+// oxlint-disable-next-line typescript/require-await -- "use cache" functions must be async.
 async function getDailyPuzzles(date: string) {
   "use cache";
   cacheLife("days");

@@ -1,8 +1,8 @@
 "use client";
 
+import type { Locale } from "@workspace/i18n";
 import type { FocusEvent } from "react";
 
-import { type Locale } from "@workspace/i18n";
 import { ChevronDownIcon } from "@workspace/icons/chevron-down-icon";
 import { lazy, Suspense, useState } from "react";
 

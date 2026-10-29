@@ -14,7 +14,7 @@ interface OptimizerFileListProps {
   labels: ImageOptimizerLabels;
   maxFiles: number;
   onClear: () => void;
-  onDescribe?: (id: string) => void;
+  onDescribe?: ((id: string) => void) | undefined;
   /** Starts loading the description card ahead of a likely tap. */
   onPrepareDescribe?: () => void;
   onDownload: (item: OptimizerItem) => void;

@@ -11,7 +11,7 @@ interface JsonTreeNodeProps {
   collapseLabel: string;
   defaultExpanded: boolean;
   expandLabel: string;
-  name?: string;
+  name?: string | undefined;
   value: JsonValue;
 }
 
@@ -120,14 +120,8 @@ function getPrimitiveClassName(value: JsonValue): string {
     return "text-ios-tertiary-label";
   }
 
-  switch (typeof value) {
-    case "string":
-      return "text-ios-green";
-    case "number":
-      return "text-ios-tint";
-    case "boolean":
-      return "text-ios-orange";
-    default:
-      return "text-ios-label";
-  }
+  if (typeof value === "string") return "text-ios-green";
+  if (typeof value === "number") return "text-ios-tint";
+  if (typeof value === "boolean") return "text-ios-orange";
+  return "text-ios-label";
 }

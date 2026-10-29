@@ -109,9 +109,11 @@ function thinCloses(series: StockSeries, count: number) {
   const step = Math.max(1, (points.length - 1) / (count - 1));
   const closes: number[] = [];
   for (let position = 0; position < points.length - 1; position += step) {
-    closes.push(points[Math.round(position)]!.close);
+    const point = points[Math.round(position)];
+    if (point !== undefined) closes.push(point.close);
   }
-  closes.push(points.at(-1)!.close);
+  const lastPoint = points.at(-1);
+  if (lastPoint !== undefined) closes.push(lastPoint.close);
   return closes.map(function roundClose(close) {
     return Math.round(close * 100) / 100;
   });

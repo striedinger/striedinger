@@ -87,7 +87,14 @@ export function PdfSummaryCard({
       title={labels.summaryTitle}
       actions={
         summary && task.status.kind === "done" ? (
-          <button type="button" className={iosChipButtonClassName} onClick={copySummary}>
+          <button
+            type="button"
+            className={iosChipButtonClassName}
+            onClick={function handleCopyClick() {
+              // copyText reports failure as false instead of rejecting.
+              void copySummary();
+            }}
+          >
             {isCopied ? labels.summaryCopied : labels.copySummary}
           </button>
         ) : undefined

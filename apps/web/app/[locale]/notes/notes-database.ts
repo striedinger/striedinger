@@ -118,7 +118,7 @@ export function deleteFolders(folderIds: readonly string[]) {
 }
 
 function isNoteFolder(value: unknown): value is NoteFolder {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const folder = value as Partial<NoteFolder>;
   return (
     typeof folder.id === "string" &&
@@ -128,7 +128,7 @@ function isNoteFolder(value: unknown): value is NoteFolder {
 }
 
 function isNote(value: unknown): value is Note {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const note = value as Partial<Note>;
   return (
     typeof note.id === "string" &&

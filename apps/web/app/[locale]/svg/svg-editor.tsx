@@ -305,7 +305,9 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
         <IosValueRow
           label={labels.dimensions}
           value={
-            validInspection?.width != null && validInspection.height != null
+            validInspection !== null &&
+            validInspection.width !== null &&
+            validInspection.height !== null
               ? `${numberFormat.format(validInspection.width)} × ${numberFormat.format(validInspection.height)}`
               : "—"
           }
@@ -354,7 +356,10 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
               type="file"
               accept=".svg,image/svg+xml"
               className="sr-only"
-              onChange={openFile}
+              onChange={function handleFileChange(event) {
+                // openFile reports its own failures in a toast.
+                void openFile(event);
+              }}
             />
           </label>
           <IosBarButton
@@ -391,7 +396,10 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
                     icon: <CopyIcon />,
                     id: "copy",
                     label: labels.copy,
-                    onSelect: copySource,
+                    onSelect() {
+                      // copyText reports failure as false instead of rejecting.
+                      void copySource();
+                    },
                   },
                   {
                     disabled: !canAct,

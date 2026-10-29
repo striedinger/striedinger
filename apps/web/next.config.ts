@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   },
   poweredByHeader: false,
   reactCompiler: true,
+  // oxlint-disable-next-line typescript/require-await -- NextConfig requires headers to return a Promise
   async headers() {
     return [
       {

@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import type { MetadataTags, Target, VideoSample } from "mediabunny";
+import type { BaseTrackMetadata, MetadataTags, Target, VideoSample } from "mediabunny";
 
 import {
   BlobSource,
@@ -77,8 +77,10 @@ async function createTarget(outputName: string): Promise<ExportTarget> {
     const target = new BufferTarget();
     return {
       discard() {},
-      async finish() {
-        return new File([target.buffer ?? new ArrayBuffer(0)], outputName, { type: "video/mp4" });
+      finish() {
+        return Promise.resolve(
+          new File([target.buffer ?? new ArrayBuffer(0)], outputName, { type: "video/mp4" }),
+        );
       },
       target,
     };
@@ -103,39 +105,46 @@ async function removeEarlierExports(directory: FileSystemDirectoryHandle) {
 
 /** Tags the subtitle track with its language and that language's own name, like "français". */
 function describeSubtitleTrack(language: string | null) {
-  if (!language) return {};
+  const metadata: BaseTrackMetadata = {};
+  if (!language) return metadata;
   const languageCode = toIso6392(language);
-  let name: string | undefined;
+  if (languageCode) metadata.languageCode = languageCode;
   try {
     const tag = toLanguageTag(language);
-    name = new Intl.DisplayNames([tag], { type: "language" }).of(tag);
+    const name = new Intl.DisplayNames([tag], { type: "language" }).of(tag);
+    if (name) metadata.name = name;
   } catch {
-    name = undefined;
+    // Without a display name for the language, the track keeps only its code.
   }
-  return { languageCode, name };
+  return metadata;
 }
 
 async function createTags(request: ExportRequest, inputTags: MetadataTags): Promise<MetadataTags> {
-  const raw = { ...inputTags.raw };
-  if (request.details.removeLocation) {
-    for (const key of Object.keys(raw)) if (isLocationTag(key)) delete raw[key];
+  const raw = request.details.removeLocation
+    ? Object.fromEntries(
+        Object.entries(inputTags.raw ?? {}).filter(function keepTag([key]) {
+          return !isLocationTag(key);
+        }),
+      )
+    : { ...inputTags.raw };
+  const tags: MetadataTags = { ...inputTags, raw };
+  if (request.cover) {
+    tags.images = [
+      {
+        data: new Uint8Array(await request.cover.arrayBuffer()),
+        kind: "coverFront",
+        mimeType: "image/jpeg",
+      },
+    ];
   }
-  const cover = request.cover
-    ? [
-        {
-          data: new Uint8Array(await request.cover.arrayBuffer()),
-          kind: "coverFront" as const,
-          mimeType: "image/jpeg",
-        },
-      ]
-    : inputTags.images;
-  return {
-    ...inputTags,
-    description: request.details.description.trim() || undefined,
-    images: cover,
-    raw,
-    title: request.details.title.trim() || undefined,
-  };
+  // Clearing a field removes it from the file rather than keeping the original's value.
+  const description = request.details.description.trim();
+  const title = request.details.title.trim();
+  if (description) tags.description = description;
+  else delete tags.description;
+  if (title) tags.title = title;
+  else delete tags.title;
+  return tags;
 }
 
 /**

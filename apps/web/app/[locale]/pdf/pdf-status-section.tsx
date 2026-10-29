@@ -14,7 +14,7 @@ interface PdfStatusSectionProps {
   onDownload: () => void;
   originalSize: number;
   progress: number;
-  result?: { name: string; size: number; unlocked: boolean };
+  result?: { name: string; size: number; unlocked: boolean } | undefined;
   stageLabel: string;
 }
 

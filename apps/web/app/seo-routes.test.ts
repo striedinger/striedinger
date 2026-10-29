@@ -1,21 +1,23 @@
 import { supportedLocales } from "@workspace/i18n";
-import { describe, expect, it, vi } from "vitest";
+import { assert, describe, expect, it, vi } from "vitest";
 
 import robots from "./robots";
 import sitemap from "./sitemap";
 
 vi.mock("../lib/podcasts/apple-podcasts", function mockApplePodcasts() {
   return {
-    getPopularPodcasts: async () => [
-      {
-        artworkUrl: "https://example.com/art.jpg",
-        author: "Audiochuck",
-        genre: "True Crime",
-        id: "1322200189",
-        title: "Crime Junkie",
-        url: "https://podcasts.apple.com/podcast/id1322200189",
-      },
-    ],
+    getPopularPodcasts() {
+      return Promise.resolve([
+        {
+          artworkUrl: "https://example.com/art.jpg",
+          author: "Audiochuck",
+          genre: "True Crime",
+          id: "1322200189",
+          title: "Crime Junkie",
+          url: "https://podcasts.apple.com/podcast/id1322200189",
+        },
+      ]);
+    },
   };
 });
 
@@ -59,13 +61,11 @@ describe("SEO discovery routes", function () {
         expect.objectContaining({ url: "https://striedinger.co/ja/podcasts" }),
       ]),
     );
-    expect(
-      sitemapEntries.every(function hasDiscoveryMetadata(entry) {
-        return (
-          entry.images?.length === 1 &&
-          Object.keys(entry.alternates?.languages ?? {}).length === supportedLocales.length + 1
-        );
-      }),
-    ).toBe(true);
+    for (const entry of sitemapEntries) {
+      expect(entry.images).toHaveLength(1);
+      const alternateLanguages = entry.alternates?.languages;
+      assert.isDefined(alternateLanguages, `${entry.url} has no language alternates`);
+      expect(Object.keys(alternateLanguages)).toHaveLength(supportedLocales.length + 1);
+    }
   });
 });

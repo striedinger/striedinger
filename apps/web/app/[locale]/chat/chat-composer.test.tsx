@@ -5,8 +5,8 @@ import { ChatComposer } from "./chat-composer";
 import { testChatLabels } from "./test-labels";
 
 function createSendHandler() {
-  return vi.fn<(text: string) => Promise<boolean>>(async function send() {
-    return true;
+  return vi.fn<(text: string) => Promise<boolean>>(function send() {
+    return Promise.resolve(true);
   });
 }
 

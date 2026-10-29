@@ -12,6 +12,7 @@ const decoders = vi.hoisted(function createDecoderLog() {
 });
 
 /** A decoding stream that counts how many are open at once, as real decoders would be. */
+// oxlint-disable-next-line typescript/require-await -- mirrors mediabunny's async sample iterators
 async function* decode(log: typeof decoders.video, start: number) {
   log.open += 1;
   log.peakOpen = Math.max(log.peakOpen, log.open);
@@ -66,7 +67,15 @@ class FakeAudioContext {
 
 /** Lets every pending decoder step and close finish. */
 function settle() {
-  return new Promise((resolve) => setTimeout(resolve, 20));
+  return new Promise(function waitForDecoders(resolve) {
+    setTimeout(resolve, 20);
+  });
+}
+
+function latestAudioContext() {
+  const clock = FakeAudioContext.instances.at(-1);
+  if (!clock) throw new Error("Playback should create an audio context");
+  return clock;
 }
 
 function createPlayback() {
@@ -118,8 +127,7 @@ describe("createVideoPlayback", function () {
     const playback = createPlayback();
     playback.play();
     await settle();
-    const clock = FakeAudioContext.instances.at(-1);
-    if (!clock) throw new Error("Playback should create an audio context");
+    const clock = latestAudioContext();
     clock.currentTime += 2;
     expect(playback.currentTime).toBeCloseTo(2);
 

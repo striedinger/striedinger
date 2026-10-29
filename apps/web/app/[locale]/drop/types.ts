@@ -47,13 +47,13 @@ type TransferErrorReason = "file-too-large" | "invalid-payload" | "send-failed";
 
 export interface TransferItem {
   direction: TransferDirection;
-  errorReason?: TransferErrorReason;
+  errorReason?: TransferErrorReason | undefined;
   id: string;
   name: string;
   progress: number;
   size: number;
   status: TransferStatus;
-  url?: string;
+  url?: string | undefined;
 }
 
 export interface TransferMetadata {

@@ -6,20 +6,20 @@ const maximumTagValueLength = 4_096;
 const maximumDocumentMetadataTags = 98;
 
 export function parsePageMetadata(html: string, pageUrl: URL): PageMetadata {
-  const head = html.split(/<\/head\s*>/i, 1)[0];
+  const [head = ""] = html.split(/<\/head\s*>/i, 1);
   const metadata = new Map<string, string>();
   const tags: MetadataTag[] = [];
 
   for (const tag of head.match(/<meta\s+[^>]*>/gi) ?? []) {
     const attributes = parseAttributes(tag);
     const name = (
-      attributes.property ??
-      attributes.name ??
+      attributes["property"] ??
+      attributes["name"] ??
       attributes["http-equiv"] ??
-      attributes.itemprop ??
-      (attributes.charset ? "charset" : undefined)
+      attributes["itemprop"] ??
+      (attributes["charset"] ? "charset" : undefined)
     )?.toLowerCase();
-    const content = (attributes.content ?? attributes.charset)?.trim();
+    const content = (attributes["content"] ?? attributes["charset"])?.trim();
 
     if (!name || !content) {
       continue;
@@ -104,24 +104,24 @@ function parseAttributes(tag: string): Record<string, string> {
   const attributes: Record<string, string> = {};
   const attributePattern = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
 
-  for (const match of tag.matchAll(attributePattern)) {
-    attributes[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4] ?? "";
+  for (const [, name, doubleQuoted, singleQuoted, unquoted] of tag.matchAll(attributePattern)) {
+    if (name) attributes[name.toLowerCase()] = doubleQuoted ?? singleQuoted ?? unquoted ?? "";
   }
 
   return attributes;
 }
 
 function extractDocumentTitle(head: string): string {
-  const match = head.match(/<title[^>]*>([\s\S]*?)<\/title\s*>/i);
-  return match ? decodeHtmlEntities(match[1].replace(/\s+/g, " ").trim()) : "";
+  const title = head.match(/<title[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1];
+  return title ? decodeHtmlEntities(title.replace(/\s+/g, " ").trim()) : "";
 }
 
 function resolveCanonicalUrl(head: string, pageUrl: URL): string {
   for (const tag of head.match(/<link\s+[^>]*>/gi) ?? []) {
     const attributes = parseAttributes(tag);
 
-    if (attributes.rel?.toLowerCase() === "canonical") {
-      return resolveHttpUrl(attributes.href, pageUrl) || pageUrl.toString();
+    if (attributes["rel"]?.toLowerCase() === "canonical") {
+      return resolveHttpUrl(attributes["href"], pageUrl) || pageUrl.toString();
     }
   }
 
@@ -150,15 +150,18 @@ function decodeHtmlEntities(value: string): string {
     quot: '"',
   };
 
-  return value.replace(/&(#x?[\da-f]+|[a-z]+);/gi, function decodeEntity(_entity, code) {
-    if (code.startsWith("#x") || code.startsWith("#X")) {
-      return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
-    }
+  return value.replace(
+    /&(#x?[\da-f]+|[a-z]+);/gi,
+    function decodeEntity(entity: string, code: string) {
+      if (!code.startsWith("#")) return namedEntities[code.toLowerCase()] ?? entity;
 
-    if (code.startsWith("#")) {
-      return String.fromCodePoint(Number.parseInt(code.slice(1), 10));
-    }
-
-    return namedEntities[code.toLowerCase()] ?? _entity;
-  });
+      const codePoint =
+        code.startsWith("#x") || code.startsWith("#X")
+          ? Number.parseInt(code.slice(2), 16)
+          : // oxlint-disable-next-line unicorn/prefer-number-coercion -- parseInt stops at the first non-decimal digit the hex-tolerant pattern allows, where Number() would give NaN
+            Number.parseInt(code.slice(1), 10);
+      // A page's out-of-range entity stays as written instead of failing the whole preview.
+      return codePoint <= 0x10_ffff ? String.fromCodePoint(codePoint) : entity;
+    },
+  );
 }

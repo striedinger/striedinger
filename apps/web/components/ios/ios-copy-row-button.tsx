@@ -30,7 +30,10 @@ export function IosCopyRowButton({ copiedLabel, label, value }: IosCopyRowButton
       type="button"
       disabled={!value}
       className="flex min-h-11 w-full items-center gap-3 px-4 text-left text-ios-body text-ios-tint transition-colors duration-150 outline-none select-none focus-visible:bg-ios-fill active:bg-ios-grouped-cell-pressed disabled:text-ios-tertiary-label motion-reduce:transition-none [&_svg]:size-5"
-      onClick={copyValue}
+      onClick={function startCopying() {
+        // copyText reports failure by resolving to false rather than rejecting.
+        void copyValue();
+      }}
     >
       {copied ? <CheckIcon /> : <CopyIcon />}
       <span aria-live="polite">{copied ? copiedLabel : label}</span>

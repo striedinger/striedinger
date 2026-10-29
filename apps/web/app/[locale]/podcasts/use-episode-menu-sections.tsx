@@ -21,10 +21,10 @@ import { enqueueEpisode, playEpisode } from "./podcast-player-store";
 import { usePodcasts } from "./podcasts-context";
 
 interface EpisodeMenuSectionsOptions {
-  extraActions?: readonly IosMenuAction[];
+  extraActions?: readonly IosMenuAction[] | undefined;
   item: PodcastQueueItem;
   /** Lists inside a show leave out Go to Show. */
-  showsGoToShow?: boolean;
+  showsGoToShow?: boolean | undefined;
 }
 
 const noExtraActions: readonly IosMenuAction[] = [];

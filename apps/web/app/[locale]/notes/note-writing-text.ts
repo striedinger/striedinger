@@ -60,6 +60,7 @@ function insertTextAt(range: Range, text: string) {
   selection?.addRange(range);
   // execCommand is deprecated but is the only way to edit contenteditable content while
   // keeping the native undo history.
+  // oxlint-disable-next-line typescript/no-deprecated -- No standard API edits contenteditable with native undo.
   document.execCommand("insertText", false, text);
 }
 

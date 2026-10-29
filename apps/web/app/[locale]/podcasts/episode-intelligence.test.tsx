@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { messages } from "../../../messages/podcasts/en";
@@ -48,11 +48,11 @@ describe("EpisodeIntelligence", function () {
 
     const translate = await screen.findByRole("button", { name: "Translate from Spanish" });
     expect(screen.queryByRole("button", { name: "Key Points" })).not.toBeInTheDocument();
-    await act(async function translateDescription() {
-      fireEvent.click(translate);
-    });
+    fireEvent.click(translate);
 
-    expect(screen.getByRole("heading", { name: "Translated from Spanish" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Translated from Spanish" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Today we talk about gardens.")).toBeInTheDocument();
   });
 

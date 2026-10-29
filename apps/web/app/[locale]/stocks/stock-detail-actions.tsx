@@ -52,7 +52,7 @@ export function StockDetailActions({
       setCopiedSymbol(resolvedStock.symbol);
       playStockHaptic("success");
     } catch {
-      return;
+      // Clipboard access can be denied; there is no further fallback.
     }
   }
 
@@ -69,7 +69,14 @@ export function StockDetailActions({
           <PlusIcon strokeWidth={2.4} />
         </IosBarButton>
       )}
-      <IosBarButton aria-label={labels.share} className="text-ios-tint" onClick={shareStock}>
+      <IosBarButton
+        aria-label={labels.share}
+        className="text-ios-tint"
+        onClick={function shareStockFromButton() {
+          // shareStock handles its own failures.
+          void shareStock();
+        }}
+      >
         <ShareUpIcon />
       </IosBarButton>
       <span className="sr-only" aria-live="polite">

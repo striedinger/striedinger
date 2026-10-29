@@ -49,6 +49,7 @@ export function MessageTranslation({ labels, locale, text }: MessageTranslationP
           return;
         }
         const translatedText = await translateMessage(text, language.sourceLanguage, locale);
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- The effect cleanup can clear isCurrent while the translation is awaited.
         if (isCurrent) {
           setState({
             kind: "translated",

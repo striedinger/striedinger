@@ -6,7 +6,7 @@ import { iosGlassClassName } from "./ios-glass";
 
 interface IosGlassGroupProps {
   children: ReactNode;
-  className?: string;
+  className?: string | undefined;
   label?: string;
 }
 

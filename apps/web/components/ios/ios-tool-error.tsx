@@ -15,6 +15,7 @@ export function IosToolError({ error, retry }: ToolErrorProps) {
   const messages = useErrorMessages();
   useEffect(
     function reportUnexpectedError() {
+      // oxlint-disable-next-line no-console -- Reports the error this boundary caught.
       console.error(error);
     },
     [error],

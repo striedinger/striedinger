@@ -5,7 +5,6 @@ import { CheckIcon } from "@workspace/icons/check-icon";
 import { ChevronDownIcon } from "@workspace/icons/chevron-down-icon";
 import { ChevronUpIcon } from "@workspace/icons/chevron-up-icon";
 import { cn } from "@workspace/ui/lib/utils";
-import * as React from "react";
 
 const Select = SelectPrimitive.Root;
 

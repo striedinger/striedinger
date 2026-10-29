@@ -32,7 +32,7 @@ export function isLocale(locale: string): locale is Locale {
 
 export function resolveLocale(languageTags: readonly string[]): Locale {
   for (const languageTag of languageTags) {
-    const normalizedLocale = languageTag.toLowerCase().split("-")[0];
+    const [normalizedLocale = ""] = languageTag.toLowerCase().split("-");
 
     if (isLocale(normalizedLocale)) {
       return normalizedLocale;

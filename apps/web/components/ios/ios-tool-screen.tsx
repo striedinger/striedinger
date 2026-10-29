@@ -13,7 +13,7 @@ interface IosToolScreenProps {
   /** Replaces the content column's default spacing, for tools laid out edge to edge. */
   contentClassName?: string;
   /** The width of the centered content column on wide screens, such as `42rem`. */
-  contentWidth?: string;
+  contentWidth?: string | undefined;
   /** Replaces the default bottom padding, such as room for a floating bar. */
   scrollClassName?: string;
   title: string;

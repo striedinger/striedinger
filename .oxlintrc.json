@@ -3,7 +3,8 @@
   "categories": {
     "correctness": "error",
     "suspicious": "error",
-    "perf": "error"
+    "perf": "error",
+    "pedantic": "error"
   },
   "plugins": [
     "eslint",
@@ -83,7 +84,51 @@
           }
         ]
       }
-    ]
+    ],
+    "eslint/max-classes-per-file": "off",
+    "eslint/max-depth": "off",
+    "eslint/max-lines": "off",
+    "eslint/max-lines-per-function": "off",
+    "eslint/no-inline-comments": "off",
+    "eslint/no-negated-condition": "off",
+    "eslint/require-unicode-regexp": "off",
+    "eslint/require-await": "off",
+    "import/max-dependencies": "off",
+    "typescript/prefer-readonly-parameter-types": "off",
+    "unicorn/escape-case": "off",
+    "unicorn/explicit-length-check": "off",
+    "unicorn/no-array-callback-reference": "off",
+    "unicorn/no-negated-condition": "off",
+    "unicorn/no-useless-undefined": "off",
+    "unicorn/prefer-dom-node-dataset": "off",
+    "unicorn/prefer-query-selector": "off",
+    "unicorn/prefer-string-replace-all": "off",
+    "typescript/strict-boolean-expressions": [
+      "error",
+      {
+        "allowNullableString": true,
+        "allowNullableBoolean": true,
+        "allowAny": false,
+        "allowNullableNumber": false,
+        "allowNullableObject": true
+      }
+    ],
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-dynamic-delete": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/non-nullable-type-assertion-style": "error",
+    "eslint/no-console": "error",
+    "eslint/no-eq-null": "error",
+    "eslint/no-alert": "error",
+    "eslint/no-var": "error",
+    "eslint/no-shadow": "error",
+    "react/button-has-type": "error",
+    "react/no-danger": "error",
+    "unicorn/no-document-cookie": "error"
   },
   "settings": {
     "next": {
@@ -130,6 +175,22 @@
       "files": ["packages/ui/src/components/image.tsx"],
       "rules": {
         "nextjs/no-img-element": "off"
+      }
+    },
+    {
+      "files": ["apps/web/scripts/assets/avif-codec-worker.js"],
+      "rules": {
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-return": "off"
+      }
+    },
+    {
+      "files": ["apps/web/scripts/**", ".github/scripts/**"],
+      "rules": {
+        "eslint/no-console": "off"
       }
     }
   ],

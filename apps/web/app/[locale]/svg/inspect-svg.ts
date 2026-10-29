@@ -34,7 +34,7 @@ export function inspectSvg(source: string): SvgInspection {
 
 /** Browsers wrap the parser's message in their own text; keep the first meaningful line. */
 function readParserError(parserError: Element) {
-  const lines = (parserError.textContent ?? "")
+  const lines = parserError.textContent
     .split("\n")
     .map(function trimLine(line) {
       return line.trim();
@@ -62,7 +62,7 @@ function readViewBox(value: string | null) {
     ?.trim()
     .split(/[\s,]+/)
     .map(Number);
-  if (!numbers || numbers.length !== 4 || numbers.some(Number.isNaN)) return null;
+  if (numbers?.length !== 4 || numbers.some(Number.isNaN)) return null;
   const [, , width = 0, height = 0] = numbers;
   return width > 0 && height > 0 ? { width, height } : null;
 }

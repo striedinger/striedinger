@@ -22,6 +22,7 @@ import { useEpisodeProgress, useIsEpisodePlayed } from "./podcast-library-store"
 import { PodcastLink } from "./podcast-link";
 import { PodcastPageBarButton } from "./podcast-page-bar-button";
 import { playEpisode, togglePlayback, usePlayingEpisode } from "./podcast-player-store";
+import { getEpisodeDurationSeconds } from "./podcast-progress";
 import { getShowHref } from "./podcast-route";
 import { usePodcasts } from "./podcasts-context";
 import { podcastsScreenClassName } from "./podcasts-screen";
@@ -50,7 +51,7 @@ export function PodcastEpisodePage({ item }: PodcastEpisodePageProps) {
   const isPlaying = isCurrent && playingEpisode.isPlaying;
   const isPlayed = useIsEpisodePlayed(item.episode.id);
   const progress = useEpisodeProgress(item.episode.id);
-  const durationSeconds = progress?.durationSeconds || item.episode.durationMilliseconds / 1_000;
+  const durationSeconds = getEpisodeDurationSeconds(item.episode, progress);
   const remainingSeconds = progress ? Math.max(0, durationSeconds - progress.positionSeconds) : 0;
   const playLabel = isPlaying ? messages.Pause : progress ? messages.Resume : messages.Play;
   const timeLabel = isPlayed

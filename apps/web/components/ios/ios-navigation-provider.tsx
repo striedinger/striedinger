@@ -91,8 +91,10 @@ export function IosNavigationProvider({
     return historyRef.current;
   }
 
-  function createTransitionTypes(direction: IosNavigationDirection | "none") {
-    return direction !== "none" && shouldAnimate() ? [iosNavigationTypes[direction]] : undefined;
+  function createNavigateOptions(direction: IosNavigationDirection | "none") {
+    return direction !== "none" && shouldAnimate()
+      ? { scroll: false, transitionTypes: [iosNavigationTypes[direction]] }
+      : { scroll: false };
   }
 
   const iosRouter: IosRouter = {
@@ -109,14 +111,14 @@ export function IosNavigationProvider({
       const history = readHistory();
       history.entries = [...history.entries.slice(0, history.index + 1), resolvedHref];
       history.index += 1;
-      router.push(href, { scroll: false, transitionTypes: createTransitionTypes(direction) });
+      router.push(href, createNavigateOptions(direction));
     },
     replace(href, { direction = "none" }: IosNavigateOptions = {}) {
       const resolvedHref = resolveHref(href);
       if (resolvedHref === readCurrentHref()) return;
       const history = readHistory();
       history.entries[history.index] = resolvedHref;
-      router.replace(href, { scroll: false, transitionTypes: createTransitionTypes(direction) });
+      router.replace(href, createNavigateOptions(direction));
     },
   };
 

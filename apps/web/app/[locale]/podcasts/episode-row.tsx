@@ -16,11 +16,11 @@ import { usePodcasts } from "./podcasts-context";
 import { useEpisodeMenuSections } from "./use-episode-menu-sections";
 
 interface EpisodeRowProps {
-  extraActions?: readonly IosMenuAction[];
+  extraActions?: readonly IosMenuAction[] | undefined;
   isCurrent: boolean;
   isPlaying: boolean;
   item: PodcastQueueItem;
-  showsGoToShow?: boolean;
+  showsGoToShow?: boolean | undefined;
   showsPodcastTitle?: boolean;
 }
 

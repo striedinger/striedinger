@@ -47,7 +47,9 @@ export function StockDetailContent({
   // The trading day is measured from the open, matching the watchlist; longer spans from the
   // first close.
   const baseline = firstPoint && (series.timeframe === "1D" ? firstPoint.open : firstPoint.close);
-  const change = latestPoint && baseline ? latestPoint.close - baseline : 0;
+  // A zero baseline has no meaningful percent change, so it is treated like a missing one.
+  const hasBaseline = baseline !== undefined && baseline !== 0;
+  const change = latestPoint && hasBaseline ? latestPoint.close - baseline : 0;
   const isUp = change >= 0;
   const valueFormat = getNumberFormat(locale, {
     minimumFractionDigits: 2,
@@ -67,7 +69,7 @@ export function StockDetailContent({
 
   return (
     <div className="flex flex-col gap-4">
-      {latestPoint && baseline ? (
+      {series && latestPoint && hasBaseline ? (
         <div className="flex flex-col gap-0.5">
           <div className="flex items-baseline gap-2">
             <Text className="text-ios-large-title font-bold text-ios-label tabular-nums">

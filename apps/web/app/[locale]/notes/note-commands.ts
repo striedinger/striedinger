@@ -36,12 +36,15 @@ export const emptyFormatState: NoteFormatState = {
 function runCommand(command: string, value?: string) {
   // execCommand is deprecated but remains the only API that edits contenteditable content
   // while preserving the browser's native undo and redo history.
+  // oxlint-disable-next-line typescript/no-deprecated -- Feature check for the editing API above.
   if (typeof document.execCommand !== "function") return false;
+  // oxlint-disable-next-line typescript/no-deprecated -- No standard API edits contenteditable with native undo.
   return document.execCommand(command, false, value);
 }
 
 function queryCommandState(command: string) {
   try {
+    // oxlint-disable-next-line typescript/no-deprecated -- Reports formatting applied by execCommand, which has no standard replacement.
     return document.queryCommandState(command);
   } catch {
     return false;
@@ -113,7 +116,7 @@ function getCurrentList(editor: HTMLElement) {
 
 function markCurrentList(editor: HTMLElement, listType: "checklist" | "dashed" | null) {
   const list = getCurrentList(editor);
-  if (!list || list.tagName !== "UL") return;
+  if (list?.tagName !== "UL") return;
   if (listType) list.setAttribute("data-type", listType);
   else list.removeAttribute("data-type");
   for (const item of Array.from(list.children)) {
@@ -232,7 +235,7 @@ export function placeCaretAtEnd(editor: HTMLElement) {
 export function startNewLineAtEnd(editor: HTMLElement) {
   const lastBlock = editor.lastElementChild;
   const lastBlockIsEmpty =
-    lastBlock && !lastBlock.textContent?.trim() && !lastBlock.querySelector("img");
+    lastBlock && !lastBlock.textContent.trim() && !lastBlock.querySelector("img");
   if (!lastBlockIsEmpty || lastBlock.tagName !== "P") {
     const paragraph = document.createElement("p");
     paragraph.append(document.createElement("br"));

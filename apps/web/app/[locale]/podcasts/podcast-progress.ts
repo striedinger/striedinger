@@ -58,6 +58,16 @@ export function savePodcastProgress(
   return nextItems;
 }
 
+/** Prefers the duration measured during playback; a saved duration of 0 means it was unknown. */
+export function getEpisodeDurationSeconds(
+  episode: PodcastEpisode,
+  progress: PodcastProgress | undefined,
+): number {
+  return progress !== undefined && progress.durationSeconds > 0
+    ? progress.durationSeconds
+    : episode.durationMilliseconds / 1_000;
+}
+
 export function removePodcastProgress(
   episodeId: string,
   currentItems: readonly PodcastProgress[] = readPodcastProgress(),
@@ -75,13 +85,13 @@ function writeProgress(items: PodcastProgress[]) {
 }
 
 function isStoredProgress(value: unknown): value is StoredProgress {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const stored = value as Partial<StoredProgress>;
   return stored.version === 1 && Array.isArray(stored.items) && stored.items.every(isProgressItem);
 }
 
 function isProgressItem(value: unknown): value is PodcastProgress {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const item = value as Partial<PodcastProgress>;
   return (
     isPodcast(item.podcast) &&

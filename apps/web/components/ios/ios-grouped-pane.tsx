@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import { Text } from "@workspace/ui/components/text";
 
+import { hasContent } from "./has-content";
+
 interface IosGroupedPaneProps {
   /** A control aligned with the section header, such as a tinted text button. */
   action?: ReactNode;
@@ -32,7 +34,7 @@ export function IosGroupedPane({
         {action}
       </div>
       {children}
-      {footer ? <div className="flex flex-col gap-1 px-5 pt-2">{footer}</div> : null}
+      {hasContent(footer) ? <div className="flex flex-col gap-1 px-5 pt-2">{footer}</div> : null}
     </section>
   );
 }

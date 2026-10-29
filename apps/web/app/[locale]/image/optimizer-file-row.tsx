@@ -16,8 +16,8 @@ interface OptimizerFileRowProps {
   item: OptimizerItem;
   labels: ImageOptimizerLabels;
   /** Present only when the browser can describe images on the device. */
-  onDescribe?: (id: string) => void;
-  onPrepareDescribe?: () => void;
+  onDescribe?: ((id: string) => void) | undefined;
+  onPrepareDescribe?: (() => void) | undefined;
   onDownload: (item: OptimizerItem) => void;
   onRemove: (id: string) => void;
 }

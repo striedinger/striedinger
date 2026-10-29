@@ -76,7 +76,7 @@ export function VideoDetailsSection({
       <IosListSection className="px-0">
         <IosValueRow label={labels.duration} value={formatClock(info.duration)} />
         <IosValueRow label={labels.resolution} value={`${info.width} × ${info.height}`} />
-        {info.frameRate ? (
+        {info.frameRate !== null && info.frameRate !== 0 ? (
           <IosValueRow
             label={labels.frameRate}
             value={labels.framesPerSecond.replace(

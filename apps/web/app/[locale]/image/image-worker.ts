@@ -29,66 +29,71 @@ const pendingAvifRequests = new Map<
 
 worker.addEventListener(
   "message",
-  async function optimizeImage(event: MessageEvent<OptimizeImageMessage>) {
-    const {
-      bitmap: transferredBitmap,
-      buffer,
-      compressionMode,
-      id,
-      maxDimension,
-      originalSize,
-      outputFormat,
-      quality,
-      type,
-    } = event.data;
-
-    try {
-      reportProgress(id, 10, "decoding");
-      const source = buffer ? new Blob([buffer], { type }) : undefined;
-      const bitmap =
-        transferredBitmap ??
-        (source ? await createImageBitmap(source, { imageOrientation: "from-image" }) : undefined);
-      if (!bitmap) throw new Error("This image could not be decoded.");
-      reportProgress(id, 26, "decoding");
-      const scale =
-        maxDimension > 0 ? Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height)) : 1;
-      const width = Math.max(1, Math.round(bitmap.width * scale));
-      const height = Math.max(1, Math.round(bitmap.height * scale));
-      const canvas = new OffscreenCanvas(width, height);
-      const context = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
-      // The decoded bitmap can be tens of megabytes, so it is released even if drawing fails.
-      try {
-        if (!context) throw new Error("Canvas is unavailable in this browser.");
-        context.drawImage(bitmap, 0, 0, width, height);
-      } finally {
-        bitmap.close();
-      }
-
-      reportProgress(id, 34, "compressing");
-      const imageData = context.getImageData(0, 0, width, height);
-      const candidate =
-        compressionMode === "lossless" && source
-          ? await encodeLosslessCandidate(source, imageData, outputFormat)
-          : await encodeSmallestCandidate(
-              imageData,
-              originalSize,
-              outputFormat,
-              Math.round(quality * 100),
-              compressionMode,
-              function updateProgress(progress, stage) {
-                reportProgress(id, progress, stage);
-              },
-            );
-      reportProgress(id, 100, "comparing");
-      worker.postMessage({ blob: candidate.blob, id, type: candidate.type });
-    } catch (error) {
-      worker.postMessage({
-        error: error instanceof Error ? error.message : "This image could not be decoded.",
-        id,
-      });
-    }
+  function handleOptimizeRequest(event: MessageEvent<OptimizeImageMessage>) {
+    // optimizeImage reports its own failures back to the page.
+    void optimizeImage(event.data);
   },
 );
+
+async function optimizeImage(request: OptimizeImageMessage) {
+  const {
+    bitmap: transferredBitmap,
+    buffer,
+    compressionMode,
+    id,
+    maxDimension,
+    originalSize,
+    outputFormat,
+    quality,
+    type,
+  } = request;
+
+  try {
+    reportProgress(id, 10, "decoding");
+    const source = buffer ? new Blob([buffer], { type }) : undefined;
+    const bitmap =
+      transferredBitmap ??
+      (source ? await createImageBitmap(source, { imageOrientation: "from-image" }) : undefined);
+    if (!bitmap) throw new Error("This image could not be decoded.");
+    reportProgress(id, 26, "decoding");
+    const scale =
+      maxDimension > 0 ? Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height)) : 1;
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = new OffscreenCanvas(width, height);
+    const context = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
+    // The decoded bitmap can be tens of megabytes, so it is released even if drawing fails.
+    try {
+      if (!context) throw new Error("Canvas is unavailable in this browser.");
+      context.drawImage(bitmap, 0, 0, width, height);
+    } finally {
+      bitmap.close();
+    }
+
+    reportProgress(id, 34, "compressing");
+    const imageData = context.getImageData(0, 0, width, height);
+    const candidate =
+      compressionMode === "lossless" && source
+        ? await encodeLosslessCandidate(source, imageData, outputFormat)
+        : await encodeSmallestCandidate(
+            imageData,
+            originalSize,
+            outputFormat,
+            Math.round(quality * 100),
+            compressionMode,
+            function updateProgress(progress, stage) {
+              reportProgress(id, progress, stage);
+            },
+          );
+    reportProgress(id, 100, "comparing");
+    worker.postMessage({ blob: candidate.blob, id, type: candidate.type });
+  } catch (error) {
+    worker.postMessage({
+      error: error instanceof Error ? error.message : "This image could not be decoded.",
+      id,
+    });
+  }
+}
 
 async function encodeSmallestCandidate(
   imageData: ImageData,
@@ -154,7 +159,7 @@ async function encodeSmallestCandidate(
           }
 
           const searchCandidates = await collectSuccessfulCandidates(searchEncoders);
-          return filterByPerceptualQuality(imageData, searchCandidates, searchQuality);
+          return await filterByPerceptualQuality(imageData, searchCandidates, searchQuality);
         } catch {
           return [];
         }
@@ -242,7 +247,7 @@ function isXmpSegment(bytes: Uint8Array, offset: number) {
   const xmpSignature = "http://ns.adobe.com/xap/1.0/";
   if (offset + xmpSignature.length > bytes.length) return false;
   for (let index = 0; index < xmpSignature.length; index += 1) {
-    if (bytes[offset + index] !== xmpSignature.charCodeAt(index)) return false;
+    if (bytes[offset + index] !== xmpSignature.codePointAt(index)) return false;
   }
   return true;
 }
@@ -319,7 +324,7 @@ async function encodeWithCanvas(
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas is unavailable in this browser.");
   context.putImageData(imageData, 0, 0);
-  const blob = await canvas.convertToBlob({ type, quality });
+  const blob = await canvas.convertToBlob(quality === undefined ? { type } : { type, quality });
   if (blob.type !== type) throw new Error(`${type} encoding is unavailable in this browser.`);
   return { blob, type };
 }

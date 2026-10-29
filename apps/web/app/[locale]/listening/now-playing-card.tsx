@@ -134,7 +134,11 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
           ) : null}
 
           <a
-            href={track?.spotifyUrl || "https://open.spotify.com"}
+            href={
+              track === null || track.spotifyUrl === ""
+                ? "https://open.spotify.com"
+                : track.spotifyUrl
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-7.5 items-center gap-1.5 self-start rounded-full bg-ios-fill px-3.25 text-ios-footnote font-semibold whitespace-nowrap text-ios-label shadow-ios-highlight transition-transform duration-150 ease-ios active:scale-95 motion-reduce:transition-none"

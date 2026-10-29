@@ -12,7 +12,12 @@ const labels = {
   trimStart: "Trim start",
 };
 
-function renderTrimBar(trim = { end: 10, start: 0 }, keyframes: readonly number[] | null = null) {
+const fullTrim = { end: 10, start: 0 };
+
+function renderTrimBar(
+  trim: { end: number; start: number } = fullTrim,
+  keyframes: readonly number[] | null = null,
+) {
   const onTrimChange = vi.fn<(trim: { end: number; start: number }) => void>();
   const onSeek = vi.fn<(time: number) => void>();
   render(

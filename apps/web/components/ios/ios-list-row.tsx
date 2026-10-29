@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ChevronRightIcon } from "@workspace/icons/chevron-right-icon";
 import { cn } from "@workspace/ui/lib/utils";
 
+import { hasContent } from "./has-content";
 import { IosLink } from "./ios-link";
 
 interface IosListRowProps {
@@ -31,7 +32,7 @@ export function IosListRow({
   );
   const content = (
     <>
-      {icon ? (
+      {hasContent(icon) ? (
         <span className="flex size-6 shrink-0 items-center justify-center text-ios-tint in-aria-current:text-white [&_svg]:size-6">
           {icon}
         </span>
@@ -53,7 +54,7 @@ export function IosListRow({
     <li
       className={cn(
         "relative not-last:after:absolute not-last:after:right-0 not-last:after:bottom-0 not-last:after:h-px not-last:after:scale-y-50 not-last:after:bg-ios-separator",
-        icon ? "not-last:after:left-13" : "not-last:after:left-4",
+        hasContent(icon) ? "not-last:after:left-13" : "not-last:after:left-4",
       )}
     >
       {href ? (
@@ -61,7 +62,8 @@ export function IosListRow({
           href={href}
           aria-current={selected ? "page" : undefined}
           className={rowClassName}
-          onClick={onClick}
+          // Next's link props reject an explicit undefined handler.
+          {...(onClick ? { onClick } : {})}
         >
           {content}
         </IosLink>

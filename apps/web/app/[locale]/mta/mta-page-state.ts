@@ -8,8 +8,8 @@ export function getInitialState(searchParams: Record<string, string | string[] |
   initialState: InitialMtaState;
   locationQuery: string;
 } {
-  const latitude = Number(singleSearchParam(searchParams.latitude));
-  const longitude = Number(singleSearchParam(searchParams.longitude));
+  const latitude = Number(singleSearchParam(searchParams["latitude"]));
+  const longitude = Number(singleSearchParam(searchParams["longitude"]));
   const hasValidCoordinates =
     Number.isFinite(latitude) &&
     latitude >= -90 &&
@@ -17,9 +17,12 @@ export function getInitialState(searchParams: Record<string, string | string[] |
     Number.isFinite(longitude) &&
     longitude >= -180 &&
     longitude <= 180;
+  const requestedLocationName = singleSearchParam(searchParams["location"])?.trim().slice(0, 160);
   const locationName =
-    singleSearchParam(searchParams.location)?.trim().slice(0, 160) || "Lower Manhattan";
-  const requestedRoute = singleSearchParam(searchParams.train)?.trim().toUpperCase();
+    requestedLocationName === undefined || requestedLocationName === ""
+      ? "Lower Manhattan"
+      : requestedLocationName;
+  const requestedRoute = singleSearchParam(searchParams["train"])?.trim().toUpperCase();
   return {
     initialState: {
       coordinates: hasValidCoordinates ? { latitude, longitude } : defaultLocation,
@@ -28,6 +31,6 @@ export function getInitialState(searchParams: Record<string, string | string[] |
         requestedRoute && /^[1-7ACEBDFMGJZLNQRWS]$/.test(requestedRoute) ? requestedRoute : null,
     },
     locationQuery:
-      singleSearchParam(searchParams.q)?.trim().replace(/\s+/g, " ").slice(0, 160) ?? "",
+      singleSearchParam(searchParams["q"])?.trim().replace(/\s+/g, " ").slice(0, 160) ?? "",
   };
 }

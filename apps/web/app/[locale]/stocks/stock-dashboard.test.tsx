@@ -115,9 +115,7 @@ describe("StockDashboard", function () {
     fireEvent.click(await screen.findByRole("menuitem", { name: `${labels.remove} AAPL` }));
 
     expect(screen.queryByRole("button", { name: /^AAPL/ })).not.toBeInTheDocument();
-    expect(
-      JSON.parse(window.localStorage.getItem("stocks-watchlist:v1") ?? "[]"),
-    ).not.toContainEqual(expect.objectContaining({ symbol: "AAPL" }));
+    expect(readStoredWatchlist()).not.toContainEqual(expect.objectContaining({ symbol: "AAPL" }));
     expect(navigationMocks.replace).toHaveBeenCalledWith("/stocks?list=MSFT,NVDA,SPCX", {
       scroll: false,
     });
@@ -126,6 +124,7 @@ describe("StockDashboard", function () {
   it("opens a tapped stock in the URL and in a sheet", async function () {
     await renderDashboard();
 
+    // oxlint-disable-next-line typescript/require-await -- an async act callback lets the sheet's transition finish before assertions run
     await act(async function openStock() {
       fireEvent.click(screen.getByRole("button", { name: /^AAPL/ }));
     });
@@ -148,9 +147,7 @@ describe("StockDashboard", function () {
     });
 
     fireEvent.click(screen.getByRole("button", { name: labels.addToWatchlist }));
-    expect(JSON.parse(window.localStorage.getItem("stocks-watchlist:v1") ?? "[]")).toContainEqual(
-      tesla,
-    );
+    expect(readStoredWatchlist()).toContainEqual(tesla);
   });
 
   it("requests server suggestions while typing", async function () {
@@ -184,6 +181,12 @@ describe("StockDashboard", function () {
   });
 });
 
+function readStoredWatchlist(): unknown {
+  const storedValue = window.localStorage.getItem("stocks-watchlist:v1");
+  if (storedValue === null) throw new Error("Expected a stored watchlist");
+  return JSON.parse(storedValue) as unknown;
+}
+
 async function renderDashboard({
   detail = null,
   searchQuery = "",
@@ -195,6 +198,7 @@ async function renderDashboard({
   searchResults?: (typeof apple)[];
   selectedSymbol?: string | null;
 } = {}) {
+  // oxlint-disable-next-line typescript/require-await -- an async act callback flushes the streamed promises before assertions run
   await act(async function renderWithStreamedData() {
     render(
       <StockDashboard

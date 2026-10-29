@@ -7,6 +7,7 @@ import { CloseIcon } from "@workspace/icons/close-icon";
 import { cn } from "@workspace/ui/lib/utils";
 
 import { useOpenAfterMount } from "../use-open-after-mount";
+import { hasContent } from "./has-content";
 import { IosBarButton } from "./ios-bar-button";
 import { useIosPortalContainer } from "./ios-portal-container";
 
@@ -86,7 +87,7 @@ export function IosSheet({
                   <Drawer.Title className="truncate text-ios-title2 font-bold">
                     {title}
                   </Drawer.Title>
-                  {subtitle ? (
+                  {hasContent(subtitle) ? (
                     <span className="truncate text-ios-subheadline text-ios-secondary-label">
                       {subtitle}
                     </span>
@@ -108,7 +109,7 @@ export function IosSheet({
                 <span className="flex justify-self-end">{trailing}</span>
               </div>
             )}
-            {description ? (
+            {hasContent(description) ? (
               <Drawer.Description className="shrink-0 px-8 pb-1 text-center text-ios-footnote text-ios-secondary-label">
                 {description}
               </Drawer.Description>

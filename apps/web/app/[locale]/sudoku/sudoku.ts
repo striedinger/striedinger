@@ -30,7 +30,7 @@ export function isPuzzleComplete(values: readonly number[], solution: readonly n
 export function hasConflict(values: readonly number[], cellIndex: number): boolean {
   const value = values[cellIndex];
 
-  if (!value) {
+  if (value === undefined || value === 0) {
     return false;
   }
 
@@ -124,7 +124,7 @@ function createSolution(random: () => number): number[] {
   return rows.flatMap(function createRow(row) {
     return columns.map(function createCell(column) {
       const patternIndex = (row * BOX_SIZE + Math.floor(row / BOX_SIZE) + column) % BOARD_SIZE;
-      return digits[patternIndex];
+      return digits[patternIndex] ?? 0;
     });
   });
 }
@@ -156,7 +156,7 @@ function createPuzzle(
       break;
     }
 
-    const previousValue = puzzle[cellIndex];
+    const previousValue = puzzle[cellIndex] ?? 0;
     puzzle[cellIndex] = 0;
 
     if (countSolutions(puzzle, 2) === 1) {
@@ -232,10 +232,13 @@ function getCandidates(board: readonly number[], cellIndex: number): number[] {
   const boxColumn = Math.floor(column / BOX_SIZE) * BOX_SIZE;
 
   for (let index = 0; index < BOARD_SIZE; index += 1) {
-    usedValues.add(board[row * BOARD_SIZE + index]);
-    usedValues.add(board[index * BOARD_SIZE + column]);
+    // Indexes stay on the board; an empty cell is 0 either way.
+    usedValues.add(board[row * BOARD_SIZE + index] ?? 0);
+    usedValues.add(board[index * BOARD_SIZE + column] ?? 0);
     usedValues.add(
-      board[(boxRow + Math.floor(index / BOX_SIZE)) * BOARD_SIZE + boxColumn + (index % BOX_SIZE)],
+      board[
+        (boxRow + Math.floor(index / BOX_SIZE)) * BOARD_SIZE + boxColumn + (index % BOX_SIZE)
+      ] ?? 0,
     );
   }
 
@@ -260,7 +263,7 @@ function hashSeed(seed: string): number {
   let hash = 2_166_136_261;
 
   for (let index = 0; index < seed.length; index += 1) {
-    hash ^= seed.charCodeAt(index);
+    hash ^= seed.codePointAt(index) ?? 0;
     hash = Math.imul(hash, 16_777_619);
   }
 
@@ -272,9 +275,10 @@ function shuffle<Value>(values: readonly Value[], random: () => number): Value[]
 
   for (let index = shuffledValues.length - 1; index > 0; index -= 1) {
     const targetIndex = Math.floor(random() * (index + 1));
+    // Both indexes are within the array, so neither value is missing.
     [shuffledValues[index], shuffledValues[targetIndex]] = [
-      shuffledValues[targetIndex],
-      shuffledValues[index],
+      shuffledValues[targetIndex] as Value,
+      shuffledValues[index] as Value,
     ];
   }
 

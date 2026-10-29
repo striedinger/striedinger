@@ -35,7 +35,7 @@ export function CompletionCard({
 }: CompletionCardProps) {
   const [shareState, setShareState] = useState<ShareState>("idle");
 
-  async function handleShare() {
+  async function shareResult() {
     setShareState("sharing");
 
     try {
@@ -59,6 +59,11 @@ export function CompletionCard({
 
       setShareState("error");
     }
+  }
+
+  // Every failure lands in the error state, so the promise never rejects.
+  function handleShare() {
+    void shareResult();
   }
 
   const statusMessage = getStatusMessage(shareState, labels);
@@ -133,7 +138,8 @@ function getStatusMessage(shareState: ShareState, labels: SudokuLabels): string 
       return labels.shareDownloaded;
     case "error":
       return labels.shareError;
-    default:
+    case "idle":
+    case "sharing":
       return "";
   }
 }

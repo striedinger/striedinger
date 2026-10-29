@@ -30,6 +30,12 @@ function renderNotes() {
   );
 }
 
+function requireNoteSection(editor: HTMLElement) {
+  const section = editor.closest("section");
+  if (!section) throw new Error("Expected the editor inside a note section");
+  return section;
+}
+
 describe("NotesApp", function () {
   beforeEach(function resetDevice() {
     window.localStorage.clear();
@@ -110,9 +116,7 @@ describe("NotesApp", function () {
     const editor = await screen.findByRole("textbox", { name: "Note text" });
     expect(editor).toHaveTextContent("Welcome to Notes");
 
-    fireEvent.click(
-      within(editor.closest("section") as HTMLElement).getByRole("button", { name: "More" }),
-    );
+    fireEvent.click(within(requireNoteSection(editor)).getByRole("button", { name: "More" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: "Delete Note" }));
 
     await waitFor(function expectRecentlyDeletedFolder() {

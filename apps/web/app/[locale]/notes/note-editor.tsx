@@ -119,7 +119,7 @@ export function NoteEditor({
   function toggleChecklistItem(event: PointerEvent<HTMLDivElement>) {
     const target = event.target instanceof Element ? event.target : null;
     const item = target?.closest("li");
-    if (!item || item.parentElement?.getAttribute("data-type") !== "checklist") return false;
+    if (item?.parentElement?.getAttribute("data-type") !== "checklist") return false;
     const itemBounds = item.getBoundingClientRect();
     if (event.clientX - itemBounds.left > checklistHitWidth) return false;
     event.preventDefault();
@@ -161,7 +161,11 @@ export function NoteEditor({
     });
     if (imageFiles.length === 0) return;
     event.preventDefault();
-    const caret = document.caretPositionFromPoint?.(event.clientX, event.clientY);
+    // Safari before 18.2 lacks caretPositionFromPoint.
+    const caret =
+      "caretPositionFromPoint" in document
+        ? document.caretPositionFromPoint(event.clientX, event.clientY)
+        : null;
     if (caret) {
       const range = document.createRange();
       range.setStart(caret.offsetNode, caret.offset);
@@ -185,6 +189,7 @@ export function NoteEditor({
       spellCheck
       data-note-id={noteId}
       className={cn(noteContentClassName, "min-h-full px-5 pt-1 pb-40")}
+      // oxlint-disable-next-line react/no-danger -- Seeds the uncontrolled contenteditable with the note's saved, sanitized HTML.
       dangerouslySetInnerHTML={{ __html: initialHtml }}
       onFocus={function startEditing(event) {
         onEditingChange(true, event.timeStamp);

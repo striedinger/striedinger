@@ -3,7 +3,7 @@
 import { CheckIcon } from "@workspace/icons/check-icon";
 import { CopyIcon } from "@workspace/icons/copy-icon";
 import { Text } from "@workspace/ui/components/text";
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 
 import type { DropLabels } from "./types";
 
@@ -16,7 +16,7 @@ interface RoomPanelProps {
   labels: DropLabels;
   onCopy: () => void;
   onJoin: (roomCode: string) => boolean;
-  roomCode?: string;
+  roomCode?: string | undefined;
 }
 
 /** The room code to share, and a field to join another device's room, as grouped lists. */
@@ -31,7 +31,7 @@ export function RoomPanel({
   const [joinCode, setJoinCode] = useState("");
   const [joinCodeInvalid, setJoinCodeInvalid] = useState(false);
 
-  function handleJoin(event: FormEvent<HTMLFormElement>) {
+  function handleJoin(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setJoinCodeInvalid(!onJoin(joinCode));
   }

@@ -50,7 +50,7 @@ export function IosMenuPopup({
     <Menu.Root
       open={isOpen}
       onOpenChange={function updateOpen(nextOpen, eventDetails) {
-        onOpenChange(nextOpen, eventDetails.event?.timeStamp ?? 0);
+        onOpenChange(nextOpen, eventDetails.event.timeStamp);
       }}
     >
       <Menu.Portal container={portalContainer}>

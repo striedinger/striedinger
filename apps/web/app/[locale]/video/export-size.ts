@@ -40,7 +40,7 @@ export function resolveExportBitrate(
   resolution: Exclude<ExportResolution, "original">,
   frameRate: number | null,
 ) {
-  const frameRateFactor = frameRate && frameRate > 40 ? 1.5 : 1;
+  const frameRateFactor = frameRate !== null && frameRate > 40 ? 1.5 : 1;
   return Math.round(bitratesAt30Fps[resolution] * frameRateFactor);
 }
 

@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { formatElapsedTime } from "./sudoku";
 
 interface SudokuTimerProps {
-  completedSeconds?: number;
-  startedAt?: number;
+  completedSeconds?: number | undefined;
+  startedAt?: number | undefined;
 }
 
 export function SudokuTimer({ completedSeconds, startedAt }: SudokuTimerProps) {

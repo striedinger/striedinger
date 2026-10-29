@@ -61,8 +61,8 @@ const numberOfLinesClasses: Readonly<Record<TextNumberOfLines, string>> = {
 type TextOwnProps<Element extends ElementType> = {
   align?: TextAlign;
   as?: Element;
-  family?: TextFamily;
-  numberOfLines?: TextNumberOfLines;
+  family?: TextFamily | undefined;
+  numberOfLines?: TextNumberOfLines | undefined;
   size?: TextSize;
   tone?: TextTone;
   weight?: TextWeight;

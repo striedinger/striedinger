@@ -18,8 +18,6 @@ describe("parseJson", function () {
     const result = parseJson('{"missing":}');
 
     expect(result.status).toBe("invalid");
-    if (result.status === "invalid") {
-      expect(result.error).not.toBe("");
-    }
+    expect(result).toHaveProperty("error", expect.stringMatching(/\S/));
   });
 });

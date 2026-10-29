@@ -30,11 +30,19 @@ describe("daily Sudoku puzzles", function () {
   it("keeps every clue consistent with its solution", function () {
     const dailyPuzzle = createDailyPuzzle("2026-07-12", "hard");
 
-    dailyPuzzle.puzzle.forEach(function verifyClue(value, index) {
-      if (value) {
-        expect(value).toBe(dailyPuzzle.solution[index]);
-      }
+    const clueIndexes = [...dailyPuzzle.puzzle.keys()].filter(function isClue(index) {
+      return dailyPuzzle.puzzle[index] !== 0;
     });
+
+    expect(
+      clueIndexes.map(function getClue(index) {
+        return dailyPuzzle.puzzle[index];
+      }),
+    ).toEqual(
+      clueIndexes.map(function getSolutionValue(index) {
+        return dailyPuzzle.solution[index];
+      }),
+    );
     expect(isPuzzleComplete(dailyPuzzle.solution, dailyPuzzle.solution)).toBe(true);
     expect(isValidSolution(dailyPuzzle.solution)).toBe(true);
   });
@@ -42,7 +50,7 @@ describe("daily Sudoku puzzles", function () {
 
 describe("Sudoku game helpers", function () {
   it("identifies duplicate values in a row, column, or box", function () {
-    const values = Array<number>(81).fill(0);
+    const values = Array.from<number>({ length: 81 }).fill(0);
     values[0] = 7;
     values[8] = 7;
 
@@ -90,10 +98,10 @@ function isValidSolution(solution: readonly number[]): boolean {
   const groups: number[][] = [];
 
   for (let index = 0; index < 9; index += 1) {
-    groups.push(solution.slice(index * 9, index * 9 + 9));
     groups.push(
+      solution.slice(index * 9, index * 9 + 9),
       Array.from({ length: 9 }, function getColumnValue(_, row) {
-        return solution[row * 9 + index];
+        return solution[row * 9 + index] ?? 0;
       }),
     );
   }
@@ -104,7 +112,7 @@ function isValidSolution(solution: readonly number[]): boolean {
         Array.from({ length: 9 }, function getBoxValue(_, index) {
           const row = boxRow * 3 + Math.floor(index / 3);
           const column = boxColumn * 3 + (index % 3);
-          return solution[row * 9 + column];
+          return solution[row * 9 + column] ?? 0;
         }),
       );
     }

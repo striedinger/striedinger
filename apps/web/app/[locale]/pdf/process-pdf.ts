@@ -6,7 +6,7 @@ import { rasterizePdf } from "./rasterize-pdf";
 
 interface ProcessPdfOptions {
   compressionMode: PdfCompressionMode;
-  password?: string;
+  password?: string | undefined;
   quality: number;
 }
 
@@ -94,7 +94,7 @@ async function runQpdf(
     onProgress?.(92, "compressing");
     return bytes;
   } catch (cause) {
-    const error = cause as Error & { stderr?: string[] };
+    const error = cause as Partial<Error> & { stderr?: string[] };
     const detail = error.stderr?.find(function findUsefulError(line) {
       return line.trim().length > 0;
     });

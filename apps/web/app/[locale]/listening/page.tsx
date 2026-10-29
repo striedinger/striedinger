@@ -77,5 +77,6 @@ export default async function ListeningPage() {
 
 function getTrackKey(state: ListeningState) {
   const spotifyUrl = state.status === "unavailable" ? "" : (state.track?.spotifyUrl ?? "");
-  return spotifyUrl.split("/").at(-1) || "none";
+  const trackId = spotifyUrl.split("/").at(-1);
+  return trackId === undefined || trackId === "" ? "none" : trackId;
 }

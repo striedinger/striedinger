@@ -27,8 +27,8 @@ describe("PDF preview resources", function () {
     });
     const file = new File(["pdf"], "test.pdf");
     Object.defineProperty(file, "arrayBuffer", {
-      value: async function readFile() {
-        return new ArrayBuffer(file.size);
+      value: function readFile() {
+        return Promise.resolve(new ArrayBuffer(file.size));
       },
     });
     const view = render(

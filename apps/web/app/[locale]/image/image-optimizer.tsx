@@ -134,7 +134,7 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
           });
           return undefined;
         })
-        .catch(function fail(error) {
+        .catch(function fail(error: unknown) {
           if (activeJobRef.current !== job) return;
           setItems(function storeError(current) {
             return current.map(function updateItem(item) {

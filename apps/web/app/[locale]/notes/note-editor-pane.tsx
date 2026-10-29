@@ -294,7 +294,7 @@ export function NoteEditorPane({
 
   return (
     <section
-      aria-label={note?.title || messages["New Note"]}
+      aria-label={note && note.title !== "" ? note.title : messages["New Note"]}
       className={cn("relative min-h-0 flex-col bg-ios-background", className)}
     >
       <div data-ios-scroll className="flex h-full flex-col overflow-y-auto overscroll-contain">

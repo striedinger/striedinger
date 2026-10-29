@@ -9,6 +9,7 @@ import type { PodcastMessages, PodcastProgress, PodcastQueueItem } from "./types
 
 import { formatListeningDuration } from "./podcast-format";
 import { playEpisode, togglePlayback } from "./podcast-player-store";
+import { getEpisodeDurationSeconds } from "./podcast-progress";
 
 interface EpisodePlayButtonProps {
   className?: string;
@@ -32,7 +33,7 @@ export function EpisodePlayButton({
   messages,
   progress,
 }: EpisodePlayButtonProps) {
-  const durationSeconds = progress?.durationSeconds || item.episode.durationMilliseconds / 1_000;
+  const durationSeconds = getEpisodeDurationSeconds(item.episode, progress);
   const remainingSeconds = progress ? Math.max(0, durationSeconds - progress.positionSeconds) : 0;
   const progressRatio =
     progress && durationSeconds > 0 ? progress.positionSeconds / durationSeconds : 0;

@@ -37,6 +37,12 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
       let cancelled = false;
       let loadingTask: PDFDocumentLoadingTask | undefined;
 
+      // The cleanup sets `cancelled` during the awaits below; reading it through a call keeps
+      // TypeScript from narrowing the later checks away.
+      function isCancelled() {
+        return cancelled;
+      }
+
       async function load() {
         setStatus("loading");
         setError("");
@@ -48,24 +54,24 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
             file.arrayBuffer(),
             import("pdfjs-dist/legacy/build/pdf.mjs"),
           ]);
-          if (cancelled) return;
+          if (isCancelled()) return;
           const task = await openPdfDocument({
             data: new Uint8Array(buffer),
             password: password || undefined,
           });
           loadingTask = task;
-          if (cancelled) {
+          if (isCancelled()) {
             void task.destroy();
             return;
           }
           const loadedDocument = await task.promise;
-          if (cancelled) return;
+          if (isCancelled()) return;
 
           // Only the first page is measured up front; the rest size themselves as they render.
           const firstPage = await loadedDocument.getPage(1);
           const viewport = firstPage.getViewport({ scale: 1 });
           firstPage.cleanup();
-          if (cancelled) return;
+          if (isCancelled()) return;
 
           onPasswordResult(Boolean(password), true);
           setPreview({
@@ -75,7 +81,7 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           setStatus("ready");
         } catch (cause) {
           await loadingTask?.destroy();
-          if (cancelled) return;
+          if (isCancelled()) return;
           const name = cause instanceof Error ? cause.name : "";
           const passwordError = name === "PasswordException";
           if (passwordError) {

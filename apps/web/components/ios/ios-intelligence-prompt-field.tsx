@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { SubmitEvent } from "react";
 
 import { ArrowUpIcon } from "@workspace/icons/arrow-up-icon";
 import { useState } from "react";
@@ -24,7 +24,7 @@ export function IosIntelligencePromptField({
   const [request, setRequest] = useState("");
   const trimmedRequest = request.trim();
 
-  function submitRequest(event: FormEvent<HTMLFormElement>) {
+  function submitRequest(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!trimmedRequest || disabled) return;
     onSubmit(trimmedRequest);

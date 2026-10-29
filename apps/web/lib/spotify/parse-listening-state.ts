@@ -46,11 +46,11 @@ const preferredArtworkWidth = 300;
 /** Reads `GET /v1/me/player/currently-playing`; null means nothing is loaded in the player. */
 export function parseCurrentlyPlaying(payload: unknown, observedAt: number): ListeningState | null {
   if (!isRecord(payload)) return null;
-  const track = parseItem(payload.item);
+  const track = parseItem(payload["item"]);
   if (!track) return null;
-  const progressMs = clamp(readNumber(payload.progress_ms), 0, track.durationMs);
+  const progressMs = clamp(readNumber(payload["progress_ms"]), 0, track.durationMs);
   return {
-    status: payload.is_playing === true ? "playing" : "paused",
+    status: payload["is_playing"] === true ? "playing" : "paused",
     track,
     progressMs,
     observedAt,
@@ -59,13 +59,15 @@ export function parseCurrentlyPlaying(payload: unknown, observedAt: number): Lis
 
 /** Reads `GET /v1/me/player/recently-played?limit=1`. */
 export function parseRecentlyPlayed(payload: unknown): ListeningState {
-  const [latest] = isRecord(payload) && Array.isArray(payload.items) ? payload.items : [];
+  const items: unknown[] =
+    isRecord(payload) && Array.isArray(payload["items"]) ? payload["items"] : [];
+  const [latest] = items;
   if (!isRecord(latest)) return { status: "idle", track: null, playedAt: null };
   const playedAt =
-    typeof latest.played_at === "string" && !Number.isNaN(Date.parse(latest.played_at))
-      ? latest.played_at
+    typeof latest["played_at"] === "string" && !Number.isNaN(Date.parse(latest["played_at"]))
+      ? latest["played_at"]
       : null;
-  return { status: "idle", track: parseItem(latest.track), playedAt };
+  return { status: "idle", track: parseItem(latest["track"]), playedAt };
 }
 
 function parseItem(value: unknown): ListeningTrack | null {

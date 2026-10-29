@@ -94,13 +94,14 @@ export function encodeSvgTokenLines(tokens: readonly SvgToken[]) {
   let line: string[] = [];
   for (const token of tokens) {
     const parts = token.text.split("\n");
-    parts.forEach(function addPart(part, index) {
+    for (let index = 0; index < parts.length; index += 1) {
       if (index > 0) {
         lines.push(line.join("\u0002"));
         line = [];
       }
+      const part = parts[index];
       if (part) line.push(`${token.kind}\u0001${part}`);
-    });
+    }
   }
   lines.push(line.join("\u0002"));
   return lines;

@@ -2,7 +2,7 @@
 
 import { Text } from "@workspace/ui/components/text";
 import { cn } from "@workspace/ui/lib/utils";
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 
 import type { ChatLabels, PairingState } from "./types";
 
@@ -58,8 +58,8 @@ export function PairingPanel({
     }
   }
 
-  async function handleSendCode() {
-    if (navigator.share) {
+  async function deliverCode() {
+    if (typeof navigator.share === "function") {
       try {
         await navigator.share({ text: pairingCode, title: labels.title });
         setDeliveryState("shared");
@@ -72,13 +72,18 @@ export function PairingPanel({
     if (await copyText(pairingCode)) setDeliveryState("copied");
   }
 
-  function handleAcceptInvite(event: FormEvent<HTMLFormElement>) {
+  // Sharing and copying both settle their own failures, so the promise never rejects.
+  function handleSendCode() {
+    void deliverCode();
+  }
+
+  function handleAcceptInvite(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setDeliveryState("idle");
     void onAcceptInvite(inviteCode);
   }
 
-  function handleAcceptAnswer(event: FormEvent<HTMLFormElement>) {
+  function handleAcceptAnswer(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     void onAcceptAnswer(answerCode);
   }

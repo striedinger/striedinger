@@ -54,6 +54,7 @@ export function LanguageSelect({ focusOnMount, label, locale, openOnMount }: Lan
 
     const oneYearInSeconds = 60 * 60 * 24 * 365;
 
+    // oxlint-disable-next-line unicorn/no-document-cookie -- The Cookie Store API is missing in older Safari and Firefox.
     document.cookie = `${localeCookieName}=${selectedLocale}; path=/; max-age=${oneYearInSeconds}; samesite=lax`;
     document.documentElement.lang = selectedLocale;
 

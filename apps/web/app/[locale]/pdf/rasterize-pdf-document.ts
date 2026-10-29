@@ -7,7 +7,7 @@ import { openPdfDocument } from "./open-pdf-document";
 /* oxlint-disable no-await-in-loop -- Rasterize one page at a time to bound canvas and decoded-image memory. */
 
 export interface RasterizePdfOptions {
-  password?: string;
+  password?: string | undefined;
   quality: number;
 }
 
@@ -38,7 +38,7 @@ export async function rasterizePdfDocument<Canvas extends PageCanvas>(
     openPdfDocument({
       ...environment.documentOptions,
       data,
-      password: options.password || undefined,
+      password: options.password === "" ? undefined : options.password,
     }),
   ]);
   try {

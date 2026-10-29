@@ -89,8 +89,9 @@ describe("SvgEditor", function () {
     optimizeSvgText.mockResolvedValue('<svg xmlns="http://www.w3.org/2000/svg"/>');
     render(<SvgEditor aiLabels={aiLabels} labels={labels} locale="en-US" />);
 
-    await act(async function optimize() {
+    await act(function optimize() {
       fireEvent.click(screen.getByRole("button", { name: labels.optimize }));
+      return Promise.resolve();
     });
 
     expect(getCode()).toHaveValue('<svg xmlns="http://www.w3.org/2000/svg"/>');
@@ -117,8 +118,9 @@ describe("SvgEditor", function () {
     fireEvent.change(await screen.findByRole("textbox", { name: labels.aiTitle }), {
       target: { value: "make it a square" },
     });
-    await act(async function submitRequest() {
+    await act(function submitRequest() {
       fireEvent.click(screen.getByRole("button", { name: labels.aiSubmit }));
+      return Promise.resolve();
     });
 
     expect(prompt).toHaveBeenCalledWith(
@@ -150,12 +152,14 @@ describe("SvgEditor", function () {
     fireEvent.change(await screen.findByRole("textbox", { name: labels.aiTitle }), {
       target: { value: "make it a square" },
     });
-    await act(async function submitRequest() {
+    await act(function submitRequest() {
       fireEvent.click(screen.getByRole("button", { name: labels.aiSubmit }));
+      return Promise.resolve();
     });
     fireEvent.change(getCode(), { target: { value: square.replace("10", "12") } });
-    await act(async function finishRequest() {
+    await act(function finishRequest() {
       finishPrompt?.(JSON.stringify({ svg: square }));
+      return Promise.resolve();
     });
 
     expect(getCode()).toHaveValue(square.replace("10", "12"));
@@ -166,8 +170,9 @@ describe("SvgEditor", function () {
     render(<SvgEditor aiLabels={aiLabels} labels={labels} locale="en-US" />);
     const file = new File([square], "square.svg", { type: "image/svg+xml" });
 
-    await act(async function openFile() {
+    await act(function openFile() {
       fireEvent.change(screen.getByLabelText(labels.open), { target: { files: [file] } });
+      return Promise.resolve();
     });
 
     expect(getCode()).toHaveValue(square);

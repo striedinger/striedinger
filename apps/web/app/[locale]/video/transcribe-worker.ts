@@ -50,7 +50,8 @@ function reply(message: TranscriptionReply) {
 }
 
 async function hasWebGpu() {
-  const gpu = (navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } }).gpu;
+  // Browsers without WebGPU have no `navigator.gpu`, whatever the library types say.
+  const gpu = (navigator as { gpu?: { requestAdapter: () => Promise<unknown> } }).gpu;
   return Boolean(gpu && (await gpu.requestAdapter().catch(() => null)));
 }
 
@@ -60,7 +61,7 @@ async function hasWebGpu() {
  * 8-bit decoder runs on the CPU either way, which keeps the download small and decoding fast.
  */
 function loadTranscriber() {
-  transcriberPromise ??= createTranscriber().catch(function forgetFailedLoad(error) {
+  transcriberPromise ??= createTranscriber().catch(function forgetFailedLoad(error: unknown) {
     transcriberPromise = null;
     throw error;
   });
@@ -86,7 +87,13 @@ async function createTranscriber() {
       ? { decoder_model_merged: "q8", encoder_model: "q4" }
       : { decoder_model_merged: "q8", encoder_model: "q8" },
     progress_callback(event: { file?: string; loaded?: number; status: string; total?: number }) {
-      if (event.status !== "progress" || !event.file || !event.total) return;
+      if (
+        event.status !== "progress" ||
+        !event.file ||
+        event.total === undefined ||
+        event.total === 0
+      )
+        return;
       downloads.set(event.file, { loaded: event.loaded ?? 0, total: event.total });
       let loaded = 0;
       let total = 0;
@@ -124,8 +131,8 @@ async function readAudio(file: File, start: number, end: number) {
         for (let frame = 0; frame < frames; frame += 1) {
           const target = Math.floor(offset + frame * ratio);
           if (target < 0 || target >= length) continue;
-          sums[target] += channel[frame] ?? 0;
-          counts[target] += 1;
+          sums[target] = (sums[target] ?? 0) + (channel[frame] ?? 0);
+          counts[target] = (counts[target] ?? 0) + 1;
         }
       }
       sample.close();
@@ -148,7 +155,8 @@ function findLoudestWindow(audio: Float32Array) {
   const blockEnergies = new Float64Array(Math.ceil(audio.length / blockLength));
   for (let index = 0; index < audio.length; index += 1) {
     const value = audio[index] ?? 0;
-    blockEnergies[Math.floor(index / blockLength)] += value * value;
+    const block = Math.floor(index / blockLength);
+    blockEnergies[block] = (blockEnergies[block] ?? 0) + value * value;
   }
   const windowBlocks = windowLength / blockLength;
   let windowEnergy = 0;
@@ -248,7 +256,7 @@ self.addEventListener("message", function handleCommand(event: MessageEvent<Tran
   pendingJobs.add(command.id);
   jobQueue = jobQueue.then(function runJob() {
     return transcribe(command)
-      .catch(function reportFailure(error) {
+      .catch(function reportFailure(error: unknown) {
         if (!(error instanceof JobCanceled))
           reply({ id: command.id, kind: "error", reason: "failed" });
       })

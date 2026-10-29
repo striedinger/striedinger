@@ -19,7 +19,7 @@ export interface JsonWorkerReply {
 }
 
 export interface JsonWorkerResponse {
-  formattedInput?: string;
+  formattedInput?: string | undefined;
   result: JsonParseResult;
 }
 
@@ -44,8 +44,11 @@ function canPreviewJson(value: JsonValue): boolean {
   const pendingValues: Array<{ depth: number; value: JsonValue }> = [{ depth: 0, value }];
   let nodeCount = 0;
 
-  while (pendingValues.length > 0) {
-    const currentNode = pendingValues.pop()!;
+  for (
+    let currentNode = pendingValues.pop();
+    currentNode !== undefined;
+    currentNode = pendingValues.pop()
+  ) {
     nodeCount += 1;
 
     if (nodeCount > maximumPreviewNodes || currentNode.depth > maximumPreviewDepth) return false;

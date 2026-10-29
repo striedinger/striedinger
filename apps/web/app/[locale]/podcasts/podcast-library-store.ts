@@ -48,7 +48,7 @@ function readJson(key: string): unknown {
 
 function readFollowed(): Podcast[] {
   const stored = readJson(followedStorageKey);
-  if (!stored || typeof stored !== "object") return [];
+  if (typeof stored !== "object" || stored === null) return [];
   const library = stored as { podcasts?: unknown; version?: unknown };
   if (library.version !== 1 && library.version !== 2) return [];
   if (!Array.isArray(library.podcasts)) return [];
@@ -57,7 +57,7 @@ function readFollowed(): Podcast[] {
 
 function readSaved(): PodcastQueueItem[] {
   const stored = readJson(savedStorageKey);
-  if (!stored || typeof stored !== "object") return [];
+  if (typeof stored !== "object" || stored === null) return [];
   const saved = stored as { items?: unknown; version?: unknown };
   if (saved.version !== 1 || !Array.isArray(saved.items)) return [];
   return saved.items.filter(isQueueItem).slice(0, maximumSaved);
@@ -65,7 +65,7 @@ function readSaved(): PodcastQueueItem[] {
 
 function readPlayed(): Set<string> {
   const stored = readJson(playedStorageKey);
-  if (!stored || typeof stored !== "object") return new Set();
+  if (typeof stored !== "object" || stored === null) return new Set();
   const played = stored as { ids?: unknown; version?: unknown };
   if (played.version !== 1 || !Array.isArray(played.ids)) return new Set();
   return new Set(

@@ -31,7 +31,7 @@ export type CardPreview =
     };
 
 export function getCardParams(searchParams: CardSearchParams) {
-  return { targetUrl: singleSearchParam(searchParams.url)?.trim() ?? "" };
+  return { targetUrl: singleSearchParam(searchParams["url"])?.trim() ?? "" };
 }
 
 export const resolveCardPreview = cache(async function resolveCardPreview(

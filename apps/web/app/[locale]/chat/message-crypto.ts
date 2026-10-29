@@ -47,7 +47,7 @@ export async function decryptMessage(key: CryptoKey, payload: string): Promise<C
 }
 
 function isEncryptedEnvelope(value: unknown): value is EncryptedEnvelope {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const envelope = value as Partial<EncryptedEnvelope>;
   return (
     envelope.type === "encrypted" &&
@@ -57,7 +57,7 @@ function isEncryptedEnvelope(value: unknown): value is EncryptedEnvelope {
 }
 
 function isChatMessage(value: unknown): value is ChatMessage {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const message = value as Partial<ChatMessage>;
   return (
     typeof message.author === "string" &&
@@ -75,7 +75,7 @@ function isChatMessage(value: unknown): value is ChatMessage {
 
 function encodeBase64Url(bytes: Uint8Array): string {
   let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (const byte of bytes) binary += String.fromCodePoint(byte);
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
@@ -85,7 +85,7 @@ function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
+    bytes[index] = binary.codePointAt(index) ?? 0;
   }
   return bytes;
 }

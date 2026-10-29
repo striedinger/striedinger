@@ -8,7 +8,7 @@ interface PodcastArtworkProps {
   alt?: string;
   className?: string;
   /** Fetches the artwork at high priority for images seen first, instead of lazily. */
-  loadsEagerly?: boolean;
+  loadsEagerly?: boolean | undefined;
   sizes: string;
   src: string;
 }

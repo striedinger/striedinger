@@ -1,17 +1,18 @@
 export class MessageRateLimiter {
   #acceptedInWindow = 0;
   #windowStartedAt = 0;
+  readonly maximumMessages: number;
+  readonly windowDuration: number;
 
-  constructor(
-    readonly maximumMessages: number,
-    readonly windowDuration: number,
-  ) {
+  constructor(maximumMessages: number, windowDuration: number) {
     if (!Number.isSafeInteger(maximumMessages) || maximumMessages < 1) {
       throw new Error("Maximum messages must be a positive integer");
     }
     if (!Number.isFinite(windowDuration) || windowDuration <= 0) {
       throw new Error("Window duration must be positive");
     }
+    this.maximumMessages = maximumMessages;
+    this.windowDuration = windowDuration;
   }
 
   allows(now: number) {

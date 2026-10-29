@@ -38,7 +38,11 @@ export async function shareSudokuResult({
   const filename = `sudoku-${date}-${difficulty}.png`;
   const imageFile = new File([imageBlob], filename, { type: "image/png" });
 
-  if (navigator.share && navigator.canShare?.({ files: [imageFile] })) {
+  if (
+    typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function" &&
+    navigator.canShare({ files: [imageFile] })
+  ) {
     await navigator.share({
       files: [imageFile],
       title: labels.title,

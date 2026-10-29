@@ -45,27 +45,33 @@ function rasterizeInWorker(
     type: "module",
   });
   return new Promise<ArrayBuffer>(function waitForRasterizedPdf(resolve, reject) {
-    worker.addEventListener(
-      "message",
-      function handleWorkerMessage(event: MessageEvent<RasterizeWorkerMessage>) {
-        const message = event.data;
-        // pdf.js also announces itself from inside the worker; only our replies are handled.
-        if (message?.source !== rasterizeMessageSource) return;
-        if (message.type === "progress") {
-          onProgress?.(message.progress, message.stage);
-          return;
-        }
-        worker.terminate();
-        if (message.type === "done") resolve(message.bytes);
-        else reject(new Error(message.message));
-      },
-    );
+    worker.addEventListener("message", function handleWorkerMessage(event: MessageEvent<unknown>) {
+      const message = event.data;
+      // pdf.js also announces itself from inside the worker; only our replies are handled.
+      if (!isRasterizeWorkerMessage(message)) return;
+      if (message.type === "progress") {
+        onProgress?.(message.progress, message.stage);
+        return;
+      }
+      worker.terminate();
+      if (message.type === "done") resolve(message.bytes);
+      else reject(new Error(message.message));
+    });
     worker.addEventListener("error", function handleWorkerError() {
       worker.terminate();
       reject(new Error("The PDF could not be processed."));
     });
     worker.postMessage(request, [request.data]);
   });
+}
+
+function isRasterizeWorkerMessage(data: unknown): data is RasterizeWorkerMessage {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "source" in data &&
+    data.source === rasterizeMessageSource
+  );
 }
 
 function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {

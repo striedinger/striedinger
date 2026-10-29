@@ -27,9 +27,9 @@ export function stripLocaleFromPath(pathname: string): SitePath {
 }
 
 export function createLanguageAlternates(path: SitePath): Record<string, SitePath> {
-  return Object.fromEntries([
+  return Object.fromEntries<SitePath>([
     ["x-default", path],
-    ...supportedLocales.map(function createLocaleAlternate(locale) {
+    ...supportedLocales.map(function createLocaleAlternate(locale): [Locale, SitePath] {
       return [locale, localizePath(path, locale)];
     }),
   ]);

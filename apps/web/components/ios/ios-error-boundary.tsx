@@ -37,6 +37,7 @@ export class IosErrorBoundary extends Component<IosErrorBoundaryProps, IosErrorB
   }
 
   override componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
+    // oxlint-disable-next-line no-console -- Reports the caught render error, which React would otherwise swallow.
     console.error(error, errorInfo.componentStack);
     this.props.onError?.(error);
   }

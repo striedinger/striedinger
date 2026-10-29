@@ -24,7 +24,7 @@ authorizeUrl.search = new URLSearchParams({
   state,
 }).toString();
 
-const server = createServer(async function handleCallback(request, response) {
+const server = createServer(function handleCallback(request, response) {
   const url = new URL(request.url ?? "/", redirectUri);
   if (url.pathname !== "/callback") {
     response.writeHead(404).end();
@@ -38,6 +38,14 @@ const server = createServer(async function handleCallback(request, response) {
     return;
   }
 
+  void finishSignIn(code, response);
+});
+
+/**
+ * @param {string} code
+ * @param {import("node:http").ServerResponse} response
+ */
+async function finishSignIn(code, response) {
   try {
     const refreshToken = await exchangeCode(code);
     response.end("Done. Copy the refresh token from the terminal, then close this tab.");
@@ -48,8 +56,9 @@ const server = createServer(async function handleCallback(request, response) {
     process.exitCode = 1;
   }
   server.close();
-});
+}
 
+/** @param {string} code */
 async function exchangeCode(code) {
   const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
@@ -64,9 +73,11 @@ async function exchangeCode(code) {
     }),
     signal: AbortSignal.timeout(10_000),
   });
-  const payload = await tokenResponse.json().catch(function readFailedBody() {
-    return { error: `Spotify answered ${tokenResponse.status} without JSON` };
-  });
+  const payload = /** @type {{ refresh_token?: unknown }} */ (
+    await tokenResponse.json().catch(function readFailedBody() {
+      return { error: `Spotify answered ${tokenResponse.status} without JSON` };
+    })
+  );
   if (!tokenResponse.ok || typeof payload.refresh_token !== "string") {
     throw new Error(`Spotify token exchange failed: ${JSON.stringify(payload)}`);
   }

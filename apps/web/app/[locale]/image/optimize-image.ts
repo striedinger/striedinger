@@ -8,10 +8,16 @@ interface OptimizeImageOptions {
 }
 
 interface PendingOptimization {
-  onProgress?: ProgressCallback;
+  onProgress?: ProgressCallback | undefined;
   reject: (error: Error) => void;
   resolve: (blob: Blob) => void;
 }
+
+/** What image-worker.ts posts back: progress while it works, then a result or an error. */
+type ImageWorkerReply =
+  | { id: string; progress: number; stage: OptimizationStage }
+  | { blob: Blob; id: string; type: string }
+  | { error: string; id: string };
 
 export type ProgressCallback = (progress: number, stage: OptimizationStage) => void;
 
@@ -44,14 +50,10 @@ export async function optimizeImage(
       quality: options.quality,
       type: file.type,
     };
-    if (bitmap) {
-      const transferables: Transferable[] = [bitmap];
-      if (buffer) transferables.push(buffer);
-      worker.postMessage(message, transferables);
-      return;
-    }
-
-    worker.postMessage(message, [buffer as ArrayBuffer]);
+    const transferables: Transferable[] = [];
+    if (bitmap) transferables.push(bitmap);
+    if (buffer) transferables.push(buffer);
+    worker.postMessage(message, transferables);
   });
 }
 
@@ -86,23 +88,27 @@ function getWorker() {
   if (sharedWorker) return sharedWorker;
 
   sharedWorker = new Worker(new URL("./image-worker.ts", import.meta.url), { type: "module" });
-  sharedWorker.addEventListener("message", function receiveResult(event) {
-    const pending = pendingOptimizations.get(event.data.id);
-    if (!pending) return;
+  sharedWorker.addEventListener(
+    "message",
+    function receiveResult(event: MessageEvent<ImageWorkerReply>) {
+      const reply = event.data;
+      const pending = pendingOptimizations.get(reply.id);
+      if (!pending) return;
 
-    if (event.data.progress !== undefined) {
-      pending.onProgress?.(event.data.progress, event.data.stage as OptimizationStage);
-      return;
-    }
+      if ("progress" in reply) {
+        pending.onProgress?.(reply.progress, reply.stage);
+        return;
+      }
 
-    pendingOptimizations.delete(event.data.id);
-    if (event.data.error) {
-      pending.reject(new Error(event.data.error));
-      return;
-    }
+      pendingOptimizations.delete(reply.id);
+      if ("error" in reply) {
+        pending.reject(new Error(reply.error));
+        return;
+      }
 
-    pending.resolve(event.data.blob as Blob);
-  });
+      pending.resolve(reply.blob);
+    },
+  );
   sharedWorker.addEventListener("error", function receiveError() {
     for (const pending of pendingOptimizations.values()) {
       pending.reject(new Error("This browser could not optimize the image."));

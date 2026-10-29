@@ -88,6 +88,6 @@ function isLocale(value: unknown): value is Locale {
 
 /** The error screen's strings in the route's language, or English above the locale segment. */
 export function useErrorMessages() {
-  const locale = useParams<{ locale?: string }>()?.locale;
+  const locale = useParams<{ locale?: string }>().locale;
   return errorMessages[isLocale(locale) ? locale : "en"];
 }

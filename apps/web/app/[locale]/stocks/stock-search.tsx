@@ -109,9 +109,7 @@ export function StockSearch({
     }
     if (event.key !== "Enter") return;
     event.preventDefault();
-    const selectedResult = showSuggestions
-      ? searchResults[activeIndex < 0 ? 0 : activeIndex]
-      : null;
+    const selectedResult = showSuggestions ? searchResults[Math.max(0, activeIndex)] : null;
     if (selectedResult) {
       chooseStock(selectedResult);
       return;

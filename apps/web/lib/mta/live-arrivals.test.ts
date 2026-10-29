@@ -1,5 +1,5 @@
 import GtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, assert, describe, expect, it, vi } from "vitest";
 
 import stations from "../../app/[locale]/mta/data/stations.json";
 import { getNearbyStations } from "./live-arrivals";
@@ -17,7 +17,10 @@ describe("MTA arrivals", function () {
   it("deduplicates identical arrivals but keeps separate trains within the same minute", async function () {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-09-05T12:00:00Z"));
-    const station = stations[0]!;
+    const [station] = stations;
+    assert.isDefined(station, "The station fixture is empty");
+    const [routeId] = station.routes;
+    assert.isDefined(routeId, "The first station has no routes");
     const now = Date.now() / 1_000;
     const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.encode({
       header: { gtfsRealtimeVersion: "2.0" },
@@ -25,7 +28,7 @@ describe("MTA arrivals", function () {
         return {
           id: String(index),
           tripUpdate: {
-            trip: { tripId: String(index), routeId: station.routes[0] },
+            trip: { tripId: String(index), routeId },
             stopTimeUpdate: [{ stopId: `${station.id}N`, arrival: { time: now + offset } }],
           },
         };
@@ -33,16 +36,17 @@ describe("MTA arrivals", function () {
     }).finish();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async function fetchFeed() {
-        return new Response(new Uint8Array(feed).buffer);
+      vi.fn(function fetchFeed() {
+        return Promise.resolve(new Response(new Uint8Array(feed).buffer));
       }),
     );
     const nearby = await getNearbyStations(station.latitude, station.longitude);
-    const arrivals = nearby.find(function matchStation(item) {
+    const nearbyStation = nearby.find(function matchStation(item) {
       return item.id === station.id;
-    })!.arrivals;
+    });
+    assert.isDefined(nearbyStation, "The station is missing from the nearby results");
     expect(
-      arrivals.map(function arrivalTime(item) {
+      nearbyStation.arrivals.map(function arrivalTime(item) {
         return item.arrivalAt;
       }),
     ).toEqual(["2026-09-05T12:01:00.000Z", "2026-09-05T12:01:10.000Z"]);
@@ -51,8 +55,8 @@ describe("MTA arrivals", function () {
   it("reports total feed failure rather than claiming no trains are due", async function () {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async function failFeed() {
-        return new Response(null, { status: 503 });
+      vi.fn(function failFeed() {
+        return Promise.resolve(new Response(null, { status: 503 }));
       }),
     );
     await expect(getNearbyStations(40.7128, -74.006)).rejects.toThrow(

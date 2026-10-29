@@ -7,7 +7,7 @@ interface IosValueRowProps {
   label: string;
   monospaceLabel?: boolean;
   monospaceValue?: boolean;
-  status?: IosValueStatus;
+  status?: IosValueStatus | undefined;
   value: string;
 }
 

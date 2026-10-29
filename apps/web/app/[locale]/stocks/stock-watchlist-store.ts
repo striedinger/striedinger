@@ -77,7 +77,7 @@ export function saveStockWatchlist(watchlist: readonly StockIdentity[]) {
 }
 
 function isStockIdentity(value: unknown): value is StockIdentity {
-  if (!value || typeof value !== "object") return false;
+  if (typeof value !== "object" || value === null) return false;
   const stock = value as Partial<StockIdentity>;
   return (
     typeof stock.symbol === "string" &&

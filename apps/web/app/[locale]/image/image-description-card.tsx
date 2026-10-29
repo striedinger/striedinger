@@ -86,7 +86,14 @@ export function ImageDescriptionCard({
       actions={
         description ? (
           <>
-            <button type="button" className={iosChipButtonClassName} onClick={copyAltText}>
+            <button
+              type="button"
+              className={iosChipButtonClassName}
+              onClick={function handleCopyClick() {
+                // copyText reports failure as false instead of rejecting.
+                void copyAltText();
+              }}
+            >
               {isCopied ? labels.copiedAltText : labels.copyAltText}
             </button>
             <button

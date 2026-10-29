@@ -271,7 +271,7 @@ export function useNearbyChat(labels: ChatLabels) {
 }
 
 function assertSupported() {
-  if (!("RTCPeerConnection" in window) || !globalThis.crypto?.subtle) {
+  if (!("RTCPeerConnection" in window) || !("subtle" in globalThis.crypto)) {
     throw new Error("Nearby chat is unsupported");
   }
 }
@@ -279,6 +279,6 @@ function assertSupported() {
 function createAnonymousAlias(): string {
   const adjectives = ["Amber", "Blue", "Bright", "Calm", "Copper", "Quiet", "Silver", "Swift"];
   const animals = ["Badger", "Finch", "Fox", "Heron", "Moth", "Otter", "Owl", "Wren"];
-  const randomValues = crypto.getRandomValues(new Uint16Array(2));
-  return `${adjectives[randomValues[0]! % adjectives.length]} ${animals[randomValues[1]! % animals.length]}`;
+  const [adjectiveValue = 0, animalValue = 0] = crypto.getRandomValues(new Uint16Array(2));
+  return `${adjectives[adjectiveValue % adjectives.length]} ${animals[animalValue % animals.length]}`;
 }

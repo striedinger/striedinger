@@ -16,7 +16,8 @@ export function getMessagePlacement(
   messages: readonly VisibleChatMessage[],
   index: number,
 ): MessagePlacement {
-  const message = messages[index]!;
+  const message = messages[index];
+  if (message === undefined) throw new RangeError(`No message at index ${index}`);
   const previous = messages[index - 1];
   const next = messages[index + 1];
   const showsTimestamp = !previous || isAfterPause(previous, message);

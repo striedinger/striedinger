@@ -23,23 +23,29 @@ interface NetworkInformationLike {
   type?: string;
 }
 
-type NavigatorExtensions = Navigator & {
+// Some APIs are missing in insecure contexts or older browsers even though the DOM types declare them.
+type NavigatorExtensions = Omit<Navigator, "mediaDevices" | "storage"> & {
   bluetooth?: { getAvailability?: () => Promise<boolean> };
   connection?: NetworkInformationLike;
   deviceMemory?: number;
   getBattery?: () => Promise<BatteryManagerLike>;
   globalPrivacyControl?: boolean;
+  mediaDevices?: Partial<Pick<MediaDevices, "enumerateDevices">>;
+  storage?: Partial<Pick<StorageManager, "estimate">>;
   userAgentData?: NavigatorUaData;
 };
 
-type WindowExtensions = Window & {
+interface WindowExtensions {
+  AudioContext?: typeof AudioContext;
+  speechSynthesis?: SpeechSynthesis;
   webkitAudioContext?: typeof AudioContext;
-};
+}
 
-type ScreenExtensions = Screen & {
+type ScreenExtensions = Omit<Screen, "orientation"> & {
   availLeft?: number;
   availTop?: number;
   isExtended?: boolean;
+  orientation?: ScreenOrientation;
 };
 
 const unavailableValueLength = 2_048;
@@ -160,7 +166,10 @@ export function serializeDiagnosticValue(value: unknown, unavailable: string): s
     serialized = "[function]";
   } else if (typeof value === "object") {
     try {
-      serialized = JSON.stringify(value, null, 2) ?? Object.prototype.toString.call(value);
+      // JSON.stringify returns undefined when a toJSON method does, despite its declared type.
+      serialized =
+        (JSON.stringify(value, null, 2) as string | undefined) ??
+        Object.prototype.toString.call(value);
     } catch {
       serialized = Object.prototype.toString.call(value);
     }
@@ -197,8 +206,8 @@ function collectScreenAndWindow(labels: BrowserDiagnosticsLabels): ReadonlyArray
     row("screen.availLeft", extendedScreen.availLeft, labels.unavailable),
     row("screen.colorDepth", screen.colorDepth, labels.unavailable),
     row("screen.pixelDepth", screen.pixelDepth, labels.unavailable),
-    row("screen.orientation.type", screen.orientation?.type, labels.unavailable),
-    row("screen.orientation.angle", screen.orientation?.angle, labels.unavailable),
+    row("screen.orientation.type", extendedScreen.orientation?.type, labels.unavailable),
+    row("screen.orientation.angle", extendedScreen.orientation?.angle, labels.unavailable),
     row("screen.isExtended", extendedScreen.isExtended, labels.unavailable),
     row("window.devicePixelRatio", window.devicePixelRatio, labels.unavailable),
     row("window.innerWidth", window.innerWidth, labels.unavailable),
@@ -294,12 +303,14 @@ async function collectClientHints(
 function collectPluginsAndMimeTypes(
   labels: BrowserDiagnosticsLabels,
 ): ReadonlyArray<DiagnosticRow> {
+  // oxlint-disable typescript/no-deprecated -- reporting the legacy plugin and MIME type lists is the purpose of these rows
   const plugins = Array.from(navigator.plugins, function formatPlugin(plugin) {
-    return `${plugin.name} (${plugin.filename || labels.unavailable})`;
+    return `${plugin.name} (${plugin.filename === "" ? labels.unavailable : plugin.filename})`;
   });
   const mimeTypes = Array.from(navigator.mimeTypes, function formatMimeType(mimeType) {
-    return `${mimeType.type}${mimeType.description ? ` — ${mimeType.description}` : ""}`;
+    return `${mimeType.type}${mimeType.description === "" ? "" : ` — ${mimeType.description}`}`;
   });
+  // oxlint-enable typescript/no-deprecated
 
   return [
     row("navigator.plugins", plugins, labels.unavailable),
@@ -354,8 +365,8 @@ async function collectMediaAndDeviceApis(
   labels: BrowserDiagnosticsLabels,
 ): Promise<ReadonlyArray<DiagnosticRow>> {
   const rows: DiagnosticRow[] = [];
-  const AudioContextConstructor =
-    window.AudioContext ?? (window as WindowExtensions).webkitAudioContext;
+  const extendedWindow = window as WindowExtensions;
+  const AudioContextConstructor = extendedWindow.AudioContext ?? extendedWindow.webkitAudioContext;
 
   if (AudioContextConstructor) {
     try {
@@ -383,7 +394,7 @@ async function collectMediaAndDeviceApis(
     rows.push(row("Web Audio API", labels.notSupported));
   }
 
-  const voices = window.speechSynthesis?.getVoices().map(function formatVoice(voice) {
+  const voices = extendedWindow.speechSynthesis?.getVoices().map(function formatVoice(voice) {
     return `${voice.name} (${voice.lang})${voice.default ? " · default" : ""}`;
   });
   rows.push(
@@ -411,9 +422,9 @@ async function collectMediaAndDeviceApis(
     rows.push(row("Web Bluetooth API", labels.notSupported));
   }
 
-  if (navigator.mediaDevices?.enumerateDevices) {
+  if (extendedNavigator.mediaDevices?.enumerateDevices) {
     try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      const devices = await extendedNavigator.mediaDevices.enumerateDevices();
       const deviceCounts: Record<string, number> = {};
 
       for (const device of devices) {
@@ -448,13 +459,15 @@ async function collectStorageApis(
     row("Cookie Store API", "cookieStore" in window ? labels.supported : labels.notSupported),
   ];
 
-  if (!navigator.storage?.estimate) {
+  const storageManager = (navigator as NavigatorExtensions).storage;
+
+  if (!storageManager?.estimate) {
     rows.push(row("StorageManager API", labels.notSupported));
     return rows;
   }
 
   try {
-    const estimate = await navigator.storage.estimate();
+    const estimate = await storageManager.estimate();
     rows.push(
       row("StorageManager API", labels.supported),
       row("storage.usage", estimate.usage, labels.unavailable),
@@ -532,7 +545,8 @@ function collectAdditionalNavigatorProperties(
 
 function canAccessStorage(storageName: "localStorage" | "sessionStorage") {
   try {
-    return window[storageName] !== undefined;
+    // Reading the property throws when storage is blocked, and it can be undefined in unusual hosts.
+    return (window[storageName] as Storage | undefined) !== undefined;
   } catch {
     return false;
   }

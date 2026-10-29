@@ -106,7 +106,7 @@ export async function loadMtaMessages(
       return withSearchError((await import("./zh")).messages);
     case "ja":
       return withSearchError((await import("./ja")).messages);
-    default:
+    case "en":
       return (await import("./en")).messages;
   }
 }

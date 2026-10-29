@@ -34,7 +34,7 @@ const labels: SudokuLabels = {
   title: "Daily Sudoku",
 };
 
-const solution = Array<number>(81).fill(1);
+const solution = Array.from<number>({ length: 81 }).fill(1);
 const puzzle = [...solution];
 puzzle[0] = 0;
 
@@ -106,7 +106,7 @@ describe("SudokuGame", function () {
   });
 
   it("disables a number after all of its solution positions are correct", function () {
-    const twoStepSolution = Array<number>(81).fill(2);
+    const twoStepSolution = Array.from<number>({ length: 81 }).fill(2);
     twoStepSolution[0] = 1;
     const twoStepPuzzle = [...twoStepSolution];
     twoStepPuzzle[0] = 0;

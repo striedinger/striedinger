@@ -6,8 +6,7 @@ describe("processJson", function () {
   it("accepts deeply nested valid JSON without overflowing the formatter stack", function () {
     const input = "[".repeat(20_000) + "0" + "]".repeat(20_000);
     const response = processJson(input);
-    expect(response.result.status).toBe("valid");
-    if (response.result.status === "valid") expect(response.result.previewable).toBe(false);
+    expect(response.result).toMatchObject({ status: "valid", previewable: false });
     expect(response.formattedInput).toBeUndefined();
   });
 

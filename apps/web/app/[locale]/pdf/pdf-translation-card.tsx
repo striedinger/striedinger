@@ -114,7 +114,14 @@ export function PdfTranslationCard({
       }
       actions={
         outcome.kind === "translated" && task.status.kind === "done" ? (
-          <button type="button" className={iosChipButtonClassName} onClick={copyTranslation}>
+          <button
+            type="button"
+            className={iosChipButtonClassName}
+            onClick={function handleCopyClick() {
+              // copyText reports failure as false instead of rejecting.
+              void copyTranslation();
+            }}
+          >
             {isCopied ? labels.translationCopied : labels.copyTranslation}
           </button>
         ) : undefined

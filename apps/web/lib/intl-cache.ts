@@ -4,7 +4,7 @@ const formatterCache = new Map<string, unknown>();
 
 function getCachedFormatter<Formatter>(key: string, create: () => Formatter): Formatter {
   let formatter = formatterCache.get(key) as Formatter | undefined;
-  if (!formatter) {
+  if (formatter === undefined) {
     formatter = create();
     formatterCache.set(key, formatter);
   }

@@ -19,10 +19,11 @@ export const defaultStockTimeframe: StockTimeframe = "1D";
 export function getStockPageState(
   searchParams: Record<string, string | string[] | undefined>,
 ): StockPageState {
-  const requestedSymbol = singleSearchParam(searchParams.symbol)?.trim().toUpperCase();
-  const requestedTimeframe = singleSearchParam(searchParams.timeframe)?.trim().toUpperCase();
-  const requestedList = singleSearchParam(searchParams.list);
-  const query = singleSearchParam(searchParams.q)?.trim().replace(/\s+/g, " ").slice(0, 40) ?? "";
+  const requestedSymbol = singleSearchParam(searchParams["symbol"])?.trim().toUpperCase();
+  const requestedTimeframe = singleSearchParam(searchParams["timeframe"])?.trim().toUpperCase();
+  const requestedList = singleSearchParam(searchParams["list"]);
+  const query =
+    singleSearchParam(searchParams["q"])?.trim().replace(/\s+/g, " ").slice(0, 40) ?? "";
   return {
     list: requestedList === undefined ? null : parseSymbolList(requestedList),
     query,

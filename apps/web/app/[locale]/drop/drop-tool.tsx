@@ -91,6 +91,8 @@ export function DropTool({ labels }: DropToolProps) {
   useEffect(
     function connectToRoom() {
       if (!roomCode) return;
+      // A constant keeps the room code narrowed to a string inside the async connect below.
+      const roomCodeToJoin = roomCode;
 
       let cancelled = false;
       let activeRoom: Room | undefined;
@@ -102,18 +104,18 @@ export function DropTool({ labels }: DropToolProps) {
 
       async function connect() {
         try {
-          if (!("RTCPeerConnection" in window) || !globalThis.crypto?.subtle) {
+          if (!("RTCPeerConnection" in window) || !("subtle" in globalThis.crypto)) {
             throw new Error("WebRTC is unavailable");
           }
 
           const [{ joinRoom }, roomId] = await Promise.all([
             import("trystero"),
-            deriveRoomId(roomCode as string),
+            deriveRoomId(roomCodeToJoin),
           ]);
 
           if (cancelled) return;
 
-          const joinedRoom = joinRoom({ appId: dropAppId, password: roomCode }, roomId, {
+          const joinedRoom = joinRoom({ appId: dropAppId, password: roomCodeToJoin }, roomId, {
             onJoinError: function handleJoinError() {
               if (!cancelled) setConnectionError(true);
             },
@@ -283,7 +285,7 @@ export function DropTool({ labels }: DropToolProps) {
     enqueueSharedFile(activeSession, sharedFile, peerIds, action, signal, setTransfers);
   }
 
-  async function handleCopy() {
+  async function copyInviteLink() {
     if (!roomCode) return;
     const shareUrl = createInviteUrl(roomCode);
     const didCopy = await copyText(shareUrl);
@@ -298,7 +300,7 @@ export function DropTool({ labels }: DropToolProps) {
     copyResetTimeoutIds.current.add(timeoutId);
   }
 
-  async function handleShare() {
+  async function shareInviteLink() {
     if (!roomCode) return;
     const shareUrl = createInviteUrl(roomCode);
 
@@ -315,7 +317,16 @@ export function DropTool({ labels }: DropToolProps) {
       }
     }
 
-    await handleCopy();
+    await copyInviteLink();
+  }
+
+  // Copying and sharing settle their own failures, so these promises never reject.
+  function handleCopy() {
+    void copyInviteLink();
+  }
+
+  function handleShare() {
+    void shareInviteLink();
   }
 
   return (
@@ -366,34 +377,34 @@ function updateRoomFragment(roomCode: string) {
 }
 
 function readTransferMetadata(metadata: unknown): TransferMetadata | undefined {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return;
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata)) return;
   const candidate = metadata as Record<string, unknown>;
 
   if (
-    typeof candidate.id !== "string" ||
-    candidate.id.length === 0 ||
-    candidate.id.length > 100 ||
-    typeof candidate.name !== "string" ||
-    candidate.name.length === 0 ||
-    candidate.name.length > 1_024 ||
-    typeof candidate.size !== "number" ||
-    !Number.isFinite(candidate.size) ||
-    candidate.size < 0 ||
-    candidate.size > maximumFileSizeBytes ||
-    typeof candidate.type !== "string" ||
-    candidate.type.length > 255 ||
-    typeof candidate.lastModified !== "number" ||
-    !Number.isFinite(candidate.lastModified)
+    typeof candidate["id"] !== "string" ||
+    candidate["id"].length === 0 ||
+    candidate["id"].length > 100 ||
+    typeof candidate["name"] !== "string" ||
+    candidate["name"].length === 0 ||
+    candidate["name"].length > 1_024 ||
+    typeof candidate["size"] !== "number" ||
+    !Number.isFinite(candidate["size"]) ||
+    candidate["size"] < 0 ||
+    candidate["size"] > maximumFileSizeBytes ||
+    typeof candidate["type"] !== "string" ||
+    candidate["type"].length > 255 ||
+    typeof candidate["lastModified"] !== "number" ||
+    !Number.isFinite(candidate["lastModified"])
   ) {
     return;
   }
 
   return {
-    id: candidate.id,
-    lastModified: candidate.lastModified,
-    name: candidate.name,
-    size: candidate.size,
-    type: candidate.type,
+    id: candidate["id"],
+    lastModified: candidate["lastModified"],
+    name: candidate["name"],
+    size: candidate["size"],
+    type: candidate["type"],
   };
 }
 
@@ -401,13 +412,14 @@ function closePeer(room: Room | undefined, peerId: string) {
   room?.getPeers()[peerId]?.close();
 }
 
-function createFileBlob(data: DataPayload, type?: string) {
+function createFileBlob(data: DataPayload, type = "") {
   if (data instanceof Blob) return data;
   if (data instanceof ArrayBuffer) return new Blob([data], { type });
   if (ArrayBuffer.isView(data)) {
     const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice();
     return new Blob([bytes], { type });
   }
+  return undefined;
 }
 
 function resetRoomSession(session: DropSessionState) {
@@ -490,10 +502,12 @@ async function sendSharedFile(
       },
       signal,
     });
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- The signal can abort while the send is awaited.
     if (signal.aborted) return;
     cancelProgressUpdate(session, progressKey);
     updateOutgoingTransfer(setTransfers, sharedFile.id, { progress: 1, status: "complete" });
   } catch {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- The signal can abort while the send is awaited.
     if (signal.aborted) return;
     cancelProgressUpdate(session, progressKey);
     updateOutgoingTransfer(setTransfers, sharedFile.id, {

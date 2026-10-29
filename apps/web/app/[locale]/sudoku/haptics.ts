@@ -1,3 +1,4 @@
 export function triggerHapticFeedback(): void {
-  navigator.vibrate?.(10);
+  // Safari does not implement the Vibration API.
+  if (typeof navigator.vibrate === "function") navigator.vibrate(10);
 }

@@ -26,6 +26,7 @@ export function PairingButton({
 }: PairingButtonProps) {
   return (
     <button
+      // oxlint-disable-next-line react/button-has-type -- The prop type limits this to valid button types and defaults to "button".
       type={type}
       className={cn(
         variant !== "filled" &&

@@ -30,7 +30,7 @@ async function loadMessagesForLocale(
       return (await import("./zh")).messages;
     case "ja":
       return (await import("./ja")).messages;
-    default:
+    case "en":
       return (await import("./en")).messages;
   }
 }

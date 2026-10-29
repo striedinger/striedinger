@@ -62,9 +62,10 @@ export function StockChart({
       ? summarizeChartRange(points, selection.first, selection.second)
       : null;
   const rangeColor = range && range.change < 0 ? "var(--ios-red)" : "var(--ios-green)";
-  const scrubIndex = selection && selection.second === null ? selection.first : null;
+  const scrubIndex = selection?.second === null ? selection.first : null;
   const displayedIndex = scrubIndex ?? lastIndex;
-  const displayedPoint = points[displayedIndex] ?? points[lastIndex]!;
+  const displayedPoint = points[displayedIndex] ?? points[lastIndex];
+  if (displayedPoint === undefined) return null;
 
   function readPointIndex(event: PointerEvent<SVGSVGElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();

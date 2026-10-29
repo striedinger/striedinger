@@ -37,7 +37,9 @@ export async function translateMessage(
   const key = `${sourceLanguage}:${targetLanguage}`;
   let translatorPromise = translatorPromises.get(key);
   if (!translatorPromise) {
-    translatorPromise = Translator.create({ sourceLanguage, targetLanguage, monitor });
+    translatorPromise = Translator.create(
+      monitor ? { sourceLanguage, targetLanguage, monitor } : { sourceLanguage, targetLanguage },
+    );
     translatorPromises.set(key, translatorPromise);
     translatorPromise.catch(function forgetFailedTranslator() {
       translatorPromises.delete(key);
