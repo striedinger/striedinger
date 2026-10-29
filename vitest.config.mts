@@ -17,6 +17,8 @@ export default defineConfig({
           name: "ui",
           root: "./packages/ui",
           environment: "jsdom",
+          // Building a jsdom per file is most of the run time; the setup file resets modules instead.
+          isolate: false,
           setupFiles: ["./vitest.setup.ts"],
           include: ["src/**/*.test.{ts,tsx}"],
         },
@@ -48,6 +50,7 @@ export default defineConfig({
           name: "web-ui",
           root: "./apps/web",
           environment: "jsdom",
+          isolate: false,
           setupFiles: ["../../packages/ui/vitest.setup.ts"],
           include: ["components/**/*.test.tsx", "app/**/*.test.tsx"],
         },
