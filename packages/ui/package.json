@@ -12,7 +12,7 @@
     "./lib/*": "./src/lib/*.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -3,12 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "next typegen && tsrs --noEmit && next build",
     "dev": "next dev --experimental-https",
     "prebuild": "node scripts/sync-runtime-assets.mjs",
     "predev": "node scripts/sync-runtime-assets.mjs",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsrs --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

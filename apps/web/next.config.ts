@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
     ];
   },
   transpilePackages: ["@workspace/icons", "@workspace/i18n", "@workspace/ui"],
+  // The build script type-checks with tsrs first and stops on any error, so Next skips its own check.
+  typescript: { ignoreBuildErrors: true },
 };
 
 export default nextConfig;
