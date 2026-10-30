@@ -4,14 +4,30 @@ import { after, NextResponse } from "next/server";
 
 import type { VisitServerData } from "./log-visit";
 
+import { getClientIdentifierFromHeaders } from "../../lib/client-identifier";
+import { isRateLimited } from "../../lib/rate-limit";
 import { getCardParams } from "../[locale]/card/card-preview";
+import { canonicalizeCardTarget, isValidCardLinkSignature } from "./card-link-signature";
+import { createLinkConfirmationResponse } from "./create-link-confirmation-response";
 import { isCrawler, recordVisit } from "./log-visit";
 
-export function GET(request: NextRequest) {
-  const { targetUrl } = getCardParams(Object.fromEntries(request.nextUrl.searchParams));
+const maximumLoggedVisitsPerWindow = 30;
+const visitLogWindowMilliseconds = 60_000;
 
-  if (!targetUrl || !isHttpUrl(targetUrl)) {
+export async function GET(request: NextRequest) {
+  const { targetUrl: requestedTargetUrl } = getCardParams(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
+  const targetUrl = canonicalizeCardTarget(requestedTargetUrl);
+
+  if (!targetUrl) {
     return NextResponse.redirect(new URL("/card", request.url));
+  }
+
+  const signature = request.nextUrl.searchParams.get("sig");
+
+  if (!signature || !(await isValidCardLinkSignature(targetUrl, signature))) {
+    return createLinkConfirmationResponse(targetUrl);
   }
 
   const headerList = request.headers;
@@ -44,21 +60,21 @@ export function GET(request: NextRequest) {
     userAgent,
   };
 
+  const clientIdentifier = getClientIdentifierFromHeaders(headerList);
+
   after(async () => {
-    await recordVisit(crypto.randomUUID(), visit);
+    // Anyone can hit this route, so each client gets a bounded number of stored visits.
+    const isLoggingLimited = await isRateLimited({
+      identifier: clientIdentifier,
+      maximumRequests: maximumLoggedVisitsPerWindow,
+      scope: "card-visit",
+      windowMilliseconds: visitLogWindowMilliseconds,
+    });
+    if (!isLoggingLimited) await recordVisit(crypto.randomUUID(), visit);
   });
 
   // Card crawlers blindly follow redirects, so the platform builds the card
   // from the target's own metadata and displays the target's domain. Humans
-  // get the same redirect once the visit is logged.
+  // get the same redirect.
   return NextResponse.redirect(targetUrl, 302);
-}
-
-function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
 }

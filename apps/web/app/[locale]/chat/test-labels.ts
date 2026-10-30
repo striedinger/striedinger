@@ -37,6 +37,7 @@ export const testChatLabels: ChatLabels = {
   preparingConnection: "Preparing a private connection…",
   privacyIntro: "Private chat for nearby devices. Messages disappear when you leave.",
   readyToConnect: "Ready to connect",
+  relayedVia: "{name} via {peer}",
   send: "Send",
   sendInvite: "Send invite",
   sendInviteInstruction: "Send this invite to the other person.",

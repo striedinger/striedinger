@@ -38,4 +38,10 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
   "Send the private link or room code to another device.": "将私密链接或房间代码发送到另一台设备。",
   "Transfer failed": "传输失败",
   "Ready to send": "可以发送",
+  "Files you added earlier are not sent automatically.": "之前添加的文件不会自动发送。",
+  "A new device joined": "有新设备加入",
+  "Not now": "以后再说",
+  "Send {count} files": "发送 {count} 个文件",
+  "Send 1 file": "发送 1 个文件",
+  "Over this session’s limit of 50 files or 500 MB": "超出本次会话 50 个文件或 500 MB 的限制",
 };

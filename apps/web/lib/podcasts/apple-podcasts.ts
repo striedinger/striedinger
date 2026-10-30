@@ -3,6 +3,8 @@ import { cacheLife, cacheTag } from "next/cache";
 
 import type { Podcast, PodcastEpisode } from "../../app/[locale]/podcasts/types";
 
+import { safeHttpsUrl, safeHttpUrl } from "./safe-url";
+
 const appleSearchBaseUrl = "https://itunes.apple.com";
 const appleChartsUrl =
   "https://rss.marketingtools.apple.com/api/v2/us/podcasts/top/20/podcasts.json";
@@ -70,7 +72,7 @@ async function loadPopularPodcasts(): Promise<Podcast[]> {
     const id = stringValue(result.id);
     const title = stringValue(result.name);
     const author = stringValue(result.artistName);
-    const artworkUrl = upgradeArtwork(stringValue(result.artworkUrl100));
+    const artworkUrl = safeHttpsUrl(upgradeArtwork(stringValue(result.artworkUrl100)));
     const url = safeHttpsUrl(stringValue(result.url));
     if (!id || !title || !author || !artworkUrl || !url) return [];
     return [{ id, title, author, artworkUrl, url, genre: stringValue(result.genres?.[0]?.name) }];
@@ -196,20 +198,6 @@ function mapEpisode(result: AppleSearchResult): PodcastEpisode[] {
 
 function upgradeArtwork(url: string) {
   return url.replace(/\/\d+x\d+bb\.(jpg|jpeg|png)$/i, "/600x600bb.$1");
-}
-
-function safeHttpUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
-  } catch {
-    return "";
-  }
-}
-
-function safeHttpsUrl(value: string) {
-  const url = safeHttpUrl(value);
-  return url.startsWith("https:") ? url : "";
 }
 
 function stringValue(value: unknown) {

@@ -11,6 +11,8 @@ import { validatePublicUrl } from "./validate-public-url";
 const maximumRedirects = 3;
 const maximumResponseBytes = 1_000_000;
 const requestTimeoutMilliseconds = 8_000;
+const headEndPattern = /<\/head\s{0,64}>/i;
+const headEndSearchOverlap = 80;
 
 export interface PageHtmlResponse {
   html: string;
@@ -120,14 +122,17 @@ async function processResponse(
       throw new PreviewError("too-large");
     }
 
+    // Only the new text and enough before it to complete a split "</head>" are searched, so
+    // the scan stays linear across chunks.
+    const searchStart = Math.max(0, html.length - headEndSearchOverlap);
     html += decoder.write(buffer);
 
-    const headEndMatch = html.match(/<\/head\s*>/i);
+    const headEndMatch = headEndPattern.exec(html.slice(searchStart));
 
-    if (headEndMatch?.index !== undefined) {
+    if (headEndMatch) {
       response.destroy();
       return {
-        html: html.slice(0, headEndMatch.index + headEndMatch[0].length),
+        html: html.slice(0, searchStart + headEndMatch.index + headEndMatch[0].length),
         url: requestedUrl,
       };
     }

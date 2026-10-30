@@ -2,6 +2,7 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly BING_SITE_VERIFICATION?: string;
+    readonly CARD_LINK_SECRET?: string;
     readonly GOOGLE_SITE_VERIFICATION?: string;
     readonly KV_REST_API_TOKEN?: string;
     readonly KV_REST_API_URL?: string;

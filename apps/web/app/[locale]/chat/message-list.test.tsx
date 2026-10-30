@@ -61,6 +61,7 @@ describe("message list", function () {
         author: "Quiet Otter",
         id: "spanish",
         isOwn: false,
+        senderId: "peer-quiet-otter",
         sentAt: 1_721_000_000_000,
         text: "Nos vemos en el parque",
       },
@@ -68,6 +69,7 @@ describe("message list", function () {
         author: "Silver Finch",
         id: "own",
         isOwn: true,
+        senderId: "own",
         sentAt: 1_721_000_001_000,
         text: "Hasta luego, amigos míos",
       },
@@ -85,6 +87,7 @@ describe("message list", function () {
         author: "Quiet Otter",
         id: "remote-message",
         isOwn: false,
+        senderId: "peer-quiet-otter",
         sentAt: 1_721_000_000_000,
         text: "I copied your alias",
       },
@@ -94,12 +97,29 @@ describe("message list", function () {
     expect(screen.queryByText("You")).not.toBeInTheDocument();
   });
 
+  it("names the forwarding device beside the unverified author of a relayed message", function () {
+    renderMessageList([
+      {
+        author: "Quiet Otter",
+        id: "relayed-message",
+        isOwn: false,
+        relayedBy: "Silver Finch",
+        senderId: "peer-silver-finch:Quiet Otter",
+        sentAt: 1_721_000_000_000,
+        text: "forwarded",
+      },
+    ]);
+
+    expect(screen.getByRole("listitem")).toHaveTextContent("Quiet Otter via Silver Finch");
+  });
+
   it("names the sender of every message for assistive technology", function () {
     renderMessageList([
       {
         author: "Quiet Otter",
         id: "first",
         isOwn: false,
+        senderId: "peer-quiet-otter",
         sentAt: 1_721_000_000_000,
         text: "first",
       },
@@ -107,6 +127,7 @@ describe("message list", function () {
         author: "Quiet Otter",
         id: "second",
         isOwn: false,
+        senderId: "peer-quiet-otter",
         sentAt: 1_721_000_001_000,
         text: "second",
       },
@@ -114,6 +135,7 @@ describe("message list", function () {
         author: "Silver Finch",
         id: "reply",
         isOwn: true,
+        senderId: "own",
         sentAt: 1_721_000_002_000,
         text: "reply",
       },
@@ -138,6 +160,7 @@ describe("message list", function () {
         author: "Silver Finch",
         id: "local-message",
         isOwn: true,
+        senderId: "own",
         sentAt: 1_721_000_000_000,
         text: "hello nearby",
       },
@@ -153,6 +176,7 @@ describe("message list", function () {
       author: "Silver Finch",
       id: "first-message",
       isOwn: false,
+      senderId: "peer-silver-finch",
       sentAt: 1_721_000_000_000,
       text: "first",
     };
@@ -178,6 +202,7 @@ describe("message list", function () {
             author: "Quiet Otter",
             id: "second-message",
             isOwn: false,
+            senderId: "peer-quiet-otter",
             sentAt: 1_721_000_001_000,
             text: "second",
           },

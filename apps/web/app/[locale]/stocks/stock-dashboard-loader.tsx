@@ -39,7 +39,7 @@ export async function StockDashboardLoader({
   searchParams,
 }: StockDashboardLoaderProps) {
   const { list, query, symbol, timeframe } = getStockPageState(await searchParams);
-  // Opening a link counts against a per-visitor limit for symbols outside the built-in set.
+  // Symbols outside the built-in set count against a per-visitor limit.
   const checkRateLimit = createSharedLinkRateLimitCheck();
   const quotedSymbols = (list ?? defaultStocks.map(getSymbol)).slice(0, maximumQuotedSymbols);
   const quotesPromise = loadQuotes(quotedSymbols, checkRateLimit);
@@ -47,9 +47,7 @@ export async function StockDashboardLoader({
     ? loadDetail(symbol, timeframe, checkRateLimit)
     : Promise.resolve<StockDetail | null>(null);
   const searchResultsPromise = query
-    ? searchStockSymbols(query).catch(function useEmptySearchResults() {
-        return [];
-      })
+    ? loadSearchResults(query)
     : Promise.resolve<StockIdentity[]>([]);
   return (
     <StockDashboard
@@ -64,6 +62,20 @@ export async function StockDashboardLoader({
       timeframe={timeframe}
     />
   );
+}
+
+/** Suggestions for a search, limited per visitor because each new query is an upstream request. */
+async function loadSearchResults(query: string): Promise<StockIdentity[]> {
+  const isLimited = await isRateLimited({
+    identifier: await getClientIdentifier(),
+    maximumRequests: 30,
+    scope: "stocks-search",
+    windowMilliseconds: 60_000,
+  });
+  if (isLimited) return [];
+  return searchStockSymbols(query).catch(function useEmptySearchResults() {
+    return [];
+  });
 }
 
 async function loadQuotes(
@@ -174,14 +186,18 @@ function createSharedLinkRateLimitCheck() {
   };
 }
 
+/**
+ * Opening a link and navigating inside the app (opening a stock, searching, syncing the
+ * watchlist) both count against a per-visitor limit. In-app navigation sends an RSC request
+ * and gets a more generous budget of its own, but the header is client-controlled, so it never
+ * skips the limit.
+ */
 async function isSharedLinkRateLimited() {
-  // Navigating inside the app (opening a stock, searching, syncing the watchlist) sends an RSC
-  // request. Only opening a link counts, so ordinary use never trips the limit.
-  if ((await headers()).get("rsc") === "1") return false;
+  const isNavigation = (await headers()).get("rsc") === "1";
   return isRateLimited({
     identifier: await getClientIdentifier(),
-    maximumRequests: 20,
-    scope: "stocks-shared-link",
+    maximumRequests: isNavigation ? 60 : 20,
+    scope: isNavigation ? "stocks-navigation" : "stocks-shared-link",
     windowMilliseconds: 60_000,
   });
 }

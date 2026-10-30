@@ -51,7 +51,7 @@ export function MessageRow({ labels, locale, message, placement, translation }: 
           showsSenderName ? "px-3 pb-0.5 text-ios-caption2 text-ios-secondary-label" : "sr-only"
         }
       >
-        {message.isOwn ? labels.you : message.author}
+        {describeSender(labels, message)}
       </Text>
       <Text
         className={cn(
@@ -73,4 +73,14 @@ export function MessageRow({ labels, locale, message, placement, translation }: 
       {translation}
     </li>
   );
+}
+
+function describeSender(labels: ChatLabels, message: VisibleChatMessage) {
+  if (message.isOwn) return labels.you;
+  if (message.relayedBy === undefined) return message.author;
+  const { author, relayedBy } = message;
+  // One pass with a replacer, so a remote name containing "{peer}" or "$&" is inserted as text.
+  return labels.relayedVia.replaceAll(/\{(?:name|peer)\}/gu, function insertName(placeholder) {
+    return placeholder === "{name}" ? author : relayedBy;
+  });
 }

@@ -3,6 +3,17 @@ import type { NextConfig } from "next";
 const publicMetadataCacheControl =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
+// Limits what a page can embed, be embedded by, and submit to, without restricting scripts:
+// a script policy would need a per-request nonce, which would make prerendered pages dynamic.
+function createContentSecurityPolicy(frameAncestors: string) {
+  return [
+    `frame-ancestors ${frameAncestors}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   images: {
@@ -18,6 +29,26 @@ const nextConfig: NextConfig = {
   // oxlint-disable-next-line typescript/require-await -- NextConfig requires headers to return a Promise
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: createContentSecurityPolicy("'none'") },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+      {
+        // X shows the Now Playing card as a player, which embeds this page in a frame.
+        source: "/:locale(es|de|it|fr|pt|zh|ja)?/listening",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: createContentSecurityPolicy(
+              "https://x.com https://*.x.com https://twitter.com https://*.twitter.com",
+            ),
+          },
+        ],
+      },
       {
         source: "/vendor/qpdf-run/0.2.1/:path*",
         headers: [
@@ -87,6 +118,11 @@ const nextConfig: NextConfig = {
             value: "public, max-age=31536000, immutable",
           },
         ],
+      },
+      {
+        // The worker is this app's own code, which can change without a new codec version.
+        source: "/vendor/jsquash-avif/:version/worker.js",
+        headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
       },
     ];
   },

@@ -58,4 +58,17 @@ describe("nearby message encryption", function () {
 
     await expect(decryptMessage(key, encrypted)).resolves.not.toHaveProperty("isOwn");
   });
+
+  it("keeps the relayed marker so forwarded messages are not shown as the forwarder's own", async function () {
+    const { key } = await createMessageKey();
+    const message: ChatMessage = {
+      author: "Quiet Otter",
+      id: crypto.randomUUID(),
+      relayed: true,
+      sentAt: Date.now(),
+      text: "forwarded",
+    };
+
+    await expect(decryptMessage(key, await encryptMessage(key, message))).resolves.toEqual(message);
+  });
 });

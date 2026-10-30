@@ -34,5 +34,5 @@ function isAfterPause(earlier: VisibleChatMessage, later: VisibleChatMessage) {
 }
 
 function isSameSender(first: VisibleChatMessage, second: VisibleChatMessage) {
-  return first.isOwn === second.isOwn && first.author === second.author;
+  return first.isOwn === second.isOwn && first.senderId === second.senderId;
 }

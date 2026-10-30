@@ -1,6 +1,17 @@
+import { createHash } from "node:crypto";
 import "server-only";
 
+import type { UpstashRestCredentials } from "./upstash-rest-credentials";
+
+import { getUpstashRestCredentials } from "./upstash-rest-credentials";
+
 interface RateLimitOptions {
+  /**
+   * Counts the request as limited when the shared store is configured but fails to answer.
+   * Scopes that guard expensive work set it, since a per-instance fallback lets a burst through
+   * every instance it lands on.
+   */
+  failClosed?: boolean;
   identifier: string;
   maximumRequests: number;
   scope: string;
@@ -11,8 +22,13 @@ const maximumTrackedBuckets = 2_000;
 const requestHistory = new Map<string, number[]>();
 
 export async function isRateLimited(options: RateLimitOptions): Promise<boolean> {
-  const durableResult = await checkDurableRateLimit(options);
-  return durableResult ?? checkLocalRateLimit(options);
+  const credentials = getUpstashRestCredentials();
+  if (!credentials) return checkLocalRateLimit(options);
+
+  const durableResult = await checkDurableRateLimit(credentials, options);
+  if (durableResult !== undefined) return durableResult;
+
+  return options.failClosed === true || checkLocalRateLimit(options);
 }
 
 function checkLocalRateLimit({
@@ -42,24 +58,19 @@ function checkLocalRateLimit({
   return false;
 }
 
-async function checkDurableRateLimit({
-  identifier,
-  maximumRequests,
-  scope,
-  windowMilliseconds,
-}: RateLimitOptions): Promise<boolean | undefined> {
-  const restUrl = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-  const restToken = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-  if (!restUrl || !restToken) return undefined;
-
+/** The store's verdict, or undefined when it could not give one. */
+async function checkDurableRateLimit(
+  credentials: UpstashRestCredentials,
+  { identifier, maximumRequests, scope, windowMilliseconds }: RateLimitOptions,
+): Promise<boolean | undefined> {
   const identifierHash = createHash("sha256").update(identifier).digest("hex").slice(0, 24);
   const windowNumber = Math.floor(Date.now() / windowMilliseconds);
   const bucketKey = `rate-limit:${scope}:${identifierHash}:${windowNumber}`;
 
   try {
-    const response = await fetch(`${restUrl}/pipeline`, {
+    const response = await fetch(`${credentials.url}/pipeline`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${restToken}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${credentials.token}`, "Content-Type": "application/json" },
       body: JSON.stringify([
         ["INCR", bucketKey],
         ["PEXPIRE", bucketKey, windowMilliseconds * 2, "NX"],
@@ -76,4 +87,3 @@ async function checkDurableRateLimit({
     return undefined;
   }
 }
-import { createHash } from "node:crypto";

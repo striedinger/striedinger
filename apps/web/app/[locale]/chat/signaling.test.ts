@@ -15,6 +15,25 @@ describe("pairing codes", function () {
     await expect(decodePairingBundle(code)).resolves.toEqual(bundle);
   });
 
+  it("accepts a reply that does not echo the encryption key", async function () {
+    const reply = {
+      alias: "Quiet Otter",
+      description: { sdp: "v=0\r\n", type: "answer" as const },
+      version: 1 as const,
+    };
+
+    await expect(decodePairingBundle(await encodePairingBundle(reply))).resolves.toEqual(reply);
+  });
+
+  it("rejects an invite without an encryption key", async function () {
+    const code = await encodePairingBundle({
+      description: { sdp: "v=0\r\n", type: "offer" },
+      version: 1,
+    });
+
+    await expect(decodePairingBundle(code)).rejects.toThrow("Pairing code is invalid");
+  });
+
   it("rejects unrecognized input", async function () {
     await expect(decodePairingBundle("not-a-nearby-code")).rejects.toThrow(
       "Pairing code is invalid",

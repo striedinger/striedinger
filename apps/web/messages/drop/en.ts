@@ -39,4 +39,12 @@ export const messages = defineMessages({
   Drop: "Drop",
   "Transfer failed": "Transfer failed",
   "Ready to send": "Ready to send",
+  "Files you added earlier are not sent automatically.":
+    "Files you added earlier are not sent automatically.",
+  "A new device joined": "A new device joined",
+  "Not now": "Not now",
+  "Send {count} files": "Send {count} files",
+  "Send 1 file": "Send 1 file",
+  "Over this session’s limit of 50 files or 500 MB":
+    "Over this session’s limit of 50 files or 500 MB",
 });

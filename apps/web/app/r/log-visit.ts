@@ -1,4 +1,5 @@
 import "server-only";
+import { getUpstashRestCredentials } from "../../lib/upstash-rest-credentials";
 
 const visitsListKey = "card:visits";
 const visitKeyPrefix = "card:visit:";
@@ -40,10 +41,9 @@ export function isCrawler(userAgent: string): boolean {
 }
 
 export async function recordVisit(visitId: string, data: VisitServerData) {
-  const restUrl = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-  const restToken = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+  const credentials = getUpstashRestCredentials();
 
-  if (!restUrl || !restToken) {
+  if (!credentials) {
     // oxlint-disable-next-line no-console -- server logs are the visit record when no KV store is configured
     console.log(`[card-visit] ${visitId}`, JSON.stringify(data));
     return;
@@ -52,10 +52,10 @@ export async function recordVisit(visitId: string, data: VisitServerData) {
   const visitKey = `${visitKeyPrefix}${visitId}`;
 
   try {
-    const response = await fetch(`${restUrl}/pipeline`, {
+    const response = await fetch(`${credentials.url}/pipeline`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${restToken}`,
+        Authorization: `Bearer ${credentials.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify([

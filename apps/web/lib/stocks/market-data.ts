@@ -86,10 +86,9 @@ async function loadStockSymbols({
   const url = new URL("/symbol_search", twelveDataBaseUrl);
   url.searchParams.set("symbol", normalizedQuery);
   url.searchParams.set("outputsize", "8");
-  url.searchParams.set("apikey", apiKey);
 
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(4_000) });
+    const response = await fetchTwelveData(url, apiKey, 4_000);
     if (!response.ok) return fallBackToLocalMatches(localMatches);
     const payload = (await response.json()) as TwelveDataSearchResponse;
     // Rate limits and key errors arrive as a 200 with an error body.
@@ -174,9 +173,8 @@ async function loadStockSeries(
   url.searchParams.set("interval", request.interval);
   url.searchParams.set("outputsize", String(request.outputsize));
   url.searchParams.set("order", "asc");
-  url.searchParams.set("apikey", apiKey);
 
-  const response = await fetch(url, { signal: AbortSignal.timeout(6_000) });
+  const response = await fetchTwelveData(url, apiKey, 6_000);
   if (!response.ok) throw new Error("Market data request failed");
   const payload = (await response.json()) as TwelveDataSeriesResponse;
   const parsedPoints = (payload.values ?? []).flatMap(parsePoint);
@@ -189,6 +187,14 @@ async function loadStockSeries(
     isDemo: false,
     points,
   };
+}
+
+/** Sends the key in a header rather than the URL, so it never lands in logs or cache keys. */
+function fetchTwelveData(url: URL, apiKey: string, timeoutMilliseconds: number) {
+  return fetch(url, {
+    headers: { Authorization: `apikey ${apiKey}` },
+    signal: AbortSignal.timeout(timeoutMilliseconds),
+  });
 }
 
 function parsePoint(value: NonNullable<TwelveDataSeriesResponse["values"]>[number]): StockPoint[] {

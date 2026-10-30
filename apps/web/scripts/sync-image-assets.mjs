@@ -1,9 +1,12 @@
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const AVIF_VERSION = "2.1.1";
 const packageDirectory = dirname(fileURLToPath(import.meta.resolve("@jsquash/avif")));
+// The image worker reads the same version, so a dependency bump moves both to a new path.
+const AVIF_VERSION = /** @type {{ version: string }} */ (
+  JSON.parse(await readFile(join(packageDirectory, "package.json"), "utf8"))
+).version;
 const outputDirectory = fileURLToPath(
   new URL(`../public/vendor/jsquash-avif/${AVIF_VERSION}/`, import.meta.url),
 );

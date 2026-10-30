@@ -1,3 +1,5 @@
+import avifPackage from "@jsquash/avif/package.json" with { type: "json" };
+
 import type { CompressionMode } from "./types";
 
 import { targetRatioForMode } from "./optimization-settings";
@@ -345,7 +347,9 @@ function encodeAvifImage(imageData: ImageData, options: Record<string, boolean |
 
 function getAvifWorker() {
   if (avifWorker) return avifWorker;
-  avifWorker = new Worker("/vendor/jsquash-avif/2.1.1/worker.js", { type: "module" });
+  avifWorker = new Worker(`/vendor/jsquash-avif/${avifPackage.version}/worker.js`, {
+    type: "module",
+  });
   avifWorker.addEventListener("message", function receiveAvifResult(event) {
     const result = event.data as { buffer?: ArrayBuffer; error?: string; id: number };
     const pending = pendingAvifRequests.get(result.id);

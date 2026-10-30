@@ -1,12 +1,24 @@
+/** A message as it travels between devices, encrypted separately for each connection. */
 export interface ChatMessage {
   author: string;
   id: string;
+  /** The sending device is forwarding a message that another device wrote. */
+  relayed?: true;
   sentAt: number;
   text: string;
 }
 
-export interface VisibleChatMessage extends ChatMessage {
+export interface VisibleChatMessage {
+  /** For direct messages, the name the connection was paired under; otherwise only a claim. */
+  author: string;
+  id: string;
   isOwn: boolean;
+  /** The paired device that forwarded the message, the only sender that can be verified. */
+  relayedBy?: string;
+  /** Keeps bubbles from different connections apart even when their names match. */
+  senderId: string;
+  sentAt: number;
+  text: string;
 }
 
 export interface EncryptedEnvelope {
@@ -16,15 +28,23 @@ export interface EncryptedEnvelope {
 }
 
 export interface PairingBundle {
+  /** The name the sending device chose, which the other side binds to this connection. */
+  alias?: string;
   description: RTCSessionDescriptionInit;
-  key: string;
+  /** Only the invite carries the key; replies omit it because the inviter already has it. */
+  key?: string;
   version: 1;
 }
 
-export interface PeerSession {
+export interface PeerIdentity {
+  /** The name shown for everything this connection sends, fixed when it opens. */
+  alias: string;
+  id: string;
+}
+
+export interface PeerSession extends PeerIdentity {
   channel: RTCDataChannel;
   connection: RTCPeerConnection;
-  id: string;
   key: CryptoKey;
 }
 
@@ -63,6 +83,7 @@ export interface ChatLabels {
   preparingConnection: string;
   privacyIntro: string;
   readyToConnect: string;
+  relayedVia: string;
   send: string;
   sendInvite: string;
   sendInviteInstruction: string;

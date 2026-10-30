@@ -9,8 +9,9 @@ function createMessage(
   author: string,
   sentAt: number,
   isOwn = false,
+  senderId = isOwn ? "own" : author,
 ): VisibleChatMessage {
-  return { author, id, isOwn, sentAt, text: id };
+  return { author, id, isOwn, senderId, sentAt, text: id };
 }
 
 describe("message grouping", function () {
@@ -46,5 +47,14 @@ describe("message grouping", function () {
       continuesIntoNext: false,
       showsTimestamp: true,
     });
+  });
+
+  it("keeps connections apart even when they share a name", function () {
+    const messages = [
+      createMessage("first", "Quiet Otter", 0, false, "first-connection"),
+      createMessage("second", "Quiet Otter", 30_000, false, "second-connection"),
+    ];
+
+    expect(getMessagePlacement(messages, 1).continuesGroup).toBe(false);
   });
 });

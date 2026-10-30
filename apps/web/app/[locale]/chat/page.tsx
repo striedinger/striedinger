@@ -4,7 +4,7 @@ import type { ChatLabels } from "./types";
 
 import { JsonLd } from "../../../components/json-ld";
 import { createPageMetadata, createWebApplicationStructuredData } from "../../../lib/seo";
-import { getTranslator } from "../../../messages/get-translator";
+import { getChatTranslator } from "../../../messages/chat/get-translator";
 import { getRequestLocale } from "../../get-request-locale";
 import { ChatTool } from "./chat-tool";
 
@@ -13,7 +13,7 @@ const descriptionKey =
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
-  const translate = await getTranslator(locale);
+  const translate = await getChatTranslator(locale);
   const title = translate("Private Nearby Chat");
   const description = translate(descriptionKey);
 
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ChatPage() {
   const locale = await getRequestLocale();
-  const translate = await getTranslator(locale);
+  const translate = await getChatTranslator(locale);
   const title = translate("Nearby Chat - Private local messaging");
   const description = translate(descriptionKey);
   const pairingDescription = translate(
@@ -72,6 +72,7 @@ export default async function ChatPage() {
     preparingConnection: translate("Preparing a private connection…"),
     privacyIntro: translate("Private chat for nearby devices. Messages disappear when you leave."),
     readyToConnect: translate("Ready to connect"),
+    relayedVia: translate("{name} via {peer}"),
     send: translate("Send"),
     sendInvite: translate("Send invite"),
     sendInviteInstruction: translate("Send this invite to the other person."),

@@ -67,13 +67,20 @@ function isPairingBundle(value: unknown): value is PairingBundle {
   const description = bundle.description;
   return (
     bundle.version === 1 &&
-    typeof bundle.key === "string" &&
-    bundle.key.length >= 40 &&
+    (bundle.alias === undefined ||
+      (typeof bundle.alias === "string" && bundle.alias.length <= 40)) &&
     Boolean(description) &&
     (description?.type === "offer" || description?.type === "answer") &&
     typeof description.sdp === "string" &&
-    description.sdp.length <= 24_000
+    description.sdp.length <= 24_000 &&
+    hasValidKey(description.type, bundle.key)
   );
+}
+
+function hasValidKey(descriptionType: "offer" | "answer", key: unknown) {
+  if (typeof key === "string" && key.length >= 40) return true;
+  // Earlier replies echoed the invite's key back; the inviter never reads it, so it may be absent.
+  return descriptionType === "answer" && (key === undefined || typeof key === "string");
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {

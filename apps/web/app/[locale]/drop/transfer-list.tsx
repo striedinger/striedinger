@@ -66,15 +66,17 @@ export function TransferList({ canRetry, items, labels, onRetry }: TransferListP
             ? labels.fileTooLarge
             : item.errorReason === "invalid-payload"
               ? labels.fileInvalid
-              : item.errorReason === "send-failed"
-                ? labels.transferFailed
-                : item.status === "waiting"
-                  ? labels.waiting
-                  : item.status === "sending"
-                    ? `${labels.sending} ${Math.round(item.progress * 100)}%`
-                    : item.direction === "incoming"
-                      ? labels.download
-                      : labels.directConnection;
+              : item.errorReason === "session-limit"
+                ? labels.sessionLimit
+                : item.errorReason === "send-failed"
+                  ? labels.transferFailed
+                  : item.status === "waiting"
+                    ? labels.waiting
+                    : item.status === "sending"
+                      ? `${labels.sending} ${Math.round(item.progress * 100)}%`
+                      : item.direction === "incoming"
+                        ? labels.download
+                        : labels.directConnection;
 
         return (
           <li

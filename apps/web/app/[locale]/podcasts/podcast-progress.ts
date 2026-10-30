@@ -7,7 +7,7 @@ const progressStorageKey = "podcast-progress:v1";
 const maximumProgressItems = 30;
 
 interface StoredProgress {
-  items: PodcastProgress[];
+  items: unknown[];
   version: 1;
 }
 
@@ -17,7 +17,8 @@ export function readPodcastProgress(): PodcastProgress[] {
     if (!storedValue) return [];
     const parsedValue = JSON.parse(storedValue) as unknown;
     if (!isStoredProgress(parsedValue)) throw new Error("Invalid podcast progress");
-    return parsedValue.items.slice(0, maximumProgressItems);
+    // One unusable entry, such as a link with an unsafe scheme, should not erase the rest.
+    return parsedValue.items.filter(isProgressItem).slice(0, maximumProgressItems);
   } catch {
     removeStoredValue(progressStorageKey);
     return [];
@@ -87,7 +88,7 @@ function writeProgress(items: PodcastProgress[]) {
 function isStoredProgress(value: unknown): value is StoredProgress {
   if (typeof value !== "object" || value === null) return false;
   const stored = value as Partial<StoredProgress>;
-  return stored.version === 1 && Array.isArray(stored.items) && stored.items.every(isProgressItem);
+  return stored.version === 1 && Array.isArray(stored.items);
 }
 
 function isProgressItem(value: unknown): value is PodcastProgress {

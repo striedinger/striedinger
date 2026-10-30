@@ -4,13 +4,21 @@ import { PreviewError } from "./preview-error";
 
 const maximumTagValueLength = 4_096;
 const maximumDocumentMetadataTags = 98;
+// Real heads are a few kilobytes. The cap, together with patterns that stop at the next "<" and
+// bounded repetitions, keeps every scan below linear in the input, so a hostile page cannot pin
+// the CPU with an unterminated tag.
+const maximumHeadLength = 131_072;
+const metaTagPattern = /<meta\s[^<>]{0,2048}>/gi;
+const linkTagPattern = /<link\s[^<>]{0,2048}>/gi;
+const titleOpenTagPattern = /<title(?:\s[^<>]{0,2048})?>/i;
+const titleCloseTagPattern = /<\/title\s{0,64}>/i;
 
 export function parsePageMetadata(html: string, pageUrl: URL): PageMetadata {
-  const [head = ""] = html.split(/<\/head\s*>/i, 1);
+  const [head = ""] = html.slice(0, maximumHeadLength).split(/<\/head\s{0,64}>/i, 1);
   const metadata = new Map<string, string>();
   const tags: MetadataTag[] = [];
 
-  for (const tag of head.match(/<meta\s+[^>]*>/gi) ?? []) {
+  for (const tag of head.match(metaTagPattern) ?? []) {
     const attributes = parseAttributes(tag);
     const name = (
       attributes["property"] ??
@@ -102,7 +110,7 @@ function isXPage(pageUrl: URL): boolean {
 
 function parseAttributes(tag: string): Record<string, string> {
   const attributes: Record<string, string> = {};
-  const attributePattern = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+  const attributePattern = /([\w:-]{1,64})\s{0,64}=\s{0,64}(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
 
   for (const [, name, doubleQuoted, singleQuoted, unquoted] of tag.matchAll(attributePattern)) {
     if (name) attributes[name.toLowerCase()] = doubleQuoted ?? singleQuoted ?? unquoted ?? "";
@@ -112,12 +120,19 @@ function parseAttributes(tag: string): Record<string, string> {
 }
 
 function extractDocumentTitle(head: string): string {
-  const title = head.match(/<title[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1];
+  const openTag = titleOpenTagPattern.exec(head);
+  if (!openTag) return "";
+
+  // Searching for the closing tag once, after the first opening tag, stays linear where a lazy
+  // capture would rescan the rest of the head from every unclosed "<title".
+  const titleAndRest = head.slice(openTag.index + openTag[0].length);
+  const closeTagIndex = titleAndRest.search(titleCloseTagPattern);
+  const title = closeTagIndex === -1 ? "" : titleAndRest.slice(0, closeTagIndex);
   return title ? decodeHtmlEntities(title.replace(/\s+/g, " ").trim()) : "";
 }
 
 function resolveCanonicalUrl(head: string, pageUrl: URL): string {
-  for (const tag of head.match(/<link\s+[^>]*>/gi) ?? []) {
+  for (const tag of head.match(linkTagPattern) ?? []) {
     const attributes = parseAttributes(tag);
 
     if (attributes["rel"]?.toLowerCase() === "canonical") {
@@ -151,7 +166,7 @@ function decodeHtmlEntities(value: string): string {
   };
 
   return value.replace(
-    /&(#x?[\da-f]+|[a-z]+);/gi,
+    /&(#x?[\da-f]{1,8}|[a-z]{1,32});/gi,
     function decodeEntity(entity: string, code: string) {
       if (!code.startsWith("#")) return namedEntities[code.toLowerCase()] ?? entity;
 

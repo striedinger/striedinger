@@ -91,4 +91,30 @@ describe("podcast progress storage", function () {
     savePodcastProgress(podcast, episode, 55, 60);
     expect(readPodcastProgress()).toEqual([]);
   });
+
+  it("drops a stored episode with an unsafe audio link and keeps the others", function () {
+    const progressItem = {
+      podcast,
+      positionSeconds: 15,
+      durationSeconds: 60,
+      updatedAt: "2026-07-19T00:00:00.000Z",
+    };
+    const unsafeEpisode = { ...createEpisode(1), audioUrl: "javascript:alert(1)" };
+    window.localStorage.setItem(
+      "podcast-progress:v1",
+      JSON.stringify({
+        version: 1,
+        items: [
+          { ...progressItem, episode: unsafeEpisode },
+          { ...progressItem, episode: createEpisode(2) },
+        ],
+      }),
+    );
+
+    expect(
+      readPodcastProgress().map(function getEpisodeId(item) {
+        return item.episode.id;
+      }),
+    ).toEqual(["episode-2"]);
+  });
 });

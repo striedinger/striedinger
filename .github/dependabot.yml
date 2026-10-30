@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Actions are pinned to commit SHAs, so Dependabot proposes each new release as a pin update.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

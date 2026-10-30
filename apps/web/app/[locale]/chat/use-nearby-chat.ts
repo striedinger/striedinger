@@ -10,6 +10,7 @@ import type {
   VisibleChatMessage,
 } from "./types";
 
+import { attributeReceivedMessage, createRelayedMessage } from "./message-attribution";
 import {
   createMessageKey,
   decryptMessage,
@@ -17,10 +18,13 @@ import {
   importMessageKey,
 } from "./message-crypto";
 import { MessageRateLimiter } from "./message-rate-limiter";
+import { choosePeerAlias, createAnonymousAlias } from "./peer-alias";
 import { RecentMessageIds } from "./recent-message-ids";
 import { decodePairingBundle, encodePairingBundle, waitForIceGathering } from "./signaling";
 
 const maximumMessagesPerPeerPerSecond = 30;
+// Peer ids are UUIDs, so this can never match a connection's sender id.
+const ownSenderId = "own";
 
 const maximumRememberedMessageIds = 1_000;
 const maximumVisibleMessages = 500;
@@ -33,6 +37,8 @@ const peerConnectionConfiguration: RTCConfiguration = {
 interface PendingPairing {
   connection: RTCPeerConnection;
   key: CryptoKey;
+  /** The name the other device sent while pairing; the inviter learns it from the reply. */
+  remoteAlias: string | undefined;
 }
 
 export function useNearbyChat(labels: ChatLabels) {
@@ -77,17 +83,15 @@ export function useNearbyChat(labels: ChatLabels) {
       assertSupported();
       const connection = createPeerConnection();
       const { exported, key } = await createMessageKey();
-      pendingPairing.current = { connection, key };
-      registerChannel(
-        connection,
-        connection.createDataChannel("nearby-chat", { ordered: true }),
-        key,
-      );
+      const pairing: PendingPairing = { connection, key, remoteAlias: undefined };
+      pendingPairing.current = pairing;
+      registerChannel(pairing, connection.createDataChannel("nearby-chat", { ordered: true }));
       await connection.setLocalDescription(await connection.createOffer());
       await waitForIceGathering(connection);
       if (!connection.localDescription) throw new Error("No local connection description");
       setPairingCode(
         await encodePairingBundle({
+          alias,
           description: connection.localDescription.toJSON(),
           key: exported,
           version: 1,
@@ -108,12 +112,15 @@ export function useNearbyChat(labels: ChatLabels) {
     try {
       assertSupported();
       const invite = await decodePairingBundle(inviteCode);
-      if (invite.description.type !== "offer") throw new Error("Expected an offer");
+      if (invite.description.type !== "offer" || invite.key === undefined) {
+        throw new Error("Expected an offer");
+      }
       const connection = createPeerConnection();
       const key = await importMessageKey(invite.key);
-      pendingPairing.current = { connection, key };
+      const pairing: PendingPairing = { connection, key, remoteAlias: invite.alias };
+      pendingPairing.current = pairing;
       connection.addEventListener("datachannel", function receiveDataChannel(event) {
-        registerChannel(connection, event.channel, key);
+        registerChannel(pairing, event.channel);
       });
       await connection.setRemoteDescription(invite.description);
       await connection.setLocalDescription(await connection.createAnswer());
@@ -121,8 +128,8 @@ export function useNearbyChat(labels: ChatLabels) {
       if (!connection.localDescription) throw new Error("No local connection description");
       setPairingCode(
         await encodePairingBundle({
+          alias,
           description: connection.localDescription.toJSON(),
-          key: invite.key,
           version: 1,
         }),
       );
@@ -141,6 +148,7 @@ export function useNearbyChat(labels: ChatLabels) {
     try {
       const answer = await decodePairingBundle(answerCode);
       if (answer.description.type !== "answer") throw new Error("Expected an answer");
+      pending.remoteAlias = answer.alias;
       await pending.connection.setRemoteDescription(answer.description);
     } catch {
       setConnectionError(labels.invalidAnswer);
@@ -165,7 +173,7 @@ export function useNearbyChat(labels: ChatLabels) {
       text: normalizedText,
     };
     seenMessageIds.current.add(message.id);
-    appendMessage(message, true);
+    appendMessage({ ...message, isOwn: true, senderId: ownSenderId });
     await broadcastMessage(message);
     return true;
   }
@@ -180,13 +188,16 @@ export function useNearbyChat(labels: ChatLabels) {
     return connection;
   }
 
-  function registerChannel(connection: RTCPeerConnection, channel: RTCDataChannel, key: CryptoKey) {
+  function registerChannel(pairing: PendingPairing, channel: RTCDataChannel) {
+    const { connection, key } = pairing;
     const peerId = crypto.randomUUID();
     const messageRateLimiter = new MessageRateLimiter(maximumMessagesPerPeerPerSecond, 1_000);
     channel.binaryType = "arraybuffer";
 
     channel.addEventListener("open", function addPeer() {
-      peers.current.set(peerId, { channel, connection, id: peerId, key });
+      const takenAliases = [alias, ...Array.from(peers.current.values(), getPeerAlias)];
+      const peerAlias = choosePeerAlias(pairing.remoteAlias, takenAliases, labels.anonymousAlias);
+      peers.current.set(peerId, { alias: peerAlias, channel, connection, id: peerId, key });
       setPeerCount(peers.current.size);
       setPairingCode("");
       setPairingState("idle");
@@ -214,10 +225,12 @@ export function useNearbyChat(labels: ChatLabels) {
   async function receiveEncryptedMessage(sourcePeerId: string, key: CryptoKey, payload: string) {
     try {
       const message = await decryptMessage(key, payload);
-      if (seenMessageIds.current.has(message.id)) return;
+      const sender = peers.current.get(sourcePeerId);
+      if (!sender || seenMessageIds.current.has(message.id)) return;
       seenMessageIds.current.add(message.id);
-      appendMessage(message, false);
-      await broadcastMessage(message, sourcePeerId);
+      const visibleMessage = attributeReceivedMessage(message, sender, labels.anonymousAlias);
+      appendMessage(visibleMessage);
+      await broadcastMessage(createRelayedMessage(visibleMessage), sourcePeerId);
     } catch {
       // Ignore malformed or unauthenticated packets without disrupting the room.
     }
@@ -237,9 +250,9 @@ export function useNearbyChat(labels: ChatLabels) {
     await Promise.all(sends);
   }
 
-  function appendMessage(message: ChatMessage, isOwn: boolean) {
+  function appendMessage(message: VisibleChatMessage) {
     setMessages(function addMessage(currentMessages) {
-      return [...currentMessages.slice(-(maximumVisibleMessages - 1)), { ...message, isOwn }];
+      return [...currentMessages.slice(-(maximumVisibleMessages - 1)), message];
     });
   }
 
@@ -270,15 +283,12 @@ export function useNearbyChat(labels: ChatLabels) {
   };
 }
 
+function getPeerAlias(peer: PeerSession) {
+  return peer.alias;
+}
+
 function assertSupported() {
   if (!("RTCPeerConnection" in window) || !("subtle" in globalThis.crypto)) {
     throw new Error("Nearby chat is unsupported");
   }
-}
-
-function createAnonymousAlias(): string {
-  const adjectives = ["Amber", "Blue", "Bright", "Calm", "Copper", "Quiet", "Silver", "Swift"];
-  const animals = ["Badger", "Finch", "Fox", "Heron", "Moth", "Otter", "Owl", "Wren"];
-  const [adjectiveValue = 0, animalValue = 0] = crypto.getRandomValues(new Uint16Array(2));
-  return `${adjectives[adjectiveValue % adjectives.length]} ${animals[animalValue % animals.length]}`;
 }

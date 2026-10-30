@@ -1,5 +1,4 @@
 import { Text } from "@workspace/ui/components/text";
-import { headers } from "next/headers";
 
 import type { PageMetadata, PreviewErrorCode } from "../../../lib/og/types";
 import type { CardPreview } from "./card-preview";
@@ -8,6 +7,8 @@ import { IosCopyRowButton } from "../../../components/ios/ios-copy-row-button";
 import { IosListSection } from "../../../components/ios/ios-list-section";
 import { IosValueRow } from "../../../components/ios/ios-value-row";
 import { SocialCardPreview } from "../../../components/social-card-preview";
+import { siteUrl } from "../../../lib/seo";
+import { canonicalizeCardTarget, createCardLinkPath } from "../../r/card-link-signature";
 import { resolveCardPreview } from "./card-preview";
 
 interface CardResultProps {
@@ -77,12 +78,9 @@ export async function CardResult({ targetUrl }: CardResultProps) {
 }
 
 async function getTrackedUrl(preview: Extract<CardPreview, { status: "ready" }>) {
-  const query = new URLSearchParams({ url: preview.targetUrl });
-  const headerList = await headers();
-  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-  const path = `/r?${query.toString()}`;
-
-  return host ? `https://${host}${path}` : path;
+  // A ready preview fetched the target, so it is already a valid http(s) URL.
+  const targetUrl = canonicalizeCardTarget(preview.targetUrl) ?? preview.targetUrl;
+  return `${siteUrl}${await createCardLinkPath(targetUrl)}`;
 }
 
 function getCardMetadata(preview: Extract<CardPreview, { status: "ready" }>): PageMetadata {

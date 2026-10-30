@@ -41,6 +41,7 @@ export async function decryptMessage(key: CryptoKey, payload: string): Promise<C
   return {
     author: message.author,
     id: message.id,
+    ...(message.relayed ? { relayed: true } : {}),
     sentAt: message.sentAt,
     text: message.text,
   };
@@ -59,11 +60,13 @@ function isEncryptedEnvelope(value: unknown): value is EncryptedEnvelope {
 function isChatMessage(value: unknown): value is ChatMessage {
   if (typeof value !== "object" || value === null) return false;
   const message = value as Partial<ChatMessage>;
+  const relayed: unknown = message.relayed;
   return (
     typeof message.author === "string" &&
     message.author.length <= 40 &&
     typeof message.id === "string" &&
     message.id.length <= 80 &&
+    (relayed === undefined || relayed === true) &&
     typeof message.sentAt === "number" &&
     Number.isSafeInteger(message.sentAt) &&
     message.sentAt >= 0 &&

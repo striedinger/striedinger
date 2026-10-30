@@ -18,8 +18,11 @@ export interface DropLabels {
   joinCode: string;
   joinHint: string;
   invalidCode: string;
+  latePeerHint: string;
+  latePeerJoined: string;
   noFiles: string;
   noPeers: string;
+  notNow: string;
   onePeer: string;
   peers: string;
   preparing: string;
@@ -28,7 +31,10 @@ export interface DropLabels {
   roomError: string;
   retry: string;
   selectFiles: string;
+  sendFiles: string;
   sending: string;
+  sendOneFile: string;
+  sessionLimit: string;
   share: string;
   shareHint: string;
   title: string;
@@ -43,7 +49,7 @@ export interface SharedFile {
 
 type TransferDirection = "incoming" | "outgoing";
 type TransferStatus = "complete" | "error" | "sending" | "waiting";
-type TransferErrorReason = "file-too-large" | "invalid-payload" | "send-failed";
+type TransferErrorReason = "file-too-large" | "invalid-payload" | "send-failed" | "session-limit";
 
 export interface TransferItem {
   direction: TransferDirection;
@@ -61,5 +67,4 @@ export interface TransferMetadata {
   lastModified: number;
   name: string;
   size: number;
-  type: string;
 }

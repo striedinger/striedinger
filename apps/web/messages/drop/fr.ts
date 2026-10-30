@@ -42,4 +42,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "Envoyez le lien privé ou le code du salon à un autre appareil.",
   "Transfer failed": "Échec du transfert",
   "Ready to send": "Prêt à envoyer",
+  "Files you added earlier are not sent automatically.":
+    "Les fichiers ajoutés précédemment ne sont pas envoyés automatiquement.",
+  "A new device joined": "Un nouvel appareil s’est connecté",
+  "Not now": "Plus tard",
+  "Send {count} files": "Envoyer {count} fichiers",
+  "Send 1 file": "Envoyer 1 fichier",
+  "Over this session’s limit of 50 files or 500 MB":
+    "Dépasse la limite de cette session de 50 fichiers ou 500 Mo",
 };

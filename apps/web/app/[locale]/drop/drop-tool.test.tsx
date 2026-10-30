@@ -4,11 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DropLabels } from "./types";
 
 import { DropTool } from "./drop-tool";
-import { maximumFileSizeBytes } from "./transfer-limits";
+import {
+  maximumFileSizeBytes,
+  maximumSessionReceiveBytes,
+  maximumSessionReceiveFiles,
+} from "./transfer-limits";
 
 const peerState = vi.hoisted(function createPeerState() {
   const action = {
     onMessage: null,
+    onReceive: null,
     onReceiveProgress: null,
     send: vi.fn<(data?: unknown, options?: unknown) => Promise<void>>(function sendFile() {
       return Promise.resolve();
@@ -70,8 +75,11 @@ const labels: DropLabels = {
   joinCode: "Code",
   joinHint: "Have a code?",
   invalidCode: "Invalid room code",
+  latePeerHint: "Earlier files are not sent automatically",
+  latePeerJoined: "A new device joined",
   noFiles: "No files",
   noPeers: "Waiting for another device",
+  notNow: "Not now",
   onePeer: "1 device connected",
   peers: "{count} devices connected",
   preparing: "Preparing",
@@ -80,7 +88,10 @@ const labels: DropLabels = {
   roomError: "Error",
   retry: "Retry",
   selectFiles: "Select files",
+  sendFiles: "Send {count} files",
   sending: "Sending",
+  sendOneFile: "Send 1 file",
+  sessionLimit: "Session limit reached",
   share: "Share invite",
   shareHint: "Share this",
   title: "Drop",
@@ -90,11 +101,26 @@ const labels: DropLabels = {
 
 beforeEach(function resetPeerState() {
   vi.stubGlobal("RTCPeerConnection", MockRTCPeerConnection);
+  createdObjectUrlSources.length = 0;
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: function createObjectUrl(source: Blob) {
+      createdObjectUrlSources.push(source);
+      return `blob:drop/${createdObjectUrlSources.length}`;
+    },
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: ignoreRevokedObjectUrl,
+  });
   window.history.replaceState(null, "", "/drop");
   peerState.action.send.mockReset();
   peerState.action.send.mockImplementation(function sendFile() {
     return Promise.resolve();
   });
+  peerState.action.onMessage = null;
+  peerState.action.onReceive = null;
+  peerState.action.onReceiveProgress = null;
   peerState.room.onPeerJoin = null;
   peerState.room.onPeerLeave = null;
   for (const peerId of Object.keys(peerState.peers))
@@ -107,31 +133,64 @@ afterEach(function cleanUpDropTool() {
 });
 
 describe("DropTool", function () {
-  it("queues selected files and sends them when a device connects", async function () {
+  it("asks before sending earlier files to a device that joins later", async function () {
     render(<DropTool labels={labels} />);
-
-    await waitFor(function waitForRoom() {
-      expect(screen.queryByText(labels.preparing)).not.toBeInTheDocument();
-    });
+    await waitForForRoom();
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
     selectFiles([file]);
 
     expect(screen.getByText(file.name)).toBeInTheDocument();
     expect(screen.getByText(/Ready to send/)).toBeInTheDocument();
 
-    await waitFor(function waitForPeerHandler() {
-      expect(peerState.room.onPeerJoin).toBeTypeOf("function");
-    });
     await actAndSettle(function connectPeer() {
       peerState.room.onPeerJoin?.("peer-1");
+    });
+
+    expect(peerState.action.send).not.toHaveBeenCalled();
+    await actAndSettle(function confirmSend() {
+      fireEvent.click(screen.getByRole("button", { name: labels.sendOneFile }));
     });
 
     expect(peerState.action.send).toHaveBeenCalledWith(
       file,
       expect.objectContaining({ target: ["peer-1"] }),
     );
+    expect(screen.queryByText(labels.latePeerJoined)).not.toBeInTheDocument();
     await waitFor(function waitForTransfer() {
       expect(screen.getByText(/Sent directly/)).toBeInTheDocument();
+    });
+  });
+
+  it("sends only to the new device and keeps withheld files from it when dismissed", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+    await actAndSettle(function connectFirstPeer() {
+      peerState.room.onPeerJoin?.("peer-1");
+    });
+    const earlierFile = new File(["earlier"], "earlier.txt");
+    selectFiles([earlierFile]);
+    await waitFor(function waitForFirstSend() {
+      expect(peerState.action.send).toHaveBeenCalledWith(
+        earlierFile,
+        expect.objectContaining({ target: ["peer-1"] }),
+      );
+    });
+
+    await actAndSettle(function connectLatePeer() {
+      peerState.room.onPeerJoin?.("peer-2");
+    });
+    fireEvent.click(screen.getByRole("button", { name: labels.notNow }));
+
+    expect(screen.queryByText(labels.latePeerJoined)).not.toBeInTheDocument();
+    expect(peerState.action.send).toHaveBeenCalledOnce();
+
+    const laterFile = new File(["later"], "later.txt");
+    selectFiles([laterFile]);
+    await waitFor(function waitForBroadcast() {
+      expect(peerState.action.send).toHaveBeenLastCalledWith(
+        laterFile,
+        expect.objectContaining({ target: ["peer-1", "peer-2"] }),
+      );
     });
   });
 
@@ -251,10 +310,6 @@ describe("DropTool", function () {
     await waitForForRoom();
 
     act(function receiveInvalidPayload() {
-      const receiveMessage = peerState.action.onMessage as unknown as (
-        data: ArrayBuffer,
-        context: { metadata: unknown; peerId: string },
-      ) => void;
       receiveMessage(new ArrayBuffer(2), {
         metadata: {
           id: "invalid-file",
@@ -272,6 +327,135 @@ describe("DropTool", function () {
     expect(
       screen.queryByRole("link", { name: `${labels.download} invalid.txt` }),
     ).not.toBeInTheDocument();
+  });
+
+  it("stores received files as downloads that cannot render as a page", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    act(function receiveHtmlFile() {
+      receiveMessage(new TextEncoder().encode("<script>alert(1)</script>"), {
+        metadata: { ...createMetadata("page", 25), name: "page.html", type: "text/html" },
+        peerId: "peer-1",
+      });
+    });
+
+    expect(createdObjectUrlSources).toHaveLength(1);
+    expect(createdObjectUrlSources[0]?.type).toBe("application/octet-stream");
+    expect(screen.getByRole("link", { name: `${labels.download} page.html` })).toHaveAttribute(
+      "download",
+      "page.html",
+    );
+  });
+
+  it("displays and downloads received files under a sanitized name", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    act(function receiveSpoofedName() {
+      receiveMessage(new Uint8Array(3), {
+        metadata: { ...createMetadata("spoof", 3), name: "report\u202Efdp.exe" },
+        peerId: "peer-1",
+      });
+    });
+
+    const link = screen.getByRole("link", { name: `${labels.download} reportfdp.exe` });
+    expect(link).toHaveAttribute("download", "reportfdp.exe");
+    expect(screen.getByText("reportfdp.exe")).toBeInTheDocument();
+  });
+
+  it("keeps transfers from different peers apart when they reuse an id", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    act(function receiveCollidingTransfers() {
+      receiveMessage(new Uint8Array(1), {
+        metadata: { ...createMetadata("same-id", 1), name: "first.txt" },
+        peerId: "peer-1",
+      });
+      receiveMessage(new Uint8Array(1), {
+        metadata: { ...createMetadata("same-id", 1), name: "second.txt" },
+        peerId: "peer-2",
+      });
+    });
+
+    expect(screen.getByRole("link", { name: `${labels.download} first.txt` })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: `${labels.download} second.txt` })).toBeInTheDocument();
+  });
+
+  it("refuses an oversized incoming file before it is buffered", async function () {
+    const close = vi.fn<() => void>();
+    peerState.peers["unsafe-peer"] = { close } as unknown as RTCPeerConnection;
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    let admitted: boolean | undefined;
+    act(function announceOversizedFile() {
+      admitted = admitIncomingFile(
+        maximumFileSizeBytes + 1,
+        { ...createMetadata("huge", maximumFileSizeBytes + 1), name: "huge.iso" },
+        "unsafe-peer",
+      );
+    });
+
+    expect(admitted).toBe(false);
+    expect(close).toHaveBeenCalledOnce();
+    expect(screen.getByText(labels.fileTooLarge, { exact: false })).toBeInTheDocument();
+  });
+
+  it("refuses files beyond the session's file count limit", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    const decisions: boolean[] = [];
+    act(function announceManyFiles() {
+      for (let index = 0; index <= maximumSessionReceiveFiles; index += 1) {
+        decisions.push(admitIncomingFile(1, createMetadata(`file-${index}`, 1), "peer-1"));
+      }
+    });
+
+    expect(decisions.filter(Boolean)).toHaveLength(maximumSessionReceiveFiles);
+    expect(decisions.at(-1)).toBe(false);
+    expect(screen.getByText(labels.sessionLimit, { exact: false })).toBeInTheDocument();
+  });
+
+  it("disconnects a peer that keeps sending once the session is full", async function () {
+    const close = vi.fn<() => void>();
+    peerState.peers["persistent-peer"] = { close } as unknown as RTCPeerConnection;
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    act(function announcePastTheLimit() {
+      for (let index = 0; index < maximumSessionReceiveFiles + 5; index += 1) {
+        admitIncomingFile(1, createMetadata(`file-${index}`, 1), "persistent-peer");
+      }
+    });
+
+    expect(screen.getAllByText(labels.sessionLimit, { exact: false })).toHaveLength(1);
+    expect(close).toHaveBeenCalled();
+  });
+
+  it("refuses files beyond the session's total size limit", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+    const fileCountAtLimit = maximumSessionReceiveBytes / maximumFileSizeBytes;
+
+    const decisions: boolean[] = [];
+    act(function announceLargeFiles() {
+      for (let index = 0; index <= fileCountAtLimit; index += 1) {
+        decisions.push(
+          admitIncomingFile(
+            maximumFileSizeBytes,
+            createMetadata(`large-${index}`, maximumFileSizeBytes),
+            "peer-1",
+          ),
+        );
+      }
+    });
+
+    expect(decisions.filter(Boolean)).toHaveLength(fileCountAtLimit);
+    expect(decisions.at(-1)).toBe(false);
+    expect(screen.getByText(labels.sessionLimit, { exact: false })).toBeInTheDocument();
   });
 
   it("shows a connection error when WebRTC setup is unavailable", async function () {
@@ -342,6 +526,42 @@ describe("DropTool", function () {
   });
 });
 
+interface ReceiveContext {
+  metadata: unknown;
+  peerId: string;
+}
+
+const createdObjectUrlSources: Blob[] = [];
+
+function createMetadata(id: string, size: number) {
+  return { id, lastModified: 0, name: `${id}.bin`, size, type: "application/octet-stream" };
+}
+
+function receiveMessage(data: ArrayBuffer | Uint8Array, context: ReceiveContext) {
+  const onMessage = peerState.action.onMessage as unknown as (
+    data: ArrayBuffer | Uint8Array,
+    context: ReceiveContext,
+  ) => void;
+  onMessage(data, context);
+}
+
+function admitIncomingFile(byteLength: number, metadata: unknown, peerId: string) {
+  const onReceive = peerState.action.onReceive as unknown as (context: {
+    byteLength: number;
+    kind: "message";
+    metadata: unknown;
+    peerId: string;
+    signal: AbortSignal;
+  }) => boolean;
+  return onReceive({
+    byteLength,
+    kind: "message",
+    metadata,
+    peerId,
+    signal: new AbortController().signal,
+  });
+}
+
 async function waitForForRoom() {
   await waitFor(function waitForRoom() {
     expect(screen.queryByText(labels.preparing)).not.toBeInTheDocument();
@@ -366,3 +586,5 @@ function selectFiles(files: File[]) {
 }
 
 function MockRTCPeerConnection() {}
+
+function ignoreRevokedObjectUrl() {}

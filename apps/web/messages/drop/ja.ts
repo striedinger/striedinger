@@ -41,4 +41,12 @@ export const messages: TranslationCatalog<typeof englishMessages> = {
     "プライベートリンクまたはルームコードを別のデバイスに送信してください。",
   "Transfer failed": "転送に失敗しました",
   "Ready to send": "送信準備完了",
+  "Files you added earlier are not sent automatically.":
+    "以前に追加したファイルは自動では送信されません。",
+  "A new device joined": "新しいデバイスが参加しました",
+  "Not now": "今はしない",
+  "Send {count} files": "{count} ファイルを送信",
+  "Send 1 file": "1 ファイルを送信",
+  "Over this session’s limit of 50 files or 500 MB":
+    "このセッションの上限（50 ファイルまたは 500 MB）を超えています",
 };

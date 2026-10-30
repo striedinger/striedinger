@@ -8,4 +8,19 @@ allowBuilds:
   protobufjs: false
   sharp: true
 
+# Transformers.js pins a nightly ONNX Runtime; the stable release of the same line replaces it.
+overrides:
+  onnxruntime-common: 1.31.1
+  onnxruntime-web: 1.31.1
+
 verifyDepsBeforeRun: warn
+
+# A version must be public for a day before it can be installed, which gives the registry time
+# to pull a compromised release, and a package may not lose the provenance it had before.
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  # The 6.x line was published by hand, before npm provenance; 7.x carries provenance.
+  - semver@6.3.1
+  # Built with provenance from oxc-project/tsrs's release workflow, like the releases before it.
+  - tsrs@0.20.1-ts7.1.0-beta
