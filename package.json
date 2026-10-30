@@ -9,8 +9,8 @@
     "format:check": "oxfmt --check .",
     "knip": "knip",
     "knip:fix": "knip --fix --allow-remove-files --format",
-    "lint": "oxlint . --deny-warnings --report-unused-disable-directives",
-    "lint:fix": "oxlint . --fix --deny-warnings --report-unused-disable-directives",
+    "lint": "pnpm --filter web typegen && oxlint . --deny-warnings --report-unused-disable-directives",
+    "lint:fix": "pnpm --filter web typegen && oxlint . --fix --deny-warnings --report-unused-disable-directives",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "turbo typecheck"

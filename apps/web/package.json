@@ -8,7 +8,8 @@
     "prebuild": "node scripts/sync-runtime-assets.mjs",
     "predev": "node scripts/sync-runtime-assets.mjs",
     "start": "next start",
-    "typecheck": "next typegen && tsrs --noEmit"
+    "typecheck": "next typegen && tsrs --noEmit",
+    "typegen": "next typegen"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
