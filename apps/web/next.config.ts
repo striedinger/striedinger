@@ -14,6 +14,28 @@ function createContentSecurityPolicy(frameAncestors: string) {
   ].join("; ");
 }
 
+// Reported, not enforced: browsers send what this stricter policy would block to /csp-report,
+// which shows whether it could be enforced (with per-request nonces in place of 'unsafe-inline').
+const reportOnlyContentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https:",
+  "font-src 'self' data:",
+  // Speech models download from Hugging Face; Drop signals through Nostr relays over wss.
+  "connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co wss:",
+  "worker-src 'self' blob:",
+  "frame-src 'none'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "require-trusted-types-for 'script'",
+  "report-uri /csp-report",
+  "report-to csp",
+].join("; ");
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   images: {
@@ -33,6 +55,8 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: [
           { key: "Content-Security-Policy", value: createContentSecurityPolicy("'none'") },
+          { key: "Content-Security-Policy-Report-Only", value: reportOnlyContentSecurityPolicy },
+          { key: "Reporting-Endpoints", value: 'csp="/csp-report"' },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
         ],

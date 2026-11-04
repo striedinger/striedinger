@@ -79,9 +79,12 @@ function getAiCrawlerRequestOverrides(request: NextRequest, userAgent: string) {
   return { request: { headers } };
 }
 
-/** Pages and their Open Graph images live under [locale]; files and the redirect logger do not. */
+/**
+ * Pages and their Open Graph images live under [locale]; files, the redirect logger, and the
+ * policy report collector do not.
+ */
 function isLocalizedRoute(pathname: string) {
-  if (pathname === "/r" || pathname.startsWith("/r/")) return false;
+  if (pathname === "/r" || pathname.startsWith("/r/") || pathname === "/csp-report") return false;
   const lastSegment = pathname.split("/").at(-1) ?? "";
   return !lastSegment.includes(".");
 }
