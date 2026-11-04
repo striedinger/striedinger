@@ -22,13 +22,13 @@ import { PencilIcon } from "@workspace/icons/pencil-icon";
 import { PhotoIcon } from "@workspace/icons/photo-icon";
 import { PodcastIcon } from "@workspace/icons/podcast-icon";
 import { TramIcon } from "@workspace/icons/tram-icon";
-import Link from "next/link";
 
 import type { IosAppSwitcherLabels } from "./ios-app-switcher-context";
 
 import { useOpenAfterMount } from "../use-open-after-mount";
 import { IosAppIcon } from "./ios-app-icon";
 import { IosBarButton } from "./ios-bar-button";
+import { IosIntentPrefetchLink } from "./ios-intent-prefetch-link";
 import { useIosPortalContainer } from "./ios-portal-container";
 
 interface IosAppSwitcherSheetProps {
@@ -145,7 +145,7 @@ export function IosAppSwitcherSheet({
   function renderRow(destination: SwitcherDestination) {
     return (
       <li key={destination.href} className={rowClassName}>
-        <Link
+        <IosIntentPrefetchLink
           href={destination.href}
           aria-current={destination.href === currentHref ? "page" : undefined}
           className={rowLinkClassName}
@@ -160,7 +160,7 @@ export function IosAppSwitcherSheet({
             className="size-3.5 shrink-0 text-ios-tertiary-label"
             strokeWidth={3}
           />
-        </Link>
+        </IosIntentPrefetchLink>
       </li>
     );
   }
@@ -197,7 +197,7 @@ export function IosAppSwitcherSheet({
                       const isCurrent = app.href === currentHref;
                       return (
                         <li key={app.href} className="flex justify-center">
-                          <Link
+                          <IosIntentPrefetchLink
                             href={app.href}
                             aria-current={isCurrent ? "page" : undefined}
                             className="group flex w-full flex-col items-center gap-1.5 rounded-ios-lg outline-none select-none focus-visible:ring-2 focus-visible:ring-ios-tint/60"
@@ -211,7 +211,7 @@ export function IosAppSwitcherSheet({
                             <span className="max-w-full truncate text-ios-caption1 tracking-[0] text-ios-label group-aria-current:font-semibold">
                               {getName(app)}
                             </span>
-                          </Link>
+                          </IosIntentPrefetchLink>
                         </li>
                       );
                     })}
