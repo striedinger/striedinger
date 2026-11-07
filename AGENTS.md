@@ -6,7 +6,7 @@ These guidelines apply to the entire monorepo. Update this file as the projectâ€
 
 - Maintain the project as a TypeScript monorepo orchestrated by Turborepo.
 - Use pnpm exclusively. Keep the root `packageManager` field and `pnpm-lock.yaml` authoritative; do not introduce npm or Yarn lockfiles.
-- Target the latest Node.js LTS release and keep `.node-version`, `.nvmrc`, and the root `engines.node` range aligned.
+- Target the latest Node.js LTS release and keep `.node-version`, `.nvmrc`, and the `engines.node` ranges in the root and `apps/web` manifests aligned. Vercel builds from `apps/web` and takes its Node.js version from that manifest.
 - Keep reusable code in focused workspace packages and applications under `apps/`.
 - Use Tailwind CSS utilities for application styling; do not introduce CSS Modules for ordinary component styling.
 - Run the relevant package typechecks after changes and run a production build when changes affect Next.js compilation, routing, server actions, metadata, or shared styles.
