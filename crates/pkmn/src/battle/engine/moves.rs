@@ -3,9 +3,10 @@
 use std::cmp::Ordering;
 
 use super::Engine;
+use super::Positions;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
 use crate::battle::state::MAX_MOVES;
-use crate::battle::state::{LockedMove, SideConditionState, SideId, Stall};
+use crate::battle::state::{LockedMove, Position, SideConditionState, SideId, Stall};
 use crate::dex::{
     CallsMove, Handler, HandlerMask, MoveData, MoveEffect, MoveId, MoveTarget, Recoil, Status,
     VolatileStatus,
@@ -37,6 +38,7 @@ struct HitOutcome {
 }
 
 /// Where a hit's damage went.
+#[derive(Clone, Copy)]
 enum Hit {
     /// The target took this much.
     Target(u32),
@@ -46,17 +48,27 @@ enum Hit {
 
 impl Engine<'_> {
     /// Showdown's `runMove`: pre-move checks, PP, the move itself, then what follows it.
-    /// Returns the side to drag out when a `forceSwitch` move worked.
+    /// `target` is the chosen target location in doubles. Returns the creature to drag out
+    /// when a `forceSwitch` move worked.
     pub(super) fn run_move(
         &mut self,
-        side: SideId,
+        side: Position,
         slot: Option<usize>,
-        foe_will_act: bool,
-    ) -> Option<SideId> {
+        target: Option<i8>,
+        others_will_act: bool,
+    ) -> Option<Position> {
         let dex = self.dex;
         let user = self.active(side);
-        // A rampage or a charged move continues without spending PP.
+        // A rampage or a charged move continues without spending PP, at the target it
+        // started on (Showdown's `lockedMoveTargetLoc`).
         let forced = user.forced_move();
+        let target = if user.volatiles.charging.is_some() {
+            user.volatiles.charge_target
+        } else if forced.is_some() {
+            user.volatiles.last_target
+        } else {
+            target
+        };
         let move_id = forced
             .or_else(|| slot.and_then(|slot| user.move_slots[slot].map(|move_slot| move_slot.id)))
             .unwrap_or_else(|| dex.struggle());
@@ -67,11 +79,13 @@ impl Engine<'_> {
             volatiles.two_turn_move = 0;
             return None;
         }
+        let locks = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
+        let user = self.active_mut(side);
+        // Showdown's `moveUsed`: the target location is remembered for a lock that follows.
+        user.volatiles.last_target = target;
         if forced.is_none()
             && let Some(slot) = slot
         {
-            let locks = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
-            let user = self.active_mut(side);
             if let Some(move_slot) = user.move_slots[slot].as_mut() {
                 move_slot.pp = move_slot.pp.saturating_sub(1);
             }
@@ -80,88 +94,195 @@ impl Engine<'_> {
             }
         }
         let priority = dex.move_data(move_id).priority;
-        let drag = self.use_move(side, move_id, priority, foe_will_act);
+        let drag = self.use_move(side, move_id, priority, target, false, others_will_act);
         self.after_move_lock(side);
         drag
     }
 
     /// Showdown's `useMove`: the move itself, without the checks and PP of choosing it, which
-    /// a calling move like Metronome also uses. A called move takes its caller's `priority`.
-    /// Returns the side to drag out when a `forceSwitch` move worked.
+    /// a calling move like Metronome also uses. A `called` move takes its caller's `priority`
+    /// and a random target. Returns the creature to drag out when a `forceSwitch` move worked.
     fn use_move(
         &mut self,
-        side: SideId,
+        side: Position,
         move_id: MoveId,
         priority: i8,
-        foe_will_act: bool,
-    ) -> Option<SideId> {
+        target: Option<i8>,
+        called: bool,
+        others_will_act: bool,
+    ) -> Option<Position> {
         let dex = self.dex;
-        self.emit(Event::Move { side, move_id });
+        self.emit(Event::Move {
+            pokemon: side,
+            move_id,
+        });
         self.active_move = Some(move_id);
         self.stellar_boosted = false;
         let move_data = dex.move_data(move_id);
-        if self.charge_turn(side, move_data) {
+        // Showdown resolves the targets, drawing for any random one, before `onTryMove`.
+        let targets = self.move_targets(side, move_data, target);
+        if self.charge_turn(side, move_data, called.then(|| targets.first()).flatten()) {
             return None;
         }
         if let Some(calls) = move_data.calls {
             return match self.called_move(side, calls) {
-                Some(called) => self.use_move(side, called, priority, foe_will_act),
+                Some(called) => self.use_move(side, called, priority, None, true, others_will_act),
                 None => None,
             };
         }
         let (worked, reached_target, target) = match move_data.target {
             MoveTarget::FoeSide => (
-                self.side_condition_move(side.foe(), move_data),
+                self.side_condition_move(side, side.side.foe(), move_data),
                 false,
-                side.foe(),
+                None,
             ),
-            MoveTarget::AllySide => (self.side_condition_move(side, move_data), false, side),
-            MoveTarget::User | MoveTarget::Normal => {
-                if move_data.stalling_move && !self.try_stall(side, foe_will_act) {
-                    self.emit(Event::Fail { side });
+            MoveTarget::AllySide => (
+                self.side_condition_move(side, side.side, move_data),
+                false,
+                None,
+            ),
+            MoveTarget::User => {
+                if move_data.stalling_move && !self.try_stall(side, others_will_act) {
+                    self.emit(Event::Fail { pokemon: side });
                     return None;
                 }
-                let target = if move_data.target == MoveTarget::User {
-                    side
-                } else {
-                    side.foe()
-                };
-                if move_data.target == MoveTarget::Normal
-                    && !self.try_hit(side, target, move_data, priority)
-                {
-                    (false, false, target)
+                let worked = self.status_move_hit(side, side, move_data);
+                (worked, worked, Some(side))
+            }
+            MoveTarget::Normal
+            | MoveTarget::RandomNormal
+            | MoveTarget::AllAdjacentFoes
+            | MoveTarget::AllAdjacent => {
+                if targets.len() == 0 {
+                    self.emit(Event::Fail { pokemon: side });
+                    return None;
+                }
+                let spread = targets.len() > 1;
+                let hittable: Positions = targets
+                    .iter()
+                    .filter(|&target| self.try_hit(side, target, move_data, priority))
+                    .collect();
+                let single = hittable.first();
+                if hittable.len() == 0 {
+                    (false, false, single)
                 } else if move_data.is_damaging() {
-                    let outcome = self.hit_loop(side, target, move_data);
-                    (outcome.worked, outcome.reached_target, target)
+                    let outcome = self.hit_loop(side, hittable, move_data, spread);
+                    (outcome.worked, outcome.reached_target, single)
                 } else {
+                    let target = single.expect("there is a target");
                     let worked = self.status_move_hit(side, target, move_data);
-                    (worked, worked, target)
+                    (worked, worked, Some(target))
                 }
             }
         };
         if worked && move_data.stalling_move {
             self.restart_stall(side);
         }
+        let index = usize::from(side.index);
         if worked
             && move_data.self_switch
             && self.state.outcome.is_none()
             && !self.active(side).is_fainted()
-            && self.state.side(side).switches().next().is_some()
+            && self
+                .state
+                .side(side.side)
+                .switches_at(side.index)
+                .next()
+                .is_some()
         {
-            self.state.sides[side.index()].switch_flag = true;
+            self.state.sides[side.side.index()].switch_flag[index] = true;
         }
+        let target = target?;
         let drags = worked
             && reached_target
             && move_data.force_switch
             && target != side
             && !self.active(target).is_fainted()
-            && self.state.side(target).drag_candidates().next().is_some();
+            && self
+                .state
+                .side(target.side)
+                .drag_candidates()
+                .next()
+                .is_some();
         drags.then_some(target)
+    }
+
+    /// Showdown's `getTarget` and `getMoveTargets`: who the move hits. A chosen foe that has
+    /// fainted is replaced by a random foe; a spread move hits every other creature it can.
+    fn move_targets(
+        &mut self,
+        side: Position,
+        move_data: &MoveData,
+        target: Option<i8>,
+    ) -> Positions {
+        let positions = self.positions();
+        let others = |engine: &Self, allies: bool| -> Positions {
+            positions
+                .iter()
+                .filter(|&other| {
+                    other != side
+                        && (allies || other.side != side.side)
+                        && !engine.active(other).is_fainted()
+                })
+                .collect()
+        };
+        match move_data.target {
+            MoveTarget::User | MoveTarget::FoeSide | MoveTarget::AllySide => {
+                [side].into_iter().collect()
+            }
+            // Allies come before foes, as in Showdown's `getMoveTargets`.
+            MoveTarget::AllAdjacent => {
+                let allies = others(self, true)
+                    .iter()
+                    .filter(|other| other.side == side.side);
+                allies.chain(others(self, false).iter()).collect()
+            }
+            MoveTarget::AllAdjacentFoes => others(self, false),
+            MoveTarget::Normal | MoveTarget::RandomNormal => {
+                let chosen = target
+                    .filter(|_| move_data.target == MoveTarget::Normal)
+                    .and_then(|location| side.from_target_location(location))
+                    .filter(|&chosen| {
+                        chosen != side && positions.iter().any(|open| open == chosen)
+                    });
+                let target = match chosen {
+                    // A fainted ally stays the target, and the move fails.
+                    Some(chosen)
+                        if !self.active(chosen).is_fainted() || chosen.side == side.side =>
+                    {
+                        chosen
+                    }
+                    _ => self.random_target(side),
+                };
+                if self.active(target).is_fainted() {
+                    return Positions::new();
+                }
+                [target].into_iter().collect()
+            }
+        }
+    }
+
+    /// Showdown's `getRandomTarget` for a move at the foes: in singles the foe; in doubles a
+    /// random foe that has not fainted, which draws even when only one is left.
+    fn random_target(&mut self, side: Position) -> Position {
+        let first = Position::new(side.side.foe(), 0);
+        if self.state.game_type.active_per_side() == 1 {
+            return first;
+        }
+        let foes = self.foes_of(side);
+        let Ok(count) = u32::try_from(foes.len()) else {
+            return first;
+        };
+        if count == 0 {
+            return first;
+        }
+        let index = usize::try_from(self.state.prng.below(count)).unwrap_or(0);
+        foes.iter().nth(index).unwrap_or(first)
     }
 
     /// The move a calling move uses, or `None` after it fails. Picks at random with one roll,
     /// as Showdown's `sample` does.
-    fn called_move(&mut self, side: SideId, calls: CallsMove) -> Option<MoveId> {
+    fn called_move(&mut self, side: Position, calls: CallsMove) -> Option<MoveId> {
         let dex = self.dex;
         let pick = |engine: &mut Self, count: usize| {
             let count = u32::try_from(count).ok().filter(|&count| count > 0)?;
@@ -181,7 +302,7 @@ impl Engine<'_> {
             }
             CallsMove::OwnMove => {
                 if self.active(side).status != Some(Status::Sleep) {
-                    self.emit(Event::Fail { side });
+                    self.emit(Event::Fail { pokemon: side });
                     return None;
                 }
                 let mut pool = [None; MAX_MOVES];
@@ -207,14 +328,21 @@ impl Engine<'_> {
             },
         };
         if called.is_none() {
-            self.emit(Event::Fail { side });
+            self.emit(Event::Fail { pokemon: side });
         }
         called
     }
 
     /// Showdown's `onTryMove` for `charge` moves: the first use only charges, unless the weather
     /// skips the charge. Returns whether the move spent this turn charging.
-    fn charge_turn(&mut self, side: SideId, move_data: &MoveData) -> bool {
+    /// A called charge move aims its second turn at the target it resolved
+    /// (`called_target`); otherwise at the chosen location, as Showdown's `twoturnmove` does.
+    fn charge_turn(
+        &mut self,
+        side: Position,
+        move_data: &MoveData,
+        called_target: Option<Position>,
+    ) -> bool {
         let Some(charge) = &move_data.charge else {
             return false;
         };
@@ -225,11 +353,18 @@ impl Engine<'_> {
         {
             return false;
         }
+        let charge_target = match called_target {
+            Some(target) if move_data.target != MoveTarget::User => {
+                Some(side.target_location(target))
+            }
+            _ => self.active(side).volatiles.last_target,
+        };
         let volatiles = &mut self.active_mut(side).volatiles;
         volatiles.charging = Some(move_data.id);
+        volatiles.charge_target = charge_target;
         volatiles.two_turn_move = TWO_TURN_MOVE_DURATION;
         self.emit(Event::Prepare {
-            side,
+            pokemon: side,
             move_id: move_data.id,
         });
         if let Some(boosts) = charge.boosts {
@@ -239,7 +374,7 @@ impl Engine<'_> {
     }
 
     /// Starts or refreshes a rampage, as Showdown's `lockedmove` `onStart` and `onRestart` do.
-    fn lock_into_move(&mut self, side: SideId, move_id: MoveId) {
+    fn lock_into_move(&mut self, side: Position, move_id: MoveId) {
         match self.active(side).volatiles.locked_move {
             None => {
                 let true_duration = u8::try_from(self.state.prng.range(2, 4)).unwrap_or(2);
@@ -259,7 +394,7 @@ impl Engine<'_> {
     }
 
     /// Showdown's `lockedmove` `onAfterMove`: the rampage ends after its last turn's move.
-    fn after_move_lock(&mut self, side: SideId) {
+    fn after_move_lock(&mut self, side: Position) {
         if self
             .active(side)
             .volatiles
@@ -271,7 +406,7 @@ impl Engine<'_> {
     }
 
     /// Showdown's `lockedmove` `onEnd`: a rampage that ran its course leaves the user confused.
-    pub(super) fn end_lock(&mut self, side: SideId) {
+    pub(super) fn end_lock(&mut self, side: Position) {
         let Some(locked) = self.active_mut(side).volatiles.locked_move.take() else {
             return;
         };
@@ -288,16 +423,16 @@ impl Engine<'_> {
 
     /// Removes the side conditions and terrain a move clears, like Rapid Spin and Defog.
     /// Returns whether anything was removed.
-    fn clear_conditions(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+    fn clear_conditions(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
         let clears = &move_data.clears;
         let mut removed = false;
         for (holder, conditions) in [(side, &clears.user), (target, &clears.target)] {
             for &condition in conditions {
-                let list = &mut self.state.sides[holder.index()].conditions;
+                let list = &mut self.state.sides[holder.side.index()].conditions;
                 if let Some(index) = list.iter().position(|state| state.id == condition) {
                     list.remove(index);
                     self.emit(Event::SideEnd {
-                        side: holder,
+                        side: holder.side,
                         condition,
                     });
                     removed = true;
@@ -312,7 +447,7 @@ impl Engine<'_> {
 
     /// Showdown's `onPrepareHit` for stalling moves: they fail if the foe has already acted
     /// this turn, and after a recent success they succeed with chance `1 / counter`.
-    fn try_stall(&mut self, side: SideId, foe_will_act: bool) -> bool {
+    fn try_stall(&mut self, side: Position, foe_will_act: bool) -> bool {
         if !foe_will_act {
             return false;
         }
@@ -328,7 +463,7 @@ impl Engine<'_> {
 
     /// Showdown's `stall` volatile: starts at 3, triples on each consecutive success up to
     /// 729, and lasts through the next turn.
-    fn restart_stall(&mut self, side: SideId) {
+    fn restart_stall(&mut self, side: Position) {
         let volatiles = &mut self.active_mut(side).volatiles;
         let counter = volatiles.stall.map_or(STALL_COUNTER_START, |stall| {
             if stall.counter < STALL_COUNTER_MAX {
@@ -345,7 +480,7 @@ impl Engine<'_> {
 
     /// Sets a side condition, or adds a layer to a stacking hazard. Fails if it is already at
     /// its limit.
-    fn side_condition_move(&mut self, side: SideId, move_data: &MoveData) -> bool {
+    fn side_condition_move(&mut self, user: Position, side: SideId, move_data: &MoveData) -> bool {
         let Some(id) = move_data.side_condition else {
             return false;
         };
@@ -354,7 +489,7 @@ impl Engine<'_> {
         match conditions.iter_mut().find(|condition| condition.id == id) {
             Some(condition) if condition.layers < data.max_layers() => condition.layers += 1,
             Some(_) => {
-                self.emit(Event::Fail { side: side.foe() });
+                self.emit(Event::Fail { pokemon: user });
                 return false;
             }
             None => conditions.push(SideConditionState {
@@ -372,7 +507,7 @@ impl Engine<'_> {
 
     /// Showdown's `onBeforeMove` handlers in priority order: sleep and freeze, flinch,
     /// confusion, then paralysis.
-    fn before_move(&mut self, side: SideId, move_id: MoveId) -> bool {
+    fn before_move(&mut self, side: Position, move_id: MoveId) -> bool {
         let sleep_usable = self.dex.move_data(move_id).sleep_usable;
         match self.active(side).status {
             Some(Status::Sleep) => {
@@ -380,7 +515,7 @@ impl Engine<'_> {
                 pokemon.status_state.time = pokemon.status_state.time.saturating_sub(1);
                 if pokemon.status_state.time > 0 {
                     self.emit(Event::Cant {
-                        side,
+                        pokemon: side,
                         reason: CantReason::Sleep,
                     });
                     // Sleep Talk and the like go ahead, past the checks that follow.
@@ -394,7 +529,7 @@ impl Engine<'_> {
             Some(Status::Freeze) => {
                 if !self.state.prng.chance(1, 5) {
                     self.emit(Event::Cant {
-                        side,
+                        pokemon: side,
                         reason: CantReason::Freeze,
                     });
                     return false;
@@ -405,7 +540,7 @@ impl Engine<'_> {
         }
         if self.active(side).volatiles.flinch {
             self.emit(Event::Cant {
-                side,
+                pokemon: side,
                 reason: CantReason::Flinch,
             });
             return false;
@@ -415,13 +550,13 @@ impl Engine<'_> {
             if time == 0 {
                 self.active_mut(side).volatiles.confusion = None;
                 self.emit(Event::End {
-                    side,
+                    pokemon: side,
                     volatile: VolatileStatus::Confusion,
                 });
             } else {
                 self.active_mut(side).volatiles.confusion = Some(time);
                 self.emit(Event::Activate {
-                    side,
+                    pokemon: side,
                     volatile: VolatileStatus::Confusion,
                 });
                 if self.state.prng.chance(33, 100) {
@@ -433,7 +568,7 @@ impl Engine<'_> {
         }
         if self.active(side).status == Some(Status::Paralysis) && self.state.prng.chance(1, 4) {
             self.emit(Event::Cant {
-                side,
+                pokemon: side,
                 reason: CantReason::Paralysis,
             });
             return false;
@@ -447,8 +582,11 @@ impl Engine<'_> {
             .and_then(|slot| user.move_slots[usize::from(slot)])
             .map(|move_slot| move_slot.id);
         if locked.is_some_and(|locked| locked != move_id && move_id != self.dex.struggle()) {
-            self.emit(Event::Move { side, move_id });
-            self.emit(Event::Fail { side });
+            self.emit(Event::Move {
+                pokemon: side,
+                move_id,
+            });
+            self.emit(Event::Fail { pokemon: side });
             return false;
         }
         true
@@ -458,17 +596,17 @@ impl Engine<'_> {
     /// type immunity, then accuracy. Returns whether the move goes on to hit.
     fn try_hit(
         &mut self,
-        side: SideId,
-        target: SideId,
+        side: Position,
+        target: Position,
         move_data: &MoveData,
         priority: i8,
     ) -> bool {
         if self.active(target).is_fainted() {
-            self.emit(Event::Fail { side });
+            self.emit(Event::Fail { pokemon: side });
             return false;
         }
         if self.is_semi_invulnerable(target) {
-            self.emit(Event::Miss { side });
+            self.emit(Event::Miss { pokemon: side });
             return false;
         }
         if priority > 0
@@ -476,12 +614,12 @@ impl Engine<'_> {
                 .terrain_affecting(target, |terrain| terrain.blocks_priority)
                 .is_some()
         {
-            self.emit(Event::Fail { side });
+            self.emit(Event::Fail { pokemon: side });
             return false;
         }
         if move_data.flags.protect && self.active(target).volatiles.protect {
             self.emit(Event::Activate {
-                side: target,
+                pokemon: target,
                 volatile: VolatileStatus::Protect,
             });
             return false;
@@ -513,7 +651,7 @@ impl Engine<'_> {
                 }
                 let boosted = boosts.is_some_and(|boosts| self.boost(target, boosts));
                 if !healed && !boosted {
-                    self.emit(Event::Immune { side: target });
+                    self.emit(Event::Immune { pokemon: target });
                 }
                 return false;
             }
@@ -529,22 +667,22 @@ impl Engine<'_> {
                 });
             if let Some(effect) = immunity {
                 self.announce(target, effect);
-                self.emit(Event::Immune { side: target });
+                self.emit(Event::Immune { pokemon: target });
                 return false;
             }
             if self.type_modifier(move_data, target).is_none() {
-                self.emit(Event::Immune { side: target });
+                self.emit(Event::Immune { pokemon: target });
                 return false;
             }
         }
         if !self.accuracy_check(side, target, move_data) {
-            self.emit(Event::Miss { side });
+            self.emit(Event::Miss { pokemon: side });
             return false;
         }
         true
     }
 
-    fn accuracy_check(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+    fn accuracy_check(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
         let Some(accuracy) = move_data.accuracy else {
             return true;
         };
@@ -557,35 +695,34 @@ impl Engine<'_> {
     /// Showdown's `hitStepMoveHitLoop`: every hit with its effects and `onAfterHit`, then recoil
     /// and `onAfterMoveSecondarySelf`.
     /// Returns whether any hit landed, on the target or its substitute.
-    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> HitOutcome {
+    fn hit_loop(
+        &mut self,
+        side: Position,
+        targets: Positions,
+        move_data: &MoveData,
+        spread: bool,
+    ) -> HitOutcome {
         let hits = self.roll_hits(move_data);
         let mut landed = 0;
         let mut total_damage = 0;
         let mut hit_substitute = false;
         for _ in 0..hits {
-            if self.active(target).is_fainted() || self.active(side).is_fainted() {
+            if self.active(side).is_fainted()
+                || targets
+                    .iter()
+                    .all(|target| self.active(target).is_fainted())
+            {
                 break;
             }
             landed += 1;
-            match self.hit(side, target, move_data) {
-                Hit::Target(dealt) => {
-                    total_damage += dealt;
-                    self.move_effects(side, target, move_data, true);
-                    if dealt > 0 {
-                        self.damaging_hit(side, target, move_data);
-                    }
-                }
-                Hit::Substitute(absorbed) => {
-                    hit_substitute = true;
-                    self.substitute_recoil(side, move_data, absorbed);
-                    self.move_effects(side, target, move_data, false);
-                }
-            }
-            // Showdown's `onAfterHit` and `onAfterSubDamage`, like Rapid Spin's: per hit, before
-            // recoil and Life Orb, while the user stands.
-            if !self.active(side).is_fainted() {
-                self.clear_conditions(side, target, move_data);
-            }
+            // One target, the usual case, takes the straight path.
+            let (dealt, substitute) = if let [target] = *targets.as_slice() {
+                self.strike_one(side, target, move_data, spread)
+            } else {
+                self.strike_each(side, targets, move_data, spread)
+            };
+            total_damage += dealt;
+            hit_substitute |= substitute;
             self.update();
         }
         if move_data.multihit.max > 1 {
@@ -610,15 +747,112 @@ impl Engine<'_> {
         }
     }
 
+    /// One strike at a single target: the hit, its effects, then contact and `onAfterHit`.
+    /// Returns the damage dealt and whether a substitute took it.
+    fn strike_one(
+        &mut self,
+        side: Position,
+        target: Position,
+        move_data: &MoveData,
+        spread: bool,
+    ) -> (u32, bool) {
+        let (dealt, substitute) = match self.hit(side, target, move_data, spread) {
+            Hit::Target(dealt) => {
+                self.primary_effects(target, move_data);
+                self.self_effects(side, move_data);
+                self.secondaries(side, target, move_data, true);
+                if dealt > 0 {
+                    self.damaging_hit(side, target, move_data);
+                }
+                (dealt, false)
+            }
+            Hit::Substitute(absorbed) => {
+                self.substitute_recoil(side, move_data, absorbed);
+                self.self_effects(side, move_data);
+                self.secondaries(side, target, move_data, false);
+                (0, true)
+            }
+        };
+        if !self.active(side).is_fainted() {
+            self.clear_conditions(side, target, move_data);
+        }
+        (dealt, substitute)
+    }
+
+    /// One strike at several targets, step by step across them as Showdown's
+    /// `spreadMoveHit` does: substitutes first, then the other hits, primary effects, the
+    /// user's `self` effects once, secondaries, contact, and `onAfterHit`.
+    fn strike_each(
+        &mut self,
+        side: Position,
+        targets: Positions,
+        move_data: &MoveData,
+        spread: bool,
+    ) -> (u32, bool) {
+        let mut total_damage = 0;
+        let mut hit_substitute = false;
+        let live: Positions = targets
+            .iter()
+            .filter(|&target| !self.active(target).is_fainted())
+            .collect();
+        // Substitutes take their hits first, in Showdown's `TryPrimaryHit`, then the rest
+        // are hit in order.
+        let mut behind_substitute = [false; 4];
+        for (index, target) in live.iter().enumerate() {
+            behind_substitute[index] =
+                self.active(target).volatiles.substitute.is_some() && !move_data.flags.bypasssub;
+        }
+        let mut results = [None; 4];
+        for pass_substitutes in [true, false] {
+            for (index, target) in live.iter().enumerate() {
+                if behind_substitute[index] != pass_substitutes {
+                    continue;
+                }
+                let result = self.hit(side, target, move_data, spread);
+                if let Hit::Substitute(absorbed) = result {
+                    hit_substitute = true;
+                    self.substitute_recoil(side, move_data, absorbed);
+                }
+                results[index] = Some(result);
+            }
+        }
+        for (index, target) in live.iter().enumerate() {
+            if let Some(Hit::Target(dealt)) = results[index] {
+                total_damage += dealt;
+                self.primary_effects(target, move_data);
+            }
+        }
+        self.self_effects(side, move_data);
+        for (index, target) in live.iter().enumerate() {
+            let reached = matches!(results[index], Some(Hit::Target(_)));
+            self.secondaries(side, target, move_data, reached);
+        }
+        for (index, target) in live.iter().enumerate() {
+            if let Some(Hit::Target(dealt)) = results[index]
+                && dealt > 0
+            {
+                self.damaging_hit(side, target, move_data);
+            }
+        }
+        // Showdown's `onAfterHit` and `onAfterSubDamage`, like Rapid Spin's: per hit, before
+        // recoil and Life Orb, while the user stands.
+        for target in live.iter() {
+            if !self.active(side).is_fainted() {
+                self.clear_conditions(side, target, move_data);
+            }
+        }
+        (total_damage, hit_substitute)
+    }
+
     /// Recoil from damage dealt to a substitute, applied per hit as Showdown's substitute
     /// handler does.
-    fn substitute_recoil(&mut self, side: SideId, move_data: &MoveData, absorbed: u32) {
+    fn substitute_recoil(&mut self, side: Position, move_data: &MoveData, absorbed: u32) {
         if absorbed > 0 {
             self.recoil(side, move_data, absorbed);
         }
     }
 
-    fn recoil(&mut self, side: SideId, move_data: &MoveData, damage: u32) {
+    fn recoil(&mut self, side: Position, move_data: &MoveData, damage: u32) {
         let max_hp = u32::from(self.active(side).max_hp());
         let recoil = move_data.recoil.map(|recoil| match recoil {
             Recoil::Struggle => (max_hp + 2) / 4,
@@ -630,7 +864,7 @@ impl Engine<'_> {
     }
 
     /// Showdown's `onAfterMoveSecondarySelf`, like Life Orb.
-    fn after_move_recoil(&mut self, side: SideId) {
+    fn after_move_recoil(&mut self, side: Position) {
         let max_hp = u32::from(self.active(side).max_hp());
         if !self.mask(side).intersects(HandlerMask::AFTER_MOVE) {
             return;
@@ -646,26 +880,23 @@ impl Engine<'_> {
         }
     }
 
-    /// Per hit, after damage: primary effects (including `heal` and `weather`), then `self`
-    /// (one roll), then each secondary (one roll each), in Showdown's order. A hit on a
-    /// substitute skips the target's effects but still rolls and applies the user's.
-    fn move_effects(
-        &mut self,
-        side: SideId,
-        target: SideId,
-        move_data: &MoveData,
-        reached_target: bool,
-    ) {
-        if reached_target {
-            self.apply_effect(target, move_data.primary);
-            if let Some(fraction) = move_data.heal {
-                let max_hp = u32::from(self.active(target).max_hp());
-                self.heal(target, fraction.of_rounded(max_hp), HealSource::Move);
-            }
-            if let Some(weather) = move_data.weather {
-                self.set_weather(weather);
-            }
+    /// A hit's primary effects on its target, including `heal` and `weather`. Per hit, these
+    /// come before the `self` effects and then each target's secondaries, in Showdown's order;
+    /// a hit on a substitute skips the target's effects but still rolls its secondaries.
+    fn primary_effects(&mut self, target: Position, move_data: &MoveData) {
+        self.apply_effect(target, move_data.primary);
+        if let Some(fraction) = move_data.heal {
+            let max_hp = u32::from(self.active(target).max_hp());
+            self.heal(target, fraction.of_rounded(max_hp), HealSource::Move);
         }
+        if let Some(weather) = move_data.weather {
+            self.set_weather(weather);
+        }
+    }
+
+    /// A hit's `self` effects, once whatever the number of targets: boosts after one roll,
+    /// and a rampage.
+    fn self_effects(&mut self, side: Position, move_data: &MoveData) {
         if let Some(boosts) = move_data.self_boosts {
             self.state.prng.below(100);
             self.boost(side, boosts);
@@ -673,13 +904,12 @@ impl Engine<'_> {
         if move_data.self_volatile == Some(VolatileStatus::LockedMove) {
             self.lock_into_move(side, move_data.id);
         }
-        self.secondaries(side, target, move_data, reached_target);
     }
 
     fn secondaries(
         &mut self,
-        side: SideId,
-        target: SideId,
+        side: Position,
+        target: Position,
         move_data: &MoveData,
         reached_target: bool,
     ) -> bool {
@@ -702,7 +932,7 @@ impl Engine<'_> {
     }
 
     /// Showdown's `DamagingHit` event: the target's contact handlers, then thawing.
-    fn damaging_hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) {
+    fn damaging_hit(&mut self, side: Position, target: Position, move_data: &MoveData) {
         if move_data.flags.contact && self.mask(target).intersects(HandlerMask::DAMAGING_HIT) {
             let max_hp = u32::from(self.active(side).max_hp());
             for (effect, handler) in self.handlers(target) {
@@ -752,18 +982,18 @@ impl Engine<'_> {
     }
 
     /// Lands one hit and returns the damage dealt.
-    fn hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> Hit {
+    fn hit(&mut self, side: Position, target: Position, move_data: &MoveData, spread: bool) -> Hit {
         let crit_ratio = usize::from(move_data.crit_ratio).min(CRIT_DENOMINATORS.len() - 1);
         let critical = crit_ratio > 0 && self.state.prng.chance(1, CRIT_DENOMINATORS[crit_ratio]);
         let type_modifier = self.type_modifier(move_data, target).unwrap_or(0);
-        let damage = self.move_damage(side, target, move_data, critical, type_modifier);
+        let damage = self.move_damage(side, target, move_data, critical, type_modifier, spread);
         match type_modifier.cmp(&0) {
-            Ordering::Greater => self.emit(Event::SuperEffective { side: target }),
-            Ordering::Less => self.emit(Event::Resisted { side: target }),
+            Ordering::Greater => self.emit(Event::SuperEffective { pokemon: target }),
+            Ordering::Less => self.emit(Event::Resisted { pokemon: target }),
             Ordering::Equal => {}
         }
         if critical {
-            self.emit(Event::Crit { side: target });
+            self.emit(Event::Crit { pokemon: target });
         }
         if let Some(substitute) = self.active(target).volatiles.substitute
             && !move_data.flags.bypasssub
@@ -772,12 +1002,12 @@ impl Engine<'_> {
             let remaining = substitute.saturating_sub(u16::try_from(absorbed).unwrap_or(u16::MAX));
             self.active_mut(target).volatiles.substitute = (remaining > 0).then_some(remaining);
             self.emit(Event::Activate {
-                side: target,
+                pokemon: target,
                 volatile: VolatileStatus::Substitute,
             });
             if remaining == 0 {
                 self.emit(Event::End {
-                    side: target,
+                    pokemon: target,
                     volatile: VolatileStatus::Substitute,
                 });
             }
@@ -802,12 +1032,12 @@ impl Engine<'_> {
 
     /// A status move's effects: primary on the target, weather, healing, `self`, then
     /// secondaries. Fails if nothing changed, or if a substitute stands in the way.
-    fn status_move_hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+    fn status_move_hit(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
         if target != side
             && self.active(target).volatiles.substitute.is_some()
             && !move_data.flags.bypasssub
         {
-            self.emit(Event::Fail { side });
+            self.emit(Event::Fail { pokemon: side });
             return false;
         }
         let mut primary = move_data.primary;
@@ -830,7 +1060,12 @@ impl Engine<'_> {
         }
         applied |= self.clear_conditions(side, target, move_data);
         if move_data.force_switch {
-            applied |= self.state.side(target).drag_candidates().next().is_some();
+            applied |= self
+                .state
+                .side(target.side)
+                .drag_candidates()
+                .next()
+                .is_some();
         }
         if let Some(boosts) = move_data.self_boosts {
             self.state.prng.below(100);
@@ -838,14 +1073,14 @@ impl Engine<'_> {
         }
         applied |= self.secondaries(side, target, move_data, true);
         if !applied {
-            self.emit(Event::Fail { side });
+            self.emit(Event::Fail { pokemon: side });
         }
         applied
     }
 
     /// Applies boosts, a status, and a volatile status to `recipient`. Returns whether anything
     /// changed.
-    fn apply_effect(&mut self, recipient: SideId, effect: MoveEffect) -> bool {
+    fn apply_effect(&mut self, recipient: Position, effect: MoveEffect) -> bool {
         if self.active(recipient).is_fainted() {
             return false;
         }
@@ -869,7 +1104,7 @@ impl Engine<'_> {
                 let time = u8::try_from(self.state.prng.range(2, 6)).unwrap_or(2);
                 self.active_mut(recipient).volatiles.confusion = Some(time);
                 self.emit(Event::Start {
-                    side: recipient,
+                    pokemon: recipient,
                     volatile: VolatileStatus::Confusion,
                 });
                 applied = true;
@@ -881,7 +1116,7 @@ impl Engine<'_> {
             Some(VolatileStatus::Protect) => {
                 self.active_mut(recipient).volatiles.protect = true;
                 self.emit(Event::Start {
-                    side: recipient,
+                    pokemon: recipient,
                     volatile: VolatileStatus::Protect,
                 });
                 applied = true;
@@ -894,7 +1129,7 @@ impl Engine<'_> {
 
     /// Showdown's Substitute: fails with a substitute already up, at 1/4 HP or less, or at 1
     /// max HP; otherwise pays 1/4 of max HP for a decoy with that much HP.
-    fn make_substitute(&mut self, side: SideId) -> bool {
+    fn make_substitute(&mut self, side: Position) -> bool {
         let pokemon = self.active(side);
         let max_hp = pokemon.max_hp();
         if pokemon.volatiles.substitute.is_some()
@@ -907,13 +1142,13 @@ impl Engine<'_> {
         self.damage(side, u32::from(cost), DamageSource::Substitute);
         self.active_mut(side).volatiles.substitute = Some(cost);
         self.emit(Event::Start {
-            side,
+            pokemon: side,
             volatile: VolatileStatus::Substitute,
         });
         true
     }
 
-    fn can_set_status(&self, side: SideId, status: Status) -> bool {
+    fn can_set_status(&self, side: Position, status: Status) -> bool {
         let pokemon = self.active(side);
         if pokemon.is_fainted() || pokemon.status.is_some() {
             return false;
@@ -939,7 +1174,7 @@ impl Engine<'_> {
 
     /// Showdown's `setStatus`; a `cureStatus` item reacts immediately, like Lum Berry's
     /// `onAfterSetStatus`.
-    pub(super) fn set_status(&mut self, side: SideId, status: Status) -> bool {
+    pub(super) fn set_status(&mut self, side: Position, status: Status) -> bool {
         if !self.can_set_status(side, status) {
             return false;
         }
@@ -952,7 +1187,10 @@ impl Engine<'_> {
         pokemon.status = Some(status);
         pokemon.status_state.time = time;
         pokemon.status_state.stage = 0;
-        self.emit(Event::Status { side, status });
+        self.emit(Event::Status {
+            pokemon: side,
+            status,
+        });
         if self.mask(side).intersects(HandlerMask::UPDATE) {
             let cure: Option<Effect> = self
                 .handlers(side)

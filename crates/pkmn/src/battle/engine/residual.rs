@@ -24,7 +24,7 @@
 
 use super::Engine;
 use crate::battle::events::{DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{SideId, Stall};
+use crate::battle::state::{Position, SideId, Stall};
 use crate::dex::{Fraction, Handler, HandlerMask, Status};
 use crate::stats::Boosts;
 
@@ -56,11 +56,11 @@ enum Residual {
     Weather,
     Terrain,
     SideCondition(SideId, crate::dex::SideConditionId),
-    Status(SideId),
-    TerrainHeal(SideId),
-    Heal(SideId, Effect, Fraction),
-    Boosts(SideId, Effect, Boosts),
-    Volatile(SideId, Volatile),
+    Status(Position),
+    TerrainHeal(Position),
+    Heal(Position, Effect, Fraction),
+    Boosts(Position, Effect, Boosts),
+    Volatile(Position, Volatile),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -115,7 +115,7 @@ impl Engine<'_> {
         };
         self.gather_residuals(&mut handlers);
         let list = &mut handlers.entries[..handlers.len];
-        self.speed_sort(list);
+        self.speed_sort(list, Entry::compare);
         for index in 0..handlers.len {
             let entry = handlers.entries[index];
             if self.run_residual(entry.residual) && self.faint_messages() {
@@ -136,24 +136,38 @@ impl Engine<'_> {
         if self.state.field.terrain.is_some() {
             handlers.push(27, 0, 7, Residual::Terrain);
         }
-        for side in SideId::BOTH {
-            for condition in &self.state.side(side).conditions {
+        for team in SideId::BOTH {
+            for condition in &self.state.side(team).conditions {
                 if condition.duration.is_some() {
                     let sub_order = self.dex.side_condition(condition.id).residual_sub_order;
                     handlers.push(
                         26,
                         0,
                         sub_order,
-                        Residual::SideCondition(side, condition.id),
+                        Residual::SideCondition(team, condition.id),
                     );
                 }
             }
+            for side in self
+                .positions()
+                .iter()
+                .filter(|position| position.side == team)
+            {
+                self.gather_creature_residuals(side, handlers);
+            }
+        }
+    }
+
+    /// One active creature's residual handlers: its status, volatiles, ability, item, and
+    /// terrain healing.
+    fn gather_creature_residuals(&self, side: Position, handlers: &mut Handlers) {
+        {
             let pokemon = self.active(side);
             // Deliberate difference: Showdown keeps a fainted creature's ability and item
             // handlers in the sort, at its last speed, though they never run. They can only tie
             // with another creature's at that exact speed, a speed tie.
             if pokemon.is_fainted() {
-                continue;
+                return;
             }
             let speed = self.action_speed(side);
             match pokemon.status {
@@ -202,39 +216,6 @@ impl Engine<'_> {
             {
                 handlers.push(5, speed, 2, Residual::TerrainHeal(side));
             }
-        }
-    }
-
-    /// Showdown's `speedSort`: repeatedly moves the group that sorts first into place, and
-    /// shuffles the group if it has more than one handler.
-    fn speed_sort(&mut self, list: &mut [Entry]) {
-        let mut sorted = 0;
-        while sorted + 1 < list.len() {
-            let mut group = [0; MAX_HANDLERS];
-            group[0] = sorted;
-            let mut size = 1;
-            for index in sorted + 1..list.len() {
-                match list[group[0]].compare(&list[index]) {
-                    std::cmp::Ordering::Less => {}
-                    std::cmp::Ordering::Greater => {
-                        group[0] = index;
-                        size = 1;
-                    }
-                    std::cmp::Ordering::Equal => {
-                        group[size] = index;
-                        size += 1;
-                    }
-                }
-            }
-            for (offset, &index) in group[..size].iter().enumerate() {
-                if index != sorted + offset {
-                    list.swap(sorted + offset, index);
-                }
-            }
-            if size > 1 {
-                self.shuffle(&mut list[sorted..sorted + size]);
-            }
-            sorted += size;
         }
     }
 
@@ -314,7 +295,8 @@ impl Engine<'_> {
         self.state.field.weather = Some(weather);
         let data = self.dex.weather(weather.id);
         if let Some(fraction) = data.residual_damage {
-            for side in self.speed_order() {
+            let positions = self.positions();
+            for side in self.speed_order(positions).iter() {
                 let pokemon = self.active(side);
                 if pokemon.is_fainted() {
                     continue;
@@ -370,7 +352,7 @@ impl Engine<'_> {
     }
 
     /// Poison, bad poison, and burn damage.
-    fn status_residual(&mut self, side: SideId) {
+    fn status_residual(&mut self, side: Position) {
         let pokemon = self.active_mut(side);
         if pokemon.is_fainted() {
             return;
@@ -395,7 +377,7 @@ impl Engine<'_> {
 
     /// Counts down a volatile, ending it at zero. Only a rampage also has a handler: sleep ends
     /// it quietly, and running out ends it with confusion. Returns whether the handler ran.
-    fn volatile_residual(&mut self, side: SideId, volatile: Volatile) -> bool {
+    fn volatile_residual(&mut self, side: Position, volatile: Volatile) -> bool {
         let pokemon = self.active_mut(side);
         let volatiles = &mut pokemon.volatiles;
         match volatile {

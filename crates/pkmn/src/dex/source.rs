@@ -164,6 +164,10 @@ pub struct ScreenSource {
     pub category: MoveCategory,
     /// The multiplier for non-critical hits.
     pub modifier: Fraction,
+    /// The multiplier in doubles, where Showdown's Reflect is ×2732/4096; defaults to
+    /// `modifier`.
+    #[serde(default)]
+    pub doubles_modifier: Option<Fraction>,
 }
 
 /// A type, described like Showdown's `TypeChart` entries: how much damage it takes.

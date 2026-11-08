@@ -2,7 +2,7 @@
 
 mod common;
 
-use common::{P1, P2, damage_to, edit, max_hp, movers, play, set, start};
+use common::{P1, P1A, P2, P2A, damage_to, edit, max_hp, movers, play, set, start};
 use pkmn::battle::DamageSource;
 use pkmn::dex::{SideConditionId, VolatileStatus};
 use pkmn::{Battle, BattleState, Choice, Event, Request};
@@ -21,11 +21,11 @@ fn hazard_damage(events: &[Event], side: pkmn::SideId) -> Vec<u16> {
         .iter()
         .filter_map(|event| match *event {
             Event::Damage {
-                side: hurt,
+                pokemon: hurt,
                 amount,
                 from: DamageSource::Hazard(_),
                 ..
-            } if hurt == side => Some(amount),
+            } if hurt.side == side => Some(amount),
             _ => None,
         })
         .collect()
@@ -45,7 +45,7 @@ fn protect_blocks_moves_aimed_at_the_user() {
         "Protect's priority puts it first"
     );
     assert!(events.contains(&Event::Activate {
-        side: P1,
+        pokemon: P1A,
         volatile: VolatileStatus::Protect
     }));
     assert!(damage_to(&events, P1, DamageSource::Move).is_empty());
@@ -60,10 +60,10 @@ fn protect_fails_when_the_user_moves_last() {
     );
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.contains(&Event::Start {
-        side: P1,
+        pokemon: P1A,
         volatile: VolatileStatus::Protect
     }));
-    assert!(events.contains(&Event::Fail { side: P2 }));
+    assert!(events.contains(&Event::Fail { pokemon: P2A }));
 }
 
 #[test]
@@ -77,11 +77,11 @@ fn consecutive_protects_succeed_only_sometimes() {
         );
         let first = play(&mut battle, MOVE, MOVE);
         assert!(
-            !first.contains(&Event::Fail { side: P1 }),
+            !first.contains(&Event::Fail { pokemon: P1A }),
             "a first Protect always works"
         );
         let second = play(&mut battle, MOVE, MOVE);
-        if second.contains(&Event::Fail { side: P1 }) {
+        if second.contains(&Event::Fail { pokemon: P1A }) {
             failures += 1;
         } else {
             successes += 1;
@@ -118,7 +118,7 @@ fn substitutes_cost_a_quarter_and_absorb_hits() {
     let events = play(&mut battle, MOVE, Choice::Move(1));
     let paid = events.iter().find_map(|event| match *event {
         Event::Damage {
-            side: P1,
+            pokemon: P1A,
             amount,
             from: DamageSource::Substitute,
             ..
@@ -137,7 +137,7 @@ fn substitutes_cost_a_quarter_and_absorb_hits() {
     assert!(events.iter().any(|event| matches!(
         event,
         Event::Activate {
-            side: P1,
+            pokemon: P1A,
             volatile: VolatileStatus::Substitute
         }
     )));
@@ -163,7 +163,7 @@ fn status_moves_fail_against_a_substitute() {
         assert!(
             !events
                 .iter()
-                .any(|event| matches!(event, Event::Status { side: P1, .. }))
+                .any(|event| matches!(event, Event::Status { pokemon: P1A, .. }))
         );
     }
 }
@@ -181,7 +181,7 @@ fn hits_that_break_a_substitute_stop_there() {
     let full = max_hp(&battle, P1);
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.contains(&Event::End {
-        side: P1,
+        pokemon: P1A,
         volatile: VolatileStatus::Substitute
     }));
     assert_eq!(battle.state().active(P1).hp, full);
@@ -229,7 +229,7 @@ fn spikes_style_hazards_stack_to_three_layers_and_skip_flying_types() {
     }
     let events = play(&mut battle, MOVE, MOVE);
     assert!(
-        events.contains(&Event::Fail { side: P1 }),
+        events.contains(&Event::Fail { pokemon: P1A }),
         "a fourth layer fails"
     );
 
@@ -264,7 +264,7 @@ fn screens_halve_one_category_and_wear_off_after_five_turns() {
             }
         });
         let events = play(&mut battle, MOVE, MOVE);
-        let critical = events.contains(&Event::Crit { side: P2 });
+        let critical = events.contains(&Event::Crit { pokemon: P2A });
         (damage_to(&events, P2, DamageSource::Move)[0], critical)
     };
     let mut checked_crit = false;
@@ -325,7 +325,7 @@ fn self_switching_moves_pause_the_turn_for_a_replacement() {
     assert!(matches!(
         events[0],
         Event::Switch {
-            side: P1,
+            pokemon: P1A,
             slot: 1,
             ..
         }

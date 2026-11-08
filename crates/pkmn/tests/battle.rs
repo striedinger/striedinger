@@ -4,7 +4,7 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{P1, P2, damage_to, dex, edit, max_hp, movers, play, set, start};
+use common::{P1, P1A, P2, P2A, damage_to, dex, edit, max_hp, movers, play, set, start};
 use pkmn::battle::{CantReason, ChoiceErrorReason, DamageSource, HealSource, TeamErrorReason};
 use pkmn::dex::{Status, VolatileStatus, WeatherId};
 use pkmn::prng::Prng;
@@ -53,16 +53,16 @@ fn type_immunities_stop_damaging_moves_and_opted_in_status_moves() {
         5,
     );
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-    assert!(events.contains(&Event::Immune { side: P2 }));
+    assert!(events.contains(&Event::Immune { pokemon: P2A }));
     assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 
     let events = play(&mut battle, Choice::Move(1), Choice::Move(0));
-    assert!(events.contains(&Event::Immune { side: P2 }));
+    assert!(events.contains(&Event::Immune { pokemon: P2A }));
 
     let events = play(&mut battle, Choice::Move(1), Choice::Switch(1));
-    let hit = !events.contains(&Event::Miss { side: P1 });
+    let hit = !events.contains(&Event::Miss { pokemon: P1A });
     assert!(
-        !hit || events.contains(&Event::Fail { side: P1 }),
+        !hit || events.contains(&Event::Fail { pokemon: P1A }),
         "Electric types cannot be paralyzed"
     );
 }
@@ -80,7 +80,7 @@ fn burn_deals_a_sixteenth_each_turn_and_fire_types_are_immune() {
         );
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
         if !events.contains(&Event::Status {
-            side: P2,
+            pokemon: P2A,
             status: Status::Burn,
         }) {
             continue;
@@ -91,8 +91,8 @@ fn burn_deals_a_sixteenth_each_turn_and_fire_types_are_immune() {
         );
 
         let events = play(&mut battle, Choice::Move(0), Choice::Switch(1));
-        if !events.contains(&Event::Miss { side: P1 }) {
-            assert!(events.contains(&Event::Fail { side: P1 }));
+        if !events.contains(&Event::Miss { pokemon: P1A }) {
+            assert!(events.contains(&Event::Fail { pokemon: P1A }));
         }
         return;
     }
@@ -178,7 +178,7 @@ fn fainted_creatures_must_be_replaced_before_the_next_turn() {
     );
     let mut battle = edit(battle, |state| state.sides[0].team[0].hp = 1);
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-    assert!(events.contains(&Event::Faint { side: P1 }));
+    assert!(events.contains(&Event::Faint { pokemon: P1A }));
     assert!(
         !events
             .iter()
@@ -197,7 +197,7 @@ fn fainted_creatures_must_be_replaced_before_the_next_turn() {
     assert!(matches!(
         events[0],
         Event::Switch {
-            side: P1,
+            pokemon: P1A,
             slot: 1,
             ..
         }
@@ -241,7 +241,10 @@ fn an_attacker_knocked_out_by_its_own_recoil_still_wins() {
         .collect();
     assert_eq!(
         faints,
-        [&Event::Faint { side: P2 }, &Event::Faint { side: P1 }]
+        [
+            &Event::Faint { pokemon: P2A },
+            &Event::Faint { pokemon: P1A }
+        ]
     );
     assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
 }
@@ -276,7 +279,7 @@ fn struggle_replaces_moves_once_pp_runs_out() {
 
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     assert!(events.contains(&Event::Move {
-        side: P1,
+        pokemon: P1A,
         move_id: struggle
     }));
     let quarter = (u32::from(max_hp(&battle, P1)) * 2 + 4) / 8;
@@ -297,7 +300,7 @@ fn sleep_lasts_one_to_three_move_attempts() {
         );
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
         if !events.contains(&Event::Status {
-            side: P2,
+            pokemon: P2A,
             status: Status::Sleep,
         }) {
             continue;
@@ -310,13 +313,13 @@ fn sleep_lasts_one_to_three_move_attempts() {
                 .filter(|event| {
                     **event
                         == Event::Cant {
-                            side: P2,
+                            pokemon: P2A,
                             reason: CantReason::Sleep,
                         }
                 })
                 .count();
             if events.contains(&Event::CureStatus {
-                side: P2,
+                pokemon: P2A,
                 status: Status::Sleep,
             }) {
                 break;
@@ -363,7 +366,7 @@ fn draining_moves_restore_half_the_damage_dealt() {
     let dealt = u32::from(damage_to(&events, P2, DamageSource::Move)[0]);
     let healed = events.iter().find_map(|event| match *event {
         Event::Heal {
-            side: P1,
+            pokemon: P1A,
             amount,
             from: HealSource::Drain,
             ..
@@ -383,13 +386,13 @@ fn boosting_past_six_stages_fails() {
     for _ in 0..3 {
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
         assert!(events.contains(&Event::Boost {
-            side: P1,
+            pokemon: P1A,
             stat: BoostStat::Attack,
             stages: 2
         }));
     }
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-    assert!(events.contains(&Event::Fail { side: P1 }));
+    assert!(events.contains(&Event::Fail { pokemon: P1A }));
     assert_eq!(battle.state().active(P1).boosts.get(BoostStat::Attack), 6);
 }
 
@@ -407,7 +410,7 @@ fn switching_out_clears_boosts_and_confusion() {
     for _ in 0..5 {
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
         confused |= events.contains(&Event::Start {
-            side: P1,
+            pokemon: P1A,
             volatile: VolatileStatus::Confusion,
         });
         if confused {
@@ -436,7 +439,7 @@ fn fire_moves_thaw_frozen_targets() {
         matches!(
             event,
             Event::Damage {
-                side: P2,
+                pokemon: P2A,
                 from: DamageSource::Move,
                 ..
             }
@@ -445,7 +448,7 @@ fn fire_moves_thaw_frozen_targets() {
     let thawed = events.iter().position(|event| {
         *event
             == Event::CureStatus {
-                side: P2,
+                pokemon: P2A,
                 status: Status::Freeze,
             }
     });

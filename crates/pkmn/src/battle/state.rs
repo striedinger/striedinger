@@ -11,7 +11,7 @@ use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
 
 /// One of the two players.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SideId {
     /// The first player.
@@ -26,8 +26,17 @@ impl SideId {
 
     /// Returns `0` for [`SideId::P1`] and `1` for [`SideId::P2`].
     #[must_use]
-    pub fn index(self) -> usize {
+    pub const fn index(self) -> usize {
         self as usize
+    }
+
+    /// Showdown's ID for the side: `p1` or `p2`.
+    #[must_use]
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::P1 => "p1",
+            Self::P2 => "p2",
+        }
     }
 
     /// Returns the other side, the "foe".
@@ -75,6 +84,13 @@ pub struct Volatiles {
     /// turn: 0 when it is absent.
     #[serde(default)]
     pub two_turn_move: u8,
+    /// The target location of the last move it used, which a rampage keeps aiming at
+    /// (Showdown's `lastMoveTargetLoc`).
+    #[serde(default)]
+    pub last_target: Option<i8>,
+    /// The target location a charging move hits next turn.
+    #[serde(default)]
+    pub charge_target: Option<i8>,
 }
 
 /// Showdown's `lockedmove` volatile, with its two counters.
@@ -120,7 +136,185 @@ pub enum QueuedAction {
     /// Switch to the creature in this team slot.
     Switch(usize),
     /// Use the move in this slot, or Struggle.
-    Move(Option<usize>),
+    Move {
+        /// The move slot; `None` for Struggle.
+        slot: Option<usize>,
+        /// The chosen target location in doubles (see [`Position::target_location`]).
+        target: Option<i8>,
+    },
+}
+
+/// Singles or doubles (Showdown's `gameType`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum GameType {
+    /// One active creature per side.
+    #[default]
+    Singles,
+    /// Two active creatures per side.
+    Doubles,
+}
+
+impl GameType {
+    /// How many creatures each side has in battle at once (Showdown's `activePerHalf`).
+    #[must_use]
+    pub const fn active_per_side(self) -> usize {
+        match self {
+            Self::Singles => 1,
+            Self::Doubles => 2,
+        }
+    }
+}
+
+/// A place on the field: a side and an index among its active creatures, like Showdown's
+/// `p1a` and `p1b`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Position {
+    /// The side.
+    pub side: SideId,
+    /// 0 for the first active creature (`a`), 1 for the second (`b`).
+    pub index: u8,
+}
+
+impl Position {
+    /// Every position in a doubles battle, in Showdown's order.
+    pub const ALL: [Self; 4] = [
+        Self::new(SideId::P1, 0),
+        Self::new(SideId::P1, 1),
+        Self::new(SideId::P2, 0),
+        Self::new(SideId::P2, 1),
+    ];
+
+    /// A position.
+    #[must_use]
+    pub const fn new(side: SideId, index: u8) -> Self {
+        Self { side, index }
+    }
+
+    /// An index from 0 to 3 for arrays over all positions.
+    #[must_use]
+    pub const fn flat(self) -> usize {
+        self.side.index() * 2 + self.index as usize
+    }
+
+    /// The target location that names `target` from this position, as in Showdown's
+    /// `move N T` choices: 1 and 2 for the foes' first and second positions, -1 and -2 for
+    /// the user's side.
+    #[must_use]
+    pub fn target_location(self, target: Self) -> i8 {
+        let place = i8::try_from(target.index).unwrap_or(0) + 1;
+        if target.side == self.side {
+            -place
+        } else {
+            place
+        }
+    }
+
+    /// The position a target location names from this position.
+    #[must_use]
+    pub fn from_target_location(self, location: i8) -> Option<Self> {
+        let index = location.unsigned_abs().checked_sub(1)?;
+        let side = if location > 0 {
+            self.side.foe()
+        } else {
+            self.side
+        };
+        Some(Self::new(side, index))
+    }
+}
+
+/// A short list of positions, so ordering them does not allocate.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Positions {
+    items: [Position; 4],
+    len: usize,
+}
+
+impl Positions {
+    /// An empty list.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            items: [Position::from(SideId::P1); 4],
+            len: 0,
+        }
+    }
+
+    /// Adds a position; a full list ignores it.
+    pub fn push(&mut self, position: Position) {
+        if let Some(item) = self.items.get_mut(self.len) {
+            *item = position;
+            self.len += 1;
+        }
+    }
+
+    pub(crate) fn as_mut_slice(&mut self) -> &mut [Position] {
+        &mut self.items[..self.len]
+    }
+
+    /// The positions, as a slice.
+    #[must_use]
+    pub fn as_slice(&self) -> &[Position] {
+        &self.items[..self.len]
+    }
+
+    /// The positions, in order.
+    pub fn iter(&self) -> impl Iterator<Item = Position> + use<> {
+        let Self { items, len } = *self;
+        items.into_iter().take(len)
+    }
+
+    /// How many positions there are.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// The first position, if any.
+    #[must_use]
+    pub fn first(&self) -> Option<Position> {
+        self.iter().next()
+    }
+}
+
+impl FromIterator<Position> for Positions {
+    fn from_iter<I: IntoIterator<Item = Position>>(positions: I) -> Self {
+        let mut list = Self::new();
+        for position in positions {
+            list.push(position);
+        }
+        list
+    }
+}
+
+impl Default for Positions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl IntoIterator for Positions {
+    type Item = Position;
+    type IntoIter = std::iter::Take<std::array::IntoIter<Position, 4>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.items.into_iter().take(self.len)
+    }
+}
+
+impl From<SideId> for Position {
+    /// A side's first position, the only one in singles.
+    fn from(side: SideId) -> Self {
+        Self::new(side, 0)
+    }
+}
+
+impl std::fmt::Display for Position {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let letter = if self.index == 0 { 'a' } else { 'b' };
+        write!(formatter, "{}{letter}", self.side.id())
+    }
 }
 
 /// A known move and its remaining PP, like Showdown's `moveSlots`.
@@ -178,6 +372,9 @@ pub struct Pokemon {
     /// type ID (Showdown's `stellarBoostedTypes`). Kept through switching.
     #[serde(default)]
     pub stellar_boosted_types: u32,
+    /// [`Pokemon::handler_mask`], kept up to date by the engine so a turn need not look it up.
+    #[serde(skip)]
+    pub(crate) mask: HandlerMask,
 }
 
 /// The bit for a type in [`Pokemon::stellar_boosted_types`]; a dex has at most 32 types.
@@ -275,12 +472,22 @@ impl Pokemon {
     /// The kinds of handler its ability and item have.
     #[must_use]
     pub fn handler_mask(&self, dex: &Dex) -> HandlerMask {
-        let ability = self
-            .ability
-            .map_or(HandlerMask::default(), |id| dex.ability(id).mask);
-        let item = self
-            .item
-            .map_or(HandlerMask::default(), |id| dex.item(id).mask);
+        Self::mask_of(dex, self.ability, self.item)
+    }
+
+    pub(crate) fn with_mask(mut self, dex: &Dex) -> Self {
+        self.refresh_mask(dex);
+        self
+    }
+
+    /// Recomputes the cached handler mask after the ability or item changed.
+    pub(crate) fn refresh_mask(&mut self, dex: &Dex) {
+        self.mask = Self::mask_of(dex, self.ability, self.item);
+    }
+
+    fn mask_of(dex: &Dex, ability: Option<AbilityId>, item: Option<ItemId>) -> HandlerMask {
+        let ability = ability.map_or(HandlerMask::default(), |id| dex.ability(id).mask);
+        let item = item.map_or(HandlerMask::default(), |id| dex.item(id).mask);
         ability.union(item)
     }
 
@@ -349,20 +556,21 @@ impl Pokemon {
 pub struct Side {
     /// Every team member in team order.
     pub team: Vec<Pokemon>,
-    /// The index of the active creature in `team`.
-    pub active: usize,
+    /// The team slot of each position's creature; `None` past the side's positions. A position
+    /// whose creature fainted with no replacement keeps it.
+    pub active: [Option<usize>; 2],
     /// Conditions on this side, such as entry hazards and screens.
     #[serde(default)]
     pub conditions: Vec<SideConditionState>,
-    /// Whether the active creature must switch out mid-turn after a move like U-turn
+    /// Whether each position's creature must switch out mid-turn after a move like U-turn
     /// (Showdown's `switchFlag`).
     #[serde(default)]
-    pub switch_flag: bool,
+    pub switch_flag: [bool; 2],
     /// Whether a team member may still Terastallize this battle.
     #[serde(default = "can_terastallize")]
     pub can_terastallize: bool,
-    /// Team slots in Showdown's `side.pokemon` order, which puts the active creature first
-    /// and swaps positions on every switch. Forced switches pick from it at random.
+    /// Team slots in Showdown's `side.pokemon` order, which puts the active creatures first, by
+    /// position, and swaps places on every switch. Forced switches pick from it at random.
     #[serde(default)]
     pub switch_order: Vec<usize>,
 }
@@ -372,30 +580,49 @@ fn can_terastallize() -> bool {
 }
 
 impl Side {
-    /// The active creature.
+    /// The creature at a position, or `None` past this side's positions.
     #[must_use]
-    pub fn active(&self) -> &Pokemon {
-        &self.team[self.active]
+    #[inline]
+    pub fn active_at(&self, index: u8) -> Option<&Pokemon> {
+        self.active
+            .get(usize::from(index))
+            .copied()
+            .flatten()
+            .map(|slot| &self.team[slot])
     }
 
-    pub(crate) fn active_mut(&mut self) -> &mut Pokemon {
-        &mut self.team[self.active]
+    /// The first position's creature, the only one in singles.
+    #[must_use]
+    pub fn active(&self) -> &Pokemon {
+        &self.team[self.active[0].unwrap_or(0)]
+    }
+
+    pub(crate) fn active_mut_at(&mut self, index: u8) -> &mut Pokemon {
+        let slot = self.active[usize::from(index)].unwrap_or(0);
+        &mut self.team[slot]
     }
 
     /// Whether `slot` holds a healthy creature that is not already active.
     #[must_use]
     pub fn can_switch_to(&self, slot: usize) -> bool {
-        slot != self.active
+        !self.active.contains(&Some(slot))
             && self
                 .team
                 .get(slot)
                 .is_some_and(|pokemon| !pokemon.is_fainted())
     }
 
-    /// Team slots that can be switched in. A creature locked into a rampage or a charged move
-    /// cannot switch out.
+    /// Team slots the first position can switch to; see [`Side::switches_at`].
     pub fn switches(&self) -> impl Iterator<Item = usize> {
-        let trapped = !self.active().is_fainted() && self.active().locked_slot().is_some();
+        self.switches_at(0)
+    }
+
+    /// Team slots a position can switch to. A creature locked into a rampage or a charged
+    /// move cannot switch out.
+    pub fn switches_at(&self, index: u8) -> impl Iterator<Item = usize> {
+        let trapped = self
+            .active_at(index)
+            .is_some_and(|pokemon| !pokemon.is_fainted() && pokemon.locked_slot().is_some());
         (0..self.team.len()).filter(move |&slot| !trapped && self.can_switch_to(slot))
     }
 
@@ -403,7 +630,7 @@ impl Side {
     pub fn drag_candidates(&self) -> impl Iterator<Item = usize> {
         self.switch_order
             .iter()
-            .skip(1)
+            .skip(self.active.iter().flatten().count())
             .copied()
             .filter(|&slot| self.can_switch_to(slot))
     }
@@ -414,10 +641,12 @@ impl Side {
         self.team.iter().all(Pokemon::is_fainted)
     }
 
-    /// Whether the active creature fainted and a replacement must switch in.
+    /// Whether a position's creature fainted and a replacement can switch in.
     #[must_use]
-    pub fn must_replace(&self) -> bool {
-        self.active().is_fainted() && self.switches().next().is_some()
+    #[inline]
+    pub fn must_replace(&self, index: u8) -> bool {
+        self.active_at(index).is_some_and(Pokemon::is_fainted)
+            && self.switches_at(index).next().is_some()
     }
 
     /// The state of a condition on this side, if it is present.
@@ -486,9 +715,12 @@ pub struct BattleState {
     /// The last move used, by either side, for Copycat (Showdown's `battle.lastMove`).
     #[serde(default)]
     pub last_move: Option<MoveId>,
-    /// The rest of a turn paused for a mid-turn switch, by side.
+    /// The rest of a turn paused for a mid-turn switch, by [`Position::flat`].
     #[serde(default)]
-    pub queue: Option<[Option<QueuedAction>; 2]>,
+    pub queue: Option<[Option<QueuedAction>; 4]>,
+    /// Singles or doubles.
+    #[serde(default)]
+    pub game_type: GameType,
 }
 
 impl BattleState {
@@ -498,27 +730,71 @@ impl BattleState {
         &self.sides[side.index()]
     }
 
-    /// Returns a side's active creature.
+    /// Returns the creature at a position; a side converts to its first position.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the position is past this battle's positions.
     #[must_use]
-    pub fn active(&self, side: SideId) -> &Pokemon {
-        self.side(side).active()
+    pub fn active(&self, position: impl Into<Position>) -> &Pokemon {
+        let position = position.into();
+        self.side(position.side)
+            .active_at(position.index)
+            .expect("the position exists in this battle")
     }
 
-    /// Whether `side` must switch now, which is when Showdown sends it a `forceSwitch`
+    /// Every position in battle, in Showdown's order: each side's filled positions.
+    #[inline]
+    #[must_use]
+    pub fn positions(&self) -> Positions {
+        let mut positions = Positions::new();
+        for side in SideId::BOTH {
+            for (index, slot) in (0_u8..).zip(self.sides[side.index()].active) {
+                if slot.is_some() {
+                    positions.push(Position::new(side, index));
+                }
+            }
+        }
+        positions
+    }
+
+    /// Whether a position must switch now, which is when Showdown sends it a `forceSwitch`
     /// request. A mid-turn switch flag takes precedence: replacements for fainted creatures
     /// wait for the end of the turn.
     #[must_use]
-    pub fn must_switch(&self, side: SideId) -> bool {
-        if self.sides.iter().any(|team| team.switch_flag) {
-            self.side(side).switch_flag
+    pub fn must_switch(&self, position: impl Into<Position>) -> bool {
+        let position = position.into();
+        let side = self.side(position.side);
+        if self
+            .sides
+            .iter()
+            .any(|team| team.switch_flag.contains(&true))
+        {
+            side.switch_flag
+                .get(usize::from(position.index))
+                .copied()
+                .unwrap_or(false)
         } else {
-            self.side(side).must_replace()
+            side.must_replace(position.index)
         }
     }
 
-    /// Whether either side must switch before the battle can go on.
+    /// Whether any position must switch before the battle can go on.
+    #[inline]
     #[must_use]
     pub fn awaiting_switch(&self) -> bool {
-        SideId::BOTH.into_iter().any(|side| self.must_switch(side))
+        for side in &self.sides {
+            if side.switch_flag[0] || side.switch_flag[1] {
+                return true;
+            }
+            for (index, slot) in (0_u8..).zip(side.active) {
+                if slot.is_some_and(|slot| side.team[slot].is_fainted())
+                    && side.switches_at(index).next().is_some()
+                {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }

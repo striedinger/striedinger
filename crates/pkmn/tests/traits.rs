@@ -2,7 +2,7 @@
 
 mod common;
 
-use common::{P1, P2, damage_to, edit, max_hp, movers, play, set, start};
+use common::{P1, P1A, P2, P2A, damage_to, edit, max_hp, movers, play, set, start};
 use pkmn::battle::{DamageSource, HealSource};
 use pkmn::dex::{Status, WeatherId};
 use pkmn::stats::BoostStat;
@@ -25,12 +25,13 @@ fn ratio(boosted: u16, plain: u16) -> f64 {
 fn activated(events: &[Event], battle: &Battle, side: pkmn::SideId, name: &str) -> bool {
     events.iter().any(|event| match event {
         Event::Ability {
-            side: holder,
+            pokemon: holder,
             ability,
-        } if *holder == side => battle.dex().ability(*ability).name == name,
-        Event::Item { side: holder, item } if *holder == side => {
-            battle.dex().item(*item).name == name
-        }
+        } if holder.side == side => battle.dex().ability(*ability).name == name,
+        Event::Item {
+            pokemon: holder,
+            item,
+        } if holder.side == side => battle.dex().item(*item).name == name,
         _ => false,
     })
 }
@@ -56,7 +57,7 @@ fn type_immunity_traits_block_moves_of_that_type() {
         3,
     );
     let events = play(&mut battle, MOVE, MOVE);
-    assert!(events.contains(&Event::Immune { side: P2 }));
+    assert!(events.contains(&Event::Immune { pokemon: P2A }));
     assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 }
 
@@ -72,7 +73,7 @@ fn absorbing_traits_heal_instead_of_taking_damage() {
     let quarter = max_hp(&battle, P2) / 4;
     assert!(events.iter().any(|event| matches!(
         event,
-        Event::Heal { side: P2, amount, from: HealSource::Effect(_), .. } if *amount == quarter
+        Event::Heal { pokemon: P2A, amount, from: HealSource::Effect(_), .. } if *amount == quarter
     )));
     assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 }
@@ -95,7 +96,7 @@ fn entry_traits_trigger_for_leads_and_switch_ins() {
     let events = play(&mut battle, Choice::Switch(1), MOVE);
     assert!(activated(&events, &battle, P1, "Menace"));
     assert!(events.contains(&Event::Boost {
-        side: P2,
+        pokemon: P2A,
         stat: BoostStat::Attack,
         stages: -1
     }));
@@ -121,7 +122,7 @@ fn contact_traits_punish_attackers_only_for_contact_moves() {
         .iter()
         .filter_map(|event| match event {
             Event::Damage {
-                side: P1,
+                pokemon: P1A,
                 amount,
                 from: DamageSource::Effect(_),
                 ..
@@ -135,7 +136,7 @@ fn contact_traits_punish_attackers_only_for_contact_moves() {
     assert!(!events.iter().any(|event| matches!(
         event,
         Event::Damage {
-            side: P1,
+            pokemon: P1A,
             from: DamageSource::Effect(_),
             ..
         }
@@ -152,7 +153,7 @@ fn contact_status_traits_eventually_paralyze_attackers() {
         );
         let events = play(&mut battle, MOVE, MOVE);
         events.contains(&Event::Status {
-            side: P1,
+            pokemon: P1A,
             status: Status::Paralysis,
         })
     });
@@ -214,11 +215,11 @@ fn end_of_turn_boosts_skip_the_turn_the_holder_switched_in() {
     assert!(
         !events
             .iter()
-            .any(|event| matches!(event, Event::Boost { side: P1, .. }))
+            .any(|event| matches!(event, Event::Boost { pokemon: P1A, .. }))
     );
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.contains(&Event::Boost {
-        side: P1,
+        pokemon: P1A,
         stat: BoostStat::Speed,
         stages: 1
     }));
@@ -237,7 +238,7 @@ fn endure_traits_leave_one_hp_once_and_ribbons_are_used_up() {
     assert!(
         events
             .iter()
-            .any(|event| matches!(event, Event::EndItem { side: P2, .. }))
+            .any(|event| matches!(event, Event::EndItem { pokemon: P2A, .. }))
     );
     assert_eq!(battle.state().active(P2).item, None);
     play(&mut battle, MOVE, MOVE);
@@ -272,7 +273,9 @@ fn leftover_style_items_heal_at_the_end_of_the_turn() {
     let events = play(&mut battle, MOVE, MOVE);
     let healed = events.iter().rev().find_map(|event| match event {
         Event::Heal {
-            side: P2, amount, ..
+            pokemon: P2A,
+            amount,
+            ..
         } => Some(*amount),
         _ => None,
     });
@@ -301,7 +304,7 @@ fn life_orb_style_items_trade_hp_for_damage() {
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.iter().any(|event| matches!(
         event,
-        Event::Damage { side: P1, amount, from: DamageSource::Effect(_), .. }
+        Event::Damage { pokemon: P1A, amount, from: DamageSource::Effect(_), .. }
             if *amount == max_hp(&battle, P1) / 10
     )));
 }
@@ -360,7 +363,7 @@ fn threshold_berries_heal_once_below_half() {
     let quarter = max_hp(&battle, P2) / 4;
     assert!(events.iter().any(|event| matches!(
         event,
-        Event::Heal { side: P2, amount, from: HealSource::Effect(_), .. } if *amount == quarter
+        Event::Heal { pokemon: P2A, amount, from: HealSource::Effect(_), .. } if *amount == quarter
     )));
     assert_eq!(battle.state().active(P2).item, None);
 }
@@ -375,11 +378,11 @@ fn cure_berries_remove_a_status_as_soon_as_it_lands() {
         );
         let events = play(&mut battle, MOVE, MOVE);
         if events.contains(&Event::Status {
-            side: P2,
+            pokemon: P2A,
             status: Status::Burn,
         }) {
             assert!(events.contains(&Event::CureStatus {
-                side: P2,
+                pokemon: P2A,
                 status: Status::Burn
             }));
             assert!(damage_to(&events, P2, DamageSource::Status(Status::Burn)).is_empty());
@@ -417,10 +420,10 @@ fn poison_ticks_before_burn_regardless_of_speed() {
         .iter()
         .filter_map(|event| match event {
             Event::Damage {
-                side,
+                pokemon: side,
                 from: DamageSource::Status(_),
                 ..
-            } => Some(*side),
+            } => Some(side.side),
             _ => None,
         })
         .collect();
@@ -480,12 +483,12 @@ fn berries_react_to_weather_damage_before_status_damage() {
     let events = play(&mut battle, MOVE, MOVE);
     let berry = events
         .iter()
-        .position(|event| matches!(event, Event::EndItem { side: P1, .. }));
+        .position(|event| matches!(event, Event::EndItem { pokemon: P1A, .. }));
     let toxic = events.iter().position(|event| {
         matches!(
             event,
             Event::Damage {
-                side: P1,
+                pokemon: P1A,
                 from: DamageSource::Status(Status::Toxic),
                 ..
             }
@@ -558,7 +561,7 @@ fn fractional_item_heals_restore_at_least_one_hp() {
     assert!(events.iter().any(|event| matches!(
         event,
         Event::Heal {
-            side: P1,
+            pokemon: P1A,
             amount: 1,
             ..
         }

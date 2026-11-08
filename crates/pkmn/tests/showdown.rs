@@ -131,7 +131,7 @@ fn snapshot(battle: &Battle) -> Snapshot {
                     .collect();
                 conditions.sort_by(|left, right| left.name.cmp(&right.name));
                 SideSnapshot {
-                    active: side.active,
+                    active: side.active[0].unwrap_or(0),
                     team: side
                         .team
                         .iter()

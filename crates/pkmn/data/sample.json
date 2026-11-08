@@ -1204,7 +1204,8 @@
       "flags": {
         "protect": 1,
         "metronome": 1
-      }
+      },
+      "target": "allAdjacentFoes"
     },
     {
       "name": "Snow Call",
@@ -1277,7 +1278,8 @@
       "flags": {
         "protect": 1,
         "metronome": 1
-      }
+      },
+      "target": "allAdjacent"
     },
     {
       "name": "Sand Call",
@@ -1368,7 +1370,8 @@
       "flags": {
         "protect": 1,
         "metronome": 1
-      }
+      },
+      "target": "allAdjacentFoes"
     },
     {
       "name": "Shade Claw",
@@ -1635,7 +1638,8 @@
       },
       "self": {
         "volatileStatus": "lockedmove"
-      }
+      },
+      "target": "randomNormal"
     },
     {
       "name": "Sunlance",
@@ -2164,7 +2168,8 @@
       "residualSubOrder": 1,
       "damageModifier": {
         "category": "Physical",
-        "modifier": [1, 2]
+        "modifier": [1, 2],
+        "doublesModifier": [2732, 4096]
       }
     },
     {
@@ -2173,7 +2178,8 @@
       "residualSubOrder": 2,
       "damageModifier": {
         "category": "Special",
-        "modifier": [1, 2]
+        "modifier": [1, 2],
+        "doublesModifier": [2732, 4096]
       }
     }
   ],

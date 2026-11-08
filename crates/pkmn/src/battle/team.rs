@@ -4,8 +4,10 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, TeraType, Volatiles};
-use crate::dex::{Dex, LearnMethod};
+use super::state::{
+    GameType, MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, TeraType, Volatiles,
+};
+use crate::dex::{Dex, HandlerMask, LearnMethod};
 use crate::stats::{Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, StatTable, calculate_stats};
 
 /// The most creatures a team can have.
@@ -205,7 +207,9 @@ impl PokemonSet {
             tera_type,
             terastallized: false,
             stellar_boosted_types: 0,
-        })
+            mask: HandlerMask::default(),
+        }
+        .with_mask(dex))
     }
 }
 
@@ -348,7 +352,12 @@ impl fmt::Display for TeamError {
 
 impl std::error::Error for TeamError {}
 
-pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result<Side, TeamError> {
+pub(crate) fn build_side(
+    dex: &Dex,
+    side: SideId,
+    sets: &[PokemonSet],
+    game_type: GameType,
+) -> Result<Side, TeamError> {
     let team_error = |slot, reason| TeamError { side, slot, reason };
     if sets.is_empty() {
         return Err(team_error(None, TeamErrorReason::Empty));
@@ -365,11 +374,14 @@ pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result
         })
         .collect::<Result<_, _>>()?;
     let switch_order = (0..sets.len()).collect();
+    // The first team members lead, one per position.
+    let active =
+        [0, 1].map(|index| (index < sets.len().min(game_type.active_per_side())).then_some(index));
     Ok(Side {
         team,
-        active: 0,
+        active,
         conditions: Vec::new(),
-        switch_flag: false,
+        switch_flag: [false; 2],
         can_terastallize: true,
         switch_order,
     })

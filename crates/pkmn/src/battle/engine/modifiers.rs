@@ -4,7 +4,7 @@
 
 use super::Engine;
 use crate::battle::damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
-use crate::battle::state::{Pokemon, SideId, TeraType};
+use crate::battle::state::{Pokemon, Position, TeraType};
 use crate::dex::{
     Condition, Grounded, Handler, HandlerMask, MoveCategory, MoveData, Status, TerrainData,
 };
@@ -65,7 +65,7 @@ impl Engine<'_> {
     /// entirely when the holder has no handler of `kind`.
     fn chained(
         &self,
-        side: SideId,
+        side: Position,
         kind: HandlerMask,
         context: Context<'_>,
         select: impl Fn(&Handler) -> Option<(u32, &[Condition])>,
@@ -85,7 +85,7 @@ impl Engine<'_> {
 
     /// A stat after its stage, any weather boost (applied first, as Showdown's sandstorm and
     /// snow handlers are), and `modifyStat` handlers.
-    fn modified_stat(&self, side: SideId, stat: Stat, stage: i8, context: Context<'_>) -> u32 {
+    fn modified_stat(&self, side: Position, stat: Stat, stage: i8, context: Context<'_>) -> u32 {
         let pokemon = self.active(side);
         let mut value = apply_stage(pokemon.stats.get(stat), stage);
         if matches!(stat, Stat::Defense | Stat::SpecialDefense)
@@ -114,7 +114,7 @@ impl Engine<'_> {
     }
 
     /// Showdown's `getActionSpeed`: the speed used to order actions and end-of-turn effects.
-    pub(super) fn action_speed(&self, side: SideId) -> u32 {
+    pub(super) fn action_speed(&self, side: Position) -> u32 {
         let pokemon = self.active(side);
         let stage = pokemon.boosts.get(BoostStat::Speed);
         let mut speed = self.modified_stat(side, Stat::Speed, stage, Context::NO_MOVE);
@@ -124,7 +124,7 @@ impl Engine<'_> {
         speed.min(MAX_SPEED) % (1 << ACTION_SPEED_BITS)
     }
 
-    pub(super) fn type_modifier(&self, move_data: &MoveData, target: SideId) -> Option<i8> {
+    pub(super) fn type_modifier(&self, move_data: &MoveData, target: Position) -> Option<i8> {
         match move_data.move_type {
             Some(move_type) => self
                 .dex
@@ -136,13 +136,17 @@ impl Engine<'_> {
     /// Rolls and returns the damage of one hit.
     pub(super) fn move_damage(
         &mut self,
-        side: SideId,
-        target: SideId,
+        side: Position,
+        target: Position,
         move_data: &MoveData,
         critical: bool,
         type_modifier: i8,
+        spread: bool,
     ) -> u32 {
-        let input = self.damage_input(side, target, move_data, critical, type_modifier);
+        let input = DamageInput {
+            spread,
+            ..self.damage_input(side, target, move_data, critical, type_modifier)
+        };
         let roll = self.state.prng.below(DAMAGE_ROLLS);
         // Showdown's `ModifyDamage` event then sorts every screen's `onAnyModifyDamage`
         // handler. Side conditions have no speed, so two or more tie and are shuffled, though
@@ -172,8 +176,8 @@ impl Engine<'_> {
     /// Showdown's `getDamage` and `modifyDamage`, short of the random roll.
     fn damage_input(
         &self,
-        side: SideId,
-        target: SideId,
+        side: Position,
+        target: Position,
         move_data: &MoveData,
         critical: bool,
         type_modifier: i8,
@@ -249,6 +253,7 @@ impl Engine<'_> {
             power: u16::try_from(base_power).unwrap_or(u16::MAX),
             attack: self.modified_stat(side, attack_stat, attack_stage, context),
             defense: self.modified_stat(target, defense_stat, defense_stage, context),
+            spread: false,
             weather_modifier: self.weather().and_then(|weather| {
                 weather
                     .damage_modifiers
@@ -268,7 +273,7 @@ impl Engine<'_> {
     }
 
     /// The same-type attack bonus, or a `modifySTAB` handler's replacement for it.
-    fn stab_modifier(&self, side: SideId, move_data: &MoveData) -> u32 {
+    fn stab_modifier(&self, side: Position, move_data: &MoveData) -> u32 {
         let attacker = self.active(side);
         let Some(move_type) = move_data.move_type else {
             return MODIFIER_SCALE;
@@ -315,8 +320,8 @@ impl Engine<'_> {
     /// grounded, and one against a grounded target.
     fn terrain_base_power_modifier(
         &self,
-        side: SideId,
-        target: SideId,
+        side: Position,
+        target: Position,
         move_data: &MoveData,
     ) -> u32 {
         let Some(move_type) = move_data.move_type else {
@@ -367,8 +372,8 @@ impl Engine<'_> {
     /// critical hits ignore.
     fn final_damage_modifier(
         &self,
-        side: SideId,
-        target: SideId,
+        side: Position,
+        target: Position,
         context: Context<'_>,
         critical: bool,
     ) -> u32 {
@@ -399,18 +404,24 @@ impl Engine<'_> {
         let category = context.move_data.map(|data| data.category);
         let screens = self
             .state
-            .side(target)
+            .side(target.side)
             .conditions
             .iter()
             .filter_map(|condition| self.dex.side_condition(condition.id).screen)
             .filter(|screen| !critical && Some(screen.category) == category)
-            .map(|screen| screen.modifier);
+            .map(|screen| {
+                if self.state.game_type.active_per_side() > 1 {
+                    screen.doubles_modifier
+                } else {
+                    screen.modifier
+                }
+            });
         chain_modifiers([dealt, taken].into_iter().chain(screens))
     }
 
     /// Showdown's `getConfusionDamage`: a 40-power typeless hit that ignores every modifier
     /// but stat stages.
-    pub(super) fn confusion_damage(&mut self, side: SideId) -> u32 {
+    pub(super) fn confusion_damage(&mut self, side: Position) -> u32 {
         let pokemon = self.active(side);
         let input = DamageInput::neutral(
             pokemon.level,

@@ -3,10 +3,13 @@
 use std::sync::Arc;
 
 use pkmn::battle::DamageSource;
-use pkmn::{Battle, BattleState, Choice, Dex, Event, PokemonSet, SideId};
+use pkmn::{Battle, BattleState, Choice, Dex, Event, PokemonSet, Position, SideId};
 
 pub const P1: SideId = SideId::P1;
 pub const P2: SideId = SideId::P2;
+/// The first positions, the only ones in singles.
+pub const P1A: Position = Position::new(SideId::P1, 0);
+pub const P2A: Position = Position::new(SideId::P2, 0);
 
 pub fn dex() -> Arc<Dex> {
     Arc::new(Dex::from_json(pkmn::SAMPLE_DEX_JSON).expect("the sample dex compiles"))
@@ -38,7 +41,7 @@ pub fn movers(events: &[Event]) -> Vec<SideId> {
     events
         .iter()
         .filter_map(|event| match event {
-            Event::Move { side, .. } => Some(*side),
+            Event::Move { pokemon, .. } => Some(pokemon.side),
             _ => None,
         })
         .collect()
@@ -49,8 +52,11 @@ pub fn damage_to(events: &[Event], target: SideId, wanted: DamageSource) -> Vec<
         .iter()
         .filter_map(|event| match *event {
             Event::Damage {
-                side, amount, from, ..
-            } if side == target && from == wanted => Some(amount),
+                pokemon: side,
+                amount,
+                from,
+                ..
+            } if side.side == target && from == wanted => Some(amount),
             _ => None,
         })
         .collect()

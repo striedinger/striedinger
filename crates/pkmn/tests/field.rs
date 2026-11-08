@@ -3,7 +3,7 @@
 
 mod common;
 
-use common::{P1, P2, damage_to, edit, max_hp, movers, play, set, start};
+use common::{P1, P1A, P2, P2A, damage_to, edit, max_hp, movers, play, set, start};
 use pkmn::battle::{DamageSource, HealSource, TerrainState, WeatherState};
 use pkmn::dex::{TerrainId, VolatileStatus};
 use pkmn::{Battle, BattleState, Choice, Event, Request};
@@ -77,7 +77,7 @@ fn terrain_blocks_statuses_and_priority_against_grounded_targets() {
     );
     let mut battle = with_terrain(battle, "Mind Field");
     let events = play(&mut battle, MOVE, MOVE);
-    assert!(events.contains(&Event::Fail { side: P1 }));
+    assert!(events.contains(&Event::Fail { pokemon: P1A }));
     assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 }
 
@@ -98,11 +98,11 @@ fn healing_terrain_restores_grounded_creatures_and_every_terrain_fades() {
         .iter()
         .filter_map(|event| match *event {
             Event::Heal {
-                side,
+                pokemon: side,
                 amount,
                 from: HealSource::Terrain(id),
                 ..
-            } if id == overgrowth => Some((side, amount)),
+            } if id == overgrowth => Some((side.side, amount)),
             _ => None,
         })
         .collect();
@@ -147,7 +147,7 @@ fn charge_moves_spend_a_turn_charging_and_lock_the_user_in() {
     assert!(
         events
             .iter()
-            .any(|event| matches!(event, Event::Prepare { side: P1, .. }))
+            .any(|event| matches!(event, Event::Prepare { pokemon: P1A, .. }))
     );
     assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
     let Some(Request::Move {
@@ -205,7 +205,7 @@ fn semi_invulnerable_chargers_dodge_everything() {
     );
     let events = play(&mut battle, MOVE, MOVE);
     assert_eq!(movers(&events), [P1, P2]);
-    assert!(events.contains(&Event::Miss { side: P2 }));
+    assert!(events.contains(&Event::Miss { pokemon: P2A }));
 }
 
 #[test]
@@ -225,7 +225,7 @@ fn rampages_last_two_or_three_turns_then_confuse() {
             let events = play(&mut battle, MOVE, MOVE);
             turns += 1;
             if events.contains(&Event::Start {
-                side: P1,
+                pokemon: P1A,
                 volatile: VolatileStatus::Confusion,
             }) {
                 break;
@@ -257,7 +257,9 @@ fn roar_style_moves_drag_out_a_random_replacement() {
         );
         let events = play(&mut battle, MOVE, MOVE);
         let slot = events.iter().find_map(|event| match *event {
-            Event::Switch { side: P2, slot, .. } => Some(slot),
+            Event::Switch {
+                pokemon: P2A, slot, ..
+            } => Some(slot),
             _ => None,
         });
         dragged.insert(slot.expect("the foe was dragged out"));
@@ -271,7 +273,7 @@ fn roar_style_moves_drag_out_a_random_replacement() {
     );
     let events = play(&mut battle, MOVE, MOVE);
     assert!(
-        events.contains(&Event::Fail { side: P1 }),
+        events.contains(&Event::Fail { pokemon: P1A }),
         "nothing to drag in"
     );
 }
@@ -290,7 +292,7 @@ fn dragging_out_cancels_the_target_s_move() {
         let events = play(&mut battle, MOVE, MOVE);
         if events
             .iter()
-            .any(|event| matches!(event, Event::Switch { side: P2, .. }))
+            .any(|event| matches!(event, Event::Switch { pokemon: P2A, .. }))
         {
             // Both moves have priority -6, so the faster Zaplet acts first, and dragging
             // Craghorn out cancels its Howl Away.
@@ -351,7 +353,7 @@ fn defog_style_moves_clear_both_sides_and_the_terrain() {
     );
     assert_eq!(battle.state().field.terrain, None);
     assert!(events.contains(&Event::Boost {
-        side: P2,
+        pokemon: P2A,
         stat: pkmn::stats::BoostStat::Evasion,
         stages: -1
     }));
@@ -370,14 +372,14 @@ fn terastallizing_changes_types_once_per_battle() {
     assert_eq!(
         events[0],
         Event::Terastallize {
-            side: P1,
+            pokemon: P1A,
             tera_type: pkmn::battle::TeraType::Type(
                 battle.dex().type_id("Water").expect("Water exists")
             ),
         }
     );
     assert!(
-        events.contains(&Event::Resisted { side: P1 }),
+        events.contains(&Event::Resisted { pokemon: P1A }),
         "Water resists Water now"
     );
     assert!(battle.validate(P1, Choice::Terastallize(0)).is_err());
@@ -448,8 +450,11 @@ fn switches_happen_before_terastallization() {
         29,
     );
     let events = play(&mut battle, Choice::Terastallize(0), Choice::Switch(1));
-    assert!(matches!(events[0], Event::Switch { side: P2, .. }));
-    assert!(matches!(events[1], Event::Terastallize { side: P1, .. }));
+    assert!(matches!(events[0], Event::Switch { pokemon: P2A, .. }));
+    assert!(matches!(
+        events[1],
+        Event::Terastallize { pokemon: P1A, .. }
+    ));
 }
 
 #[test]
@@ -475,7 +480,7 @@ fn a_substitute_blocks_defog_style_boosts_but_not_the_clearing() {
         !events.iter().any(|event| matches!(
             event,
             Event::Boost {
-                side: P2,
+                pokemon: P2A,
                 stat: pkmn::stats::BoostStat::Evasion,
                 ..
             }
@@ -565,9 +570,9 @@ fn calling_moves_use_another_move() {
             .iter()
             .filter_map(|event| match *event {
                 Event::Move {
-                    side: user,
+                    pokemon: user,
                     move_id,
-                } if user == side => Some(move_id),
+                } if user.side == side => Some(move_id),
                 _ => None,
             })
             .collect()
@@ -612,7 +617,7 @@ fn calling_moves_use_another_move() {
         &[set("Craghorn", &["Hunker Down"])],
         39,
     );
-    assert!(play(&mut battle, MOVE, MOVE).contains(&Event::Fail { side: P1 }));
+    assert!(play(&mut battle, MOVE, MOVE).contains(&Event::Fail { pokemon: P1A }));
 
     // Metronome-style: a random move with the `metronome` flag, never one without it.
     for seed in 0..20 {

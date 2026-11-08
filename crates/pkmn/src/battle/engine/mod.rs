@@ -14,27 +14,30 @@ use std::cmp::Ordering;
 
 use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
-use super::state::{BattleState, Outcome, Pokemon, QueuedAction, SideId, Volatiles, WeatherState};
+use super::state::{
+    BattleState, Outcome, Pokemon, Position, Positions, QueuedAction, SideId, Volatiles,
+    WeatherState,
+};
 use crate::dex::MoveId;
 use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
 use crate::stats::{BoostStat, Boosts, saturate_u16};
 
-/// Creatures whose HP reached zero, in order, until the next faint check. At most both
-/// actives can be queued between checks.
+/// Creatures whose HP reached zero, in order, until the next faint check. At most every
+/// position can be queued between checks.
 #[derive(Clone, Copy, Debug, Default)]
 struct FaintQueue {
-    sides: [Option<SideId>; 2],
+    positions: [Option<Position>; 4],
 }
 
 impl FaintQueue {
-    fn push(&mut self, side: SideId) {
-        if let Some(free) = self.sides.iter_mut().find(|entry| entry.is_none()) {
-            *free = Some(side);
+    fn push(&mut self, position: Position) {
+        if let Some(free) = self.positions.iter_mut().find(|entry| entry.is_none()) {
+            *free = Some(position);
         }
     }
 
-    fn take(&mut self) -> impl Iterator<Item = SideId> + use<> {
-        std::mem::take(&mut self.sides).into_iter().flatten()
+    fn take(&mut self) -> impl Iterator<Item = Position> + use<> {
+        std::mem::take(&mut self.positions).into_iter().flatten()
     }
 }
 
@@ -67,12 +70,30 @@ impl<'a> Engine<'a> {
         self.events.push(event);
     }
 
-    fn active(&self, side: SideId) -> &Pokemon {
-        self.state.sides[side.index()].active()
+    #[inline]
+    fn active(&self, side: Position) -> &Pokemon {
+        let team = &self.state.sides[side.side.index()];
+        &team.team[team.active[usize::from(side.index)].unwrap_or(0)]
     }
 
-    fn active_mut(&mut self, side: SideId) -> &mut Pokemon {
-        self.state.sides[side.index()].active_mut()
+    #[inline]
+    fn active_mut(&mut self, side: Position) -> &mut Pokemon {
+        self.state.sides[side.side.index()].active_mut_at(side.index)
+    }
+
+    /// The positions in battle, in Showdown's order.
+    #[inline]
+    fn positions(&self) -> Positions {
+        self.state.positions()
+    }
+
+    /// The other creatures on the field that a move could hit from `position`, foes or allies,
+    /// that have not fainted, in position order.
+    pub(super) fn foes_of(&self, position: Position) -> Positions {
+        self.positions()
+            .iter()
+            .filter(|other| other.side != position.side && !self.active(*other).is_fainted())
+            .collect()
     }
 
     fn weather_id(&self) -> Option<WeatherId> {
@@ -85,12 +106,13 @@ impl<'a> Engine<'a> {
     }
 
     /// The kinds of handler the active creature's ability and item have.
-    fn mask(&self, side: SideId) -> HandlerMask {
-        self.active(side).handler_mask(self.dex)
+    #[inline]
+    fn mask(&self, side: Position) -> HandlerMask {
+        self.active(side).mask
     }
 
     /// The active creature's handlers with the ability or item each comes from, ability first.
-    fn handlers(&self, side: SideId) -> impl Iterator<Item = (Effect, &'a Handler)> + use<'a> {
+    fn handlers(&self, side: Position) -> impl Iterator<Item = (Effect, &'a Handler)> + use<'a> {
         let dex = self.dex;
         let pokemon = self.active(side);
         let ability = pokemon
@@ -106,40 +128,44 @@ impl<'a> Engine<'a> {
     }
 
     /// Announces an ability or item taking effect (`-ability` or `-item`).
-    fn announce(&mut self, side: SideId, effect: Effect) {
+    fn announce(&mut self, side: Position, effect: Effect) {
         self.emit(match effect {
-            Effect::Ability(ability) => Event::Ability { side, ability },
-            Effect::Item(item) => Event::Item { side, item },
+            Effect::Ability(ability) => Event::Ability {
+                pokemon: side,
+                ability,
+            },
+            Effect::Item(item) => Event::Item {
+                pokemon: side,
+                item,
+            },
         });
     }
 
     pub fn start(&mut self) {
-        for side in SideId::BOTH {
-            self.emit_switch(side);
+        let positions = self.positions();
+        for position in positions.iter() {
+            self.emit_switch(position);
         }
-        self.run_switch_in(SideId::BOTH);
+        self.run_switch_in(positions);
         self.update();
         self.state.turn = 0;
         self.next_turn();
     }
 
-    /// Runs validated choices: replacements between turns, or a full turn.
-    pub fn run(&mut self, choices: [Choice; 2]) {
+    /// Runs validated choices, by [`Position::flat`]: replacements between turns, or a full
+    /// turn.
+    pub fn run(&mut self, choices: [Choice; 4]) {
+        let positions = self.positions();
         if !self.state.awaiting_switch() {
-            let mut queue = [
-                self.action_for(SideId::P1, choices[0]),
-                self.action_for(SideId::P2, choices[1]),
-            ];
-            if choices
-                .iter()
-                .any(|choice| matches!(choice, Choice::Terastallize(_)))
-            {
+            let mut queue = [None; 4];
+            for position in positions.iter() {
+                queue[position.flat()] = self.action_for(position, choices[position.flat()]);
+            }
+            if choices.iter().any(|choice| choice.terastallizes()) {
                 // Showdown's queue order: switches (103), then Terastallization (106), then
                 // moves.
-                for side in SideId::BOTH {
-                    if matches!(queue[side.index()], Some(QueuedAction::Switch(_)))
-                        && self.act(side, &mut queue)
-                    {
+                while let Some(position) = self.next_actor(&queue, true) {
+                    if self.act(position, &mut queue) {
                         return;
                     }
                 }
@@ -148,14 +174,14 @@ impl<'a> Engine<'a> {
             self.continue_turn(queue);
             return;
         }
-        let mut switched = [None; 2];
-        for side in SideId::BOTH {
-            if let Choice::Switch(slot) = choices[side.index()] {
-                self.switch_in(side, slot);
-                switched[side.index()] = Some(side);
+        let mut switched = Positions::new();
+        for position in positions.iter() {
+            if let Choice::Switch(slot) = choices[position.flat()] {
+                self.switch_in(position, slot);
+                switched.push(position);
             }
         }
-        self.run_switch_in(switched.into_iter().flatten());
+        self.run_switch_in(switched);
         if self.faint_messages() {
             return;
         }
@@ -167,47 +193,51 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn action_for(&self, side: SideId, choice: Choice) -> Option<QueuedAction> {
+    fn action_for(&self, side: Position, choice: Choice) -> Option<QueuedAction> {
         match choice {
             Choice::Switch(slot) => Some(QueuedAction::Switch(slot)),
-            // A validated move choice that is not selectable can only be Struggle's slot 0.
-            Choice::Move(slot) | Choice::Terastallize(slot)
-                if self.active(side).can_select_move(self.dex, slot) =>
-            {
-                Some(QueuedAction::Move(Some(slot)))
-            }
-            Choice::Move(_) | Choice::Terastallize(_) => Some(QueuedAction::Move(None)),
             Choice::Pass => None,
+            _ => {
+                let slot = choice.move_slot()?;
+                // A validated move choice that is not selectable can only be Struggle's slot 0.
+                Some(QueuedAction::Move {
+                    slot: self
+                        .active(side)
+                        .can_select_move(self.dex, slot)
+                        .then_some(slot),
+                    target: choice.target(),
+                })
+            }
         }
     }
 
     /// Showdown's `terastallize` actions (queue order 106): after switches and before any move,
     /// fastest first.
-    fn terastallize(&mut self, choices: [Choice; 2]) {
-        let wants = choices.map(|choice| matches!(choice, Choice::Terastallize(_)));
-        let order = match wants {
-            [false, false] => return,
-            [true, true] => self.speed_order(),
-            _ => SideId::BOTH,
-        };
-        for side in order {
-            if !wants[side.index()] {
-                continue;
-            }
-            self.state.sides[side.index()].can_terastallize = false;
+    fn terastallize(&mut self, choices: [Choice; 4]) {
+        let wanting = self
+            .positions()
+            .iter()
+            .filter(|position| choices[position.flat()].terastallizes());
+        let mut order: Positions = wanting.collect();
+        self.sort_by_speed(order.as_mut_slice());
+        for side in order.iter() {
+            self.state.sides[side.side.index()].can_terastallize = false;
             let pokemon = self.active_mut(side);
             pokemon.terastallized = true;
             let tera_type = pokemon.tera_type;
-            self.emit(Event::Terastallize { side, tera_type });
+            self.emit(Event::Terastallize {
+                pokemon: side,
+                tera_type,
+            });
         }
     }
 
-    /// Runs queued actions until the turn ends, the battle ends, or a side must switch
+    /// Runs queued actions until the turn ends, the battle ends, or a creature must switch
     /// mid-turn, in which case the rest of the queue waits in the state.
-    fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; 2]) {
+    fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; 4]) {
         // The next actor is picked from the remaining actions each time, re-reading speed after
         // every action as Generation 8 onward does.
-        while let Some(side) = self.next_actor(&queue) {
+        while let Some(side) = self.next_actor(&queue, false) {
             if self.act(side, &mut queue) {
                 return;
             }
@@ -215,22 +245,22 @@ impl<'a> Engine<'a> {
         self.residual();
     }
 
-    /// Runs `side`'s queued action and the checks after it. Returns whether the turn stops
-    /// here: the battle ended, or a side must switch mid-turn and the rest of the queue waits
-    /// in the state.
-    fn act(&mut self, side: SideId, queue: &mut [Option<QueuedAction>; 2]) -> bool {
-        let Some(action) = queue[side.index()].take() else {
+    /// Runs a position's queued action and the checks after it. Returns whether the turn
+    /// stops here: the battle ended, or a creature must switch mid-turn and the rest of the
+    /// queue waits in the state.
+    fn act(&mut self, side: Position, queue: &mut [Option<QueuedAction>; 4]) -> bool {
+        let Some(action) = queue[side.flat()].take() else {
             return false;
         };
         match action {
             QueuedAction::Switch(slot) => {
                 self.switch_in(side, slot);
-                self.run_switch_in([side]);
+                self.run_switch_in([side].into_iter().collect());
             }
-            QueuedAction::Move(slot) => {
+            QueuedAction::Move { slot, target } => {
                 if !self.active(side).is_fainted() {
-                    let foe_will_act = queue[side.foe().index()].is_some();
-                    let drag = self.run_move(side, slot, foe_will_act);
+                    let others_will_act = queue.iter().any(Option::is_some);
+                    let drag = self.run_move(side, slot, target, others_will_act);
                     // Showdown's `clearActiveMove`: a move that got as far as being used is
                     // the battle's last move.
                     if let Some(move_id) = self.active_move.take() {
@@ -246,22 +276,27 @@ impl<'a> Engine<'a> {
             return true;
         }
         self.update();
-        if self.state.sides.iter().any(|team| team.switch_flag) {
+        if self
+            .state
+            .sides
+            .iter()
+            .any(|team| team.switch_flag.contains(&true))
+        {
             self.state.queue = Some(*queue);
             return true;
         }
         false
     }
 
-    fn priority(&self, side: SideId, action: QueuedAction) -> i8 {
+    fn priority(&self, side: Position, action: QueuedAction) -> i8 {
         let pokemon = self.active(side);
         let move_id = match action {
             QueuedAction::Switch(_) => return 0,
             _ if pokemon.forced_move().is_some() => pokemon.forced_move(),
-            QueuedAction::Move(Some(slot)) => {
-                pokemon.move_slots[slot].map(|move_slot| move_slot.id)
-            }
-            QueuedAction::Move(None) => Some(self.dex.struggle()),
+            QueuedAction::Move {
+                slot: Some(slot), ..
+            } => pokemon.move_slots[slot].map(|move_slot| move_slot.id),
+            QueuedAction::Move { slot: None, .. } => Some(self.dex.struggle()),
         };
         let Some(move_id) = move_id else {
             return 0;
@@ -269,64 +304,153 @@ impl<'a> Engine<'a> {
         self.dex.move_data(move_id).priority
     }
 
-    fn next_actor(&mut self, queue: &[Option<QueuedAction>; 2]) -> Option<SideId> {
-        match (queue[0], queue[1]) {
-            (None, None) => None,
-            (Some(_), None) => Some(SideId::P1),
-            (None, Some(_)) => Some(SideId::P2),
-            (Some(first), Some(second)) => {
-                let key = |engine: &Self, side, action| {
-                    (
-                        matches!(action, QueuedAction::Switch(_)),
-                        engine.priority(side, action),
-                    )
-                };
-                // Speed is only computed when switching and priority do not decide.
-                match key(self, SideId::P1, first).cmp(&key(self, SideId::P2, second)) {
-                    Ordering::Greater => Some(SideId::P1),
-                    Ordering::Less => Some(SideId::P2),
-                    Ordering::Equal => Some(self.faster_side()),
-                }
+    /// The position whose queued action runs next: switches first, then by priority, then by
+    /// speed, as Showdown sorts its queue. With `switches_only`, only switches are considered.
+    fn next_actor(
+        &mut self,
+        queue: &[Option<QueuedAction>; 4],
+        switches_only: bool,
+    ) -> Option<Position> {
+        let mut waiting = Positions::new();
+        for position in Position::ALL {
+            if queue[position.flat()]
+                .is_some_and(|action| !switches_only || matches!(action, QueuedAction::Switch(_)))
+            {
+                waiting.push(position);
             }
         }
+        if waiting.len() < 2 {
+            return waiting.first();
+        }
+        if let [first, second] = *waiting.as_mut_slice() {
+            let first_action = queue[first.flat()].expect("a waiting position has an action");
+            let second_action = queue[second.flat()].expect("a waiting position has an action");
+            let key = |engine: &Self, position, action| {
+                (
+                    matches!(action, QueuedAction::Switch(_)),
+                    engine.priority(position, action),
+                )
+            };
+            return Some(
+                match key(self, first, first_action).cmp(&key(self, second, second_action)) {
+                    Ordering::Greater => first,
+                    Ordering::Less => second,
+                    Ordering::Equal => {
+                        let mut pair = [first, second];
+                        self.sort_by_speed(&mut pair);
+                        pair[0]
+                    }
+                },
+            );
+        }
+        let key = |engine: &Self, position: Position| {
+            let action = queue[position.flat()].expect("a waiting position has an action");
+            (
+                matches!(action, QueuedAction::Switch(_)),
+                engine.priority(position, action),
+            )
+        };
+        // Speed is only computed when switching and priority do not decide.
+        let best = waiting
+            .iter()
+            .map(|position| key(self, position))
+            .max()
+            .expect("there are waiting positions");
+        let mut tied: Positions = waiting
+            .as_mut_slice()
+            .iter()
+            .copied()
+            .filter(|&position| key(self, position) == best)
+            .collect();
+        self.sort_by_speed(tied.as_mut_slice());
+        tied.first()
     }
 
-    /// The side whose active creature is faster. A tie is broken with one roll, as Showdown's
-    /// two-element shuffle does.
+    /// Showdown's `speedSort` over positions: fastest first, with each group of equal speed
+    /// shuffled, which draws `k - 1` numbers for a group of `k`.
     ///
     /// Deliberate difference: Showdown also re-sorts, and so re-rolls, speed ties at every
-    /// `Update` and `runSwitch` and for each tied residual group. pkmn only rolls where the
-    /// order changes an outcome, so speed-tied battles draw fewer random numbers than
-    /// Showdown's from the first tie on.
-    fn faster_side(&mut self) -> SideId {
-        match self
-            .action_speed(SideId::P1)
-            .cmp(&self.action_speed(SideId::P2))
-        {
-            Ordering::Greater => SideId::P1,
-            Ordering::Less => SideId::P2,
-            Ordering::Equal => {
-                if self.state.prng.below(2) == 0 {
-                    SideId::P1
-                } else {
-                    SideId::P2
+    /// `Update` and `runSwitch`. pkmn only sorts where the order changes an outcome, so
+    /// speed-tied battles draw fewer random numbers than Showdown's from the first tie on.
+    fn sort_by_speed(&mut self, positions: &mut [Position]) {
+        match positions.len() {
+            0 | 1 => {}
+            // Most sorts are of two: one roll breaks a tie, as Showdown's shuffle does.
+            2 => {
+                let first = self.action_speed(positions[0]);
+                let second = self.action_speed(positions[1]);
+                if second > first || (second == first && self.state.prng.below(2) == 1) {
+                    positions.swap(0, 1);
+                }
+            }
+            _ => {
+                let mut keyed = [(0, Position::from(SideId::P1)); 4];
+                for (entry, &position) in keyed.iter_mut().zip(positions.iter()) {
+                    *entry = (self.action_speed(position), position);
+                }
+                let keyed = &mut keyed[..positions.len()];
+                self.speed_sort(keyed, |left, right| right.0.cmp(&left.0));
+                for (position, &(_, sorted)) in positions.iter_mut().zip(keyed.iter()) {
+                    *position = sorted;
                 }
             }
         }
     }
 
-    /// Both sides ordered fastest first.
-    fn speed_order(&mut self) -> [SideId; 2] {
-        let first = self.faster_side();
-        [first, first.foe()]
+    /// Showdown's `speedSort`: repeatedly moves the group that sorts first into place, and
+    /// shuffles the group if it has more than one member. `compare` returns `Less` for what
+    /// goes first.
+    pub(super) fn speed_sort<T: Copy>(
+        &mut self,
+        list: &mut [T],
+        compare: impl Fn(&T, &T) -> Ordering,
+    ) {
+        let mut sorted = 0;
+        while sorted + 1 < list.len() {
+            let mut group = [0; 32];
+            group[0] = sorted;
+            let mut size = 1;
+            for index in sorted + 1..list.len() {
+                match compare(&list[group[0]], &list[index]) {
+                    Ordering::Less => {}
+                    Ordering::Greater => {
+                        group[0] = index;
+                        size = 1;
+                    }
+                    Ordering::Equal => {
+                        if let Some(slot) = group.get_mut(size) {
+                            *slot = index;
+                            size += 1;
+                        }
+                    }
+                }
+            }
+            for (offset, &index) in group[..size].iter().enumerate() {
+                if index != sorted + offset {
+                    list.swap(sorted + offset, index);
+                }
+            }
+            if size > 1 {
+                self.shuffle(&mut list[sorted..sorted + size]);
+            }
+            sorted += size;
+        }
     }
 
-    fn emit_switch(&mut self, side: SideId) {
-        let team = &self.state.sides[side.index()];
-        let pokemon = team.active();
+    /// The positions in `candidates`, fastest first.
+    fn speed_order(&mut self, candidates: Positions) -> Positions {
+        let mut order = candidates;
+        self.sort_by_speed(order.as_mut_slice());
+        order
+    }
+
+    fn emit_switch(&mut self, side: Position) {
+        let team = &self.state.sides[side.side.index()];
+        let slot = team.active[usize::from(side.index)].unwrap_or(0);
+        let pokemon = &team.team[slot];
         let event = Event::Switch {
-            side,
-            slot: team.active,
+            pokemon: side,
+            slot,
             species: pokemon.species,
             hp: pokemon.hp,
             max_hp: pokemon.max_hp(),
@@ -334,18 +458,19 @@ impl<'a> Engine<'a> {
         self.emit(event);
     }
 
-    fn switch_in(&mut self, side: SideId, slot: usize) {
+    fn switch_in(&mut self, side: Position, slot: usize) {
         let outgoing = self.active_mut(side);
         outgoing.boosts = Boosts::default();
         outgoing.volatiles = Volatiles::default();
-        let team = &mut self.state.sides[side.index()];
-        team.active = slot;
-        team.switch_flag = false;
-        // Showdown swaps the incoming creature into the active position of `side.pokemon`.
-        if let Some(position) = team.switch_order.iter().position(|&member| member == slot) {
-            team.switch_order.swap(0, position);
+        let index = usize::from(side.index);
+        let team = &mut self.state.sides[side.side.index()];
+        team.active[index] = Some(slot);
+        team.switch_flag[index] = false;
+        // Showdown swaps the incoming creature into the position's place in `side.pokemon`.
+        if let Some(place) = team.switch_order.iter().position(|&member| member == slot) {
+            team.switch_order.swap(index, place);
         }
-        let incoming = team.active_mut();
+        let incoming = team.active_mut_at(side.index);
         incoming.active_turns = 0;
         incoming.status_state.stage = 0;
         self.emit_switch(side);
@@ -353,8 +478,8 @@ impl<'a> Engine<'a> {
 
     /// Showdown's `dragIn`: a forced switch picks a random replacement from
     /// `possibleSwitches`, cancels the dragged-out creature's action, and runs the switch-in.
-    fn drag_in(&mut self, side: SideId, queue: &mut [Option<QueuedAction>; 2]) {
-        let candidates: Vec<usize> = self.state.side(side).drag_candidates().collect();
+    fn drag_in(&mut self, side: Position, queue: &mut [Option<QueuedAction>; 4]) {
+        let candidates: Vec<usize> = self.state.side(side.side).drag_candidates().collect();
         let Ok(count) = u32::try_from(candidates.len()) else {
             return;
         };
@@ -363,13 +488,13 @@ impl<'a> Engine<'a> {
         }
         let index = usize::try_from(self.state.prng.below(count)).unwrap_or(0);
         self.switch_in(side, candidates[index]);
-        queue[side.index()] = None;
-        self.run_switch_in([side]);
+        queue[side.flat()] = None;
+        self.run_switch_in([side].into_iter().collect());
     }
 
     /// Whether the creature touches the ground: not immune to `grounded_type` by the type chart
     /// or an `immunity` handler (Showdown's `isGrounded`), and not in the air mid-charge.
-    fn is_grounded(&self, side: SideId, grounded_type: crate::dex::TypeId) -> bool {
+    fn is_grounded(&self, side: Position, grounded_type: crate::dex::TypeId) -> bool {
         let pokemon = self.active(side);
         let immune_by_handler = self.mask(side).intersects(HandlerMask::TRY_HIT)
             && self
@@ -383,7 +508,7 @@ impl<'a> Engine<'a> {
     }
 
     /// Whether the creature is out of reach while charging a move like Fly.
-    fn is_semi_invulnerable(&self, side: SideId) -> bool {
+    fn is_semi_invulnerable(&self, side: Position) -> bool {
         let pokemon = self.active(side);
         pokemon.volatiles.charging.is_some_and(|move_id| {
             self.dex
@@ -398,7 +523,7 @@ impl<'a> Engine<'a> {
     /// affected by it. Grounding is only worked out when the terrain is relevant.
     fn terrain_affecting(
         &self,
-        side: SideId,
+        side: Position,
         relevant: impl Fn(&crate::dex::TerrainData) -> bool,
     ) -> Option<&'a crate::dex::TerrainData> {
         let dex = self.dex;
@@ -435,22 +560,12 @@ impl<'a> Engine<'a> {
     }
 
     /// Runs `onStart` abilities and items for creatures that just switched in, fastest first.
-    fn run_switch_in(&mut self, sides: impl IntoIterator<Item = SideId>) {
-        let mut entering = [false; 2];
-        for side in sides {
-            entering[side.index()] = true;
-        }
-        let order = match entering {
-            [true, true] => self.speed_order(),
-            _ => SideId::BOTH,
-        };
+    fn run_switch_in(&mut self, entering: Positions) {
+        let order = self.speed_order(entering);
         // Showdown's `fieldEvent('SwitchIn')`: each creature's handlers in speed order, its
         // entry hazards (sub-order 4, in the order they were set) before its ability (7) and
         // item (8), with a faint check after each, so a battle can end here.
-        for side in order {
-            if !entering[side.index()] {
-                continue;
-            }
+        for side in order.iter() {
             if self.entry_hazards(side) {
                 return;
             }
@@ -471,12 +586,18 @@ impl<'a> Engine<'a> {
                             self.set_terrain(*terrain);
                         }
                     }
+                    // Like Intimidate: every foe, announced once, and blocked by a substitute.
                     Handler::StartFoeBoosts(boosts) => {
-                        let foe = side.foe();
-                        let foe_pokemon = self.active(foe);
-                        if !foe_pokemon.is_fainted() && foe_pokemon.volatiles.substitute.is_none() {
+                        let foes = self.foes_of(side);
+                        if foes.len() > 0 {
                             self.announce(side, effect);
-                            self.boost(foe, *boosts);
+                        }
+                        for foe in foes.iter() {
+                            if self.active(foe).volatiles.substitute.is_some() {
+                                self.emit(Event::Immune { pokemon: foe });
+                            } else {
+                                self.boost(foe, *boosts);
+                            }
                         }
                     }
                     _ => continue,
@@ -490,10 +611,10 @@ impl<'a> Engine<'a> {
 
     /// Damage from the side's entry hazards to a creature that just switched in, each followed
     /// by a faint check. Returns whether the battle ended.
-    fn entry_hazards(&mut self, side: SideId) -> bool {
+    fn entry_hazards(&mut self, side: Position) -> bool {
         let dex = self.dex;
-        for index in 0..self.state.side(side).conditions.len() {
-            let condition = self.state.side(side).conditions[index];
+        for index in 0..self.state.side(side.side).conditions.len() {
+            let condition = self.state.side(side.side).conditions[index];
             let Some(hazard) = &dex.side_condition(condition.id).switch_in_damage else {
                 continue;
             };
@@ -537,16 +658,20 @@ impl<'a> Engine<'a> {
     /// Showdown's `Update` event: items that react to HP or status get a chance to trigger,
     /// fastest creature first.
     fn update(&mut self) {
-        let reacts = SideId::BOTH.map(|side| {
-            !self.active(side).is_fainted() && self.mask(side).intersects(HandlerMask::UPDATE)
-        });
-        let order = match reacts {
-            [false, false] => return,
-            [true, true] => self.speed_order(),
-            _ => SideId::BOTH,
-        };
-        for side in order {
-            if !reacts[side.index()] || self.active(side).is_fainted() {
+        let mut reacting = Positions::new();
+        for side in self.positions() {
+            if self.mask(side).intersects(HandlerMask::UPDATE) && !self.active(side).is_fainted() {
+                reacting.push(side);
+            }
+        }
+        if reacting.len() == 0 {
+            return;
+        }
+        if reacting.len() > 1 {
+            reacting = self.speed_order(reacting);
+        }
+        for side in reacting {
+            if self.active(side).is_fainted() {
                 continue;
             }
             for (effect, handler) in self.handlers(side) {
@@ -576,20 +701,20 @@ impl<'a> Engine<'a> {
     }
 
     /// A `cureStatus` handler: removes the status and confusion.
-    fn cure(&mut self, side: SideId, effect: Effect) {
+    fn cure(&mut self, side: Position, effect: Effect) {
         self.trigger(side, effect);
         self.cure_status(side);
         if self.active(side).volatiles.confusion.is_some() {
             self.active_mut(side).volatiles.confusion = None;
             self.emit(Event::End {
-                side,
+                pokemon: side,
                 volatile: crate::dex::VolatileStatus::Confusion,
             });
         }
     }
 
     /// Whether the active creature still has the ability or item.
-    fn holds(&self, side: SideId, effect: Effect) -> bool {
+    fn holds(&self, side: Position, effect: Effect) -> bool {
         let pokemon = self.active(side);
         match effect {
             Effect::Ability(ability) => pokemon.ability == Some(ability),
@@ -600,11 +725,17 @@ impl<'a> Engine<'a> {
     /// Reports a one-shot handler triggering. A consumable item is used up and only
     /// `-enditem` is sent, as Showdown does for berries and Focus Sash; anything else is
     /// announced with `-ability` or `-item`.
-    fn trigger(&mut self, side: SideId, effect: Effect) {
+    fn trigger(&mut self, side: Position, effect: Effect) {
         match effect {
             Effect::Item(item) if self.dex.item(item).consumable => {
-                self.active_mut(side).item = None;
-                self.emit(Event::EndItem { side, item });
+                let dex = self.dex;
+                let holder = self.active_mut(side);
+                holder.item = None;
+                holder.refresh_mask(dex);
+                self.emit(Event::EndItem {
+                    pokemon: side,
+                    item,
+                });
             }
             _ => self.announce(side, effect),
         }
@@ -623,7 +754,7 @@ impl<'a> Engine<'a> {
     }
 
     /// Applies stat stages and returns whether any changed.
-    fn boost(&mut self, side: SideId, boosts: Boosts) -> bool {
+    fn boost(&mut self, side: Position, boosts: Boosts) -> bool {
         if self.active(side).is_fainted() {
             return false;
         }
@@ -634,11 +765,11 @@ impl<'a> Engine<'a> {
         changed
     }
 
-    fn boost_stat(&mut self, side: SideId, stat: BoostStat, stages: i8) -> bool {
+    fn boost_stat(&mut self, side: Position, stat: BoostStat, stages: i8) -> bool {
         let applied = self.active_mut(side).boosts.apply(stat, stages);
         if applied != 0 {
             self.emit(Event::Boost {
-                side,
+                pokemon: side,
                 stat,
                 stages: applied,
             });
@@ -646,9 +777,12 @@ impl<'a> Engine<'a> {
         applied != 0
     }
 
-    fn cure_status(&mut self, side: SideId) {
+    fn cure_status(&mut self, side: Position) {
         if let Some(status) = self.active_mut(side).status.take() {
-            self.emit(Event::CureStatus { side, status });
+            self.emit(Event::CureStatus {
+                pokemon: side,
+                status,
+            });
         }
     }
 
@@ -656,7 +790,7 @@ impl<'a> Engine<'a> {
     ///
     /// Damage from a move or confusion that would knock out a creature at full HP is first
     /// offered to `endureFromFull` handlers, ability before item, like Showdown's `onDamage`.
-    fn damage(&mut self, side: SideId, amount: u32, from: DamageSource) -> u32 {
+    fn damage(&mut self, side: Position, amount: u32, from: DamageSource) -> u32 {
         let pokemon = self.active(side);
         if pokemon.is_fainted() || amount == 0 {
             return 0;
@@ -685,7 +819,7 @@ impl<'a> Engine<'a> {
         pokemon.hp -= dealt;
         let hp = pokemon.hp;
         self.emit(Event::Damage {
-            side,
+            pokemon: side,
             amount: dealt,
             hp,
             from,
@@ -697,7 +831,7 @@ impl<'a> Engine<'a> {
     }
 
     /// Restores up to `amount` HP and returns how much was actually restored.
-    fn heal(&mut self, side: SideId, amount: u32, from: HealSource) -> u32 {
+    fn heal(&mut self, side: Position, amount: u32, from: HealSource) -> u32 {
         let pokemon = self.active_mut(side);
         if pokemon.is_fainted() {
             return 0;
@@ -709,7 +843,7 @@ impl<'a> Engine<'a> {
         pokemon.hp += restored;
         let hp = pokemon.hp;
         self.emit(Event::Heal {
-            side,
+            pokemon: side,
             amount: restored,
             hp,
             from,
@@ -728,13 +862,13 @@ impl<'a> Engine<'a> {
         }
         let mut last_fainted = None;
         for side in self.faint_queue.take() {
-            self.emit(Event::Faint { side });
+            self.emit(Event::Faint { pokemon: side });
             // Showdown's `faintMessages`: stat stages, volatiles, and Terastallization go.
             let fainted = self.active_mut(side);
             fainted.boosts = Boosts::default();
             fainted.volatiles = Volatiles::default();
             fainted.terastallized = false;
-            last_fainted = Some(side);
+            last_fainted = Some(side.side);
         }
         if last_fainted.is_none() {
             return false;
@@ -760,7 +894,7 @@ impl<'a> Engine<'a> {
         if self.state.outcome.is_some() || self.state.awaiting_switch() {
             return;
         }
-        for side in SideId::BOTH {
+        for side in self.positions().iter() {
             let active = self.active_mut(side);
             active.active_turns = active.active_turns.saturating_add(1);
         }

@@ -17,6 +17,8 @@ pub struct DamageInput {
     pub attack: u32,
     /// The defending stat after stages and modifiers.
     pub defense: u32,
+    /// Whether the move hits more than one target, for ×0.75 (doubles).
+    pub spread: bool,
     /// A 4096-based weather modifier for the move's type.
     pub weather_modifier: Option<u32>,
     /// Whether the hit is critical.
@@ -42,6 +44,7 @@ impl DamageInput {
             power,
             attack,
             defense,
+            spread: false,
             weather_modifier: None,
             critical: false,
             roll: 0,
@@ -58,6 +61,9 @@ pub const STAB_MODIFIER: u32 = MODIFIER_SCALE * 3 / 2;
 /// The modifier for a burned physical attacker: ×0.5.
 const BURN_MODIFIER: u32 = MODIFIER_SCALE / 2;
 
+/// Spread moves deal ×0.75 to each target when they hit more than one.
+const SPREAD_MODIFIER: u32 = 3072;
+
 /// Calculates the damage of one hit, applying modifiers in the order the games do.
 #[must_use]
 pub fn calculate_damage(input: &DamageInput) -> u32 {
@@ -65,6 +71,9 @@ pub fn calculate_damage(input: &DamageInput) -> u32 {
     let defense = u64::from(input.defense.max(1));
     let base = level_factor * u64::from(input.power) * u64::from(input.attack) / defense / 50 + 2;
     let mut damage = saturate_u32(base);
+    if input.spread {
+        damage = apply_modifier(damage, SPREAD_MODIFIER);
+    }
     if let Some(modifier) = input.weather_modifier {
         damage = apply_modifier(damage, modifier);
     }

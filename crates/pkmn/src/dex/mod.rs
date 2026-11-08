@@ -237,6 +237,33 @@ pub enum MoveTarget {
     /// `allySide`: the user's side, for screens.
     #[serde(rename = "allySide")]
     AllySide,
+    /// `allAdjacentFoes`: every opposing active creature, a spread move like Rock Slide.
+    #[serde(rename = "allAdjacentFoes")]
+    AllAdjacentFoes,
+    /// `allAdjacent`: every other active creature, allies included, a spread move like
+    /// Earthquake.
+    #[serde(rename = "allAdjacent")]
+    AllAdjacent,
+    /// `randomNormal`: a random opposing creature, like Outrage.
+    #[serde(rename = "randomNormal")]
+    RandomNormal,
+}
+
+impl MoveTarget {
+    /// Whether a doubles choice must name the target (Showdown's `targetTypeChoices`).
+    #[must_use]
+    pub fn needs_choice(self) -> bool {
+        self == Self::Normal
+    }
+
+    /// Whether the move hits creatures, rather than its user or a side.
+    #[must_use]
+    pub fn hits_others(self) -> bool {
+        matches!(
+            self,
+            Self::Normal | Self::AllAdjacentFoes | Self::AllAdjacent | Self::RandomNormal
+        )
+    }
 }
 
 /// How many times a move strikes.
@@ -410,6 +437,8 @@ pub struct Screen {
     pub category: MoveCategory,
     /// The 4096-based modifier for non-critical hits.
     pub modifier: u32,
+    /// The 4096-based modifier in doubles.
+    pub doubles_modifier: u32,
 }
 
 /// A compiled nature.
@@ -961,6 +990,11 @@ impl Dex {
             Some(screen) => Some(Screen {
                 category: screen.category,
                 modifier: validate_fraction(screen.modifier, name)?.to_modifier(),
+                doubles_modifier: validate_fraction(
+                    screen.doubles_modifier.unwrap_or(screen.modifier),
+                    name,
+                )?
+                .to_modifier(),
             }),
         };
         self.side_conditions.push(SideConditionData {
@@ -1420,7 +1454,7 @@ fn built_in_struggle() -> MoveSource {
         accuracy: Accuracy(None),
         pp: 1,
         priority: 0,
-        target: MoveTarget::Normal,
+        target: MoveTarget::RandomNormal,
         crit_ratio: 1,
         multihit: None,
         drain: None,
