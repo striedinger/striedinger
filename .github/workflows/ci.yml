@@ -73,13 +73,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: Select affected Rust packages
+        id: affected
+        run: |
+          python3 .github/scripts/test-rust-affected.py
+          python3 .github/scripts/rust-affected.py
+      - name: No affected Rust packages
+        if: steps.affected.outputs.run != 'true'
+        run: echo "No affected Pokémon crates; Rust checks are not needed."
+      - if: steps.affected.outputs.run == 'true'
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
       # Fail formatting before downloading/restoring build dependencies.
-      - run: cargo +stable fmt -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -- --check
+      - if: steps.affected.outputs.run == 'true'
+        run: cargo +stable fmt ${{ steps.affected.outputs.packages }} -- --check
       - name: Identify Rust compiler
+        if: steps.affected.outputs.run == 'true'
         id: rustc
         run: echo "hash=$(rustc +stable -vV | sha256sum | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
       - name: Cache Rust dependencies and build artifacts
+        if: steps.affected.outputs.run == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -94,5 +106,7 @@ jobs:
           restore-keys: |
             rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-${{ hashFiles('Cargo.lock') }}-
             rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-
-      - run: cargo +stable clippy -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --all-targets --locked -- -D warnings
-      - run: cargo +stable test -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --locked
+      - if: steps.affected.outputs.run == 'true'
+        run: cargo +stable clippy ${{ steps.affected.outputs.packages }} --all-targets --locked -- -D warnings
+      - if: steps.affected.outputs.run == 'true'
+        run: cargo +stable test ${{ steps.affected.outputs.packages }} --locked

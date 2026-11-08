@@ -80,3 +80,8 @@ sorting, locked/deleted moves, cancelled additions, and the CLI backup workflow.
 
 Validation targets the three Pokémon crates explicitly; Murmur shares the Cargo
 workspace and has separate native audio and ML build requirements.
+
+CI selects affected Pokémon crates and their transitive dependents from the Cargo
+manifests. Shared Cargo/toolchain configuration and CI changes check all three.
+Unrelated changes and crate documentation changes skip Rust setup and compilation;
+the named Rust check still succeeds, so required branch checks do not remain pending.
