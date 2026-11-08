@@ -1,0 +1,37 @@
+[package]
+name = "murmur_core"
+version = "0.1.0"
+edition = "2021"
+description = "Shared core for Murmur: audio capture, local speech-to-text, local LLM cleanup."
+
+[lib]
+# cdylib  -> linked by the native shells (Mac now, Windows/Linux later)
+# lib     -> lets the uniffi-bindgen binary and tests use the crate
+crate-type = ["cdylib", "lib"]
+name = "murmur_core"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+uniffi = { version = "0.28", features = ["cli"] }
+thiserror = "1"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+cpal = "0.15"
+crossbeam-channel = "0.5"
+rusqlite = { version = "0.32", features = ["bundled"] }
+# Parakeet TDT v3 (and Whisper) via sherpa-onnx. Downloads prebuilt sherpa-onnx libs at build time.
+sherpa-rs = "0.6"
+# Embedded llama.cpp for the cleanup model.
+llama-cpp-2 = "0.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+llama-cpp-2 = { version = "0.1", features = ["metal"] }
+
+[features]
+# Windows/Linux with an NVIDIA GPU: cargo build --release --features cuda
+cuda = ["llama-cpp-2/cuda"]
+vulkan = ["llama-cpp-2/vulkan"]

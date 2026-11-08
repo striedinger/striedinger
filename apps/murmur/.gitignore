@@ -1,0 +1,6 @@
+/target
+/build
+/mac/generated
+.DS_Store
+*.gguf
+*.onnx
