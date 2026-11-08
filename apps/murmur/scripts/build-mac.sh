@@ -227,8 +227,10 @@ SWIFT_ARGS=(
   -Xlinker -L -Xlinker "$FRAMEWORKS"
   -Xlinker -rpath -Xlinker "@executable_path/../Frameworks"
 )
-swift build "${SWIFT_ARGS[@]}"
-cp "$(swift build "${SWIFT_ARGS[@]}" --show-bin-path)/Murmur" "$APP/Contents/MacOS/Murmur"
+# Without SDKROOT: SwiftPM compiles Package.swift for the host, and on Linux an exported
+# SDKROOT (set above for the Rust build) would point that host compile at the macOS SDK.
+env -u SDKROOT swift build "${SWIFT_ARGS[@]}"
+cp "$(env -u SDKROOT swift build "${SWIFT_ARGS[@]}" --show-bin-path)/Murmur" "$APP/Contents/MacOS/Murmur"
 
 # ---- Sign -----------------------------------------------------------------------------
 
