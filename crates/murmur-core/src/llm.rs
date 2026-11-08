@@ -185,10 +185,10 @@ impl Llm {
         // Greedy decoding: deterministic, and the right choice for faithful cleanup.
         let mut sampler = LlamaSampler::greedy();
         let mut logits_index = batch.n_tokens() - 1;
-        let mut position = tokens.len() as i32;
         let mut bytes: Vec<u8> = Vec::with_capacity(budget as usize * 4);
 
-        for _ in 0..budget {
+        let first_position = i32::try_from(tokens.len())?;
+        for position in (first_position..).take(budget as usize) {
             let token = sampler.sample(&session.context, logits_index);
             if self.vocab.is_eog(token) {
                 break;
@@ -199,7 +199,6 @@ impl Llm {
             batch.add(token, position, &[0], true)?;
             session.context.decode(&mut batch)?;
             session.cached_tokens.push(token);
-            position += 1;
             logits_index = 0;
         }
         Ok(String::from_utf8_lossy(&bytes).into_owned())
