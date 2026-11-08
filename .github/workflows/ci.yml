@@ -37,7 +37,7 @@ jobs:
           restore-keys: turbo-check-${{ runner.os }}-
       - run: pnpm check
 
-  rust:
+  pkmn:
     name: pkmn (format, clippy, test)
     runs-on: ubuntu-latest
     steps:
