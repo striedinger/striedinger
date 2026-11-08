@@ -4,7 +4,7 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, Volatiles};
+use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, TeraType, Volatiles};
 use crate::dex::{Dex, LearnMethod};
 use crate::stats::{Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, StatTable, calculate_stats};
 
@@ -173,10 +173,12 @@ impl PokemonSet {
         .and_then(|id| dex.nature(id).nature);
         let species = dex.species(species_id);
         let tera_type = match self.tera_type.as_deref() {
-            Some(name) => dex
-                .type_id(name)
-                .ok_or_else(|| TeamErrorReason::UnknownType(name.to_owned()))?,
-            None => species.primary_type,
+            Some(name) if name.eq_ignore_ascii_case("stellar") => TeraType::Stellar,
+            Some(name) => TeraType::Type(
+                dex.type_id(name)
+                    .ok_or_else(|| TeamErrorReason::UnknownType(name.to_owned()))?,
+            ),
+            None => TeraType::Type(species.primary_type),
         };
         let stats = calculate_stats(
             &species.base_stats,
@@ -202,6 +204,7 @@ impl PokemonSet {
             active_turns: 0,
             tera_type,
             terastallized: false,
+            stellar_boosted_types: 0,
         })
     }
 }

@@ -11,7 +11,7 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use pkmn::battle::{DamageSource, Effect, HealSource};
+use pkmn::battle::{DamageSource, Effect, HealSource, TeraType};
 use pkmn::dex::{AbilityId, ItemId, MoveId, NatureId, SpeciesId};
 use pkmn::prng::Prng;
 use pkmn::{Battle, Dex, Event, Outcome, PokemonSet, SideId};
@@ -201,7 +201,10 @@ fn describe(dex: &Dex, event: &Event) -> String {
         Event::Terastallize { side, tera_type } => format!(
             "{} Terastallized into {}!",
             side_name(side),
-            dex.type_data(tera_type).name
+            match tera_type {
+                TeraType::Type(type_id) => dex.type_data(type_id).name.as_str(),
+                TeraType::Stellar => "Stellar",
+            }
         ),
         Event::Cant { side, reason } => format!("{} can't move: {reason:?}", side_name(side)),
         Event::Miss { side } => format!("{}'s attack missed!", side_name(side)),

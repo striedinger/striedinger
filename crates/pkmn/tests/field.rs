@@ -371,7 +371,9 @@ fn terastallizing_changes_types_once_per_battle() {
         events[0],
         Event::Terastallize {
             side: P1,
-            tera_type: battle.dex().type_id("Water").expect("Water exists"),
+            tera_type: pkmn::battle::TeraType::Type(
+                battle.dex().type_id("Water").expect("Water exists")
+            ),
         }
     );
     assert!(
@@ -522,5 +524,128 @@ fn a_hazard_knockout_on_switch_in_can_end_the_battle_before_slower_creatures_ent
         battle.state().active(P1).hp,
         1,
         "faster Zaplet's knockout ended the battle before Craghorn's hazards"
+    );
+}
+
+#[test]
+fn stellar_terastallization_boosts_each_type_once_and_keeps_the_types() {
+    let duel = |tera: bool| {
+        let mut galewing = set("Galewing", &["Pounce"]);
+        galewing.tera_type = Some("Stellar".to_owned());
+        let mut battle = start(&[galewing], &[set("Brawlstag", &["Hunker Down"])], 35);
+        let first = if tera { Choice::Terastallize(0) } else { MOVE };
+        let hits = [first, MOVE]
+            .map(|choice| damage_to(&play(&mut battle, choice, MOVE), P2, DamageSource::Move)[0]);
+        (hits, battle)
+    };
+    let ([plain, plain_again], _) = duel(false);
+    let ([boosted, spent], battle) = duel(true);
+    // The first Normal move: 40 → 60 base power and ×1.5 → ×2 STAB.
+    assert!(
+        (1.9..2.1).contains(&ratio(boosted, plain)),
+        "{plain} -> {boosted}"
+    );
+    // The boost is spent: back to 40 base power and ×1.5, the same as without Tera.
+    assert_eq!(spent, plain_again);
+    let galewing = battle.state().active(P1);
+    assert!(galewing.terastallized);
+    assert_eq!(galewing.types().count(), 2, "Stellar keeps both types");
+}
+
+#[test]
+fn calling_moves_use_another_move() {
+    let move_id = |battle: &Battle, name: &str| {
+        battle
+            .dex()
+            .move_id(name)
+            .expect("the sample pack has the move")
+    };
+    let used = |events: &[Event], side| -> Vec<pkmn::dex::MoveId> {
+        events
+            .iter()
+            .filter_map(|event| match *event {
+                Event::Move {
+                    side: user,
+                    move_id,
+                } if user == side => Some(move_id),
+                _ => None,
+            })
+            .collect()
+    };
+
+    // Copycat-style: the last move used, here the foe's.
+    let mut battle = start(
+        &[set("Tidewhelp", &["Echo Step"])],
+        &[set("Zaplet", &["Swift Strike"])],
+        37,
+    );
+    let events = play(&mut battle, MOVE, MOVE);
+    assert_eq!(
+        used(&events, P1),
+        [
+            move_id(&battle, "Echo Step"),
+            move_id(&battle, "Swift Strike")
+        ]
+    );
+
+    // Sleep Talk-style: fails awake; asleep, it uses one of the user's other moves.
+    let battle = start(
+        &[set("Tidewhelp", &["Dream Chatter", "Riptide"])],
+        &[set("Craghorn", &["Hunker Down"])],
+        39,
+    );
+    let mut battle = edit(battle, |state: &mut BattleState| {
+        let sleeper = &mut state.sides[0].team[0];
+        sleeper.status = Some(pkmn::dex::Status::Sleep);
+        sleeper.status_state.time = 3;
+    });
+    let events = play(&mut battle, MOVE, MOVE);
+    assert_eq!(
+        used(&events, P1),
+        [
+            move_id(&battle, "Dream Chatter"),
+            move_id(&battle, "Riptide")
+        ]
+    );
+    let mut battle = start(
+        &[set("Tidewhelp", &["Dream Chatter", "Riptide"])],
+        &[set("Craghorn", &["Hunker Down"])],
+        39,
+    );
+    assert!(play(&mut battle, MOVE, MOVE).contains(&Event::Fail { side: P1 }));
+
+    // Metronome-style: a random move with the `metronome` flag, never one without it.
+    for seed in 0..20 {
+        let mut battle = start(
+            &[set("Tidewhelp", &["Chime Roulette"])],
+            &[set("Craghorn", &["Hunker Down"])],
+            seed,
+        );
+        let events = play(&mut battle, MOVE, MOVE);
+        let moves = used(&events, P1);
+        assert_eq!(moves.len(), 2, "seed {seed}");
+        assert!(battle.dex().move_data(moves[1]).flags.metronome);
+    }
+}
+
+#[test]
+fn terrains_can_weaken_particular_moves_against_grounded_targets() {
+    let tremor = |terrain: Option<&str>| {
+        let battle = start(
+            &[set("Dunewyrm", &["Tremor"])],
+            &[set("Brawlstag", &["Hunker Down"])],
+            41,
+        );
+        let mut battle = match terrain {
+            Some(name) => with_terrain(battle, name),
+            None => battle,
+        };
+        damage_to(&play(&mut battle, MOVE, MOVE), P2, DamageSource::Move)[0]
+    };
+    let plain = tremor(None);
+    let weakened = tremor(Some("Overgrowth"));
+    assert!(
+        (0.45..0.55).contains(&ratio(weakened, plain)),
+        "{plain} -> {weakened}"
     );
 }

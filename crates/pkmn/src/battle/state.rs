@@ -68,8 +68,9 @@ pub struct Volatiles {
     pub substitute: Option<u16>,
     /// A rampage like Outrage's (Showdown's `lockedmove`).
     pub locked_move: Option<LockedMove>,
-    /// The move slot of a `charge` move that charged last turn (Showdown's `twoturnmove`).
-    pub charging: Option<u8>,
+    /// A `charge` move that charged last turn and must now be used (Showdown's
+    /// `twoturnmove`).
+    pub charging: Option<MoveId>,
     /// End-of-turn checks left on Showdown's `twoturnmove`, which outlasts the charge by one
     /// turn: 0 when it is absent.
     #[serde(default)]
@@ -80,8 +81,9 @@ pub struct Volatiles {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LockedMove {
-    /// The locked move slot.
-    pub slot: u8,
+    /// The move it is locked into, which a calling move may have picked from outside its
+    /// moveset.
+    pub move_id: MoveId,
     /// Turns of rampage left, rolled as 2 or 3 at the start; confusion follows if it runs out.
     pub true_duration: u8,
     /// End-of-turn checks before the lock lapses.
@@ -168,10 +170,29 @@ pub struct Pokemon {
     pub volatiles: Volatiles,
     /// Turns started while active; zero during the turn it switched in.
     pub active_turns: u16,
-    /// The type it becomes when it Terastallizes.
-    pub tera_type: TypeId,
-    /// Whether it has Terastallized, making the Tera type its only type.
+    /// What it becomes when it Terastallizes.
+    pub tera_type: TeraType,
+    /// Whether it has Terastallized.
     pub terastallized: bool,
+    /// After a Stellar Terastallization, the types that have had their one boost, a bit per
+    /// type ID (Showdown's `stellarBoostedTypes`). Kept through switching.
+    #[serde(default)]
+    pub stellar_boosted_types: u32,
+}
+
+/// The bit for a type in [`Pokemon::stellar_boosted_types`]; a dex has at most 32 types.
+fn stellar_bit(type_id: TypeId) -> u32 {
+    1_u32.checked_shl(u32::from(type_id.0)).unwrap_or(0)
+}
+
+/// What a creature becomes when it Terastallizes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TeraType {
+    /// It becomes this type alone.
+    Type(TypeId),
+    /// Stellar: it keeps its own types, and the first move of each type it uses is boosted.
+    Stellar,
 }
 
 impl Pokemon {
@@ -187,14 +208,25 @@ impl Pokemon {
         self.hp == 0
     }
 
-    /// The creature's current types: only its Tera type once it has Terastallized.
+    /// The creature's current types: only its Tera type once it has Terastallized, unless
+    /// that is Stellar, which keeps its own.
     pub fn types(&self) -> impl Iterator<Item = TypeId> + use<> {
-        let (primary, secondary) = if self.terastallized {
-            (self.tera_type, None)
-        } else {
-            (self.primary_type, self.secondary_type)
+        let (primary, secondary) = match (self.terastallized, self.tera_type) {
+            (true, TeraType::Type(tera_type)) => (tera_type, None),
+            _ => (self.primary_type, self.secondary_type),
         };
         std::iter::once(primary).chain(secondary)
+    }
+
+    /// Whether a Stellar Terastallization has already boosted a move of this type.
+    #[must_use]
+    pub fn is_stellar_boosted(&self, type_id: TypeId) -> bool {
+        self.stellar_boosted_types & stellar_bit(type_id) != 0
+    }
+
+    /// Records that a Stellar Terastallization has boosted a move of this type.
+    pub fn mark_stellar_boosted(&mut self, type_id: TypeId) {
+        self.stellar_boosted_types |= stellar_bit(type_id);
     }
 
     /// Whether the creature currently has `type_id`.
@@ -213,11 +245,23 @@ impl Pokemon {
     /// The move slot it must use: a rampage or a charged move.
     #[must_use]
     pub fn locked_slot(&self) -> Option<usize> {
+        let forced = self.forced_move()?;
+        // A move from outside the moveset, called by another move, is chosen as slot 0, as
+        // Showdown's lone `move 1` is.
+        Some(
+            self.moves()
+                .find(|(_, move_slot)| move_slot.id == forced)
+                .map_or(0, |(slot, _)| slot),
+        )
+    }
+
+    /// The move it must use this turn: a rampage, or a move it charged last turn.
+    #[must_use]
+    pub fn forced_move(&self) -> Option<MoveId> {
         self.volatiles
             .locked_move
-            .map(|locked| locked.slot)
+            .map(|locked| locked.move_id)
             .or(self.volatiles.charging)
-            .map(usize::from)
     }
 
     /// Known moves with their slot index.
@@ -439,6 +483,9 @@ pub struct BattleState {
     pub field: Field,
     /// The result, once the battle has ended.
     pub outcome: Option<Outcome>,
+    /// The last move used, by either side, for Copycat (Showdown's `battle.lastMove`).
+    #[serde(default)]
+    pub last_move: Option<MoveId>,
     /// The rest of a turn paused for a mid-turn switch, by side.
     #[serde(default)]
     pub queue: Option<[Option<QueuedAction>; 2]>,

@@ -4,9 +4,11 @@ use std::cmp::Ordering;
 
 use super::Engine;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
+use crate::battle::state::MAX_MOVES;
 use crate::battle::state::{LockedMove, SideConditionState, SideId, Stall};
 use crate::dex::{
-    Handler, HandlerMask, MoveData, MoveEffect, MoveTarget, Recoil, Status, VolatileStatus,
+    CallsMove, Handler, HandlerMask, MoveData, MoveEffect, MoveId, MoveTarget, Recoil, Status,
+    VolatileStatus,
 };
 use crate::stats::apply_accuracy_stage;
 
@@ -43,44 +45,69 @@ enum Hit {
 }
 
 impl Engine<'_> {
-    /// Showdown's `runMove`: pre-move checks, PP, charging, the move itself, then what
-    /// follows it. Returns the side to drag out when a `forceSwitch` move worked.
+    /// Showdown's `runMove`: pre-move checks, PP, the move itself, then what follows it.
+    /// Returns the side to drag out when a `forceSwitch` move worked.
     pub(super) fn run_move(
         &mut self,
         side: SideId,
         slot: Option<usize>,
         foe_will_act: bool,
     ) -> Option<SideId> {
-        if !self.before_move(side) {
+        let dex = self.dex;
+        let user = self.active(side);
+        // A rampage or a charged move continues without spending PP.
+        let forced = user.forced_move();
+        let move_id = forced
+            .or_else(|| slot.and_then(|slot| user.move_slots[slot].map(|move_slot| move_slot.id)))
+            .unwrap_or_else(|| dex.struggle());
+        if !self.before_move(side, move_id) {
             // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
             let volatiles = &mut self.active_mut(side).volatiles;
             volatiles.charging = None;
             volatiles.two_turn_move = 0;
             return None;
         }
-        let dex = self.dex;
-        let continuing = self.active(side).locked_slot().is_some();
-        let locks = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
-        let user = self.active_mut(side);
-        let move_id = match slot {
-            Some(slot) => {
-                let move_slot = user.move_slots[slot].as_mut()?;
-                // A rampage or a charged move continues without spending PP.
-                if !continuing {
-                    move_slot.pp = move_slot.pp.saturating_sub(1);
-                }
-                let id = move_slot.id;
-                if locks && user.volatiles.choice_lock.is_none() {
-                    user.volatiles.choice_lock = u8::try_from(slot).ok();
-                }
-                id
+        if forced.is_none()
+            && let Some(slot) = slot
+        {
+            let locks = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
+            let user = self.active_mut(side);
+            if let Some(move_slot) = user.move_slots[slot].as_mut() {
+                move_slot.pp = move_slot.pp.saturating_sub(1);
             }
-            None => dex.struggle(),
-        };
+            if locks && user.volatiles.choice_lock.is_none() {
+                user.volatiles.choice_lock = u8::try_from(slot).ok();
+            }
+        }
+        let priority = dex.move_data(move_id).priority;
+        let drag = self.use_move(side, move_id, priority, foe_will_act);
+        self.after_move_lock(side);
+        drag
+    }
+
+    /// Showdown's `useMove`: the move itself, without the checks and PP of choosing it, which
+    /// a calling move like Metronome also uses. A called move takes its caller's `priority`.
+    /// Returns the side to drag out when a `forceSwitch` move worked.
+    fn use_move(
+        &mut self,
+        side: SideId,
+        move_id: MoveId,
+        priority: i8,
+        foe_will_act: bool,
+    ) -> Option<SideId> {
+        let dex = self.dex;
         self.emit(Event::Move { side, move_id });
+        self.active_move = Some(move_id);
+        self.stellar_boosted = false;
         let move_data = dex.move_data(move_id);
-        if self.charge_turn(side, slot, move_data) {
+        if self.charge_turn(side, move_data) {
             return None;
+        }
+        if let Some(calls) = move_data.calls {
+            return match self.called_move(side, calls) {
+                Some(called) => self.use_move(side, called, priority, foe_will_act),
+                None => None,
+            };
         }
         let (worked, reached_target, target) = match move_data.target {
             MoveTarget::FoeSide => (
@@ -99,11 +126,12 @@ impl Engine<'_> {
                 } else {
                     side.foe()
                 };
-                if move_data.target == MoveTarget::Normal && !self.try_hit(side, target, move_data)
+                if move_data.target == MoveTarget::Normal
+                    && !self.try_hit(side, target, move_data, priority)
                 {
                     (false, false, target)
                 } else if move_data.is_damaging() {
-                    let outcome = self.hit_loop(side, slot, target, move_data);
+                    let outcome = self.hit_loop(side, target, move_data);
                     (outcome.worked, outcome.reached_target, target)
                 } else {
                     let worked = self.status_move_hit(side, target, move_data);
@@ -114,7 +142,6 @@ impl Engine<'_> {
         if worked && move_data.stalling_move {
             self.restart_stall(side);
         }
-        self.after_move_lock(side);
         if worked
             && move_data.self_switch
             && self.state.outcome.is_none()
@@ -132,10 +159,63 @@ impl Engine<'_> {
         drags.then_some(target)
     }
 
+    /// The move a calling move uses, or `None` after it fails. Picks at random with one roll,
+    /// as Showdown's `sample` does.
+    fn called_move(&mut self, side: SideId, calls: CallsMove) -> Option<MoveId> {
+        let dex = self.dex;
+        let pick = |engine: &mut Self, count: usize| {
+            let count = u32::try_from(count).ok().filter(|&count| count > 0)?;
+            usize::try_from(engine.state.prng.below(count)).ok()
+        };
+        let called = match calls {
+            // Showdown sorts the pool by move number; pkmn's IDs are in the same order.
+            CallsMove::Random => {
+                let pool = || {
+                    dex.all_moves()
+                        .filter(|move_data| move_data.flags.metronome)
+                };
+                let index = pick(self, pool().count());
+                index
+                    .and_then(|index| pool().nth(index))
+                    .map(|move_data| move_data.id)
+            }
+            CallsMove::OwnMove => {
+                if self.active(side).status != Some(Status::Sleep) {
+                    self.emit(Event::Fail { side });
+                    return None;
+                }
+                let mut pool = [None; MAX_MOVES];
+                let callable = self
+                    .active(side)
+                    .moves()
+                    .map(|(_, move_slot)| move_slot.id)
+                    .filter(|&id| {
+                        let flags = dex.move_data(id).flags;
+                        !flags.nosleeptalk && !flags.charge
+                    });
+                for (entry, id) in pool.iter_mut().zip(callable) {
+                    *entry = Some(id);
+                }
+                let count = pool.iter().flatten().count();
+                pick(self, count).and_then(|index| pool[index])
+            }
+            CallsMove::LastMove => match self.state.last_move {
+                // With nothing to copy, Copycat does nothing, without failing.
+                None => return None,
+                Some(last) if dex.move_data(last).flags.failcopycat => None,
+                Some(last) => Some(last),
+            },
+        };
+        if called.is_none() {
+            self.emit(Event::Fail { side });
+        }
+        called
+    }
+
     /// Showdown's `onTryMove` for `charge` moves: the first use only charges, unless the weather
     /// skips the charge. Returns whether the move spent this turn charging.
-    fn charge_turn(&mut self, side: SideId, slot: Option<usize>, move_data: &MoveData) -> bool {
-        let (Some(charge), Some(slot)) = (&move_data.charge, slot) else {
+    fn charge_turn(&mut self, side: SideId, move_data: &MoveData) -> bool {
+        let Some(charge) = &move_data.charge else {
             return false;
         };
         if self.active_mut(side).volatiles.charging.take().is_some()
@@ -146,12 +226,12 @@ impl Engine<'_> {
             return false;
         }
         let volatiles = &mut self.active_mut(side).volatiles;
-        volatiles.charging = u8::try_from(slot).ok();
+        volatiles.charging = Some(move_data.id);
         volatiles.two_turn_move = TWO_TURN_MOVE_DURATION;
-        let move_id = self.active(side).move_slots[slot].map(|move_slot| move_slot.id);
-        if let Some(move_id) = move_id {
-            self.emit(Event::Prepare { side, move_id });
-        }
+        self.emit(Event::Prepare {
+            side,
+            move_id: move_data.id,
+        });
         if let Some(boosts) = charge.boosts {
             self.boost(side, boosts);
         }
@@ -159,15 +239,12 @@ impl Engine<'_> {
     }
 
     /// Starts or refreshes a rampage, as Showdown's `lockedmove` `onStart` and `onRestart` do.
-    fn lock_into_move(&mut self, side: SideId, slot: Option<usize>) {
-        let Some(slot) = slot.and_then(|slot| u8::try_from(slot).ok()) else {
-            return;
-        };
+    fn lock_into_move(&mut self, side: SideId, move_id: MoveId) {
         match self.active(side).volatiles.locked_move {
             None => {
                 let true_duration = u8::try_from(self.state.prng.range(2, 4)).unwrap_or(2);
                 self.active_mut(side).volatiles.locked_move = Some(LockedMove {
-                    slot,
+                    move_id,
                     true_duration,
                     duration: LOCKED_MOVE_DURATION,
                 });
@@ -295,7 +372,8 @@ impl Engine<'_> {
 
     /// Showdown's `onBeforeMove` handlers in priority order: sleep and freeze, flinch,
     /// confusion, then paralysis.
-    fn before_move(&mut self, side: SideId) -> bool {
+    fn before_move(&mut self, side: SideId, move_id: MoveId) -> bool {
+        let sleep_usable = self.dex.move_data(move_id).sleep_usable;
         match self.active(side).status {
             Some(Status::Sleep) => {
                 let pokemon = self.active_mut(side);
@@ -305,9 +383,13 @@ impl Engine<'_> {
                         side,
                         reason: CantReason::Sleep,
                     });
-                    return false;
+                    // Sleep Talk and the like go ahead, past the checks that follow.
+                    if !sleep_usable {
+                        return false;
+                    }
+                } else {
+                    self.cure_status(side);
                 }
-                self.cure_status(side);
             }
             Some(Status::Freeze) => {
                 if !self.state.prng.chance(1, 5) {
@@ -356,12 +438,31 @@ impl Engine<'_> {
             });
             return false;
         }
+        // Showdown's `choicelock`: a move other than the locked one, which a rampage, a charge,
+        // or a calling move can force, fails.
+        let user = self.active(side);
+        let locked = user
+            .volatiles
+            .choice_lock
+            .and_then(|slot| user.move_slots[usize::from(slot)])
+            .map(|move_slot| move_slot.id);
+        if locked.is_some_and(|locked| locked != move_id && move_id != self.dex.struggle()) {
+            self.emit(Event::Move { side, move_id });
+            self.emit(Event::Fail { side });
+            return false;
+        }
         true
     }
 
     /// Showdown's hit steps before damage: a target exists, `onTryHit` (absorbing abilities),
     /// type immunity, then accuracy. Returns whether the move goes on to hit.
-    fn try_hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+    fn try_hit(
+        &mut self,
+        side: SideId,
+        target: SideId,
+        move_data: &MoveData,
+        priority: i8,
+    ) -> bool {
         if self.active(target).is_fainted() {
             self.emit(Event::Fail { side });
             return false;
@@ -370,7 +471,7 @@ impl Engine<'_> {
             self.emit(Event::Miss { side });
             return false;
         }
-        if move_data.priority > 0
+        if priority > 0
             && self
                 .terrain_affecting(target, |terrain| terrain.blocks_priority)
                 .is_some()
@@ -456,13 +557,7 @@ impl Engine<'_> {
     /// Showdown's `hitStepMoveHitLoop`: every hit with its effects and `onAfterHit`, then recoil
     /// and `onAfterMoveSecondarySelf`.
     /// Returns whether any hit landed, on the target or its substitute.
-    fn hit_loop(
-        &mut self,
-        side: SideId,
-        slot: Option<usize>,
-        target: SideId,
-        move_data: &MoveData,
-    ) -> HitOutcome {
+    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> HitOutcome {
         let hits = self.roll_hits(move_data);
         let mut landed = 0;
         let mut total_damage = 0;
@@ -475,7 +570,7 @@ impl Engine<'_> {
             match self.hit(side, target, move_data) {
                 Hit::Target(dealt) => {
                     total_damage += dealt;
-                    self.move_effects(side, slot, target, move_data, true);
+                    self.move_effects(side, target, move_data, true);
                     if dealt > 0 {
                         self.damaging_hit(side, target, move_data);
                     }
@@ -483,7 +578,7 @@ impl Engine<'_> {
                 Hit::Substitute(absorbed) => {
                     hit_substitute = true;
                     self.substitute_recoil(side, move_data, absorbed);
-                    self.move_effects(side, slot, target, move_data, false);
+                    self.move_effects(side, target, move_data, false);
                 }
             }
             // Showdown's `onAfterHit` and `onAfterSubDamage`, like Rapid Spin's: per hit, before
@@ -557,7 +652,6 @@ impl Engine<'_> {
     fn move_effects(
         &mut self,
         side: SideId,
-        slot: Option<usize>,
         target: SideId,
         move_data: &MoveData,
         reached_target: bool,
@@ -577,7 +671,7 @@ impl Engine<'_> {
             self.boost(side, boosts);
         }
         if move_data.self_volatile == Some(VolatileStatus::LockedMove) {
-            self.lock_into_move(side, slot);
+            self.lock_into_move(side, move_data.id);
         }
         self.secondaries(side, target, move_data, reached_target);
     }

@@ -3,10 +3,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::state::SideId;
+use super::state::{SideId, TeraType};
 use crate::dex::{
-    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, TerrainId, TypeId,
-    VolatileStatus, WeatherId,
+    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, TerrainId, VolatileStatus,
+    WeatherId,
 };
 use crate::stats::BoostStat;
 
@@ -173,8 +173,8 @@ pub enum Event {
     Terastallize {
         /// The creature's side.
         side: SideId,
-        /// Its new type.
-        tera_type: TypeId,
+        /// What it became.
+        tera_type: TeraType,
     },
     /// `-sidestart`: a side condition began, or gained a layer.
     SideStart {

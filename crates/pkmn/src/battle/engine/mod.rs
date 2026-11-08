@@ -15,6 +15,7 @@ use std::cmp::Ordering;
 use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
 use super::state::{BattleState, Outcome, Pokemon, QueuedAction, SideId, Volatiles, WeatherState};
+use crate::dex::MoveId;
 use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
 use crate::stats::{BoostStat, Boosts, saturate_u16};
 
@@ -42,6 +43,12 @@ pub(crate) struct Engine<'a> {
     state: &'a mut BattleState,
     events: &'a mut Vec<Event>,
     faint_queue: FaintQueue,
+    /// Whether the move being used has had a Stellar boost, which lasts for all its hits
+    /// (Showdown's `move.stellarBoosted`).
+    stellar_boosted: bool,
+    /// The move in use, which becomes [`BattleState::last_move`] when the action ends
+    /// (Showdown's `activeMove`).
+    active_move: Option<MoveId>,
 }
 
 impl<'a> Engine<'a> {
@@ -51,6 +58,8 @@ impl<'a> Engine<'a> {
             state,
             events,
             faint_queue: FaintQueue::default(),
+            stellar_boosted: false,
+            active_move: None,
         }
     }
 
@@ -221,7 +230,13 @@ impl<'a> Engine<'a> {
             QueuedAction::Move(slot) => {
                 if !self.active(side).is_fainted() {
                     let foe_will_act = queue[side.foe().index()].is_some();
-                    if let Some(target) = self.run_move(side, slot, foe_will_act) {
+                    let drag = self.run_move(side, slot, foe_will_act);
+                    // Showdown's `clearActiveMove`: a move that got as far as being used is
+                    // the battle's last move.
+                    if let Some(move_id) = self.active_move.take() {
+                        self.state.last_move = Some(move_id);
+                    }
+                    if let Some(target) = drag {
                         self.drag_in(target, queue);
                     }
                 }
@@ -239,13 +254,17 @@ impl<'a> Engine<'a> {
     }
 
     fn priority(&self, side: SideId, action: QueuedAction) -> i8 {
+        let pokemon = self.active(side);
         let move_id = match action {
-            QueuedAction::Move(Some(slot)) => match self.active(side).move_slots[slot] {
-                Some(move_slot) => move_slot.id,
-                None => return 0,
-            },
-            QueuedAction::Move(None) => self.dex.struggle(),
             QueuedAction::Switch(_) => return 0,
+            _ if pokemon.forced_move().is_some() => pokemon.forced_move(),
+            QueuedAction::Move(Some(slot)) => {
+                pokemon.move_slots[slot].map(|move_slot| move_slot.id)
+            }
+            QueuedAction::Move(None) => Some(self.dex.struggle()),
+        };
+        let Some(move_id) = move_id else {
+            return 0;
         };
         self.dex.move_data(move_id).priority
     }
@@ -366,14 +385,12 @@ impl<'a> Engine<'a> {
     /// Whether the creature is out of reach while charging a move like Fly.
     fn is_semi_invulnerable(&self, side: SideId) -> bool {
         let pokemon = self.active(side);
-        pokemon.volatiles.charging.is_some_and(|slot| {
-            pokemon.move_slots[usize::from(slot)].is_some_and(|move_slot| {
-                self.dex
-                    .move_data(move_slot.id)
-                    .charge
-                    .as_ref()
-                    .is_some_and(|charge| charge.semi_invulnerable)
-            })
+        pokemon.volatiles.charging.is_some_and(|move_id| {
+            self.dex
+                .move_data(move_id)
+                .charge
+                .as_ref()
+                .is_some_and(|charge| charge.semi_invulnerable)
         })
     }
 

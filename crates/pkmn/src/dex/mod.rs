@@ -17,13 +17,16 @@ pub use handlers::{
     AbilityData, Condition, ConditionSource, Handler, HandlerMask, HandlerSource, ItemData,
 };
 pub use source::{
-    AbilitySource, Accuracy, ClearSideConditionsSource, DexSource, ItemSource, MoveFlags,
-    MoveSource, Multihit, NatureSource, ScreenSource, SecondarySource, SelfEffectSource,
-    SideConditionSource, SpeciesSource, SwitchInDamageSource, TerrainSource, TypeSource,
-    WeatherDefenseBoostSource, WeatherSource,
+    AbilitySource, Accuracy, CallsMove, ClearSideConditionsSource, DexSource, Grounded, ItemSource,
+    MoveFlags, MoveSource, Multihit, NatureSource, ScreenSource, SecondarySource, SelfEffectSource,
+    SideConditionSource, SpeciesSource, SwitchInDamageSource, TerrainMoveModifierSource,
+    TerrainSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
+
+/// The most types a dex can have.
+pub const MAX_TYPES: usize = 32;
 
 macro_rules! id_type {
     ($(#[$meta:meta])* $name:ident($repr:ty)) => {
@@ -338,6 +341,8 @@ pub struct TerrainData {
     pub prevents_volatiles: Vec<VolatileStatus>,
     /// Whether priority moves fail against grounded targets.
     pub blocks_priority: bool,
+    /// 4096-based base power modifiers for particular moves.
+    pub move_base_power_modifiers: Vec<(MoveId, u32, Grounded)>,
 }
 
 /// How a `charge` move behaves on its first turn.
@@ -507,6 +512,8 @@ impl LearnSource {
 /// A compiled move.
 #[derive(Clone, Debug)]
 pub struct MoveData {
+    /// Its ID in the dex.
+    pub id: MoveId,
     /// Display name.
     pub name: String,
     /// The type; `None` for typeless moves.
@@ -563,6 +570,10 @@ pub struct MoveData {
     pub self_volatile: Option<VolatileStatus>,
     /// See [`MoveSource::substitute_blocks_boosts`].
     pub substitute_blocks_boosts: bool,
+    /// See [`MoveSource::calls`].
+    pub calls: Option<CallsMove>,
+    /// See [`MoveSource::sleep_usable`].
+    pub sleep_usable: bool,
 }
 
 impl MoveData {
@@ -702,6 +713,10 @@ impl Dex {
             terrain_ids: NameMap::default(),
             struggle: MoveId(0),
         };
+        // Stellar Terastallization tracks boosted types in a 32-bit set.
+        if source.types.len() > MAX_TYPES {
+            return Err(DexError::TooMany("types"));
+        }
         for type_source in &source.types {
             let id = TypeId::from_index(dex.type_ids.len()).ok_or(DexError::TooMany("types"))?;
             insert_unique(&mut dex.type_ids, "type", &type_source.name, id)?;
@@ -731,6 +746,9 @@ impl Dex {
         };
         for (index, species) in source.species.iter().enumerate() {
             dex.compile_learnset(index, species)?;
+        }
+        for (index, terrain) in source.terrains.iter().enumerate() {
+            dex.compile_terrain_moves(index, terrain)?;
         }
         for ability in &source.abilities {
             let id =
@@ -895,6 +913,7 @@ impl Dex {
             prevents_statuses: source.prevents_statuses.clone(),
             prevents_volatiles: source.prevents_volatiles.clone(),
             blocks_priority: source.blocks_priority,
+            move_base_power_modifiers: Vec::new(),
         };
         self.terrains.push(terrain);
         Ok(())
@@ -1011,6 +1030,31 @@ impl Dex {
         Ok(())
     }
 
+    /// Resolves a terrain's per-move modifiers, once every move has an ID.
+    fn compile_terrain_moves(
+        &mut self,
+        index: usize,
+        source: &TerrainSource,
+    ) -> Result<(), DexError> {
+        let modifiers = source
+            .move_base_power_modifiers
+            .iter()
+            .map(|entry| {
+                let move_id = lookup(&self.move_ids, &entry.move_name).ok_or_else(|| {
+                    DexError::UnknownReference {
+                        kind: "move",
+                        name: entry.move_name.clone(),
+                        referenced_by: source.name.clone(),
+                    }
+                })?;
+                let modifier = validate_fraction(entry.modifier, &source.name)?.to_modifier();
+                Ok((move_id, modifier, entry.grounded))
+            })
+            .collect::<Result<Vec<_>, DexError>>()?;
+        self.terrains[index].move_base_power_modifiers = modifiers;
+        Ok(())
+    }
+
     /// Resolves a species' learnset, once every move has an ID.
     fn compile_learnset(&mut self, index: usize, source: &SpeciesSource) -> Result<(), DexError> {
         let Some(learnset) = &source.learnset else {
@@ -1080,6 +1124,7 @@ impl Dex {
             name,
         )?;
         self.moves.push(MoveData {
+            id,
             name: source.name.clone(),
             move_type,
             category: source.category,
@@ -1137,6 +1182,8 @@ impl Dex {
                 .as_ref()
                 .and_then(|effect| effect.volatile_status),
             substitute_blocks_boosts: source.substitute_blocks_boosts,
+            calls: source.calls,
+            sleep_usable: source.sleep_usable,
         });
         Ok(id)
     }
@@ -1193,6 +1240,11 @@ impl Dex {
     #[must_use]
     pub fn species(&self, id: SpeciesId) -> &SpeciesData {
         &self.species[id.index()]
+    }
+
+    /// Every move, in ID order.
+    pub fn all_moves(&self) -> impl Iterator<Item = &MoveData> {
+        self.moves.iter()
     }
 
     /// Returns a move. Panics if the ID is not from this dex.
@@ -1379,6 +1431,9 @@ fn built_in_struggle() -> MoveSource {
             protect: true,
             charge: false,
             bypasssub: false,
+            metronome: false,
+            nosleeptalk: true,
+            failcopycat: true,
         },
         ignore_immunity: None,
         boosts: None,
@@ -1399,6 +1454,8 @@ fn built_in_struggle() -> MoveSource {
         clear_side_conditions: None,
         clear_terrain: false,
         substitute_blocks_boosts: false,
+        calls: None,
+        sleep_usable: false,
     }
 }
 
@@ -1489,6 +1546,12 @@ fn validate_move_effects(source: &MoveSource, damaging: bool) -> Result<(), DexE
         return Err(DexError::invalid(
             name,
             "lockedmove can only be a self.volatileStatus",
+        ));
+    }
+    if source.calls.is_some() && (damaging || source.target != MoveTarget::User) {
+        return Err(DexError::invalid(
+            name,
+            "a calling move must be a status move that targets its user",
         ));
     }
     if source.substitute_blocks_boosts && (damaging || source.boosts.is_none()) {

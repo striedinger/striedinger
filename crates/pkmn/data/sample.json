@@ -392,6 +392,9 @@
       "learnset": {
         "Blaze Burst": ["9L6"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Ember Snap": ["9L1"],
         "Glare Down": ["9M"],
         "Haymaker": ["9M"],
@@ -426,7 +429,10 @@
         "Aqua Lunge": ["9L6"],
         "Blizzard Breath": ["9M"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
         "Dizzy Dance": ["9T"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Frost Fang": ["9M"],
         "Glare Down": ["9M"],
         "Hunker Down": ["9M"],
@@ -460,6 +466,9 @@
       },
       "learnset": {
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Flit Strike": ["9M"],
         "Glare Down": ["9M"],
         "Hunker Down": ["9M"],
@@ -496,8 +505,11 @@
       },
       "learnset": {
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
         "Clear Gust": ["9M"],
         "Dizzy Dance": ["9T"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Flit Strike": ["9E"],
         "Gale Dive": ["9M"],
         "Glare Down": ["9M"],
@@ -538,6 +550,9 @@
         "Alloy Ram": ["9M"],
         "Blaze Burst": ["9M"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Ember Snap": ["9M"],
         "Glare Down": ["9M"],
         "Haymaker": ["9M"],
@@ -574,8 +589,11 @@
       "learnset": {
         "Alloy Ram": ["9M"],
         "Brace Wall": ["9L54", "9M"],
+        "Chime Roulette": ["9M"],
         "Clear Gust": ["9L60"],
         "Dizzy Dance": ["9L42"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Flit Strike": ["9M"],
         "Gale Dive": ["9L60"],
         "Glare Down": ["9L48", "9M"],
@@ -612,6 +630,9 @@
         "Aqua Lunge": ["9M"],
         "Blizzard Breath": ["9L6"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Frenzy Claw": ["9E"],
         "Frost Fang": ["9L1"],
         "Glare Down": ["9M"],
@@ -646,7 +667,10 @@
       },
       "learnset": {
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
         "Dizzy Dance": ["9E"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Glare Down": ["9M"],
         "Glimmer Beam": ["9M"],
         "Hunker Down": ["9M"],
@@ -687,7 +711,10 @@
       "learnset": {
         "Alloy Ram": ["9L12"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
         "Clear Gust": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Flit Strike": ["9L6"],
         "Gale Dive": ["9M"],
         "Glare Down": ["9M"],
@@ -723,8 +750,11 @@
       "learnset": {
         "Blaze Burst": ["9M"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
         "Clear Gust": ["9T"],
         "Dizzy Dance": ["9E"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Ember Snap": ["9M"],
         "Glare Down": ["9M"],
         "Glimmer Beam": ["9L1"],
@@ -767,6 +797,9 @@
         "Alloy Ram": ["9M"],
         "Blaze Burst": ["9M"],
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Ember Snap": ["9M"],
         "Frenzy Claw": ["9L18"],
         "Glare Down": ["9M"],
@@ -804,6 +837,9 @@
       },
       "learnset": {
         "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
         "Glare Down": ["9M"],
         "Haymaker": ["9L1"],
         "Howl Away": ["9T"],
@@ -835,7 +871,8 @@
       "pp": 35,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -848,7 +885,8 @@
       "priority": 1,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -861,7 +899,8 @@
       "recoil": [33, 100],
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -874,7 +913,8 @@
       "multihit": [2, 5],
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -886,6 +926,9 @@
       "target": "self",
       "boosts": {
         "atk": 2
+      },
+      "flags": {
+        "metronome": 1
       }
     },
     {
@@ -898,6 +941,9 @@
       "boosts": {
         "def": 1,
         "spd": 1
+      },
+      "flags": {
+        "metronome": 1
       }
     },
     {
@@ -909,6 +955,9 @@
       "target": "self",
       "boosts": {
         "spe": 2
+      },
+      "flags": {
+        "metronome": 1
       }
     },
     {
@@ -918,7 +967,10 @@
       "accuracy": true,
       "pp": 5,
       "target": "self",
-      "heal": [1, 2]
+      "heal": [1, 2],
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Dizzy Dance",
@@ -928,7 +980,8 @@
       "pp": 10,
       "volatileStatus": "confusion",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -941,7 +994,8 @@
         "atk": -1
       },
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -953,7 +1007,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -976,7 +1031,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -987,7 +1043,8 @@
       "pp": 15,
       "status": "brn",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -997,7 +1054,10 @@
       "accuracy": true,
       "pp": 5,
       "target": "self",
-      "weather": "Sun"
+      "weather": "Sun",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Riptide",
@@ -1007,7 +1067,8 @@
       "accuracy": 100,
       "pp": 15,
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1019,7 +1080,8 @@
       "pp": 10,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1029,7 +1091,10 @@
       "accuracy": true,
       "pp": 5,
       "target": "self",
-      "weather": "Rain"
+      "weather": "Rain",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Thorn Volley",
@@ -1040,7 +1105,8 @@
       "pp": 20,
       "multihit": [2, 5],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1052,7 +1118,8 @@
       "pp": 10,
       "drain": [1, 2],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1063,7 +1130,8 @@
       "pp": 15,
       "status": "slp",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1080,7 +1148,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1092,7 +1161,8 @@
       "ignoreImmunity": false,
       "status": "par",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1104,7 +1174,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1131,7 +1202,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1141,7 +1213,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "weather": "Snow"
+      "weather": "Snow",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Haymaker",
@@ -1152,7 +1227,8 @@
       "pp": 5,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "self": {
         "boosts": {
@@ -1169,7 +1245,8 @@
       "pp": 10,
       "status": "tox",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1186,7 +1263,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1197,7 +1275,8 @@
       "accuracy": 100,
       "pp": 10,
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1207,7 +1286,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "weather": "Sandstorm"
+      "weather": "Sandstorm",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Gale Dive",
@@ -1219,7 +1301,8 @@
       "recoil": [33, 100],
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1231,7 +1314,8 @@
       "pp": 15,
       "critRatio": 2,
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1250,7 +1334,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1263,7 +1348,8 @@
       "critRatio": 2,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1280,7 +1366,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1293,7 +1380,8 @@
       "critRatio": 2,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1312,7 +1400,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1324,7 +1413,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1342,7 +1432,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1360,7 +1451,8 @@
       "pp": 25,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1389,7 +1481,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1401,7 +1494,10 @@
       "priority": 4,
       "target": "self",
       "stallingMove": true,
-      "volatileStatus": "protect"
+      "volatileStatus": "protect",
+      "flags": {
+        "failcopycat": 1
+      }
     },
     {
       "name": "Stand-In",
@@ -1410,7 +1506,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "volatileStatus": "substitute"
+      "volatileStatus": "substitute",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Scatter Stones",
@@ -1419,7 +1518,10 @@
       "accuracy": true,
       "pp": 20,
       "target": "foeSide",
-      "sideCondition": "Jagged Stones"
+      "sideCondition": "Jagged Stones",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Sow Caltrops",
@@ -1428,7 +1530,10 @@
       "accuracy": true,
       "pp": 20,
       "target": "foeSide",
-      "sideCondition": "Caltrops"
+      "sideCondition": "Caltrops",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Raise Mirror Wall",
@@ -1437,7 +1542,10 @@
       "accuracy": true,
       "pp": 20,
       "target": "allySide",
-      "sideCondition": "Mirror Wall"
+      "sideCondition": "Mirror Wall",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Raise Prism Veil",
@@ -1446,7 +1554,10 @@
       "accuracy": true,
       "pp": 30,
       "target": "allySide",
-      "sideCondition": "Prism Veil"
+      "sideCondition": "Prism Veil",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Flit Strike",
@@ -1457,7 +1568,8 @@
       "pp": 20,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "selfSwitch": true
     },
@@ -1468,7 +1580,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Charged Field"
+      "terrain": "Charged Field",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Sprout Ground",
@@ -1477,7 +1592,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Overgrowth"
+      "terrain": "Overgrowth",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Mist Ground",
@@ -1486,7 +1604,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Mist Field"
+      "terrain": "Mist Field",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Mind Ground",
@@ -1495,7 +1616,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Mind Field"
+      "terrain": "Mind Field",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Frenzy Claw",
@@ -1506,7 +1630,8 @@
       "pp": 10,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "self": {
         "volatileStatus": "lockedmove"
@@ -1521,7 +1646,8 @@
       "pp": 10,
       "flags": {
         "charge": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "chargeSkippedIn": ["Sun"]
     },
@@ -1535,7 +1661,8 @@
       "flags": {
         "contact": 1,
         "charge": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "semiInvulnerable": true
     },
@@ -1549,7 +1676,8 @@
       "flags": {
         "contact": 1,
         "charge": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "chargeBoosts": {
         "def": 1
@@ -1563,7 +1691,8 @@
       "pp": 20,
       "priority": -6,
       "flags": {
-        "bypasssub": 1
+        "bypasssub": 1,
+        "metronome": 1
       },
       "forceSwitch": true
     },
@@ -1577,7 +1706,8 @@
       "priority": -6,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "forceSwitch": true
     },
@@ -1590,7 +1720,8 @@
       "pp": 40,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "clearSideConditions": {
         "user": ["Jagged Stones", "Caltrops"]
@@ -1614,7 +1745,8 @@
       "pp": 15,
       "flags": {
         "protect": 1,
-        "bypasssub": 1
+        "bypasssub": 1,
+        "metronome": 1
       },
       "boosts": {
         "evasion": -1
@@ -1625,6 +1757,46 @@
       },
       "clearTerrain": true,
       "substituteBlocksBoosts": true
+    },
+    {
+      "name": "Chime Roulette",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "flags": {
+        "nosleeptalk": 1,
+        "failcopycat": 1
+      },
+      "calls": "random"
+    },
+    {
+      "name": "Dream Chatter",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "flags": {
+        "nosleeptalk": 1,
+        "failcopycat": 1
+      },
+      "sleepUsable": true,
+      "calls": "ownMove"
+    },
+    {
+      "name": "Echo Step",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "self",
+      "flags": {
+        "nosleeptalk": 1,
+        "failcopycat": 1
+      },
+      "calls": "lastMove"
     }
   ],
   "abilities": [
@@ -1762,7 +1934,10 @@
       "name": "Purebred",
       "handlers": [
         {
-          "modifyStab": { "modifier": [2, 1], "teraModifier": [9, 4] }
+          "modifyStab": {
+            "modifier": [2, 1],
+            "teraModifier": [9, 4]
+          }
         }
       ]
     },
@@ -2017,7 +2192,14 @@
       "basePowerModifiers": {
         "Grass": [5325, 4096]
       },
-      "residualHeal": [1, 16]
+      "residualHeal": [1, 16],
+      "moveBasePowerModifiers": [
+        {
+          "move": "Tremor",
+          "modifier": [1, 2],
+          "grounded": "target"
+        }
+      ]
     },
     {
       "name": "Mist Field",

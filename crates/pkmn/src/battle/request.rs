@@ -122,7 +122,18 @@ pub(crate) fn request(dex: &Dex, state: &BattleState, side: SideId) -> Option<Re
     }
     let active = team.active();
     let selectable = active.selectable_moves(dex);
-    let moves = if selectable == 0 {
+    let forced_elsewhere = active
+        .forced_move()
+        .filter(|&forced| active.moves().all(|(_, move_slot)| move_slot.id != forced));
+    let moves = if let Some(forced) = forced_elsewhere {
+        vec![MoveOption {
+            slot: 0,
+            move_id: forced,
+            pp: 0,
+            max_pp: 0,
+            disabled: false,
+        }]
+    } else if selectable == 0 {
         vec![MoveOption {
             slot: 0,
             move_id: dex.struggle(),

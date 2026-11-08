@@ -4,8 +4,10 @@
 
 use super::Engine;
 use crate::battle::damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
-use crate::battle::state::{Pokemon, SideId};
-use crate::dex::{Condition, Handler, HandlerMask, MoveCategory, MoveData, Status};
+use crate::battle::state::{Pokemon, SideId, TeraType};
+use crate::dex::{
+    Condition, Grounded, Handler, HandlerMask, MoveCategory, MoveData, Status, TerrainData,
+};
 use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, apply_modifier, apply_stage, chain_modifiers};
 
 /// Speed is capped here before ordering.
@@ -16,6 +18,8 @@ const ACTION_SPEED_BITS: u32 = 13;
 const TERA_MINIMUM_POWER: u32 = 60;
 /// STAB when the Tera type matches one of the user's original types: ×2.
 const TERA_STAB_MODIFIER: u32 = MODIFIER_SCALE * 2;
+/// A Stellar Terastallization's boost to a move without STAB: ×4915/4096.
+const STELLAR_MODIFIER: u32 = 4915;
 /// At most this many screens can be up: each side's of each category.
 const MAX_SCREENS: usize = 8;
 /// Base power of a confusion self-hit.
@@ -152,6 +156,16 @@ impl Engine<'_> {
             .count();
         let mut order = [(); MAX_SCREENS];
         self.shuffle(&mut order[..screens.min(MAX_SCREENS)]);
+        // A Stellar boost is spent on the move's type, but lasts for every hit of this use.
+        let attacker = self.active(side);
+        if attacker.terastallized
+            && attacker.tera_type == TeraType::Stellar
+            && let Some(move_type) = move_data.move_type
+            && (self.stellar_boosted || !attacker.is_stellar_boosted(move_type))
+        {
+            self.stellar_boosted = true;
+            self.active_mut(side).mark_stellar_boosted(move_type);
+        }
         calculate_damage(&DamageInput { roll, ..input })
     }
 
@@ -210,9 +224,16 @@ impl Engine<'_> {
         let mut base_power =
             apply_modifier(u32::from(move_data.base_power), base_power_modifier).max(1);
         // Showdown raises weak moves of a Terastallized user's Tera type to 60 power, after
-        // every other base power modifier.
-        if attacker.terastallized
-            && move_data.move_type == Some(attacker.tera_type)
+        // every other base power modifier; after a Stellar Terastallization, moves of each type
+        // not yet boosted.
+        let tera_floor = attacker.terastallized
+            && match attacker.tera_type {
+                TeraType::Type(tera_type) => move_data.move_type == Some(tera_type),
+                TeraType::Stellar => move_data
+                    .move_type
+                    .is_none_or(|move_type| !attacker.is_stellar_boosted(move_type)),
+            };
+        if tera_floor
             && base_power < TERA_MINIMUM_POWER
             && move_data.priority <= 0
             && move_data.multihit.max == 1
@@ -253,7 +274,18 @@ impl Engine<'_> {
             return MODIFIER_SCALE;
         };
         let original = attacker.has_original_type(move_type);
-        let tera = attacker.terastallized && attacker.tera_type == move_type;
+        // Showdown's Stellar rule: the first move of each type is boosted, every hit of it, and
+        // no `modifySTAB` handler applies.
+        if attacker.terastallized && attacker.tera_type == TeraType::Stellar {
+            let boosted = self.stellar_boosted || !attacker.is_stellar_boosted(move_type);
+            return match (boosted, original) {
+                (true, true) => TERA_STAB_MODIFIER,
+                (true, false) => STELLAR_MODIFIER,
+                (false, true) => STAB_MODIFIER,
+                (false, false) => MODIFIER_SCALE,
+            };
+        }
+        let tera = attacker.terastallized && attacker.tera_type == TeraType::Type(move_type);
         let stab = match (original, tera) {
             (false, false) => return MODIFIER_SCALE,
             (true, true) => TERA_STAB_MODIFIER,
@@ -306,7 +338,28 @@ impl Engine<'_> {
                 find(&terrain.target_base_power_modifiers).is_some()
             })
             .and_then(|terrain| find(&terrain.target_base_power_modifiers));
-        chain_modifiers(attacker.into_iter().chain(defender))
+        let for_move = |grounded: Grounded| {
+            let holder = match grounded {
+                Grounded::User => side,
+                Grounded::Target => target,
+            };
+            let entry = |terrain: &TerrainData| {
+                terrain
+                    .move_base_power_modifiers
+                    .iter()
+                    .find(|&&(id, _, needs)| id == move_data.id && needs == grounded)
+                    .map(|&(_, modifier, _)| modifier)
+            };
+            self.terrain_affecting(holder, |terrain| entry(terrain).is_some())
+                .and_then(entry)
+        };
+        chain_modifiers(
+            attacker
+                .into_iter()
+                .chain(defender)
+                .chain(for_move(Grounded::User))
+                .chain(for_move(Grounded::Target)),
+        )
     }
 
     /// Showdown's `ModifyDamage` chain: the attacker's `modifyDamage` handlers, the

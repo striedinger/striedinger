@@ -15,7 +15,8 @@ pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, MoveOption, Request};
 pub use state::{
     BattleState, Field, LockedMove, MAX_MOVES, MoveSlot, Outcome, Pokemon, QueuedAction, Side,
-    SideConditionState, SideId, Stall, StatusState, TerrainState, Volatiles, WeatherState,
+    SideConditionState, SideId, Stall, StatusState, TeraType, TerrainState, Volatiles,
+    WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -54,6 +55,7 @@ impl Battle {
                 sides,
                 field: Field::default(),
                 outcome: None,
+                last_move: None,
                 queue: None,
             },
             events: Vec::with_capacity(64),
@@ -244,23 +246,16 @@ fn validate_pokemon(dex: &Dex, pokemon: &Pokemon) -> Result<(), &'static str> {
     {
         return Err("unknown ability or item");
     }
-    if pokemon.tera_type.index() >= dex.type_count() {
+    if let TeraType::Type(tera_type) = pokemon.tera_type
+        && tera_type.index() >= dex.type_count()
+    {
         return Err("unknown Tera type");
     }
-    let names_empty_slot = |slot: Option<u8>| {
-        slot.is_some_and(|slot| {
-            pokemon
-                .move_slots
-                .get(usize::from(slot))
-                .copied()
-                .flatten()
-                .is_none()
-        })
-    };
-    if names_empty_slot(pokemon.volatiles.locked_move.map(|locked| locked.slot))
-        || names_empty_slot(pokemon.volatiles.charging)
+    if pokemon
+        .forced_move()
+        .is_some_and(|move_id| move_id.index() >= dex.move_count())
     {
-        return Err("a rampage or charge names an empty move slot");
+        return Err("a rampage or charge names an unknown move");
     }
     if pokemon.hp > pokemon.max_hp() {
         return Err("HP above max HP");

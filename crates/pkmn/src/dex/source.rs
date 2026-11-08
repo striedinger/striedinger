@@ -81,6 +81,33 @@ pub struct TerrainSource {
     /// Moves with positive priority fail against grounded targets.
     #[serde(default)]
     pub blocks_priority: bool,
+    /// Base power multipliers for particular moves, like Grassy Terrain halving Earthquake
+    /// against a grounded target.
+    #[serde(default)]
+    pub move_base_power_modifiers: Vec<TerrainMoveModifierSource>,
+}
+
+/// A terrain's base power multiplier for one move.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TerrainMoveModifierSource {
+    /// The move, by name.
+    #[serde(rename = "move")]
+    pub move_name: String,
+    /// The multiplier.
+    pub modifier: Fraction,
+    /// Who must be grounded for it to apply.
+    pub grounded: Grounded,
+}
+
+/// Which creature a terrain effect needs on the ground.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Grounded {
+    /// The move's user, like Expanding Force.
+    User,
+    /// The move's target, like Grassy Terrain's halving of Earthquake.
+    Target,
 }
 
 fn default_terrain_duration() -> u8 {
@@ -334,6 +361,25 @@ pub struct MoveSource {
     /// Defog's evasion drop (code in Showdown's `onHit`).
     #[serde(default)]
     pub substitute_blocks_boosts: bool,
+    /// The move uses another move instead (code in Showdown's `onHit`, marked `callsMove`).
+    #[serde(default)]
+    pub calls: Option<CallsMove>,
+    /// The move can be used while asleep, like Sleep Talk.
+    #[serde(default)]
+    pub sleep_usable: bool,
+}
+
+/// Which move a calling move uses.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CallsMove {
+    /// A random move with the `metronome` flag, from the whole dex, like Metronome.
+    Random,
+    /// A random move of the user's own, other than `nosleeptalk` and `charge` moves; it works
+    /// only while the user sleeps, like Sleep Talk.
+    OwnMove,
+    /// The last move anyone used, unless it is `failcopycat`, like Copycat.
+    LastMove,
 }
 
 fn default_crit_ratio() -> u8 {
@@ -366,6 +412,15 @@ pub struct MoveFlags {
     /// The move ignores a substitute, like sound moves.
     #[serde(default, deserialize_with = "deserialize_flag")]
     pub bypasssub: bool,
+    /// Metronome can call the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub metronome: bool,
+    /// Sleep Talk cannot call the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub nosleeptalk: bool,
+    /// Copycat fails instead of copying the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub failcopycat: bool,
 }
 
 /// Effects on the move's user.

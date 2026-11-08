@@ -38,6 +38,7 @@ interface SampleMove {
   priority?: number;
   flags?: Record<string, number>;
   stallingMove?: boolean;
+  calls?: string;
   weather?: string;
   terrain?: string;
   sideCondition?: string;
@@ -49,8 +50,15 @@ interface SampleMove {
   [field: string]: unknown;
 }
 
+interface TerrainMoveModifier {
+  move: string;
+  modifier: [number, number];
+  grounded: "user" | "target";
+}
+
 interface SampleDex {
   types: { name: string }[];
+  terrains: { name: string; moveBasePowerModifiers?: TerrainMoveModifier[] }[];
   natures: { name: string }[];
   species: { name: string; types: string[]; baseStats: StatTable }[];
   moves: SampleMove[];
@@ -108,7 +116,7 @@ interface RecordedBattle {
   stats: StatTable[][];
   start: Snapshot;
   steps: { choices: Choice[]; after: Snapshot }[];
-  stopped: "finished" | "speed_tie" | "step_limit";
+  stopped: "finished" | "speed_tie" | "step_limit" | "called_rampage";
 }
 
 const TEAM_SIZE = 3;
@@ -138,6 +146,18 @@ const SIDE_CONDITIONS: Record<string, string> = {
   Caltrops: "spikes",
   "Mirror Wall": "reflect",
   "Prism Veil": "lightscreen",
+};
+/**
+ * Showdown's terrains name the moves they modify by ID, like Grassy Terrain's Earthquake, so
+ * each sample entry names the Showdown move it stands in for, and must say what Showdown does.
+ */
+const TERRAIN_MOVES: Record<string, Record<string, { as: string; expect: TerrainMoveModifier }>> = {
+  Overgrowth: {
+    Tremor: {
+      as: "earthquake",
+      expect: { move: "Tremor", modifier: [1, 2], grounded: "target" },
+    },
+  },
 };
 /** The Showdown ability each sample ability is written to reproduce. */
 const ABILITIES: Record<string, string> = {
@@ -205,6 +225,13 @@ const BORROWED: Record<string, Borrowed> = {
     callbacks: ["onAfterHit", "onAfterSubDamage"],
     expect: { clearSideConditions: { user: ["Jagged Stones", "Caltrops"] } },
   },
+  "Chime Roulette": { from: "metronome", callbacks: ["onHit"], expect: { calls: "random" } },
+  "Dream Chatter": {
+    from: "sleeptalk",
+    callbacks: ["onTry", "onHit"],
+    expect: { calls: "ownMove", sleepUsable: true },
+  },
+  "Echo Step": { from: "copycat", callbacks: ["onHit"], expect: { calls: "lastMove" } },
   "Clear Gust": {
     from: "defog",
     callbacks: ["onHit"],
@@ -229,6 +256,7 @@ const PKMN_ONLY_FIELDS = [
   "clearSideConditions",
   "clearTerrain",
   "substituteBlocksBoosts",
+  "calls",
 ];
 const CHARGING_FIELDS = ["chargeBoosts", "chargeSkippedIn", "semiInvulnerable"];
 
@@ -274,7 +302,11 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
   const borrowed = BORROWED[move.name];
   const charging = CHARGING_FIELDS.some((field) => move[field] !== undefined);
   const clearing = move.clearSideConditions !== undefined || move.clearTerrain !== undefined;
-  if ((charging || clearing || move.stallingMove !== undefined) && borrowed === undefined) {
+  const calling = move.calls !== undefined;
+  if (
+    (charging || clearing || calling || move.stallingMove !== undefined) &&
+    borrowed === undefined
+  ) {
     throw new Error(`${move.name} needs Showdown callbacks; add it to BORROWED`);
   }
   for (const [field, value] of Object.entries(borrowed?.expect ?? {})) {
@@ -288,6 +320,7 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
     name: injectedName(move.name),
     num,
     type: move.type ?? "???",
+    ...(calling ? { callsMove: true } : {}),
     // pkmn's defaults for fields Showdown requires; a missing `basePower` would be NaN.
     basePower: move.basePower ?? 0,
     target: move.target ?? "normal",
@@ -332,8 +365,16 @@ function injectSample(sample: SampleDex): void {
   for (const [index, move] of sample.moves.entries()) {
     moves[toID(injectedName(move.name))] = toShowdownMove(move, 20_000 + index);
   }
+  // Metronome draws from every move with the `metronome` flag, so only the sample's keep it.
+  for (const [id, move] of Object.entries(Dex.data.Moves) as [string, { flags?: object }][]) {
+    if (move.flags !== undefined && "metronome" in move.flags) {
+      const { metronome: _, ...flags } = move.flags as Record<string, number>;
+      Dex.data.Moves[id] = { ...move, flags } as unknown as (typeof Dex.data.Moves)[string];
+    }
+  }
   Object.assign(Dex.data.Pokedex, pokedex);
   Object.assign(Dex.data.Moves, moves);
+  for (const terrain of sample.terrains) aliasTerrainMoves(terrain);
   // Showdown lists the semi-invulnerable volatiles by move ID, for effects like Grassy
   // Terrain's healing, so the injected ones join the list.
   const semiInvulnerable = sample.moves
@@ -349,6 +390,46 @@ function injectSample(sample: SampleDex): void {
     return (
       (injected === undefined ? undefined : this.volatiles[injected]) ??
       isSemiInvulnerable.call(this)
+    );
+  };
+}
+
+type BasePowerHandler = (
+  this: ShowdownBattle,
+  basePower: number,
+  attacker: Pokemon,
+  defender: Pokemon,
+  move: { id: string },
+) => unknown;
+
+/** Lets a terrain's `onBasePower` see each listed sample move as the move it stands in for. */
+function aliasTerrainMoves(terrain: SampleDex["terrains"][number]): void {
+  const entries = terrain.moveBasePowerModifiers ?? [];
+  if (entries.length === 0) return;
+  const aliases = new Map<string, string>();
+  for (const entry of entries) {
+    const known = TERRAIN_MOVES[terrain.name]?.[entry.move];
+    if (known === undefined || !isDeepStrictEqual(entry, known.expect)) {
+      throw new Error(`${terrain.name}'s ${entry.move} modifier has no Showdown equivalent`);
+    }
+    aliases.set(toID(injectedName(entry.move)), known.as);
+  }
+  const showdownTerrain = Dex.data.Moves[lookup(TERRAINS, terrain.name, "terrain")] as
+    | { condition?: { onBasePower?: BasePowerHandler } }
+    | undefined;
+  const condition = showdownTerrain?.condition;
+  const onBasePower = condition?.onBasePower;
+  if (condition === undefined || onBasePower === undefined) {
+    throw new Error(`Showdown's ${terrain.name} has no onBasePower`);
+  }
+  condition.onBasePower = function aliasedOnBasePower(basePower, attacker, defender, move) {
+    const alias = aliases.get(move.id);
+    return onBasePower.call(
+      this,
+      basePower,
+      attacker,
+      defender,
+      alias === undefined ? move : { ...move, id: alias },
     );
   };
 }
@@ -375,7 +456,7 @@ function randomSet(random: (bound: number) => number, sample: SampleDex, slot: n
     evs,
     ivs,
     level: 50 + random(51),
-    teraType: pick(random, sample.types).name,
+    teraType: random(8) === 0 ? "Stellar" : pick(random, sample.types).name,
   };
 }
 
@@ -474,8 +555,12 @@ function chooseFor(side: Side, random: (bound: number) => number): Option {
   if (active === undefined || user === undefined) throw new Error("A move request has no user");
   if (active.trapped === true) switches.length = 0;
   // Showdown lists only the forced move while a creature is locked in; pkmn names its slot.
+  // A move outside the moveset, Struggle or one a calling move locked in, is pkmn's slot 0.
   const slotOfMove = (id: string) =>
-    id === "struggle" ? 0 : user.baseMoveSlots.findIndex((slot) => slot.id === id);
+    Math.max(
+      0,
+      user.baseMoveSlots.findIndex((slot) => slot.id === id),
+    );
   const terastallize = active.canTerastallize !== undefined && random(6) === 0;
   const moves: Option[] = active.moves
     .map((move, index) => ({ move, index }))
@@ -543,6 +628,22 @@ function hexSeed(index: number): string {
   return Array.from({ length: 4 }, () => random(0x1_0000).toString(16).padStart(4, "0")).join("");
 }
 
+/**
+ * Whether a rampage was started by a calling move, like Outrage from Metronome. Showdown aims
+ * its later turns at the caller's target, the user, so they fail; in the games, and in pkmn,
+ * the rampage goes on. A documented difference.
+ */
+function calledRampage(battle: ShowdownBattle): boolean {
+  return battle.sides.some((side) => {
+    const user = side.active[0];
+    return (
+      user !== undefined &&
+      "lockedmove" in user.volatiles &&
+      user.lastMoveTargetLoc === user.getLocOf(user)
+    );
+  });
+}
+
 /** Records one battle, or returns `null` if it hits a speed tie before the first choice. */
 function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
   const random = createRandom(index);
@@ -576,6 +677,7 @@ function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
   if (speedTieSeen()) return null;
   while (!battle.ended) {
     if (recorded.steps.length >= STEP_LIMIT) return { ...recorded, stopped: "step_limit" };
+    if (calledRampage(battle)) return { ...recorded, stopped: "called_rampage" };
     const choices = battle.sides.map((side) => chooseFor(side, random));
     for (const [sideIndex, choice] of choices.entries()) {
       if (choice.theirs !== null) battle.choose(sideIndex === 0 ? "p1" : "p2", choice.theirs);
