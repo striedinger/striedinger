@@ -379,6 +379,30 @@
   ],
   "species": [
     {
+      "name": "Emberkit",
+      "types": ["Fire"],
+      "baseStats": {
+        "hp": 45,
+        "atk": 55,
+        "def": 40,
+        "spa": 60,
+        "spd": 45,
+        "spe": 70
+      },
+      "learnset": {
+        "Pounce": ["9L1"],
+        "Ember Snap": ["9L1"],
+        "Blaze Burst": ["9L12"],
+        "Dizzy Dance": ["9E"],
+        "Rally Cry": ["9M"],
+        "Hunker Down": ["9M"]
+      },
+      "abilities": {
+        "0": "Kindling Heart",
+        "H": "Grit"
+      }
+    },
+    {
       "name": "Cindercub",
       "types": ["Fire"],
       "baseStats": {
@@ -412,6 +436,12 @@
         "Swift Strike": ["9M"],
         "Tail Flurry": ["9E"],
         "Tremor": ["9M"]
+      },
+      "prevo": "Emberkit",
+      "evoLevel": 16,
+      "abilities": {
+        "0": "Kindling Heart",
+        "H": "Grit"
       }
     },
     {
@@ -451,6 +481,11 @@
         "Spin Clear": ["9E"],
         "Stand-In": ["9M"],
         "Swift Strike": ["9M"]
+      },
+      "abilities": {
+        "0": "Undertow Heart",
+        "1": "Rain Runner",
+        "H": "Cloudburst"
       }
     },
     {
@@ -490,6 +525,10 @@
         "Thorn Volley": ["9L1"],
         "Tremor": ["9M"],
         "Venom Mist": ["9M"]
+      },
+      "abilities": {
+        "0": "Barbed Hide",
+        "H": "Steadfast"
       }
     },
     {
@@ -533,6 +572,11 @@
         "Tailwind Step": ["9M"],
         "Volt Snare": ["9L6"],
         "Wind Cutter": ["9M"]
+      },
+      "abilities": {
+        "0": "Static Coat",
+        "1": "Stormcatcher",
+        "H": "Live Wire"
       }
     },
     {
@@ -573,6 +617,11 @@
         "Sunny Call": ["9M"],
         "Swift Strike": ["9M"],
         "Tremor": ["9L18"]
+      },
+      "abilities": {
+        "0": "Hard Shell",
+        "1": "Steadfast",
+        "H": "Dust Devil"
       }
     },
     {
@@ -613,6 +662,11 @@
         "Tail Flurry": ["9L18", "9E"],
         "Tailwind Step": ["9L60"],
         "Wind Cutter": ["9L60"]
+      },
+      "abilities": {
+        "0": "Featherfall",
+        "1": "Menace",
+        "H": "Overdrive"
       }
     },
     {
@@ -652,6 +706,10 @@
         "Stand-In": ["9M"],
         "Swift Strike": ["9M"],
         "Tremor": ["9M"]
+      },
+      "abilities": {
+        "0": "Menace",
+        "H": "Grit"
       }
     },
     {
@@ -695,6 +753,10 @@
         "Thorn Volley": ["9M"],
         "Venom Mist": ["9L12"],
         "Volt Snare": ["9T"]
+      },
+      "abilities": {
+        "0": "Featherfall",
+        "H": "Loose Limbs"
       }
     },
     {
@@ -734,6 +796,11 @@
         "Tail Flurry": ["9T"],
         "Tailwind Step": ["9M"],
         "Wind Cutter": ["9M"]
+      },
+      "abilities": {
+        "0": "Hard Shell",
+        "1": "Grit",
+        "H": "Overdrive"
       }
     },
     {
@@ -780,6 +847,10 @@
         "Swift Strike": ["9M"],
         "Thorn Volley": ["9M"],
         "Volt Snare": ["9M"]
+      },
+      "abilities": {
+        "0": "Purebred",
+        "H": "Loose Limbs"
       }
     },
     {
@@ -822,6 +893,11 @@
         "Tail Toss": ["9L24"],
         "Tremor": ["9L1"],
         "Wyrm Fang": ["9L12"]
+      },
+      "abilities": {
+        "0": "Dust Devil",
+        "1": "Featherfall",
+        "H": "Menace"
       }
     },
     {
@@ -858,6 +934,11 @@
         "Swift Strike": ["9M"],
         "Tail Flurry": ["9T"],
         "Tremor": ["9M"]
+      },
+      "abilities": {
+        "0": "Grit",
+        "1": "Steadfast",
+        "H": "Menace"
       }
     }
   ],

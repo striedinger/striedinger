@@ -257,6 +257,16 @@ pub struct SpeciesSource {
     /// move.
     #[serde(default)]
     pub learnset: Option<BTreeMap<String, Vec<String>>>,
+    /// Showdown's `abilities`: the abilities it may have, by slot (`0`, `1`, `H` for hidden,
+    /// `S` for special). Without them, any ability is allowed.
+    #[serde(default)]
+    pub abilities: Option<BTreeMap<String, String>>,
+    /// The species it evolves from, whose learnset it inherits (Showdown's `prevo`).
+    #[serde(default)]
+    pub prevo: Option<String>,
+    /// The level it evolves at, which a set of it must reach (Showdown's `evoLevel`).
+    #[serde(default)]
+    pub evo_level: Option<u8>,
 }
 
 /// A move, in the shape of Showdown's move data.

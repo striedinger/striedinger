@@ -91,12 +91,29 @@ impl PokemonSet {
     pub fn validate(&self, dex: &Dex) -> Result<(), TeamErrorReason> {
         let pokemon = self.build(dex)?;
         let species = dex.species(pokemon.species);
+        if let (Some(allowed), Some(ability)) = (&species.abilities, pokemon.ability)
+            && !allowed.contains(&ability)
+        {
+            return Err(TeamErrorReason::IllegalAbility(
+                self.ability.clone().unwrap_or_default(),
+            ));
+        }
+        if let Some(level) = species.evo_level
+            && self.level < level
+        {
+            return Err(TeamErrorReason::BelowEvolutionLevel(level));
+        }
         for (name, (_, move_slot)) in self.moves.iter().zip(pokemon.moves()) {
-            let Some(sources) = species.learn_sources(move_slot.id) else {
+            // The species learns a move if it or a pre-evolution does.
+            let line = std::iter::successors(Some(species), |stage| {
+                stage.prevo.map(|prevo| dex.species(prevo))
+            });
+            let mut known = line.filter_map(|stage| stage.learn_sources(move_slot.id)).peekable();
+            if known.peek().is_none() {
                 return Err(TeamErrorReason::CannotLearn(name.clone()));
-            };
-            let earliest_level = sources
-                .iter()
+            }
+            let earliest_level = known
+                .flatten()
                 .map(|source| match source.method {
                     LearnMethod::LevelUp(level) => level,
                     LearnMethod::Machine
@@ -293,8 +310,12 @@ pub enum TeamErrorReason {
     Iv,
     /// An EV is above 252 or the total is above 510.
     Ev,
-    /// The species cannot learn this move.
+    /// The species cannot learn this move, nor can any of its pre-evolutions.
     CannotLearn(String),
+    /// The species cannot have this ability.
+    IllegalAbility(String),
+    /// The set is below the level its species evolves at.
+    BelowEvolutionLevel(u8),
     /// The species learns this move only by level-up, at a level above the set's.
     LearnedAtLevel {
         /// The move.
@@ -343,6 +364,12 @@ impl fmt::Display for TeamError {
                 " has an EV above {MAX_EV} or more than {MAX_TOTAL_EVS} in total"
             ),
             TeamErrorReason::CannotLearn(name) => write!(formatter, " can't learn {name:?}"),
+            TeamErrorReason::IllegalAbility(name) => {
+                write!(formatter, " can't have the ability {name:?}")
+            }
+            TeamErrorReason::BelowEvolutionLevel(level) => {
+                write!(formatter, " evolves at level {level}, above the set's")
+            }
             TeamErrorReason::LearnedAtLevel { name, level } => {
                 write!(formatter, " learns {name:?} only at level {level}")
             }

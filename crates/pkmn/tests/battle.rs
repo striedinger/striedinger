@@ -607,7 +607,7 @@ fn sets_are_validated_against_learnsets() {
     );
 
     let mut early = PokemonSet::new("Cindercub", &["Sunny Call"]);
-    early.level = 10;
+    early.level = 17;
     assert_eq!(
         early.validate(&dex),
         Err(TeamErrorReason::LearnedAtLevel {
@@ -620,4 +620,25 @@ fn sets_are_validated_against_learnsets() {
 
     // Battles, like Showdown's simulator, leave legality to the validator.
     assert!(Battle::new(Arc::clone(&dex), [&[unlearnable], &[legal]], 0).is_ok());
+}
+
+#[test]
+fn sets_are_validated_against_abilities_and_evolution_lines() {
+    let dex = dex();
+    let ability = |name: &str| PokemonSet::new("Cindercub", &["Pounce"]).with_ability(name);
+    assert_eq!(ability("Grit").validate(&dex), Ok(()));
+    assert_eq!(
+        ability("Featherfall").validate(&dex),
+        Err(TeamErrorReason::IllegalAbility("Featherfall".to_owned()))
+    );
+    // Only Emberkit learns Dizzy Dance, and Cindercub inherits its learnset.
+    let mut inherited = PokemonSet::new("Cindercub", &["Dizzy Dance"]);
+    inherited.level = 30;
+    assert_eq!(inherited.validate(&dex), Ok(()));
+    inherited.level = 10;
+    assert_eq!(
+        inherited.validate(&dex),
+        Err(TeamErrorReason::BelowEvolutionLevel(16)),
+        "Emberkit evolves at level 16"
+    );
 }

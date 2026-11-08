@@ -463,6 +463,12 @@ pub struct SpeciesData {
     pub base_stats: StatTable,
     /// The moves it can learn, sorted by move, or `None` if it may use any move.
     pub learnset: Option<Vec<(MoveId, Vec<LearnSource>)>>,
+    /// The abilities it may have, or `None` if any is allowed.
+    pub abilities: Option<Vec<AbilityId>>,
+    /// The species it evolves from.
+    pub prevo: Option<SpeciesId>,
+    /// The level it evolves at.
+    pub evo_level: Option<u8>,
 }
 
 impl SpeciesData {
@@ -779,6 +785,9 @@ impl Dex {
         for (index, terrain) in source.terrains.iter().enumerate() {
             dex.compile_terrain_moves(index, terrain)?;
         }
+        for (index, species) in source.species.iter().enumerate() {
+            dex.compile_evolution(index, species)?;
+        }
         for ability in &source.abilities {
             let id =
                 AbilityId::from_index(dex.abilities.len()).ok_or(DexError::TooMany("abilities"))?;
@@ -801,7 +810,65 @@ impl Dex {
                 mask,
             });
         }
+        for (index, species) in source.species.iter().enumerate() {
+            dex.compile_species_abilities(index, species)?;
+        }
         Ok(dex)
+    }
+
+    /// Resolves a species' pre-evolution, refusing a chain that loops.
+    fn compile_evolution(&mut self, index: usize, source: &SpeciesSource) -> Result<(), DexError> {
+        let Some(prevo) = &source.prevo else {
+            return Ok(());
+        };
+        let id = lookup(&self.species_ids, prevo).ok_or_else(|| DexError::UnknownReference {
+            kind: "species",
+            name: prevo.clone(),
+            referenced_by: source.name.clone(),
+        })?;
+        self.species[index].prevo = Some(id);
+        // Walk the chain; it can be no longer than the number of species.
+        let mut current = Some(id);
+        for _ in 0..=self.species.len() {
+            match current {
+                None => return Ok(()),
+                Some(step) if step.index() == index => break,
+                Some(step) => current = self.species[step.index()].prevo,
+            }
+        }
+        Err(DexError::invalid(&source.name, "its evolution line loops"))
+    }
+
+    /// Resolves a species' abilities, once every ability has an ID.
+    fn compile_species_abilities(
+        &mut self,
+        index: usize,
+        source: &SpeciesSource,
+    ) -> Result<(), DexError> {
+        let Some(abilities) = &source.abilities else {
+            return Ok(());
+        };
+        if abilities
+            .keys()
+            .any(|slot| !matches!(slot.as_str(), "0" | "1" | "H" | "S"))
+        {
+            return Err(DexError::invalid(
+                &source.name,
+                "ability slots are 0, 1, H, and S",
+            ));
+        }
+        let resolved = abilities
+            .values()
+            .map(|name| {
+                lookup(&self.ability_ids, name).ok_or_else(|| DexError::UnknownReference {
+                    kind: "ability",
+                    name: name.clone(),
+                    referenced_by: source.name.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        self.species[index].abilities = Some(resolved);
+        Ok(())
     }
 
     /// Builds the attacker-by-defender matchup table and immunities from each type's
@@ -1060,6 +1127,9 @@ impl Dex {
             secondary_type,
             base_stats: source.base_stats,
             learnset: None,
+            abilities: None,
+            prevo: None,
+            evo_level: source.evo_level,
         });
         Ok(())
     }
