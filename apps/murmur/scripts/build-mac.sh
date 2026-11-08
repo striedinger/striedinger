@@ -96,6 +96,20 @@ else
     export "CC_$HOST_ENV=$CLANG" "CXX_$HOST_ENV=$CLANGXX"
   fi
 
+  # clang's Darwin driver links compiler-rt's builtins (libclang_rt.osx.a), which a Linux
+  # clang doesn't ship. Use Xcode's copy from the SDK bundle if xtool kept it; otherwise an
+  # empty stand-in. That's enough unless something needs a builtin, such as @available
+  # checks in C code, and then the link fails with an undefined __isPlatformVersionAtLeast.
+  CLANG_RT_DIR="$(dirname "$(find -L "${SDK_SEARCH[@]}" -name libclang_rt.osx.a 2>/dev/null | head -n 1)")"
+  if [[ "$CLANG_RT_DIR" == "." ]]; then
+    CLANG_RT_DIR="$REPO/target/darwin-clang-rt"
+    mkdir -p "$CLANG_RT_DIR"
+    [[ -f "$CLANG_RT_DIR/libclang_rt.osx.a" ]] || "$AR" rc --format=darwin "$CLANG_RT_DIR/libclang_rt.osx.a"
+    echo "==> No libclang_rt.osx.a in the SDK; using an empty stand-in"
+  else
+    echo "==> Using compiler-rt from $CLANG_RT_DIR"
+  fi
+
   # Rust and cc-crate builds: clang targeting macOS against the SDK, linked by ld64.lld.
   TRIPLE_ENV="${RUST_TARGET//-/_}"
   TRIPLE_ENV_UPPER="$(echo "$TRIPLE_ENV" | tr '[:lower:]' '[:upper:]')"
@@ -104,7 +118,7 @@ else
   export "CFLAGS_$TRIPLE_ENV=$APPLE_FLAGS" "CXXFLAGS_$TRIPLE_ENV=$APPLE_FLAGS"
   export "BINDGEN_EXTRA_CLANG_ARGS_$TRIPLE_ENV=$APPLE_FLAGS"
   export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_LINKER=$CLANG"
-  export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_RUSTFLAGS=-C link-arg=--target=$CLANG_TARGET -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=-fuse-ld=lld -C link-arg=--ld-path=$LD64"
+  export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_RUSTFLAGS=-C link-arg=--target=$CLANG_TARGET -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=-fuse-ld=lld -C link-arg=--ld-path=$LD64 -C link-arg=-L$CLANG_RT_DIR"
 
   # CMake builds (llama.cpp): a toolchain file that targets Darwin with the same tools.
   TOOLCHAIN="$REPO/target/darwin-$ARCH.cmake"
@@ -124,9 +138,9 @@ set(CMAKE_RANLIB "$RANLIB")
 set(CMAKE_INSTALL_NAME_TOOL "$INSTALL_NAME_TOOL")
 # -fuse-ld=lld (not a path) tells clang the linker is lld, so it passes the Mach-O
 # arguments ld64.lld requires, such as -platform_version.
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64")
-set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64")
-set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64 -L$CLANG_RT_DIR")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64 -L$CLANG_RT_DIR")
+set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64 -L$CLANG_RT_DIR")
 set(CMAKE_FIND_ROOT_PATH "$SDKROOT")
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
