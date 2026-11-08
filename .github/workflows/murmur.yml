@@ -52,8 +52,8 @@ jobs:
           key: cargo-core-${{ runner.os }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
           restore-keys: cargo-core-${{ runner.os }}-
       - run: cargo fmt --all --check
-      - run: cargo clippy -p murmur-core --all-targets -- -D warnings
-      - run: cargo test -p murmur-core
+      - run: cargo clippy -p murmur-core --all-targets --locked -- -D warnings
+      - run: cargo test -p murmur-core --locked
 
   mac:
     name: macOS app (build and bundle)
