@@ -132,7 +132,8 @@ jobs:
     # the same Swift version.
     container: swift:${{ needs.darwin-sdk.outputs.swift-version }}-noble
     env:
-      RCODESIGN_VERSION: "0.29.0"
+      # Not RCODESIGN_*: rcodesign reads every RCODESIGN_ variable as a config setting.
+      APPLE_CODESIGN_RELEASE: "0.29.0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -145,7 +146,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           curl -fsSL "https://github.com/xtool-org/xtool/releases/latest/download/xtool-x86_64.AppImage" -o /usr/local/bin/xtool
           chmod +x /usr/local/bin/xtool
-          curl -fsSL "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${RCODESIGN_VERSION}/apple-codesign-${RCODESIGN_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+          curl -fsSL "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${APPLE_CODESIGN_RELEASE}/apple-codesign-${APPLE_CODESIGN_RELEASE}-x86_64-unknown-linux-musl.tar.gz" \
             | tar xz --strip-components=1 -C /usr/local/bin --wildcards '*/rcodesign'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
