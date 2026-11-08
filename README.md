@@ -58,8 +58,8 @@ Translation catalogs live with the app or package that owns their strings. Engli
 
 ## Pokémon card collection
 
-The [pkmn-tcg-dex CLI](apps/pkmn-tcg-dex/README.md) uses a Rust engine in
-`packages/pkmn-tcg-dex-core` and SQLite storage in `packages/pkmn-tcg-dex-sqlite`.
+The [pkmn-tcg-dex CLI](crates/pkmn-tcg-dex-cli/README.md) uses a Rust engine in
+`crates/pkmn-tcg-dex-core` and SQLite storage in `crates/pkmn-tcg-dex-sqlite`.
 The root Cargo workspace runs independently of the pnpm/Turborepo web workspace.
 
 ```sh

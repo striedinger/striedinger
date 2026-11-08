@@ -18,7 +18,7 @@ cargo run -p pkmn-tcg-dex -- export > collection.json
 cargo run -p pkmn-tcg-dex -- --db restored.sqlite import collection.json
 cargo run -p pkmn-tcg-dex -- move COPY_UUID --folder Binder
 cargo run -p pkmn-tcg-dex -- remove COPY_UUID
-cargo install --path apps/pkmn-tcg-dex
+cargo install --path crates/pkmn-tcg-dex-cli
 ```
 
 `add` displays a preview and asks for confirmation. Declining or EOF adds no copy.
@@ -34,10 +34,10 @@ reverses it. `lookup` requires a full TCGdex ID: number `136` alone is ambiguous
 
 ## Architecture
 
-- `packages/pkmn-tcg-dex-core`: normalized cards, owned-copy validation, catalog/storage traits,
+- `crates/pkmn-tcg-dex-core`: normalized cards, owned-copy validation, catalog/storage traits,
   cache-first preview, search, and the TCGdex adapter.
-- `packages/pkmn-tcg-dex-sqlite`: bundled SQLite, versioned schema, persistence, atomic import.
-- `apps/pkmn-tcg-dex`: commands, preview rendering, explicit confirmation, JSON output.
+- `crates/pkmn-tcg-dex-sqlite`: bundled SQLite, versioned schema, persistence, atomic import.
+- `crates/pkmn-tcg-dex-cli`: commands, preview rendering, explicit confirmation, JSON output.
 
 A desktop app can call the libraries directly; a web app can use an HTTP wrapper.
 Operations currently block: use worker threads for a desktop or async server.

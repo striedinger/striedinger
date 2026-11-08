@@ -7,7 +7,7 @@ use std::{
 #[test]
 fn offline_preview_confirmation_and_backup_roundtrip() {
     let raw = serde_json::from_str(include_str!(
-        "../../../packages/pkmn-tcg-dex-core/tests/fixtures/furret.json"
+        "../../pkmn-tcg-dex-core/tests/fixtures/furret.json"
     ))
     .unwrap();
     let card = normalize_tcgdex("en", &raw).unwrap();

@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn enforces_record_limit_during_parsing() {
         let raw = serde_json::from_str(include_str!(
-            "../../../packages/pkmn-tcg-dex-core/tests/fixtures/furret.json"
+            "../../pkmn-tcg-dex-core/tests/fixtures/furret.json"
         ))
         .unwrap();
         let card = pkmn_tcg_dex_core::normalize_tcgdex("en", &raw).unwrap();

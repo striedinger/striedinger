@@ -5,11 +5,10 @@ These guidelines apply to the entire monorepo. Update this file as the project�
 ## Workspace and tooling
 
 - Maintain the web workspace as a TypeScript monorepo orchestrated by Turborepo.
-- The Pokémon collection engine and CLI use the root Cargo workspace, with reusable Rust crates under `packages/` and the CLI under `apps/pkmn-tcg-dex`. Use Cargo, rustfmt, Clippy, and native Rust tests for those crates. Browser typography and browser translation integration apply to web applications.
+- The Pokémon collection engine and CLI use the root Cargo workspace, with all Rust crates under top-level `crates/`, including the CLI in `crates/pkmn-tcg-dex-cli`. Use Cargo, rustfmt, Clippy, and native Rust tests for those crates. Browser typography and browser translation integration apply to web applications.
 - Use pnpm exclusively for JavaScript/TypeScript dependencies. Keep the root `packageManager` field and `pnpm-lock.yaml` authoritative; do not introduce npm or Yarn lockfiles.
 - Target the latest Node.js LTS release and keep `.node-version`, `.nvmrc`, and the `engines.node` ranges in the root and `apps/web` manifests aligned. Vercel builds from `apps/web` and takes its Node.js version from that manifest.
-- Keep reusable code in focused workspace packages and applications under `apps/`.
-- Put every Rust crate under the top-level `crates/` directory, as a member of the root Cargo workspace (`Cargo.toml`). Name crate directories and packages in kebab-case. Applications under `apps/` consume crates; they do not contain Rust code themselves.
+- Keep reusable TypeScript code in focused workspace packages and web applications under `apps/`. Keep Rust libraries and CLI applications under `crates/`.
 - Use Tailwind CSS utilities for application styling; do not introduce CSS Modules for ordinary component styling.
 - Run the relevant package typechecks after changes and run a production build when changes affect Next.js compilation, routing, server actions, metadata, or shared styles.
 - Use Oxlint for repository-wide linting and Oxfmt for formatting, import ordering, Tailwind class ordering, and package manifest ordering. Do not introduce parallel ESLint or Prettier configurations.
