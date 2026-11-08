@@ -87,6 +87,15 @@ else
   find_tool rcodesign >/dev/null
   SWIFT_SDK_ARGS=(--swift-sdk "$SWIFT_TRIPLE")
 
+  # Build scripts and proc macros compile for the Linux host. Use clang there too when
+  # there's no `cc` (the official Swift images ship clang but not gcc).
+  if ! command -v cc >/dev/null; then
+    HOST_TRIPLE="$(rustc -vV | sed -n 's/^host: //p')"
+    HOST_ENV="${HOST_TRIPLE//-/_}"
+    export "CARGO_TARGET_$(echo "$HOST_ENV" | tr '[:lower:]' '[:upper:]')_LINKER=$CLANG"
+    export "CC_$HOST_ENV=$CLANG" "CXX_$HOST_ENV=$CLANGXX"
+  fi
+
   # Rust and cc-crate builds: clang targeting macOS against the SDK, linked by ld64.lld.
   TRIPLE_ENV="${RUST_TARGET//-/_}"
   TRIPLE_ENV_UPPER="$(echo "$TRIPLE_ENV" | tr '[:lower:]' '[:upper:]')"
