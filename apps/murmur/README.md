@@ -104,25 +104,26 @@ SDK for Swift and as the sysroot for clang, ld64.lld for Mach-O linking, and
 [rcodesign](https://github.com/indygreg/apple-platform-rs) for ad-hoc signing.
 You copy the resulting `Murmur.app` to a Mac to run it.
 
-One-time setup (on Linux or WSL):
+**In CI** this needs no setup. On pushes to main, a macOS runner builds the SDK from its
+preinstalled Xcode (`xtool sdk build`), the `linux-cross` job installs it and builds the
+app, and a cleanup job deletes the SDK artifact as soon as the run ends. Pull requests skip
+these jobs, so forks never get the SDK.
 
-1. Install [Swift 6.4](https://swift.org/install/linux), [xtool](https://xtool.sh),
-   rustup, `cmake`, `llvm` (for `llvm-ar`, `llvm-otool` and `llvm-install-name-tool`),
-   `libclang-dev`, and `rcodesign`.
-2. Download Xcode.xip with your Apple ID from developer.apple.com.
-3. Build the SDK and publish it to the private `striedinger/darwin-sdk` repo. The script
-   creates the repo if it doesn't exist:
-   ```bash
-   apps/murmur/scripts/publish-darwin-sdk.sh ~/Downloads/Xcode_27.1.xip
-   ```
-4. Install it locally (`xtool sdk install <darwin.xtoolsdk>`). For CI, add the
-   `DARWIN_SDK_TOKEN` secret (read access to that repo), which enables the
-   `linux-cross` job.
+**On your own Linux machine:**
 
-Then run `apps/murmur/scripts/build-mac.sh` as on a Mac.
+1. Install [Swift](https://swift.org/install/linux) (the version that matches your Xcode),
+   [xtool](https://xtool.sh), rustup, `cmake`, `llvm` (for `llvm-ar`, `llvm-otool` and
+   `llvm-install-name-tool`), `libclang-dev`, and `rcodesign`.
+2. Get the SDK, either way:
+   - from a Mac: `xtool sdk build /Applications/Xcode.app out --arch x86_64` (or `arm64`
+     for an ARM Linux host), then copy `out/darwin.xtoolsdk` over; or
+   - from Xcode.xip on Linux: `xtool sdk install ~/Downloads/Xcode.xip`.
+   `scripts/publish-darwin-sdk.sh` builds it from Xcode.xip and keeps it in a private repo
+   of yours, so your other machines can download it.
+3. `xtool sdk install darwin.xtoolsdk`, then run `apps/murmur/scripts/build-mac.sh`.
 
-The SDK stays in a private repo because it's Apple's. Apple's license allows it only on
-Apple-branded hardware, so using it on Linux is your call.
+Apple's license allows its SDK only on Apple-branded hardware, so using it on Linux is your
+call. That's also why it never goes into a public repo or a lasting artifact.
 
 ## Roadmap
 

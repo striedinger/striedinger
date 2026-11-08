@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Builds xtool's Darwin Swift SDK from Xcode.xip and uploads it to a private GitHub repo,
-# where Murmur's Linux cross-build (CI and build-mac.sh on Linux) downloads it.
+# Builds xtool's Darwin Swift SDK from Xcode.xip and uploads it to a private GitHub repo of
+# yours, so your Linux machines can download it for build-mac.sh. CI doesn't need this: it
+# builds the SDK from the macOS runner's Xcode on each run.
 #
 #   apps/murmur/scripts/publish-darwin-sdk.sh ~/Downloads/Xcode_27.1.xip
 #
@@ -44,7 +45,7 @@ fi
 
 cat <<NEXT
 
-Done. For CI, add a repository secret DARWIN_SDK_TOKEN to the monorepo: a fine-grained
-token with read-only Contents access to $REPO.
-  gh secret set DARWIN_SDK_TOKEN --repo striedinger/striedinger
+Done. On another Linux machine:
+  gh release download --repo $REPO --pattern 'darwin-$ARCH.xtoolsdk.tar.zst'
+  tar --zstd -xf darwin-$ARCH.xtoolsdk.tar.zst && xtool sdk install darwin.xtoolsdk
 NEXT
