@@ -104,7 +104,7 @@ else
   export "CFLAGS_$TRIPLE_ENV=$APPLE_FLAGS" "CXXFLAGS_$TRIPLE_ENV=$APPLE_FLAGS"
   export "BINDGEN_EXTRA_CLANG_ARGS_$TRIPLE_ENV=$APPLE_FLAGS"
   export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_LINKER=$CLANG"
-  export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_RUSTFLAGS=-C link-arg=--target=$CLANG_TARGET -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=-fuse-ld=$LD64"
+  export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_RUSTFLAGS=-C link-arg=--target=$CLANG_TARGET -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=-fuse-ld=lld -C link-arg=--ld-path=$LD64"
 
   # CMake builds (llama.cpp): a toolchain file that targets Darwin with the same tools.
   TOOLCHAIN="$REPO/target/darwin-$ARCH.cmake"
@@ -122,9 +122,11 @@ set(CMAKE_CXX_COMPILER_TARGET $CLANG_TARGET)
 set(CMAKE_AR "$AR")
 set(CMAKE_RANLIB "$RANLIB")
 set(CMAKE_INSTALL_NAME_TOOL "$INSTALL_NAME_TOOL")
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=$LD64")
-set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=$LD64")
-set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=$LD64")
+# -fuse-ld=lld (not a path) tells clang the linker is lld, so it passes the Mach-O
+# arguments ld64.lld requires, such as -platform_version.
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64")
+set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=lld --ld-path=$LD64")
 set(CMAKE_FIND_ROOT_PATH "$SDKROOT")
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
