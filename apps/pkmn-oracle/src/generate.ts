@@ -1,0 +1,607 @@
+/**
+ * Records reference battles from Pokémon Showdown for pkmn's differential test.
+ *
+ * pkmn's content format follows Showdown's data files, so the sample pack's species and moves
+ * are injected into Showdown's data tables almost unchanged. Names that Showdown implements in
+ * code are mapped to the Showdown effect they are written to reproduce: abilities, items,
+ * weathers, terrains, side conditions, and the callbacks of moves such as Protect or Rapid
+ * Spin. Random battles then run from `gen5` seeds, which use the same 64-bit LCG as pkmn's
+ * PRNG. Every step's choices and resulting state are written to
+ * `crates/pkmn/tests/fixtures/showdown.json`, and `crates/pkmn/tests/showdown.rs` replays them
+ * through pkmn and compares.
+ *
+ * Showdown draws extra random numbers whenever the two active creatures are speed-tied, a
+ * documented difference, so a battle's recording stops at its first speed tie.
+ *
+ * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles]
+ */
+
+import type { Battle as ShowdownBattle, Pokemon, Side } from "pokemon-showdown";
+import type { EffectState } from "pokemon-showdown/dist/sim/pokemon.js";
+import type { PokemonSet as ShowdownSet } from "pokemon-showdown/dist/sim/teams.js";
+
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
+import showdown from "pokemon-showdown";
+
+const { Battle, Dex, Pokemon: ShowdownPokemon, toID } = showdown;
+
+type StatName = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
+type StatTable = Record<StatName, number>;
+type Choice = { move: number } | { terastallize: number } | { switch: number } | "pass";
+
+interface SampleMove {
+  name: string;
+  type: string | null;
+  basePower?: number;
+  target?: string;
+  priority?: number;
+  flags?: Record<string, number>;
+  stallingMove?: boolean;
+  weather?: string;
+  terrain?: string;
+  sideCondition?: string;
+  chargeBoosts?: unknown;
+  chargeSkippedIn?: unknown;
+  semiInvulnerable?: unknown;
+  clearSideConditions?: unknown;
+  clearTerrain?: unknown;
+  [field: string]: unknown;
+}
+
+interface SampleDex {
+  types: { name: string }[];
+  natures: { name: string }[];
+  species: { name: string; types: string[]; baseStats: StatTable }[];
+  moves: SampleMove[];
+  abilities: { name: string }[];
+  items: { name: string }[];
+}
+
+/** A set in pkmn's format, which is Showdown's `PokemonSet` with pkmn's content names. */
+interface PokemonSet {
+  name: string;
+  species: string;
+  item: string | null;
+  ability: string | null;
+  moves: string[];
+  nature: string;
+  evs: StatTable;
+  ivs: StatTable;
+  level: number;
+  teraType: string;
+}
+
+interface Timed {
+  name: string;
+  duration: number | null;
+}
+
+interface PokemonSnapshot {
+  hp: number;
+  status: string | null;
+  item: string | null;
+  pp: number[];
+}
+
+interface SideSnapshot {
+  active: number;
+  team: PokemonSnapshot[];
+  boosts: number[];
+  substitute: number | null;
+  confused: boolean;
+  terastallized: boolean;
+  conditions: (Timed & { layers: number })[];
+}
+
+interface Snapshot {
+  turn: number;
+  weather: Timed | null;
+  terrain: Timed | null;
+  winner: "p1" | "p2" | "tie" | null;
+  sides: SideSnapshot[];
+}
+
+interface RecordedBattle {
+  seed: string;
+  teams: PokemonSet[][];
+  stats: StatTable[][];
+  start: Snapshot;
+  steps: { choices: Choice[]; after: Snapshot }[];
+  stopped: "finished" | "speed_tie" | "step_limit";
+}
+
+const TEAM_SIZE = 3;
+const STEP_LIMIT = 300;
+const STAT_NAMES: readonly StatName[] = ["hp", "atk", "def", "spa", "spd", "spe"];
+const BOOST_NAMES = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"] as const;
+const SAMPLE = new URL("../../../crates/pkmn/data/sample.json", import.meta.url);
+const FIXTURES = new URL("../../../crates/pkmn/tests/fixtures/", import.meta.url);
+
+/** Showdown's weather condition for each sample weather. */
+const WEATHERS: Record<string, string> = {
+  Rain: "raindance",
+  Sun: "sunnyday",
+  Sandstorm: "sandstorm",
+  Snow: "snowscape",
+};
+/** Showdown's terrain for each sample terrain. */
+const TERRAINS: Record<string, string> = {
+  "Charged Field": "electricterrain",
+  Overgrowth: "grassyterrain",
+  "Mist Field": "mistyterrain",
+  "Mind Field": "psychicterrain",
+};
+/** Showdown's side condition for each sample side condition. */
+const SIDE_CONDITIONS: Record<string, string> = {
+  "Jagged Stones": "stealthrock",
+  Caltrops: "spikes",
+  "Mirror Wall": "reflect",
+  "Prism Veil": "lightscreen",
+};
+/** The Showdown ability each sample ability is written to reproduce. */
+const ABILITIES: Record<string, string> = {
+  "Kindling Heart": "Blaze",
+  "Undertow Heart": "Torrent",
+  Featherfall: "Levitate",
+  Stormcatcher: "Volt Absorb",
+  Menace: "Intimidate",
+  Cloudburst: "Drizzle",
+  "Dust Devil": "Sand Stream",
+  "Static Coat": "Static",
+  "Barbed Hide": "Rough Skin",
+  Purebred: "Adaptability",
+  "Hard Shell": "Solid Rock",
+  Grit: "Guts",
+  Overdrive: "Speed Boost",
+  "Rain Runner": "Swift Swim",
+  Steadfast: "Sturdy",
+  "Loose Limbs": "Limber",
+  "Live Wire": "Electric Surge",
+};
+/** The Showdown item each sample item is written to reproduce. */
+const ITEMS: Record<string, string> = {
+  "Moss Pouch": "Leftovers",
+  "Glass Charm": "Life Orb",
+  "Power Band": "Choice Band",
+  "Focus Lens": "Choice Specs",
+  "Sprint Shoes": "Choice Scarf",
+  "Ember Charm": "Charcoal",
+  "Weak Spot Lens": "Expert Belt",
+  "Juice Berry": "Sitrus Berry",
+  "Remedy Berry": "Lum Berry",
+  "Lifeline Ribbon": "Focus Sash",
+  "Bastion Vest": "Assault Vest",
+  "Spike Guard": "Rocky Helmet",
+};
+
+/**
+ * Sample moves whose behavior Showdown writes as move callbacks. Each borrows those callbacks
+ * from the Showdown move it reproduces, after checking that the sample's data says what the
+ * callbacks do. Fields the callbacks already cover are left out of the injected move.
+ */
+interface Borrowed {
+  from: string;
+  callbacks: string[];
+  expect?: Record<string, unknown>;
+  omit?: string[];
+}
+const BORROWED: Record<string, Borrowed> = {
+  "Brace Wall": { from: "protect", callbacks: ["onPrepareHit", "onHit"] },
+  "Stand-In": { from: "substitute", callbacks: ["onTryHit", "onHit"] },
+  Sunlance: { from: "solarbeam", callbacks: ["onTryMove"], expect: { chargeSkippedIn: ["Sun"] } },
+  "Sky Plunge": {
+    from: "fly",
+    callbacks: ["onTryMove", "condition"],
+    expect: { semiInvulnerable: true },
+  },
+  "Shell Charge": {
+    from: "skullbash",
+    callbacks: ["onTryMove"],
+    expect: { chargeBoosts: { def: 1 } },
+  },
+  "Spin Clear": {
+    from: "rapidspin",
+    callbacks: ["onAfterHit", "onAfterSubDamage"],
+    expect: { clearSideConditions: { user: ["Jagged Stones", "Caltrops"] } },
+  },
+  "Clear Gust": {
+    from: "defog",
+    callbacks: ["onHit"],
+    expect: {
+      boosts: { evasion: -1 },
+      clearSideConditions: {
+        user: ["Jagged Stones", "Caltrops"],
+        target: ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"],
+      },
+      clearTerrain: true,
+      substituteBlocksBoosts: true,
+    },
+    // Defog's callback lowers evasion itself.
+    omit: ["boosts"],
+  },
+};
+/** pkmn fields that Showdown expresses in move callbacks instead. */
+const PKMN_ONLY_FIELDS = [
+  "chargeBoosts",
+  "chargeSkippedIn",
+  "semiInvulnerable",
+  "clearSideConditions",
+  "clearTerrain",
+  "substituteBlocksBoosts",
+];
+const CHARGING_FIELDS = ["chargeBoosts", "chargeSkippedIn", "semiInvulnerable"];
+
+/** Sample names can match real Showdown entries, so injected ones carry this suffix. */
+function injectedName(name: string): string {
+  return `${name} pkmn`;
+}
+
+function lookup(table: Record<string, string>, key: string, kind: string): string {
+  const value = table[key];
+  if (value === undefined) throw new Error(`No Showdown equivalent for ${kind} ${key}`);
+  return value;
+}
+
+function reverse(table: Record<string, string>): Map<string, string> {
+  return new Map(Object.entries(table).map(([ours, theirs]) => [toID(theirs), ours]));
+}
+
+const OUR_WEATHERS = reverse(WEATHERS);
+const OUR_TERRAINS = reverse(TERRAINS);
+const OUR_SIDE_CONDITIONS = reverse(SIDE_CONDITIONS);
+const OUR_ITEMS = reverse(ITEMS);
+
+/** A small seeded generator for the harness's own choices, independent of the battle RNG. */
+function createRandom(seed: number): (bound: number) => number {
+  let state = seed >>> 0;
+  return function next(bound: number): number {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed);
+    return Math.floor((((mixed ^ (mixed >>> 14)) >>> 0) / 2 ** 32) * bound);
+  };
+}
+
+function pick<T>(random: (bound: number) => number, items: readonly T[]): T {
+  const item = items[random(items.length)];
+  if (item === undefined) throw new Error("Cannot pick from an empty list");
+  return item;
+}
+
+/** The injected Showdown move for a sample move. */
+function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> {
+  const borrowed = BORROWED[move.name];
+  const charging = CHARGING_FIELDS.some((field) => move[field] !== undefined);
+  const clearing = move.clearSideConditions !== undefined || move.clearTerrain !== undefined;
+  if ((charging || clearing || move.stallingMove !== undefined) && borrowed === undefined) {
+    throw new Error(`${move.name} needs Showdown callbacks; add it to BORROWED`);
+  }
+  for (const [field, value] of Object.entries(borrowed?.expect ?? {})) {
+    if (!isDeepStrictEqual(move[field], value)) {
+      throw new Error(`${move.name}'s ${field} no longer matches ${borrowed?.from}`);
+    }
+  }
+  const omitted = new Set([...PKMN_ONLY_FIELDS, ...(borrowed?.omit ?? [])]);
+  const injected: Record<string, unknown> = {
+    ...Object.fromEntries(Object.entries(move).filter(([field]) => !omitted.has(field))),
+    name: injectedName(move.name),
+    num,
+    type: move.type ?? "???",
+    // pkmn's defaults for fields Showdown requires; a missing `basePower` would be NaN.
+    basePower: move.basePower ?? 0,
+    target: move.target ?? "normal",
+    priority: move.priority ?? 0,
+    flags: move.flags ?? {},
+  };
+  if (move.weather !== undefined) injected["weather"] = lookup(WEATHERS, move.weather, "weather");
+  if (move.terrain !== undefined) injected["terrain"] = lookup(TERRAINS, move.terrain, "terrain");
+  if (move.sideCondition !== undefined) {
+    injected["sideCondition"] = lookup(SIDE_CONDITIONS, move.sideCondition, "side condition");
+  }
+  if (borrowed !== undefined) {
+    const source = Dex.data.Moves[borrowed.from] as Record<string, unknown> | undefined;
+    if (source === undefined) throw new Error(`Showdown has no move ${borrowed.from}`);
+    for (const callback of borrowed.callbacks) {
+      if (source[callback] === undefined) {
+        throw new Error(`Showdown's ${borrowed.from} has no ${callback}`);
+      }
+      injected[callback] = source[callback];
+    }
+  }
+  return injected;
+}
+
+/** Adds the sample's species and moves to Showdown's data tables, which load lazily. */
+function injectSample(sample: SampleDex): void {
+  const pokedex: Record<string, unknown> = {};
+  for (const [index, species] of sample.species.entries()) {
+    pokedex[toID(injectedName(species.name))] = {
+      ...species,
+      name: injectedName(species.name),
+      num: 20_000 + index,
+      gender: "N",
+      abilities: { 0: "No Ability" },
+      heightm: 1,
+      weightkg: 10,
+      eggGroups: ["Undiscovered"],
+    };
+  }
+  const moves: Record<string, unknown> = {};
+  for (const [index, move] of sample.moves.entries()) {
+    moves[toID(injectedName(move.name))] = toShowdownMove(move, 20_000 + index);
+  }
+  Object.assign(Dex.data.Pokedex, pokedex);
+  Object.assign(Dex.data.Moves, moves);
+  // Showdown lists the semi-invulnerable volatiles by move ID, for effects like Grassy
+  // Terrain's healing, so the injected ones join the list.
+  const semiInvulnerable = sample.moves
+    .filter((move) => move.semiInvulnerable === true)
+    .map((move) => toID(injectedName(move.name)));
+  const { isSemiInvulnerable } = ShowdownPokemon.prototype as {
+    isSemiInvulnerable: (this: Pokemon) => EffectState;
+  };
+  ShowdownPokemon.prototype.isSemiInvulnerable = function isInjectedSemiInvulnerable(
+    this: Pokemon,
+  ) {
+    const injected = semiInvulnerable.find((id) => id in this.volatiles);
+    return (
+      (injected === undefined ? undefined : this.volatiles[injected]) ??
+      isSemiInvulnerable.call(this)
+    );
+  };
+}
+
+function randomSet(random: (bound: number) => number, sample: SampleDex, slot: number): PokemonSet {
+  const moves: string[] = [];
+  while (moves.length < 4) {
+    const name = pick(random, sample.moves).name;
+    if (!moves.includes(name)) moves.push(name);
+  }
+  const evs: StatTable = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  for (let budget = 127; budget > 0; budget--) {
+    const stat = pick(random, STAT_NAMES);
+    if (evs[stat] < 252) evs[stat] += 4;
+  }
+  const ivs = Object.fromEntries(STAT_NAMES.map((stat) => [stat, random(32)])) as StatTable;
+  return {
+    name: `slot${slot}`,
+    species: pick(random, sample.species).name,
+    item: random(4) === 0 ? null : pick(random, sample.items).name,
+    ability: random(4) === 0 ? null : pick(random, sample.abilities).name,
+    moves,
+    nature: pick(random, sample.natures).name,
+    evs,
+    ivs,
+    level: 50 + random(51),
+    teraType: pick(random, sample.types).name,
+  };
+}
+
+function toShowdownSet(set: PokemonSet): ShowdownSet {
+  return {
+    ...set,
+    species: injectedName(set.species),
+    moves: set.moves.map(injectedName),
+    gender: "N",
+    ability: set.ability === null ? "No Ability" : lookup(ABILITIES, set.ability, "ability"),
+    item: set.item === null ? "" : lookup(ITEMS, set.item, "item"),
+  };
+}
+
+function slotOf(pokemon: Pokemon): number {
+  return Number(pokemon.name.slice("slot".length));
+}
+
+function bySlot(side: Side): Pokemon[] {
+  return side.pokemon.toSorted((left, right) => slotOf(left) - slotOf(right));
+}
+
+function sampleName(names: Map<string, string>, id: string): string {
+  const name = names.get(id);
+  if (name === undefined) throw new Error(`Showdown set up ${id}, which has no sample name`);
+  return name;
+}
+
+function timed(names: Map<string, string>, id: string, duration: unknown): Timed | null {
+  if (id === "") return null;
+  return { name: sampleName(names, id), duration: typeof duration === "number" ? duration : null };
+}
+
+function snapshotSide(side: Side): SideSnapshot {
+  const active = side.active[0];
+  if (active === undefined) throw new Error("A side has no active creature");
+  const substitute = active.volatiles["substitute"] as { hp: number } | undefined;
+  const conditions = Object.entries(side.sideConditions).map(([id, state]) => {
+    const effect = state as { duration?: number; layers?: number };
+    return {
+      name: sampleName(OUR_SIDE_CONDITIONS, id),
+      duration: effect.duration ?? null,
+      layers: effect.layers ?? 1,
+    };
+  });
+  return {
+    active: slotOf(active),
+    team: bySlot(side).map((pokemon) => ({
+      hp: pokemon.hp,
+      // Showdown marks a fainted creature's status `fnt` at its next check; pkmn keeps none.
+      status: pokemon.status === "" || pokemon.hp === 0 ? null : pokemon.status,
+      item: pokemon.item === "" ? null : (OUR_ITEMS.get(pokemon.item) ?? null),
+      pp: pokemon.baseMoveSlots.map((slot) => slot.pp),
+    })),
+    boosts: BOOST_NAMES.map((name) => active.boosts[name]),
+    substitute: substitute?.hp ?? null,
+    confused: "confusion" in active.volatiles,
+    terastallized: active.terastallized !== undefined,
+    conditions: conditions.toSorted((left, right) => left.name.localeCompare(right.name)),
+  };
+}
+
+function snapshot(battle: ShowdownBattle): Snapshot {
+  const { field } = battle;
+  let winner: Snapshot["winner"] = null;
+  if (battle.ended) winner = battle.winner === "p1" ? "p1" : battle.winner === "p2" ? "p2" : "tie";
+  return {
+    turn: battle.turn,
+    weather: timed(OUR_WEATHERS, field.weather, field.weatherState.duration),
+    terrain: timed(OUR_TERRAINS, field.terrain, field.terrainState.duration),
+    winner,
+    sides: battle.sides.map(snapshotSide),
+  };
+}
+
+interface Option {
+  ours: Choice;
+  theirs: string | null;
+}
+
+/** Picks a legal choice from Showdown's request, expressed in pkmn's team and move slots. */
+function chooseFor(side: Side, random: (bound: number) => number): Option {
+  const request = side.activeRequest;
+  if (request === null || request.wait === true) return { ours: "pass", theirs: null };
+  if (request.teamPreview === true) throw new Error("Team preview should be resolved already");
+  const switches = side.pokemon
+    .map((pokemon, position) => ({ pokemon, position }))
+    .filter(({ pokemon }) => !pokemon.fainted && !pokemon.isActive);
+  const toSwitch = ({ pokemon, position }: (typeof switches)[number]): Option => ({
+    ours: { switch: slotOf(pokemon) },
+    theirs: `switch ${position + 1}`,
+  });
+  if (request.forceSwitch !== undefined) return toSwitch(pick(random, switches));
+  const active = request.active[0];
+  const user = side.active[0];
+  if (active === undefined || user === undefined) throw new Error("A move request has no user");
+  if (active.trapped === true) switches.length = 0;
+  // Showdown lists only the forced move while a creature is locked in; pkmn names its slot.
+  const slotOfMove = (id: string) =>
+    id === "struggle" ? 0 : user.baseMoveSlots.findIndex((slot) => slot.id === id);
+  const terastallize = active.canTerastallize !== undefined && random(6) === 0;
+  const moves: Option[] = active.moves
+    .map((move, index) => ({ move, index }))
+    .filter(({ move }) => move.disabled !== true && typeof move.disabled !== "string")
+    .map(({ move, index }) => ({
+      ours: terastallize ? { terastallize: slotOfMove(move.id) } : { move: slotOfMove(move.id) },
+      theirs: `move ${index + 1}${terastallize ? " terastallize" : ""}`,
+    }));
+  if (switches.length > 0 && (moves.length === 0 || random(10) === 0)) {
+    return toSwitch(pick(random, switches));
+  }
+  return pick(random, moves);
+}
+
+interface SortedHandler {
+  effectHolder?: { fainted?: boolean; sideConditions?: unknown };
+}
+
+/**
+ * Watches for shuffles pkmn does not reproduce. pkmn sorts residual handlers exactly as
+ * Showdown does, and draws for the tie among screens in the `ModifyDamage` event, so those
+ * shuffles are expected. Any other shuffle breaks a speed tie, where pkmn draws differently (a
+ * documented difference), as does a residual tie that includes a fainted creature's handler.
+ */
+function watchSpeedTies(battle: ShowdownBattle): () => boolean {
+  let seen = false;
+  let next: "residual" | "modifyDamage" | null = null;
+  let sorting: "residual" | "modifyDamage" | null = null;
+  const fieldEvent = battle.fieldEvent.bind(battle);
+  battle.fieldEvent = (eventid, targets) => {
+    if (eventid === "Residual") next = "residual";
+    fieldEvent(eventid, targets);
+  };
+  const runEvent = battle.runEvent.bind(battle);
+  battle.runEvent = function watchedRunEvent(...args: Parameters<typeof runEvent>): unknown {
+    if (args[0] === "ModifyDamage") next = "modifyDamage";
+    const result: unknown = runEvent(...args);
+    if (next === "modifyDamage") next = null;
+    return result;
+  };
+  const speedSort = battle.speedSort.bind(battle);
+  battle.speedSort = (list, comparator) => {
+    sorting = next;
+    next = null;
+    speedSort(list, comparator);
+    sorting = null;
+  };
+  const shuffle = battle.prng.shuffle.bind(battle.prng);
+  battle.prng.shuffle = (items, start = 0, end = items.length) => {
+    const group = (items as SortedHandler[]).slice(start, end);
+    const holders = group.map((handler) => handler.effectHolder);
+    const expected =
+      (sorting === "residual" &&
+        !(holders.some((holder) => holder?.fainted === true) && new Set(holders).size > 1)) ||
+      (sorting === "modifyDamage" &&
+        holders.every((holder) => holder?.sideConditions !== undefined));
+    if (!expected) seen = true;
+    shuffle(items, start, end);
+  };
+  return () => seen;
+}
+
+function hexSeed(index: number): string {
+  const random = createRandom(index * 7919 + 17);
+  return Array.from({ length: 4 }, () => random(0x1_0000).toString(16).padStart(4, "0")).join("");
+}
+
+/** Records one battle, or returns `null` if it hits a speed tie before the first choice. */
+function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
+  const random = createRandom(index);
+  const teams = [0, 1].map(() =>
+    Array.from({ length: TEAM_SIZE }, (_, slot) => randomSet(random, sample, slot)),
+  );
+  const seed = hexSeed(index);
+  const battle = new Battle({ formatid: toID("gen9customgame"), seed: `gen5,${seed}` });
+  const speedTieSeen = watchSpeedTies(battle);
+  battle.setPlayer("p1", { name: "p1", team: (teams[0] ?? []).map(toShowdownSet) });
+  battle.setPlayer("p2", { name: "p2", team: (teams[1] ?? []).map(toShowdownSet) });
+  battle.makeChoices("team 123", "team 123");
+  const stats = battle.sides.map((side) =>
+    bySlot(side).map(({ storedStats, maxhp }) => ({
+      hp: maxhp,
+      atk: storedStats.atk,
+      def: storedStats.def,
+      spa: storedStats.spa,
+      spd: storedStats.spd,
+      spe: storedStats.spe,
+    })),
+  );
+  const recorded: RecordedBattle = {
+    seed,
+    teams,
+    stats,
+    start: snapshot(battle),
+    steps: [],
+    stopped: "finished",
+  };
+  if (speedTieSeen()) return null;
+  while (!battle.ended) {
+    if (recorded.steps.length >= STEP_LIMIT) return { ...recorded, stopped: "step_limit" };
+    const choices = battle.sides.map((side) => chooseFor(side, random));
+    for (const [sideIndex, choice] of choices.entries()) {
+      if (choice.theirs !== null) battle.choose(sideIndex === 0 ? "p1" : "p2", choice.theirs);
+    }
+    if (speedTieSeen()) return { ...recorded, stopped: "speed_tie" };
+    recorded.steps.push({ choices: choices.map(({ ours }) => ours), after: snapshot(battle) });
+  }
+  return recorded;
+}
+
+function main(): void {
+  const battles = Number(process.argv[2] ?? 2000);
+  const sample = JSON.parse(readFileSync(SAMPLE, "utf8")) as SampleDex;
+  injectSample(sample);
+  const recorded = Array.from({ length: battles }, (_, index) =>
+    recordBattle(index, sample),
+  ).filter((battle) => battle !== null);
+  mkdirSync(FIXTURES, { recursive: true });
+  writeFileSync(
+    new URL("showdown.json", FIXTURES),
+    `${JSON.stringify({ generator: "pokemon-showdown@0.11.11", battles: recorded })}\n`,
+  );
+  const steps = recorded.reduce((total, battle) => total + battle.steps.length, 0);
+  const tied = recorded.filter((battle) => battle.stopped === "speed_tie").length;
+  process.stdout.write(
+    `Recorded ${recorded.length} of ${battles} battles, ${steps} steps (${tied} stopped at a speed tie).\n`,
+  );
+}
+
+main();

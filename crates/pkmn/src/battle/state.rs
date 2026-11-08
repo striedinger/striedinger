@@ -70,6 +70,10 @@ pub struct Volatiles {
     pub locked_move: Option<LockedMove>,
     /// The move slot of a `charge` move that charged last turn (Showdown's `twoturnmove`).
     pub charging: Option<u8>,
+    /// End-of-turn checks left on Showdown's `twoturnmove`, which outlasts the charge by one
+    /// turn: 0 when it is absent.
+    #[serde(default)]
+    pub two_turn_move: u8,
 }
 
 /// Showdown's `lockedmove` volatile, with its two counters.

@@ -16,6 +16,8 @@ const ACTION_SPEED_BITS: u32 = 13;
 const TERA_MINIMUM_POWER: u32 = 60;
 /// STAB when the Tera type matches one of the user's original types: ×2.
 const TERA_STAB_MODIFIER: u32 = MODIFIER_SCALE * 2;
+/// At most this many screens can be up: each side's of each category.
+const MAX_SCREENS: usize = 8;
 /// Base power of a confusion self-hit.
 const CONFUSION_POWER: u16 = 40;
 
@@ -138,6 +140,18 @@ impl Engine<'_> {
     ) -> u32 {
         let input = self.damage_input(side, target, move_data, critical, type_modifier);
         let roll = self.state.prng.below(DAMAGE_ROLLS);
+        // Showdown's `ModifyDamage` event then sorts every screen's `onAnyModifyDamage`
+        // handler. Side conditions have no speed, so two or more tie and are shuffled, though
+        // only the defender's screen of the move's category can apply.
+        let screens = self
+            .state
+            .sides
+            .iter()
+            .flat_map(|team| &team.conditions)
+            .filter(|condition| self.dex.side_condition(condition.id).screen.is_some())
+            .count();
+        let mut order = [(); MAX_SCREENS];
+        self.shuffle(&mut order[..screens.min(MAX_SCREENS)]);
         calculate_damage(&DamageInput { roll, ..input })
     }
 

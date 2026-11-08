@@ -23,6 +23,8 @@ const STALL_DURATION: u8 = 2;
 
 /// End-of-turn checks a `lockedmove` lasts between uses.
 const LOCKED_MOVE_DURATION: u8 = 2;
+/// Showdown's `twoturnmove` lasts through the end of the turn after the charge.
+const TWO_TURN_MOVE_DURATION: u8 = 2;
 
 /// What a damaging move's hits did.
 struct HitOutcome {
@@ -51,7 +53,9 @@ impl Engine<'_> {
     ) -> Option<SideId> {
         if !self.before_move(side) {
             // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
-            self.active_mut(side).volatiles.charging = None;
+            let volatiles = &mut self.active_mut(side).volatiles;
+            volatiles.charging = None;
+            volatiles.two_turn_move = 0;
             return None;
         }
         let dex = self.dex;
@@ -141,7 +145,9 @@ impl Engine<'_> {
         {
             return false;
         }
-        self.active_mut(side).volatiles.charging = u8::try_from(slot).ok();
+        let volatiles = &mut self.active_mut(side).volatiles;
+        volatiles.charging = u8::try_from(slot).ok();
+        volatiles.two_turn_move = TWO_TURN_MOVE_DURATION;
         let move_id = self.active(side).move_slots[slot].map(|move_slot| move_slot.id);
         if let Some(move_id) = move_id {
             self.emit(Event::Prepare { side, move_id });
@@ -710,7 +716,14 @@ impl Engine<'_> {
             self.emit(Event::Fail { side });
             return false;
         }
-        let mut applied = self.apply_effect(target, move_data.primary);
+        let mut primary = move_data.primary;
+        if move_data.substitute_blocks_boosts
+            && target != side
+            && self.active(target).volatiles.substitute.is_some()
+        {
+            primary.boosts = None;
+        }
+        let mut applied = self.apply_effect(target, primary);
         if let Some(fraction) = move_data.heal {
             let max_hp = u32::from(self.active(target).max_hp());
             applied |= self.heal(target, fraction.of_rounded(max_hp), HealSource::Move) > 0;

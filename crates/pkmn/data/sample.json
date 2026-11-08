@@ -1321,7 +1321,8 @@
         "user": ["Jagged Stones", "Caltrops"],
         "target": ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"]
       },
-      "clearTerrain": true
+      "clearTerrain": true,
+      "substituteBlocksBoosts": true
     }
   ],
   "abilities": [
@@ -1683,6 +1684,7 @@
     {
       "name": "Mirror Wall",
       "duration": 5,
+      "residualSubOrder": 1,
       "damageModifier": {
         "category": "Physical",
         "modifier": [1, 2]
@@ -1691,6 +1693,7 @@
     {
       "name": "Prism Veil",
       "duration": 5,
+      "residualSubOrder": 2,
       "damageModifier": {
         "category": "Special",
         "modifier": [1, 2]

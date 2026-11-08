@@ -449,3 +449,78 @@ fn switches_happen_before_terastallization() {
     assert!(matches!(events[0], Event::Switch { side: P2, .. }));
     assert!(matches!(events[1], Event::Terastallize { side: P1, .. }));
 }
+
+#[test]
+fn a_substitute_blocks_defog_style_boosts_but_not_the_clearing() {
+    let battle = start(
+        &[set("Galewing", &["Clear Gust"])],
+        &[set("Tidewhelp", &["Hunker Down"])],
+        31,
+    );
+    let mut battle = edit(battle, |state: &mut BattleState| {
+        state.sides[1].team[0].volatiles.substitute = Some(10);
+        state.sides[1]
+            .conditions
+            .push(pkmn::battle::SideConditionState {
+                id: pkmn::dex::SideConditionId(0),
+                layers: 1,
+                duration: None,
+            });
+    });
+    let events = play(&mut battle, MOVE, MOVE);
+    assert!(battle.state().side(P2).conditions.is_empty());
+    assert!(
+        !events.iter().any(|event| matches!(
+            event,
+            Event::Boost {
+                side: P2,
+                stat: pkmn::stats::BoostStat::Evasion,
+                ..
+            }
+        )),
+        "the substitute took the evasion drop"
+    );
+}
+
+#[test]
+fn a_hazard_knockout_on_switch_in_can_end_the_battle_before_slower_creatures_enter() {
+    let battle = start(
+        &[
+            set("Cindercub", &["Hunker Down"]),
+            set("Craghorn", &["Hunker Down"]),
+        ],
+        &[
+            set("Bramblehog", &["Hunker Down"]),
+            set("Zaplet", &["Hunker Down"]),
+        ],
+        33,
+    );
+    let mut battle = edit(battle, |state: &mut BattleState| {
+        state.field.weather = Some(WeatherState {
+            id: pkmn::dex::WeatherId(2),
+            duration: 5,
+        });
+        for side in &mut state.sides {
+            for pokemon in &mut side.team {
+                pokemon.hp = 1;
+            }
+            side.conditions.push(pkmn::battle::SideConditionState {
+                id: pkmn::dex::SideConditionId(0),
+                layers: 1,
+                duration: None,
+            });
+        }
+    });
+    assert_eq!(
+        battle.dex().weather(pkmn::dex::WeatherId(2)).name,
+        "Sandstorm"
+    );
+    play(&mut battle, MOVE, MOVE);
+    play(&mut battle, Choice::Switch(1), Choice::Switch(1));
+    assert_eq!(battle.outcome(), Some(pkmn::Outcome::Win(P1)));
+    assert_eq!(
+        battle.state().active(P1).hp,
+        1,
+        "faster Zaplet's knockout ended the battle before Craghorn's hazards"
+    );
+}

@@ -102,6 +102,15 @@ pub struct SideConditionSource {
     /// Halves (or otherwise scales) damage of one category against this side, like Reflect.
     #[serde(default)]
     pub damage_modifier: Option<ScreenSource>,
+    /// Showdown's `onSideResidualSubOrder`, which places the countdown among others at
+    /// residual order 26: Reflect is 1, Light Screen 2. Defaults to 4, Showdown's default for
+    /// side conditions.
+    #[serde(default = "default_side_residual_sub_order")]
+    pub residual_sub_order: u8,
+}
+
+fn default_side_residual_sub_order() -> u8 {
+    4
 }
 
 /// Damage a hazard deals to a creature switching in.
@@ -314,6 +323,10 @@ pub struct MoveSource {
     /// Ends the terrain after the move works, like Defog.
     #[serde(default)]
     pub clear_terrain: bool,
+    /// A substitute blocks the move's primary `boosts` even when the move bypasses it, like
+    /// Defog's evasion drop (code in Showdown's `onHit`).
+    #[serde(default)]
+    pub substitute_blocks_boosts: bool,
 }
 
 fn default_crit_ratio() -> u8 {

@@ -427,17 +427,17 @@ impl<'a> Engine<'a> {
             [true, true] => self.speed_order(),
             _ => SideId::BOTH,
         };
-        // Entry hazards land before abilities, so a creature they knock out never starts.
+        // Showdown's `fieldEvent('SwitchIn')`: each creature's handlers in speed order, its
+        // entry hazards (sub-order 4, in the order they were set) before its ability (7) and
+        // item (8), with a faint check after each, so a battle can end here.
         for side in order {
-            if entering[side.index()] {
-                self.entry_hazards(side);
+            if !entering[side.index()] {
+                continue;
             }
-        }
-        for side in order {
-            if !entering[side.index()]
-                || self.active(side).is_fainted()
-                || !self.mask(side).intersects(HandlerMask::START)
-            {
+            if self.entry_hazards(side) {
+                return;
+            }
+            if self.active(side).is_fainted() || !self.mask(side).intersects(HandlerMask::START) {
                 continue;
             }
             for (effect, handler) in self.handlers(side) {
@@ -462,14 +462,18 @@ impl<'a> Engine<'a> {
                             self.boost(foe, *boosts);
                         }
                     }
-                    _ => {}
+                    _ => continue,
+                }
+                if self.faint_messages() {
+                    return;
                 }
             }
         }
     }
 
-    /// Damage from the side's entry hazards to a creature that just switched in.
-    fn entry_hazards(&mut self, side: SideId) {
+    /// Damage from the side's entry hazards to a creature that just switched in, each followed
+    /// by a faint check. Returns whether the battle ended.
+    fn entry_hazards(&mut self, side: SideId) -> bool {
         let dex = self.dex;
         for index in 0..self.state.side(side).conditions.len() {
             let condition = self.state.side(side).conditions[index];
@@ -478,7 +482,7 @@ impl<'a> Engine<'a> {
             };
             let pokemon = self.active(side);
             if pokemon.is_fainted() {
-                return;
+                return false;
             }
             if hazard
                 .grounded_type
@@ -506,7 +510,11 @@ impl<'a> Engine<'a> {
             };
             let amount = u32::try_from(amount).unwrap_or(u32::MAX).max(1);
             self.damage(side, amount, DamageSource::Hazard(condition.id));
+            if self.faint_messages() {
+                return true;
+            }
         }
+        false
     }
 
     /// Showdown's `Update` event: items that react to HP or status get a chance to trigger,
@@ -698,9 +706,17 @@ impl<'a> Engine<'a> {
     /// When both sides run out at once, the side whose creature fainted last wins, as in
     /// Generation 5 onward (for example, an attacker knocked out by its own recoil).
     fn faint_messages(&mut self) -> bool {
+        if self.state.outcome.is_some() {
+            return true;
+        }
         let mut last_fainted = None;
         for side in self.faint_queue.take() {
             self.emit(Event::Faint { side });
+            // Showdown's `faintMessages`: stat stages, volatiles, and Terastallization go.
+            let fainted = self.active_mut(side);
+            fainted.boosts = Boosts::default();
+            fainted.volatiles = Volatiles::default();
+            fainted.terastallized = false;
             last_fainted = Some(side);
         }
         if last_fainted.is_none() {

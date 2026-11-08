@@ -373,6 +373,8 @@ pub struct SideConditionData {
     pub switch_in_damage: Option<SwitchInDamage>,
     /// Damage reduction for one category.
     pub screen: Option<Screen>,
+    /// See [`SideConditionSource::residual_sub_order`].
+    pub residual_sub_order: u8,
 }
 
 impl SideConditionData {
@@ -484,6 +486,8 @@ pub struct MoveData {
     pub clears: Clears,
     /// A volatile status on the user, after it works.
     pub self_volatile: Option<VolatileStatus>,
+    /// See [`MoveSource::substitute_blocks_boosts`].
+    pub substitute_blocks_boosts: bool,
 }
 
 impl MoveData {
@@ -867,6 +871,7 @@ impl Dex {
             duration: source.duration,
             switch_in_damage,
             screen,
+            residual_sub_order: source.residual_sub_order,
         });
         Ok(())
     }
@@ -1013,6 +1018,7 @@ impl Dex {
                 .self_effect
                 .as_ref()
                 .and_then(|effect| effect.volatile_status),
+            substitute_blocks_boosts: source.substitute_blocks_boosts,
         });
         Ok(id)
     }
@@ -1274,6 +1280,7 @@ fn built_in_struggle() -> MoveSource {
         semi_invulnerable: false,
         clear_side_conditions: None,
         clear_terrain: false,
+        substitute_blocks_boosts: false,
     }
 }
 
@@ -1364,6 +1371,12 @@ fn validate_move_effects(source: &MoveSource, damaging: bool) -> Result<(), DexE
         return Err(DexError::invalid(
             name,
             "lockedmove can only be a self.volatileStatus",
+        ));
+    }
+    if source.substitute_blocks_boosts && (damaging || source.boosts.is_none()) {
+        return Err(DexError::invalid(
+            name,
+            "substituteBlocksBoosts needs a status move with boosts",
         ));
     }
     if damaging && source.terrain.is_some() {
