@@ -55,3 +55,16 @@ Successful production deployment events submit the current sitemap URLs to Index
 ## Translations
 
 Translation catalogs live with the app or package that owns their strings. English source text is used as the key, and locale files are loaded individually. Apps explicitly compose only the catalogs they consume through `@workspace/i18n`, allowing unused package catalogs and locale chunks to stay out of the relevant bundle.
+
+## Pokémon card collection
+
+The [pkmn-tcg-dex CLI](apps/pkmn-tcg-dex/README.md) uses a Rust engine in
+`packages/pkmn-tcg-dex-core` and SQLite storage in `packages/pkmn-tcg-dex-sqlite`.
+The root Cargo workspace runs independently of the pnpm/Turborepo web workspace.
+
+```sh
+cargo run -p pkmn-tcg-dex -- lookup swsh3-136
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo fmt --all -- --check
+```

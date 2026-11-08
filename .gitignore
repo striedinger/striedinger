@@ -13,4 +13,7 @@ dist
 !.env.example
 .DS_Store
 .vercel
-/target
+
+# Rust workspace and local card collections
+/target/
+*.sqlite*
