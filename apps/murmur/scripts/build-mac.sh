@@ -41,11 +41,25 @@ if [[ "$HOST" == "Darwin" ]]; then
   OTOOL=otool
   SWIFT_SDK_ARGS=(--arch "$ARCH")
 else
-  # The SDK xtool installs: a Swift SDK bundle holding MacOSX.sdk and an ld64-compatible
-  # toolset. DARWIN_SDK_DIR overrides where to look.
-  SDK_SEARCH=("${DARWIN_SDK_DIR:-}" "$HOME/.swiftpm/swift-sdks" "$HOME/.local/share/xtool" "$HOME/.xtool")
-  SDKROOT="$(find "${SDK_SEARCH[@]}" -maxdepth 8 -type d -name 'MacOSX*.sdk' 2>/dev/null | sort | tail -n 1 || true)"
-  LD64="$(find "${SDK_SEARCH[@]}" -maxdepth 8 -path '*toolset/bin/orig/ld64.lld' 2>/dev/null | head -n 1 || true)"
+  # The SDK xtool installs: a Swift SDK bundle (darwin.artifactbundle) holding MacOSX.sdk
+  # and an ld64-compatible toolset. xtool puts it under the account's real home directory,
+  # which can differ from $HOME (in CI containers, for example). DARWIN_SDK_DIR overrides it.
+  REAL_HOME="$(getent passwd "$(id -u)" | cut -d: -f6)"
+  SDK_SEARCH=()
+  for dir in "${DARWIN_SDK_DIR:-}" "${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/swiftpm/swift-sdks}" \
+             "$HOME/.swiftpm/swift-sdks" "$REAL_HOME/.swiftpm/swift-sdks"; do
+    [[ -n "$dir" && -d "$dir" ]] && SDK_SEARCH+=("$dir")
+  done
+  # Ask SwiftPM first; it knows exactly where the installed SDK's macOS sysroot is.
+  SDKROOT="$(swift sdk configure --show-configuration darwin "$SWIFT_TRIPLE" 2>/dev/null \
+    | sed -nE 's/^sdkRootPath: (.+)$/\1/p' | head -n 1 || true)"
+  if [[ -z "$SDKROOT" && ${#SDK_SEARCH[@]} -gt 0 ]]; then
+    SDKROOT="$(find -L "${SDK_SEARCH[@]}" -maxdepth 8 -type d -name 'MacOSX*.sdk' 2>/dev/null | sort | tail -n 1 || true)"
+  fi
+  LD64=""
+  if [[ ${#SDK_SEARCH[@]} -gt 0 ]]; then
+    LD64="$(find -L "${SDK_SEARCH[@]}" -maxdepth 6 -path '*toolset/bin/orig/ld64.lld' 2>/dev/null | head -n 1 || true)"
+  fi
   if [[ -z "$SDKROOT" || -z "$LD64" ]]; then
     echo "Darwin SDK not found. Install it with: xtool sdk install <Xcode.xip or darwin.xtoolsdk>" >&2
     exit 1
