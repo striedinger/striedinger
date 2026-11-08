@@ -14,8 +14,8 @@ pub use damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
 pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, MoveOption, Request};
 pub use state::{
-    BattleState, Field, MAX_MOVES, MoveSlot, Outcome, Pokemon, QueuedAction, Side,
-    SideConditionState, SideId, Stall, StatusState, Volatiles, WeatherState,
+    BattleState, Field, LockedMove, MAX_MOVES, MoveSlot, Outcome, Pokemon, QueuedAction, Side,
+    SideConditionState, SideId, Stall, StatusState, TerrainState, Volatiles, WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -171,6 +171,13 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
         QueuedAction::Switch(slot) => slot < side.team.len(),
         QueuedAction::Move(slot) => slot.is_none_or(|slot| slot < MAX_MOVES),
     };
+    if state
+        .field
+        .terrain
+        .is_some_and(|terrain| terrain.id.index() >= dex.terrain_count())
+    {
+        return invalid("unknown terrain");
+    }
     if let Some(queue) = &state.queue
         && queue.iter().zip(&state.sides).any(|(action, side)| {
             action
@@ -186,6 +193,13 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
         }
         if side.active >= side.team.len() {
             return invalid("the active slot is outside the team");
+        }
+        let mut order = side.switch_order.clone();
+        order.sort_unstable();
+        if !order.iter().copied().eq(0..side.team.len())
+            || side.switch_order.first() != Some(&side.active)
+        {
+            return invalid("switchOrder must list every team slot once, the active one first");
         }
         if side.conditions.iter().any(|condition| {
             condition.id.index() >= dex.side_condition_count()
@@ -221,6 +235,14 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
                     .is_some_and(|id| id.index() >= dex.item_count())
             {
                 return invalid("unknown ability or item");
+            }
+            if pokemon.tera_type.index() >= dex.type_count() {
+                return invalid("unknown Tera type");
+            }
+            let locked = pokemon.locked_slot();
+            if locked.is_some_and(|slot| pokemon.move_slots.get(slot).copied().flatten().is_none())
+            {
+                return invalid("a rampage or charge names an empty move slot");
             }
             if pokemon.hp > pokemon.max_hp() {
                 return invalid("HP above max HP");

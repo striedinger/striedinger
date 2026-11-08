@@ -25,7 +25,7 @@ enum Phase {
 impl Engine<'_> {
     pub(super) fn residual(&mut self) {
         let has_work = SideId::BOTH.map(|side| self.has_residual_work(side));
-        let weather = self.state.field.weather.is_some();
+        let weather = self.state.field.weather.is_some() || self.state.field.terrain.is_some();
         let timed_conditions = self.state.sides.iter().any(|team| {
             team.conditions
                 .iter()
@@ -51,6 +51,7 @@ impl Engine<'_> {
             for side in order {
                 self.side_condition_residual(side);
             }
+            self.terrain_residual();
             for side in order {
                 if has_work[side.index()] && self.residual_phase(side, Phase::Boosts) {
                     return;
@@ -58,6 +59,7 @@ impl Engine<'_> {
             }
         }
         for side in SideId::BOTH {
+            self.lock_residual(side);
             let volatiles = &mut self.active_mut(side).volatiles;
             volatiles.flinch = false;
             volatiles.protect = false;
@@ -68,6 +70,42 @@ impl Engine<'_> {
         }
         self.update();
         self.next_turn();
+    }
+
+    /// Counts down a rampage (Showdown's `lockedmove` residual). Sleep ends it quietly; running
+    /// out ends it with confusion.
+    fn lock_residual(&mut self, side: SideId) {
+        let pokemon = self.active(side);
+        let Some(mut locked) = pokemon.volatiles.locked_move else {
+            return;
+        };
+        if pokemon.is_fainted() {
+            return;
+        }
+        locked.duration = locked.duration.saturating_sub(1);
+        if locked.duration == 0 {
+            self.active_mut(side).volatiles.locked_move = Some(locked);
+            self.end_lock(side);
+        } else if pokemon.status == Some(Status::Sleep) {
+            self.active_mut(side).volatiles.locked_move = None;
+        } else {
+            locked.true_duration = locked.true_duration.saturating_sub(1);
+            self.active_mut(side).volatiles.locked_move = Some(locked);
+        }
+    }
+
+    /// Counts down the terrain (Showdown's `onFieldResidualOrder: 27`).
+    fn terrain_residual(&mut self) {
+        let Some(mut terrain) = self.state.field.terrain else {
+            return;
+        };
+        terrain.duration = terrain.duration.saturating_sub(1);
+        if terrain.duration == 0 {
+            self.state.field.terrain = None;
+            self.emit(Event::Terrain { terrain: None });
+        } else {
+            self.state.field.terrain = Some(terrain);
+        }
     }
 
     /// Counts down a side's timed conditions, such as screens (Showdown's
@@ -101,7 +139,10 @@ impl Engine<'_> {
             && (matches!(
                 pokemon.status,
                 Some(Status::Burn | Status::Poison | Status::Toxic)
-            ) || self.mask(side).intersects(HandlerMask::RESIDUAL))
+            ) || self.mask(side).intersects(HandlerMask::RESIDUAL)
+                || self
+                    .terrain_affecting(side, |terrain| terrain.residual_heal.is_some())
+                    .is_some())
     }
 
     /// Counts down the weather and deals its residual damage. Returns whether the battle
@@ -173,6 +214,20 @@ impl Engine<'_> {
                 self.faint_messages()
             }
             Phase::Heal | Phase::Boosts => {
+                // Grassy Terrain's heal is order 5, sub-order 2: before Leftovers' 4.
+                if phase == Phase::Heal
+                    && let Some(terrain) = self.state.field.terrain
+                    && let Some(fraction) = self
+                        .terrain_affecting(side, |data| data.residual_heal.is_some())
+                        .and_then(|data| data.residual_heal)
+                {
+                    let max_hp = u32::from(self.active(side).max_hp());
+                    self.heal(
+                        side,
+                        fraction.of_floored(max_hp).max(1),
+                        HealSource::Terrain(terrain.id),
+                    );
+                }
                 if !self.mask(side).intersects(HandlerMask::RESIDUAL) {
                     return false;
                 }

@@ -42,6 +42,8 @@ pub(crate) struct Engine<'a> {
     state: &'a mut BattleState,
     events: &'a mut Vec<Event>,
     faint_queue: FaintQueue,
+    /// The move slot being used, for effects that remember it, like a rampage.
+    using_slot: Option<usize>,
 }
 
 impl<'a> Engine<'a> {
@@ -51,6 +53,7 @@ impl<'a> Engine<'a> {
             state,
             events,
             faint_queue: FaintQueue::default(),
+            using_slot: None,
         }
     }
 
@@ -117,6 +120,7 @@ impl<'a> Engine<'a> {
     /// Runs validated choices: replacements between turns, or a full turn.
     pub fn run(&mut self, choices: [Choice; 2]) {
         if !self.state.awaiting_switch() {
+            self.terastallize(choices);
             let queue = [
                 self.action_for(SideId::P1, choices[0]),
                 self.action_for(SideId::P2, choices[1]),
@@ -147,11 +151,33 @@ impl<'a> Engine<'a> {
         match choice {
             Choice::Switch(slot) => Some(QueuedAction::Switch(slot)),
             // A validated move choice that is not selectable can only be Struggle's slot 0.
-            Choice::Move(slot) if self.active(side).can_select_move(self.dex, slot) => {
+            Choice::Move(slot) | Choice::Terastallize(slot)
+                if self.active(side).can_select_move(self.dex, slot) =>
+            {
                 Some(QueuedAction::Move(Some(slot)))
             }
-            Choice::Move(_) => Some(QueuedAction::Move(None)),
+            Choice::Move(_) | Choice::Terastallize(_) => Some(QueuedAction::Move(None)),
             Choice::Pass => None,
+        }
+    }
+
+    /// Showdown's `terastallize` actions (queue order 106): before any move, fastest first.
+    fn terastallize(&mut self, choices: [Choice; 2]) {
+        let wants = choices.map(|choice| matches!(choice, Choice::Terastallize(_)));
+        let order = match wants {
+            [false, false] => return,
+            [true, true] => self.speed_order(),
+            _ => SideId::BOTH,
+        };
+        for side in order {
+            if !wants[side.index()] {
+                continue;
+            }
+            self.state.sides[side.index()].can_terastallize = false;
+            let pokemon = self.active_mut(side);
+            pokemon.terastallized = true;
+            let tera_type = pokemon.tera_type;
+            self.emit(Event::Terastallize { side, tera_type });
         }
     }
 
@@ -172,7 +198,9 @@ impl<'a> Engine<'a> {
                 QueuedAction::Move(slot) => {
                     if !self.active(side).is_fainted() {
                         let foe_will_act = queue[side.foe().index()].is_some();
-                        self.run_move(side, slot, foe_will_act);
+                        if let Some(target) = self.run_move(side, slot, foe_will_act) {
+                            self.drag_in(target, &mut queue);
+                        }
                     }
                 }
             }
@@ -272,10 +300,99 @@ impl<'a> Engine<'a> {
         let team = &mut self.state.sides[side.index()];
         team.active = slot;
         team.switch_flag = false;
+        // Showdown swaps the incoming creature into the active position of `side.pokemon`.
+        if let Some(position) = team.switch_order.iter().position(|&member| member == slot) {
+            team.switch_order.swap(0, position);
+        }
         let incoming = team.active_mut();
         incoming.active_turns = 0;
         incoming.status_state.stage = 0;
         self.emit_switch(side);
+    }
+
+    /// Showdown's `dragIn`: a forced switch picks a random replacement from
+    /// `possibleSwitches`, cancels the dragged-out creature's action, and runs the switch-in.
+    fn drag_in(&mut self, side: SideId, queue: &mut [Option<QueuedAction>; 2]) {
+        let candidates: Vec<usize> = self.state.side(side).drag_candidates().collect();
+        let Ok(count) = u32::try_from(candidates.len()) else {
+            return;
+        };
+        if count == 0 || self.active(side).is_fainted() {
+            return;
+        }
+        let index = usize::try_from(self.state.prng.below(count)).unwrap_or(0);
+        self.switch_in(side, candidates[index]);
+        queue[side.index()] = None;
+        self.run_switch_in([side]);
+    }
+
+    /// Whether the creature touches the ground: not immune to `grounded_type` by the type chart
+    /// or an `immunity` handler (Showdown's `isGrounded`), and not in the air mid-charge.
+    fn is_grounded(&self, side: SideId, grounded_type: crate::dex::TypeId) -> bool {
+        let pokemon = self.active(side);
+        let immune_by_handler = self.mask(side).intersects(HandlerMask::TRY_HIT)
+            && self
+                .handlers(side)
+                .any(|(_, handler)| *handler == Handler::Immunity(grounded_type));
+        !immune_by_handler
+            && self
+                .dex
+                .type_modifier(grounded_type, pokemon.types())
+                .is_some()
+    }
+
+    /// Whether the creature is out of reach while charging a move like Fly.
+    fn is_semi_invulnerable(&self, side: SideId) -> bool {
+        let pokemon = self.active(side);
+        pokemon.volatiles.charging.is_some_and(|slot| {
+            pokemon.move_slots[usize::from(slot)].is_some_and(|move_slot| {
+                self.dex
+                    .move_data(move_slot.id)
+                    .charge
+                    .as_ref()
+                    .is_some_and(|charge| charge.semi_invulnerable)
+            })
+        })
+    }
+
+    /// The terrain, if `relevant` says it matters here and the creature is grounded and so
+    /// affected by it. Grounding is only worked out when the terrain is relevant.
+    fn terrain_affecting(
+        &self,
+        side: SideId,
+        relevant: impl Fn(&crate::dex::TerrainData) -> bool,
+    ) -> Option<&'a crate::dex::TerrainData> {
+        let dex = self.dex;
+        let terrain = dex.terrain(self.state.field.terrain?.id);
+        (relevant(terrain)
+            && self.is_grounded(side, terrain.grounded_type)
+            && !self.is_semi_invulnerable(side))
+        .then_some(terrain)
+    }
+
+    fn set_terrain(&mut self, id: crate::dex::TerrainId) -> bool {
+        if self
+            .state
+            .field
+            .terrain
+            .is_some_and(|terrain| terrain.id == id)
+        {
+            return false;
+        }
+        self.state.field.terrain = Some(super::state::TerrainState {
+            id,
+            duration: self.dex.terrain(id).duration,
+        });
+        self.emit(Event::Terrain { terrain: Some(id) });
+        true
+    }
+
+    fn clear_terrain(&mut self) -> bool {
+        if self.state.field.terrain.take().is_none() {
+            return false;
+        }
+        self.emit(Event::Terrain { terrain: None });
+        true
     }
 
     /// Runs `onStart` abilities and items for creatures that just switched in, fastest first.
@@ -309,6 +426,12 @@ impl<'a> Engine<'a> {
                             self.set_weather(*weather);
                         }
                     }
+                    Handler::StartTerrain(terrain) => {
+                        if self.state.field.terrain.map(|state| state.id) != Some(*terrain) {
+                            self.announce(side, effect);
+                            self.set_terrain(*terrain);
+                        }
+                    }
                     Handler::StartFoeBoosts(boosts) => {
                         let foe = side.foe();
                         let foe_pokemon = self.active(foe);
@@ -335,15 +458,11 @@ impl<'a> Engine<'a> {
             if pokemon.is_fainted() {
                 return;
             }
-            if let Some(grounded_type) = hazard.grounded_type {
-                let immune_by_handler = self.mask(side).intersects(HandlerMask::TRY_HIT)
-                    && self
-                        .handlers(side)
-                        .any(|(_, handler)| *handler == Handler::Immunity(grounded_type));
-                if immune_by_handler || dex.type_modifier(grounded_type, pokemon.types()).is_none()
-                {
-                    continue;
-                }
+            if hazard
+                .grounded_type
+                .is_some_and(|grounded_type| !self.is_grounded(side, grounded_type))
+            {
+                continue;
             }
             let layer = usize::from(condition.layers.max(1)) - 1;
             let fraction = hazard.layers[layer.min(hazard.layers.len() - 1)];

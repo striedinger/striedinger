@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use super::state::SideId;
 use crate::dex::{
-    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, VolatileStatus, WeatherId,
+    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, TerrainId, TypeId,
+    VolatileStatus, WeatherId,
 };
 use crate::stats::BoostStat;
 
@@ -156,6 +157,25 @@ pub enum Event {
         /// The new weather.
         weather: Option<WeatherId>,
     },
+    /// `-prepare`: a `charge` move spent this turn charging.
+    Prepare {
+        /// The user's side.
+        side: SideId,
+        /// The move.
+        move_id: MoveId,
+    },
+    /// `-fieldstart` / `-fieldend`: the terrain changed; `None` means it ended.
+    Terrain {
+        /// The new terrain.
+        terrain: Option<TerrainId>,
+    },
+    /// `-terastallize`: the active creature Terastallized.
+    Terastallize {
+        /// The creature's side.
+        side: SideId,
+        /// Its new type.
+        tera_type: TypeId,
+    },
     /// `-sidestart`: a side condition began, or gained a layer.
     SideStart {
         /// The side it is on.
@@ -259,6 +279,8 @@ pub enum HealSource {
     Drain,
     /// A healing move.
     Move,
+    /// `[from] <terrain>`, for grounded creatures.
+    Terrain(TerrainId),
     /// `[from] ability: ...` or `[from] item: ...`.
     Effect(Effect),
 }

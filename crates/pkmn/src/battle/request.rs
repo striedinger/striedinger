@@ -19,6 +19,8 @@ pub enum Request {
         moves: Vec<MoveOption>,
         /// Team slots that can be switched in.
         switches: Vec<usize>,
+        /// Whether the active creature may Terastallize with its move.
+        can_terastallize: bool,
     },
     /// The active creature fainted; choose a replacement.
     ForceSwitch {
@@ -51,6 +53,8 @@ pub struct MoveOption {
 pub enum Choice {
     /// `move N`: use the move in this slot (slot 0 is Struggle when that is the only move).
     Move(usize),
+    /// `move N terastallize`: Terastallize at the start of the turn, then use the move.
+    Terastallize(usize),
     /// `switch N`: switch to the creature in this team slot.
     Switch(usize),
     /// `pass`: do nothing while the other side switches in a replacement.
@@ -79,6 +83,8 @@ pub enum ChoiceErrorReason {
     DisabledMove,
     /// The team slot is empty, fainted, or already active.
     InvalidSwitch,
+    /// The side has already Terastallized this battle.
+    CannotTerastallize,
 }
 
 impl fmt::Display for ChoiceError {
@@ -88,6 +94,7 @@ impl fmt::Display for ChoiceError {
             ChoiceErrorReason::WrongKind => "that kind of choice is not requested",
             ChoiceErrorReason::DisabledMove => "that move cannot be selected",
             ChoiceErrorReason::InvalidSwitch => "that team member cannot switch in",
+            ChoiceErrorReason::CannotTerastallize => "this side has already Terastallized",
         };
         write!(
             formatter,
@@ -138,6 +145,7 @@ pub(crate) fn request(dex: &Dex, state: &BattleState, side: SideId) -> Option<Re
     Some(Request::Move {
         moves,
         switches: team.switches().collect(),
+        can_terastallize: can_terastallize(state, side),
     })
 }
 
@@ -157,9 +165,12 @@ pub(crate) fn choices<'a>(
     } else {
         0
     };
+    let tera = choosing_moves && can_terastallize(state, side);
     let moves = (0..super::state::MAX_MOVES)
         .filter(move |&slot| selectable & (1 << slot) != 0)
-        .map(Choice::Move);
+        .flat_map(move |slot| {
+            std::iter::once(Choice::Move(slot)).chain(tera.then_some(Choice::Terastallize(slot)))
+        });
     let switches = team
         .switches()
         .filter(move |_| choosing_moves || must_switch)
@@ -195,11 +206,21 @@ pub(crate) fn validate(
     }
     let active = team.active();
     match choice {
-        Choice::Move(slot) if active.can_select_move(dex, slot) => Ok(()),
-        Choice::Move(0) if active.must_struggle(dex) => Ok(()),
-        Choice::Move(_) => reject(ChoiceErrorReason::DisabledMove),
+        Choice::Terastallize(_) if !can_terastallize(state, side) => {
+            reject(ChoiceErrorReason::CannotTerastallize)
+        }
+        Choice::Move(slot) | Choice::Terastallize(slot) if active.can_select_move(dex, slot) => {
+            Ok(())
+        }
+        Choice::Move(0) | Choice::Terastallize(0) if active.must_struggle(dex) => Ok(()),
+        Choice::Move(_) | Choice::Terastallize(_) => reject(ChoiceErrorReason::DisabledMove),
         Choice::Switch(slot) if team.can_switch_to(slot) => Ok(()),
         Choice::Switch(_) => reject(ChoiceErrorReason::InvalidSwitch),
         Choice::Pass => reject(ChoiceErrorReason::WrongKind),
     }
+}
+
+/// Whether the side's active creature may Terastallize: once per side per battle.
+fn can_terastallize(state: &BattleState, side: SideId) -> bool {
+    state.side(side).can_terastallize && !state.active(side).terastallized
 }

@@ -1158,6 +1158,170 @@
         "protect": 1
       },
       "selfSwitch": true
+    },
+    {
+      "name": "Static Ground",
+      "type": "Electric",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Charged Field"
+    },
+    {
+      "name": "Sprout Ground",
+      "type": "Grass",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Overgrowth"
+    },
+    {
+      "name": "Mist Ground",
+      "type": "Fairy",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Mist Field"
+    },
+    {
+      "name": "Mind Ground",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Mind Field"
+    },
+    {
+      "name": "Frenzy Claw",
+      "type": "Dragon",
+      "category": "Physical",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "self": {
+        "volatileStatus": "lockedmove"
+      }
+    },
+    {
+      "name": "Sunlance",
+      "type": "Grass",
+      "category": "Special",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "charge": 1,
+        "protect": 1
+      },
+      "chargeSkippedIn": ["Sun"]
+    },
+    {
+      "name": "Sky Plunge",
+      "type": "Flying",
+      "category": "Physical",
+      "basePower": 90,
+      "accuracy": 95,
+      "pp": 15,
+      "flags": {
+        "contact": 1,
+        "charge": 1,
+        "protect": 1
+      },
+      "semiInvulnerable": true
+    },
+    {
+      "name": "Shell Charge",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 130,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "contact": 1,
+        "charge": 1,
+        "protect": 1
+      },
+      "chargeBoosts": {
+        "def": 1
+      }
+    },
+    {
+      "name": "Howl Away",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "priority": -6,
+      "flags": {
+        "bypasssub": 1
+      },
+      "forceSwitch": true
+    },
+    {
+      "name": "Tail Toss",
+      "type": "Dragon",
+      "category": "Physical",
+      "basePower": 60,
+      "accuracy": 90,
+      "pp": 10,
+      "priority": -6,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "forceSwitch": true
+    },
+    {
+      "name": "Spin Clear",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 50,
+      "accuracy": 100,
+      "pp": 40,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "clearSideConditions": {
+        "user": ["Jagged Stones", "Caltrops"]
+      },
+      "secondaries": [
+        {
+          "chance": 100,
+          "self": {
+            "boosts": {
+              "spe": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clear Gust",
+      "type": "Flying",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 15,
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1
+      },
+      "boosts": {
+        "evasion": -1
+      },
+      "clearSideConditions": {
+        "user": ["Jagged Stones", "Caltrops"],
+        "target": ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"]
+      },
+      "clearTerrain": true
     }
   ],
   "abilities": [
@@ -1360,6 +1524,14 @@
           "statusImmunity": "par"
         }
       ]
+    },
+    {
+      "name": "Live Wire",
+      "handlers": [
+        {
+          "startTerrain": "Charged Field"
+        }
+      ]
     }
   ],
   "items": [
@@ -1523,6 +1695,41 @@
         "category": "Special",
         "modifier": [1, 2]
       }
+    }
+  ],
+  "terrains": [
+    {
+      "name": "Charged Field",
+      "groundedType": "Ground",
+      "basePowerModifiers": {
+        "Electric": [5325, 4096]
+      },
+      "preventsStatuses": ["slp"]
+    },
+    {
+      "name": "Overgrowth",
+      "groundedType": "Ground",
+      "basePowerModifiers": {
+        "Grass": [5325, 4096]
+      },
+      "residualHeal": [1, 16]
+    },
+    {
+      "name": "Mist Field",
+      "groundedType": "Ground",
+      "targetBasePowerModifiers": {
+        "Dragon": [1, 2]
+      },
+      "preventsStatuses": ["brn", "par", "psn", "tox", "slp", "frz"],
+      "preventsVolatiles": ["confusion"]
+    },
+    {
+      "name": "Mind Field",
+      "groundedType": "Ground",
+      "basePowerModifiers": {
+        "Psychic": [5325, 4096]
+      },
+      "blocksPriority": true
     }
   ]
 }

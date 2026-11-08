@@ -17,9 +17,10 @@ pub use handlers::{
     AbilityData, Condition, ConditionSource, Handler, HandlerMask, HandlerSource, ItemData,
 };
 pub use source::{
-    AbilitySource, Accuracy, DexSource, ItemSource, MoveFlags, MoveSource, Multihit, NatureSource,
-    ScreenSource, SecondarySource, SelfEffectSource, SideConditionSource, SpeciesSource,
-    SwitchInDamageSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
+    AbilitySource, Accuracy, ClearSideConditionsSource, DexSource, ItemSource, MoveFlags,
+    MoveSource, Multihit, NatureSource, ScreenSource, SecondarySource, SelfEffectSource,
+    SideConditionSource, SpeciesSource, SwitchInDamageSource, TerrainSource, TypeSource,
+    WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
@@ -76,6 +77,10 @@ id_type!(
 id_type!(
     /// Identifies a side condition within a [`Dex`].
     SideConditionId(u8)
+);
+id_type!(
+    /// Identifies a terrain within a [`Dex`].
+    TerrainId(u8)
 );
 
 /// A ratio written as `[numerator, denominator]` in data files.
@@ -196,6 +201,10 @@ pub enum VolatileStatus {
     /// Substitute: the user pays 1/4 of its max HP for a decoy with that much HP that takes
     /// hits in its place.
     Substitute,
+    /// Locked move: the user repeats the move for 2–3 turns, then becomes confused, like
+    /// Outrage.
+    #[serde(rename = "lockedmove")]
+    LockedMove,
 }
 
 /// A move's category.
@@ -306,6 +315,59 @@ pub struct WeatherDefenseBoost {
     pub stat: Stat,
     /// The 4096-based modifier.
     pub modifier: u32,
+}
+
+/// A compiled terrain. Its effects apply only to grounded creatures.
+#[derive(Clone, Debug)]
+pub struct TerrainData {
+    /// Display name.
+    pub name: String,
+    /// Turns it lasts.
+    pub duration: u8,
+    /// Creatures immune to this type are not grounded.
+    pub grounded_type: TypeId,
+    /// 4096-based base power modifiers for a grounded attacker, by move type.
+    pub base_power_modifiers: Vec<(TypeId, u32)>,
+    /// 4096-based base power modifiers against a grounded target, by move type.
+    pub target_base_power_modifiers: Vec<(TypeId, u32)>,
+    /// Fraction of max HP restored to grounded creatures each turn.
+    pub residual_heal: Option<Fraction>,
+    /// Statuses grounded creatures cannot receive.
+    pub prevents_statuses: Vec<Status>,
+    /// Volatile statuses grounded creatures cannot receive.
+    pub prevents_volatiles: Vec<VolatileStatus>,
+    /// Whether priority moves fail against grounded targets.
+    pub blocks_priority: bool,
+}
+
+/// How a `charge` move behaves on its first turn.
+#[derive(Clone, Debug, Default)]
+pub struct Charge {
+    /// Stat stages gained while charging.
+    pub boosts: Option<Boosts>,
+    /// Weathers that skip the charging turn.
+    pub skipped_in: Vec<WeatherId>,
+    /// Whether moves aimed at the charging user miss.
+    pub semi_invulnerable: bool,
+}
+
+/// Side conditions and terrain a move removes.
+#[derive(Clone, Debug, Default)]
+pub struct Clears {
+    /// Removed from the user's side.
+    pub user: Vec<SideConditionId>,
+    /// Removed from the target's side.
+    pub target: Vec<SideConditionId>,
+    /// Whether the terrain ends.
+    pub terrain: bool,
+}
+
+impl Clears {
+    /// Whether it removes anything.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.user.is_empty() && self.target.is_empty() && !self.terrain
+    }
 }
 
 /// A compiled side condition.
@@ -420,6 +482,16 @@ pub struct MoveData {
     pub stalling_move: bool,
     /// Whether the user switches out after it works.
     pub self_switch: bool,
+    /// Whether the target is dragged out after it works.
+    pub force_switch: bool,
+    /// The terrain it sets.
+    pub terrain: Option<TerrainId>,
+    /// How it charges, for `charge` moves.
+    pub charge: Option<Charge>,
+    /// What it removes after it works.
+    pub clears: Clears,
+    /// A volatile status on the user, after it works.
+    pub self_volatile: Option<VolatileStatus>,
 }
 
 impl MoveData {
@@ -454,6 +526,7 @@ pub struct Dex {
     abilities: Vec<AbilityData>,
     items: Vec<ItemData>,
     side_conditions: Vec<SideConditionData>,
+    terrains: Vec<TerrainData>,
     type_ids: NameMap<TypeId>,
     weather_ids: NameMap<WeatherId>,
     nature_ids: NameMap<NatureId>,
@@ -462,6 +535,7 @@ pub struct Dex {
     ability_ids: NameMap<AbilityId>,
     item_ids: NameMap<ItemId>,
     side_condition_ids: NameMap<SideConditionId>,
+    terrain_ids: NameMap<TerrainId>,
     struggle: MoveId,
 }
 
@@ -545,6 +619,7 @@ impl Dex {
             abilities: Vec::new(),
             items: Vec::new(),
             side_conditions: Vec::new(),
+            terrains: Vec::new(),
             type_ids: NameMap::default(),
             weather_ids: NameMap::default(),
             nature_ids: NameMap::default(),
@@ -553,6 +628,7 @@ impl Dex {
             ability_ids: NameMap::default(),
             item_ids: NameMap::default(),
             side_condition_ids: NameMap::default(),
+            terrain_ids: NameMap::default(),
             struggle: MoveId(0),
         };
         for type_source in &source.types {
@@ -571,6 +647,9 @@ impl Dex {
         }
         for condition in &source.side_conditions {
             dex.compile_side_condition(condition)?;
+        }
+        for terrain in &source.terrains {
+            dex.compile_terrain(terrain)?;
         }
         for move_source in &source.moves {
             dex.compile_move(move_source)?;
@@ -698,6 +777,42 @@ impl Dex {
             defense_boosts,
             prevents_statuses: source.prevents_statuses.clone(),
         });
+        Ok(())
+    }
+
+    fn compile_terrain(&mut self, source: &TerrainSource) -> Result<(), DexError> {
+        let id = TerrainId::from_index(self.terrains.len()).ok_or(DexError::TooMany("terrains"))?;
+        insert_unique(&mut self.terrain_ids, "terrain", &source.name, id)?;
+        let name = source.name.as_str();
+        if source.duration == 0 {
+            return Err(DexError::invalid(name, "must last at least one turn"));
+        }
+        let modifiers = |table: &std::collections::BTreeMap<String, Fraction>| {
+            table
+                .iter()
+                .map(|(type_name, &modifier)| {
+                    Ok((
+                        self.resolve_type(type_name, name)?,
+                        validate_fraction(modifier, name)?.to_modifier(),
+                    ))
+                })
+                .collect::<Result<Vec<_>, DexError>>()
+        };
+        let terrain = TerrainData {
+            name: source.name.clone(),
+            duration: source.duration,
+            grounded_type: self.resolve_type(&source.grounded_type, name)?,
+            base_power_modifiers: modifiers(&source.base_power_modifiers)?,
+            target_base_power_modifiers: modifiers(&source.target_base_power_modifiers)?,
+            residual_heal: source
+                .residual_heal
+                .map(|fraction| validate_fraction(fraction, name))
+                .transpose()?,
+            prevents_statuses: source.prevents_statuses.clone(),
+            prevents_volatiles: source.prevents_volatiles.clone(),
+            blocks_priority: source.blocks_priority,
+        };
+        self.terrains.push(terrain);
         Ok(())
     }
 
@@ -836,7 +951,7 @@ impl Dex {
             .map(|secondary| compile_secondary(secondary, name))
             .collect::<Result<_, DexError>>()?;
         let self_boosts = validate_boosts(
-            source.self_effect.as_ref().map(|effect| effect.boosts),
+            source.self_effect.as_ref().and_then(|effect| effect.boosts),
             name,
         )?;
         self.moves.push(MoveData {
@@ -872,8 +987,54 @@ impl Dex {
                 .transpose()?,
             stalling_move: source.stalling_move,
             self_switch: source.self_switch,
+            force_switch: source.force_switch,
+            terrain: source
+                .terrain
+                .as_deref()
+                .map(|terrain| resolve(&self.terrain_ids, "terrain", terrain, name))
+                .transpose()?,
+            charge: if source.flags.charge {
+                Some(Charge {
+                    boosts: validate_boosts(source.charge_boosts, name)?,
+                    skipped_in: source
+                        .charge_skipped_in
+                        .iter()
+                        .map(|weather| self.resolve_weather(weather, name))
+                        .collect::<Result<_, _>>()?,
+                    semi_invulnerable: source.semi_invulnerable,
+                })
+            } else {
+                None
+            },
+            clears: self.compile_clears(source)?,
+            self_volatile: source
+                .self_effect
+                .as_ref()
+                .and_then(|effect| effect.volatile_status),
         });
         Ok(id)
+    }
+
+    fn compile_clears(&self, source: &MoveSource) -> Result<Clears, DexError> {
+        let names = |names: &[String]| {
+            names
+                .iter()
+                .map(|condition| {
+                    resolve(
+                        &self.side_condition_ids,
+                        "side condition",
+                        condition,
+                        &source.name,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()
+        };
+        let lists = source.clear_side_conditions.clone().unwrap_or_default();
+        Ok(Clears {
+            user: names(&lists.user)?,
+            target: names(&lists.target)?,
+            terrain: source.clear_terrain,
+        })
     }
 
     fn resolve_type(&self, name: &str, referenced_by: &str) -> Result<TypeId, DexError> {
@@ -912,6 +1073,24 @@ impl Dex {
     #[must_use]
     pub fn move_data(&self, id: MoveId) -> &MoveData {
         &self.moves[id.index()]
+    }
+
+    /// Returns a terrain. Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn terrain(&self, id: TerrainId) -> &TerrainData {
+        &self.terrains[id.index()]
+    }
+
+    /// Looks up a terrain by name.
+    #[must_use]
+    pub fn terrain_id(&self, name: &str) -> Option<TerrainId> {
+        lookup(&self.terrain_ids, name)
+    }
+
+    /// The number of terrains.
+    #[must_use]
+    pub fn terrain_count(&self) -> usize {
+        self.terrains.len()
     }
 
     /// Returns a side condition. Panics if the ID is not from this dex.
@@ -1072,6 +1251,8 @@ fn built_in_struggle() -> MoveSource {
         flags: MoveFlags {
             contact: true,
             protect: true,
+            charge: false,
+            bypasssub: false,
         },
         ignore_immunity: None,
         boosts: None,
@@ -1084,6 +1265,13 @@ fn built_in_struggle() -> MoveSource {
         side_condition: None,
         stalling_move: false,
         self_switch: false,
+        force_switch: false,
+        terrain: None,
+        charge_boosts: None,
+        charge_skipped_in: Vec::new(),
+        semi_invulnerable: false,
+        clear_side_conditions: None,
+        clear_terrain: false,
     }
 }
 
@@ -1091,6 +1279,33 @@ fn built_in_struggle() -> MoveSource {
 fn validate_move_shape(source: &MoveSource) -> Result<HitRange, DexError> {
     let name = source.name.as_str();
     let damaging = source.category != MoveCategory::Status;
+    let self_volatile = source
+        .self_effect
+        .as_ref()
+        .and_then(|effect| effect.volatile_status);
+    if self_volatile.is_some_and(|volatile| volatile != VolatileStatus::LockedMove)
+        || (self_volatile.is_some() && !damaging)
+    {
+        return Err(DexError::invalid(
+            name,
+            "self.volatileStatus supports only lockedmove, on damaging moves",
+        ));
+    }
+    let charge_only = source.charge_boosts.is_some()
+        || !source.charge_skipped_in.is_empty()
+        || source.semi_invulnerable;
+    if charge_only && !source.flags.charge {
+        return Err(DexError::invalid(
+            name,
+            "chargeBoosts, chargeSkippedIn, and semiInvulnerable need flags.charge",
+        ));
+    }
+    if source.flags.charge && !damaging {
+        return Err(DexError::invalid(
+            name,
+            "flags.charge needs a damaging move",
+        ));
+    }
     let targets_side = matches!(source.target, MoveTarget::FoeSide | MoveTarget::AllySide);
     if targets_side != source.side_condition.is_some() || (targets_side && damaging) {
         return Err(DexError::invalid(
@@ -1159,7 +1374,10 @@ fn compile_secondary(secondary: &SecondarySource, owner: &str) -> Result<Seconda
             volatile_status: secondary.volatile_status,
         },
         self_boosts: validate_boosts(
-            secondary.self_effect.as_ref().map(|effect| effect.boosts),
+            secondary
+                .self_effect
+                .as_ref()
+                .and_then(|effect| effect.boosts),
             owner,
         )?,
     })

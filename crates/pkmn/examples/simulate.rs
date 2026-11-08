@@ -163,108 +163,121 @@ fn heal_source(dex: &Dex, from: HealSource) -> String {
         HealSource::Drain => " by draining".to_owned(),
         HealSource::Move => String::new(),
         HealSource::Effect(effect) => format!(" from {}", effect_name(dex, effect)),
+        HealSource::Terrain(terrain) => format!(" from {}", dex.terrain(terrain).name),
+    }
+}
+
+fn side_name(side: SideId) -> &'static str {
+    match side {
+        SideId::P1 => "P1",
+        SideId::P2 => "P2",
     }
 }
 
 fn describe(dex: &Dex, event: &Event) -> String {
-    let side = |side: &SideId| match side {
-        SideId::P1 => "P1",
-        SideId::P2 => "P2",
-    };
-    match event {
+    match *event {
         Event::Turn { turn } => format!("\n== Turn {turn} =="),
         Event::Switch {
-            side: who,
+            side,
             species,
             hp,
             max_hp,
             ..
         } => format!(
             "{} sent out {} ({hp}/{max_hp})",
-            side(who),
-            dex.species(*species).name
+            side_name(side),
+            dex.species(species).name
         ),
-        Event::Move { side: who, move_id } => {
-            format!("{} used {}!", side(who), dex.move_data(*move_id).name)
+        Event::Move { side, move_id } => {
+            format!("{} used {}!", side_name(side), dex.move_data(move_id).name)
         }
-        Event::Cant { side: who, reason } => format!("{} can't move: {reason:?}", side(who)),
-        Event::Miss { side: who } => format!("{}'s attack missed!", side(who)),
+        Event::Prepare { side, move_id } => {
+            format!(
+                "{} is charging {}!",
+                side_name(side),
+                dex.move_data(move_id).name
+            )
+        }
+        Event::Terastallize { side, tera_type } => format!(
+            "{} Terastallized into {}!",
+            side_name(side),
+            dex.type_data(tera_type).name
+        ),
+        Event::Cant { side, reason } => format!("{} can't move: {reason:?}", side_name(side)),
+        Event::Miss { side } => format!("{}'s attack missed!", side_name(side)),
         Event::Fail { .. } => "But it failed!".to_owned(),
-        Event::Immune { side: who } => format!("It doesn't affect {}...", side(who)),
+        Event::Immune { side } => format!("It doesn't affect {}...", side_name(side)),
         Event::Crit { .. } => "A critical hit!".to_owned(),
         Event::SuperEffective { .. } => "It's super effective!".to_owned(),
         Event::Resisted { .. } => "It's not very effective...".to_owned(),
         Event::Damage {
-            side: who,
+            side,
             amount,
             hp,
             from,
         } => format!(
             "{} lost {amount} HP{} ({hp} left)",
-            side(who),
-            damage_source(dex, *from)
+            side_name(side),
+            damage_source(dex, from)
         ),
         Event::Heal {
-            side: who,
+            side,
             amount,
             hp,
             from,
         } => format!(
             "{} restored {amount} HP{} ({hp} now)",
-            side(who),
-            heal_source(dex, *from)
+            side_name(side),
+            heal_source(dex, from)
         ),
         Event::HitCount { hits } => format!("Hit {hits} time(s)!"),
-        Event::Status { side: who, status } => format!("{} got {}!", side(who), status.id()),
-        Event::CureStatus { side: who, status } => {
-            format!("{} is cured of {}", side(who), status.id())
+        Event::Ability { side, ability } => {
+            format!("[{}'s {}]", side_name(side), dex.ability(ability).name)
         }
-        Event::Start {
-            side: who,
-            volatile,
-        } => format!("{} gained {volatile:?}!", side(who)),
-        Event::Activate {
-            side: who,
-            volatile,
-        } => format!("{} is affected by {volatile:?}...", side(who)),
-        Event::End {
-            side: who,
-            volatile,
-        } => format!("{}'s {volatile:?} ended.", side(who)),
-        Event::Boost {
-            side: who,
-            stat,
-            stages,
-        } => format!("{}'s {stat:?} changed by {stages:+}", side(who)),
+        Event::Item { side, item } => format!("[{}'s {}]", side_name(side), dex.item(item).name),
+        Event::EndItem { side, item } => {
+            format!("{} used up its {}", side_name(side), dex.item(item).name)
+        }
+        Event::Faint { side } => format!("{} fainted!", side_name(side)),
+        Event::Win { side } => format!("\n{} wins!", side_name(side)),
+        Event::Tie => "\nIt's a tie!".to_owned(),
+        _ => describe_condition_event(dex, event),
+    }
+}
+
+/// Statuses, volatile statuses, stat stages, weather, terrain, and side conditions.
+fn describe_condition_event(dex: &Dex, event: &Event) -> String {
+    match *event {
+        Event::Status { side, status } => format!("{} got {}!", side_name(side), status.id()),
+        Event::CureStatus { side, status } => {
+            format!("{} is cured of {}", side_name(side), status.id())
+        }
+        Event::Start { side, volatile } => format!("{} gained {volatile:?}!", side_name(side)),
+        Event::Activate { side, volatile } => {
+            format!("{} is affected by {volatile:?}...", side_name(side))
+        }
+        Event::End { side, volatile } => format!("{}'s {volatile:?} ended.", side_name(side)),
+        Event::Boost { side, stat, stages } => {
+            format!("{}'s {stat:?} changed by {stages:+}", side_name(side))
+        }
         Event::Weather {
             weather: Some(weather),
-        } => format!("{} began.", dex.weather(*weather).name),
+        } => format!("{} began.", dex.weather(weather).name),
         Event::Weather { weather: None } => "The weather cleared.".to_owned(),
-        Event::Ability { side: who, ability } => {
-            format!("[{}'s {}]", side(who), dex.ability(*ability).name)
-        }
-        Event::Item { side: who, item } => format!("[{}'s {}]", side(who), dex.item(*item).name),
-        Event::EndItem { side: who, item } => {
-            format!("{} used up its {}", side(who), dex.item(*item).name)
-        }
-        Event::SideStart {
-            side: who,
-            condition,
-        } => format!(
+        Event::Terrain {
+            terrain: Some(terrain),
+        } => format!("{} spread over the field.", dex.terrain(terrain).name),
+        Event::Terrain { terrain: None } => "The terrain faded.".to_owned(),
+        Event::SideStart { side, condition } => format!(
             "{} now covers {}'s side.",
-            dex.side_condition(*condition).name,
-            side(who)
+            dex.side_condition(condition).name,
+            side_name(side)
         ),
-        Event::SideEnd {
-            side: who,
-            condition,
-        } => format!(
+        Event::SideEnd { side, condition } => format!(
             "{} wore off on {}'s side.",
-            dex.side_condition(*condition).name,
-            side(who)
+            dex.side_condition(condition).name,
+            side_name(side)
         ),
-        Event::Faint { side: who } => format!("{} fainted!", side(who)),
-        Event::Win { side: who } => format!("\n{} wins!", side(who)),
-        Event::Tie => "\nIt's a tie!".to_owned(),
+        other => format!("{other:?}"),
     }
 }

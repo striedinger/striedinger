@@ -4,7 +4,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{Dex, DexError, Fraction, MoveCategory, Status, TypeId, WeatherId, validate_fraction};
+use super::{
+    Dex, DexError, Fraction, MoveCategory, Status, TerrainId, TypeId, WeatherId, validate_fraction,
+};
 use crate::stats::{Boosts, Stat};
 
 /// A handler as written in a content pack, referencing types and weather by name.
@@ -70,6 +72,8 @@ pub enum HandlerSource {
     StartWeather(String),
     /// `onStart`: changes the foe's stat stages when the holder enters, like Intimidate.
     StartFoeBoosts(Boosts),
+    /// `onStart`: sets a terrain when the holder enters, like Electric Surge.
+    StartTerrain(String),
     /// `onDamagingHit` with contact: may inflict a status on the attacker, like Static.
     ContactStatus {
         /// Percent chance; omitted always applies.
@@ -181,6 +185,8 @@ pub enum Handler {
     StartWeather(WeatherId),
     /// See [`HandlerSource::StartFoeBoosts`].
     StartFoeBoosts(Boosts),
+    /// See [`HandlerSource::StartTerrain`].
+    StartTerrain(TerrainId),
     /// See [`HandlerSource::ContactStatus`].
     ContactStatus {
         /// Percent chance; `None` always applies.
@@ -279,7 +285,9 @@ impl Handler {
             Self::ModifyStab(_) | Self::IgnoreBurnPenalty => HandlerMask::ATTACK_RULES,
             Self::Immunity(_) | Self::Absorb { .. } => HandlerMask::TRY_HIT,
             Self::StatusImmunity(_) => HandlerMask::STATUS_IMMUNITY,
-            Self::StartWeather(_) | Self::StartFoeBoosts(_) => HandlerMask::START,
+            Self::StartWeather(_) | Self::StartFoeBoosts(_) | Self::StartTerrain(_) => {
+                HandlerMask::START
+            }
             Self::ContactStatus { .. } | Self::ContactDamage(_) => HandlerMask::DAMAGING_HIT,
             Self::ResidualHeal(_) | Self::ResidualBoosts(_) => HandlerMask::RESIDUAL,
             Self::ChoiceLock => HandlerMask::CHOICE_LOCK,
@@ -421,6 +429,12 @@ impl Dex {
                 Handler::StartWeather(self.resolve_weather(weather_name, owner)?)
             }
             HandlerSource::StartFoeBoosts(value) => Handler::StartFoeBoosts(boosts(value)?),
+            HandlerSource::StartTerrain(terrain) => Handler::StartTerrain(super::resolve(
+                &self.terrain_ids,
+                "terrain",
+                terrain,
+                owner,
+            )?),
             HandlerSource::ContactStatus { chance, status } => {
                 validate_chance(*chance, owner)?;
                 Handler::ContactStatus {

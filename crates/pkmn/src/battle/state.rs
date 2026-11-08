@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::dex::{
     AbilityId, Dex, HandlerMask, ItemId, MoveCategory, MoveId, SideConditionId, SpeciesId, Status,
-    TypeId, WeatherId,
+    TerrainId, TypeId, WeatherId,
 };
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
@@ -66,6 +66,22 @@ pub struct Volatiles {
     pub stall: Option<Stall>,
     /// The substitute's remaining HP.
     pub substitute: Option<u16>,
+    /// A rampage like Outrage's (Showdown's `lockedmove`).
+    pub locked_move: Option<LockedMove>,
+    /// The move slot of a `charge` move that charged last turn (Showdown's `twoturnmove`).
+    pub charging: Option<u8>,
+}
+
+/// Showdown's `lockedmove` volatile, with its two counters.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LockedMove {
+    /// The locked move slot.
+    pub slot: u8,
+    /// Turns of rampage left, rolled as 2 or 3 at the start; confusion follows if it runs out.
+    pub true_duration: u8,
+    /// End-of-turn checks before the lock lapses.
+    pub duration: u8,
 }
 
 /// Showdown's `stall` volatile: a Protect-like move made in the last two turns succeeds only
@@ -148,6 +164,10 @@ pub struct Pokemon {
     pub volatiles: Volatiles,
     /// Turns started while active; zero during the turn it switched in.
     pub active_turns: u16,
+    /// The type it becomes when it Terastallizes.
+    pub tera_type: TypeId,
+    /// Whether it has Terastallized, making the Tera type its only type.
+    pub terastallized: bool,
 }
 
 impl Pokemon {
@@ -163,15 +183,37 @@ impl Pokemon {
         self.hp == 0
     }
 
-    /// The creature's types.
+    /// The creature's current types: only its Tera type once it has Terastallized.
     pub fn types(&self) -> impl Iterator<Item = TypeId> + use<> {
-        std::iter::once(self.primary_type).chain(self.secondary_type)
+        let (primary, secondary) = if self.terastallized {
+            (self.tera_type, None)
+        } else {
+            (self.primary_type, self.secondary_type)
+        };
+        std::iter::once(primary).chain(secondary)
     }
 
-    /// Whether the creature has `type_id`.
+    /// Whether the creature currently has `type_id`.
     #[must_use]
     pub fn has_type(&self, type_id: TypeId) -> bool {
+        self.types().any(|current| current == type_id)
+    }
+
+    /// Whether its species has `type_id`, ignoring Terastallization (Showdown's
+    /// `getTypes(false, true)`), which still grants STAB.
+    #[must_use]
+    pub fn has_original_type(&self, type_id: TypeId) -> bool {
         self.primary_type == type_id || self.secondary_type == Some(type_id)
+    }
+
+    /// The move slot it must use: a rampage or a charged move.
+    #[must_use]
+    pub fn locked_slot(&self) -> Option<usize> {
+        self.volatiles
+            .locked_move
+            .map(|locked| locked.slot)
+            .or(self.volatiles.charging)
+            .map(usize::from)
     }
 
     /// Known moves with their slot index.
@@ -216,12 +258,19 @@ impl Pokemon {
     /// `disableStatusMoves` rules it out.
     #[must_use]
     pub fn can_select_move(&self, dex: &Dex, slot: usize) -> bool {
-        self.slot_selectable(dex, slot, self.disables_status_moves(dex))
+        match self.locked_slot() {
+            Some(locked) => locked == slot,
+            None => self.slot_selectable(dex, slot, self.disables_status_moves(dex)),
+        }
     }
 
-    /// The move slots that can be selected, as a bitset.
+    /// The move slots that can be selected, as a bitset. A rampage or charged move allows only
+    /// its own slot, whatever its PP.
     #[must_use]
     pub fn selectable_moves(&self, dex: &Dex) -> u8 {
+        if let Some(slot) = self.locked_slot() {
+            return 1 << slot;
+        }
         let disables_status = self.disables_status_moves(dex);
         (0..MAX_MOVES)
             .filter(|&slot| self.slot_selectable(dex, slot, disables_status))
@@ -261,6 +310,17 @@ pub struct Side {
     /// (Showdown's `switchFlag`).
     #[serde(default)]
     pub switch_flag: bool,
+    /// Whether a team member may still Terastallize this battle.
+    #[serde(default = "can_terastallize")]
+    pub can_terastallize: bool,
+    /// Team slots in Showdown's `side.pokemon` order, which puts the active creature first
+    /// and swaps positions on every switch. Forced switches pick from it at random.
+    #[serde(default)]
+    pub switch_order: Vec<usize>,
+}
+
+fn can_terastallize() -> bool {
+    true
 }
 
 impl Side {
@@ -284,9 +344,20 @@ impl Side {
                 .is_some_and(|pokemon| !pokemon.is_fainted())
     }
 
-    /// Team slots that can be switched in.
+    /// Team slots that can be switched in. A creature locked into a rampage or a charged move
+    /// cannot switch out.
     pub fn switches(&self) -> impl Iterator<Item = usize> {
-        (0..self.team.len()).filter(|&slot| self.can_switch_to(slot))
+        let trapped = !self.active().is_fainted() && self.active().locked_slot().is_some();
+        (0..self.team.len()).filter(move |&slot| !trapped && self.can_switch_to(slot))
+    }
+
+    /// Team slots a forced switch can drag in, in Showdown's `possibleSwitches` order.
+    pub fn drag_candidates(&self) -> impl Iterator<Item = usize> {
+        self.switch_order
+            .iter()
+            .skip(1)
+            .copied()
+            .filter(|&slot| self.can_switch_to(slot))
     }
 
     /// Whether every team member has fainted.
@@ -324,6 +395,19 @@ pub struct WeatherState {
 pub struct Field {
     /// The current weather, if any.
     pub weather: Option<WeatherState>,
+    /// The current terrain, if any.
+    #[serde(default)]
+    pub terrain: Option<TerrainState>,
+}
+
+/// The active terrain and its remaining duration, like Showdown's `terrainState`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerrainState {
+    /// The terrain.
+    pub id: TerrainId,
+    /// End-of-turn checks left before it ends.
+    pub duration: u8,
 }
 
 /// How a battle ended.

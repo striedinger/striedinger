@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 
 use super::Engine;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{SideConditionState, SideId, Stall};
+use crate::battle::state::{LockedMove, SideConditionState, SideId, Stall};
 use crate::dex::{
     Handler, HandlerMask, MoveData, MoveEffect, MoveTarget, Recoil, Status, VolatileStatus,
 };
@@ -21,6 +21,17 @@ const STALL_COUNTER_MAX: u16 = 729;
 /// End-of-turn checks a `stall` counter survives.
 const STALL_DURATION: u8 = 2;
 
+/// End-of-turn checks a `lockedmove` lasts between uses.
+const LOCKED_MOVE_DURATION: u8 = 2;
+
+/// What a damaging move's hits did.
+struct HitOutcome {
+    /// Whether any hit landed, on the target or its substitute.
+    worked: bool,
+    /// Whether any hit reached the target itself.
+    reached_target: bool,
+}
+
 /// Where a hit's damage went.
 enum Hit {
     /// The target took this much.
@@ -31,19 +42,30 @@ enum Hit {
 
 impl Engine<'_> {
     /// Showdown's `runMove`: pre-move checks, PP, then the move itself.
-    pub(super) fn run_move(&mut self, side: SideId, slot: Option<usize>, foe_will_act: bool) {
+    /// Showdown's `runMove`: pre-move checks, PP, charging, the move itself, then what
+    /// follows it. Returns the side to drag out when a `forceSwitch` move worked.
+    pub(super) fn run_move(
+        &mut self,
+        side: SideId,
+        slot: Option<usize>,
+        foe_will_act: bool,
+    ) -> Option<SideId> {
         if !self.before_move(side) {
-            return;
+            // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
+            self.active_mut(side).volatiles.charging = None;
+            return None;
         }
         let dex = self.dex;
+        let continuing = self.active(side).locked_slot().is_some();
         let locks = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
         let user = self.active_mut(side);
         let move_id = match slot {
             Some(slot) => {
-                let Some(move_slot) = user.move_slots[slot].as_mut() else {
-                    return;
-                };
-                move_slot.pp = move_slot.pp.saturating_sub(1);
+                let move_slot = user.move_slots[slot].as_mut()?;
+                // A rampage or a charged move continues without spending PP.
+                if !continuing {
+                    move_slot.pp = move_slot.pp.saturating_sub(1);
+                }
                 let id = move_slot.id;
                 if locks && user.volatiles.choice_lock.is_none() {
                     user.volatiles.choice_lock = u8::try_from(slot).ok();
@@ -54,13 +76,21 @@ impl Engine<'_> {
         };
         self.emit(Event::Move { side, move_id });
         let move_data = dex.move_data(move_id);
-        let worked = match move_data.target {
-            MoveTarget::FoeSide => self.side_condition_move(side.foe(), move_data),
-            MoveTarget::AllySide => self.side_condition_move(side, move_data),
+        if self.charge_turn(side, slot, move_data) {
+            return None;
+        }
+        self.using_slot = slot;
+        let (worked, reached_target, target) = match move_data.target {
+            MoveTarget::FoeSide => (
+                self.side_condition_move(side.foe(), move_data),
+                false,
+                side.foe(),
+            ),
+            MoveTarget::AllySide => (self.side_condition_move(side, move_data), false, side),
             MoveTarget::User | MoveTarget::Normal => {
                 if move_data.stalling_move && !self.try_stall(side, foe_will_act) {
                     self.emit(Event::Fail { side });
-                    return;
+                    return None;
                 }
                 let target = if move_data.target == MoveTarget::User {
                     side
@@ -69,18 +99,24 @@ impl Engine<'_> {
                 };
                 if move_data.target == MoveTarget::Normal && !self.try_hit(side, target, move_data)
                 {
-                    return;
-                }
-                if move_data.is_damaging() {
-                    self.hit_loop(side, target, move_data)
+                    (false, false, target)
+                } else if move_data.is_damaging() {
+                    let outcome = self.hit_loop(side, target, move_data);
+                    if outcome.worked && !self.active(side).is_fainted() {
+                        self.clear_conditions(side, target, move_data);
+                    }
+                    (outcome.worked, outcome.reached_target, target)
                 } else {
-                    self.status_move_hit(side, target, move_data)
+                    let worked = self.status_move_hit(side, target, move_data);
+                    (worked, worked, target)
                 }
             }
         };
+        self.using_slot = None;
         if worked && move_data.stalling_move {
             self.restart_stall(side);
         }
+        self.after_move_lock(side);
         if worked
             && move_data.self_switch
             && self.state.outcome.is_none()
@@ -89,6 +125,112 @@ impl Engine<'_> {
         {
             self.state.sides[side.index()].switch_flag = true;
         }
+        let drags = worked
+            && reached_target
+            && move_data.force_switch
+            && target != side
+            && !self.active(target).is_fainted()
+            && self.state.side(target).drag_candidates().next().is_some();
+        drags.then_some(target)
+    }
+
+    /// Showdown's `onTryMove` for `charge` moves: the first use only charges, unless the weather
+    /// skips the charge. Returns whether the move spent this turn charging.
+    fn charge_turn(&mut self, side: SideId, slot: Option<usize>, move_data: &MoveData) -> bool {
+        let (Some(charge), Some(slot)) = (&move_data.charge, slot) else {
+            return false;
+        };
+        if self.active_mut(side).volatiles.charging.take().is_some()
+            || self
+                .weather_id()
+                .is_some_and(|weather| charge.skipped_in.contains(&weather))
+        {
+            return false;
+        }
+        self.active_mut(side).volatiles.charging = u8::try_from(slot).ok();
+        let move_id = self.active(side).move_slots[slot].map(|move_slot| move_slot.id);
+        if let Some(move_id) = move_id {
+            self.emit(Event::Prepare { side, move_id });
+        }
+        if let Some(boosts) = charge.boosts {
+            self.boost(side, boosts);
+        }
+        true
+    }
+
+    /// Starts or refreshes a rampage, as Showdown's `lockedmove` `onStart` and `onRestart` do.
+    fn lock_into_move(&mut self, side: SideId) {
+        let Some(slot) = self.using_slot.and_then(|slot| u8::try_from(slot).ok()) else {
+            return;
+        };
+        match self.active(side).volatiles.locked_move {
+            None => {
+                let true_duration = u8::try_from(self.state.prng.range(2, 4)).unwrap_or(2);
+                self.active_mut(side).volatiles.locked_move = Some(LockedMove {
+                    slot,
+                    true_duration,
+                    duration: LOCKED_MOVE_DURATION,
+                });
+            }
+            Some(mut locked) => {
+                if locked.true_duration >= 2 {
+                    locked.duration = LOCKED_MOVE_DURATION;
+                }
+                self.active_mut(side).volatiles.locked_move = Some(locked);
+            }
+        }
+    }
+
+    /// Showdown's `lockedmove` `onAfterMove`: the rampage ends after its last turn's move.
+    fn after_move_lock(&mut self, side: SideId) {
+        if self
+            .active(side)
+            .volatiles
+            .locked_move
+            .is_some_and(|locked| locked.duration == 1)
+        {
+            self.end_lock(side);
+        }
+    }
+
+    /// Showdown's `lockedmove` `onEnd`: a rampage that ran its course leaves the user confused.
+    pub(super) fn end_lock(&mut self, side: SideId) {
+        let Some(locked) = self.active_mut(side).volatiles.locked_move.take() else {
+            return;
+        };
+        if locked.true_duration <= 1 {
+            self.apply_effect(
+                side,
+                MoveEffect {
+                    volatile_status: Some(VolatileStatus::Confusion),
+                    ..MoveEffect::default()
+                },
+            );
+        }
+    }
+
+    /// Removes the side conditions and terrain a move clears, like Rapid Spin and Defog.
+    /// Returns whether anything was removed.
+    fn clear_conditions(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+        let clears = &move_data.clears;
+        let mut removed = false;
+        for (holder, conditions) in [(side, &clears.user), (target, &clears.target)] {
+            for &condition in conditions {
+                let list = &mut self.state.sides[holder.index()].conditions;
+                if let Some(index) = list.iter().position(|state| state.id == condition) {
+                    list.remove(index);
+                    self.emit(Event::SideEnd {
+                        side: holder,
+                        condition,
+                    });
+                    removed = true;
+                }
+            }
+        }
+        if clears.terrain {
+            removed |= self.clear_terrain();
+        }
+        removed
     }
 
     /// Showdown's `onPrepareHit` for stalling moves: they fail if the foe has already acted
@@ -224,6 +366,18 @@ impl Engine<'_> {
             self.emit(Event::Fail { side });
             return false;
         }
+        if self.is_semi_invulnerable(target) {
+            self.emit(Event::Miss { side });
+            return false;
+        }
+        if move_data.priority > 0
+            && self
+                .terrain_affecting(target, |terrain| terrain.blocks_priority)
+                .is_some()
+        {
+            self.emit(Event::Fail { side });
+            return false;
+        }
         if move_data.flags.protect && self.active(target).volatiles.protect {
             self.emit(Event::Activate {
                 side: target,
@@ -301,7 +455,7 @@ impl Engine<'_> {
 
     /// Showdown's `hitStepMoveHitLoop`: every hit, then recoil and `onAfterMoveSecondarySelf`.
     /// Returns whether any hit landed, on the target or its substitute.
-    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> HitOutcome {
         let hits = self.roll_hits(move_data);
         let mut landed = 0;
         let mut total_damage = 0;
@@ -330,8 +484,12 @@ impl Engine<'_> {
         if move_data.multihit.max > 1 {
             self.emit(Event::HitCount { hits: landed });
         }
-        if total_damage == 0 && !hit_substitute {
-            return false;
+        let reached_target = total_damage > 0;
+        if !reached_target && !hit_substitute {
+            return HitOutcome {
+                worked: false,
+                reached_target,
+            };
         }
         if total_damage > 0 {
             self.recoil(side, move_data, total_damage);
@@ -339,7 +497,10 @@ impl Engine<'_> {
         // Showdown runs an `Update` after recoil, before `onAfterMoveSecondarySelf`.
         self.update();
         self.after_move_recoil(side);
-        true
+        HitOutcome {
+            worked: true,
+            reached_target,
+        }
     }
 
     /// Recoil from damage dealt to a substitute, applied per hit as Showdown's substitute
@@ -401,6 +562,9 @@ impl Engine<'_> {
         if let Some(boosts) = move_data.self_boosts {
             self.state.prng.below(100);
             self.boost(side, boosts);
+        }
+        if move_data.self_volatile == Some(VolatileStatus::LockedMove) {
+            self.lock_into_move(side);
         }
         self.secondaries(side, target, move_data, reached_target);
     }
@@ -494,7 +658,9 @@ impl Engine<'_> {
         if critical {
             self.emit(Event::Crit { side: target });
         }
-        if let Some(substitute) = self.active(target).volatiles.substitute {
+        if let Some(substitute) = self.active(target).volatiles.substitute
+            && !move_data.flags.bypasssub
+        {
             let absorbed = damage.min(u32::from(substitute));
             let remaining = substitute.saturating_sub(u16::try_from(absorbed).unwrap_or(u16::MAX));
             self.active_mut(target).volatiles.substitute = (remaining > 0).then_some(remaining);
@@ -530,7 +696,10 @@ impl Engine<'_> {
     /// A status move's effects: primary on the target, weather, healing, `self`, then
     /// secondaries. Fails if nothing changed, or if a substitute stands in the way.
     fn status_move_hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
-        if target != side && self.active(target).volatiles.substitute.is_some() {
+        if target != side
+            && self.active(target).volatiles.substitute.is_some()
+            && !move_data.flags.bypasssub
+        {
             self.emit(Event::Fail { side });
             return false;
         }
@@ -541,6 +710,13 @@ impl Engine<'_> {
         }
         if let Some(weather) = move_data.weather {
             applied |= self.set_weather(weather);
+        }
+        if let Some(terrain) = move_data.terrain {
+            applied |= self.set_terrain(terrain);
+        }
+        applied |= self.clear_conditions(side, target, move_data);
+        if move_data.force_switch {
+            applied |= self.state.side(target).drag_candidates().next().is_some();
         }
         if let Some(boosts) = move_data.self_boosts {
             self.state.prng.below(100);
@@ -567,7 +743,14 @@ impl Engine<'_> {
         }
         match effect.volatile_status {
             Some(VolatileStatus::Confusion)
-                if self.active(recipient).volatiles.confusion.is_none() =>
+                if self.active(recipient).volatiles.confusion.is_none()
+                    && self
+                        .terrain_affecting(recipient, |terrain| {
+                            terrain
+                                .prevents_volatiles
+                                .contains(&VolatileStatus::Confusion)
+                        })
+                        .is_none() =>
             {
                 let time = u8::try_from(self.state.prng.range(2, 6)).unwrap_or(2);
                 self.active_mut(recipient).volatiles.confusion = Some(time);
@@ -590,7 +773,7 @@ impl Engine<'_> {
                 applied = true;
             }
             Some(VolatileStatus::Substitute) => applied |= self.make_substitute(recipient),
-            Some(VolatileStatus::Confusion) | None => {}
+            Some(VolatileStatus::Confusion | VolatileStatus::LockedMove) | None => {}
         }
         applied
     }
@@ -633,7 +816,10 @@ impl Engine<'_> {
                 .any(|(_, handler)| *handler == Handler::StatusImmunity(status));
         let prevented = self
             .weather()
-            .is_some_and(|weather| weather.prevents_statuses.contains(&status));
+            .is_some_and(|weather| weather.prevents_statuses.contains(&status))
+            || self
+                .terrain_affecting(side, |terrain| terrain.prevents_statuses.contains(&status))
+                .is_some();
         !(type_immune || handler_immune || prevented)
     }
 

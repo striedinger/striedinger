@@ -12,6 +12,12 @@ use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, apply_modifier, apply_stage,
 const MAX_SPEED: u32 = 10_000;
 /// Action order compares speed in 13 bits, as Showdown's `getActionSpeed` does.
 const ACTION_SPEED_BITS: u32 = 13;
+/// A Terastallized user's weak Tera-type moves are raised to this base power.
+const TERA_MINIMUM_POWER: u32 = 60;
+/// STAB when the Tera type matches one of the user's original types: ×2.
+const TERA_STAB_MODIFIER: u32 = MODIFIER_SCALE * 2;
+/// Adaptability on top of a matching Tera type: ×2.25.
+const ADAPTED_TERA_STAB_MODIFIER: u32 = MODIFIER_SCALE * 9 / 4;
 /// Base power of a confusion self-hit.
 const CONFUSION_POWER: u16 = 40;
 
@@ -185,8 +191,22 @@ impl Engine<'_> {
                     _ => None,
                 },
             );
-        let base_power =
+        let base_power_modifier = chain_modifiers([
+            base_power_modifier,
+            self.terrain_base_power_modifier(side, target, move_data),
+        ]);
+        let mut base_power =
             apply_modifier(u32::from(move_data.base_power), base_power_modifier).max(1);
+        // Showdown raises weak moves of a Terastallized user's Tera type to 60 power, after
+        // every other base power modifier.
+        if attacker.terastallized
+            && move_data.move_type == Some(attacker.tera_type)
+            && base_power < TERA_MINIMUM_POWER
+            && move_data.priority <= 0
+            && move_data.multihit.max == 1
+        {
+            base_power = TERA_MINIMUM_POWER;
+        }
         let ignores_burn = self.mask(side).intersects(HandlerMask::ATTACK_RULES)
             && self
                 .handlers(side)
@@ -217,21 +237,59 @@ impl Engine<'_> {
     /// The same-type attack bonus, or a `modifySTAB` handler's replacement for it.
     fn stab_modifier(&self, side: SideId, move_data: &MoveData) -> u32 {
         let attacker = self.active(side);
-        if !move_data
-            .move_type
-            .is_some_and(|move_type| attacker.has_type(move_type))
-        {
+        let Some(move_type) = move_data.move_type else {
             return MODIFIER_SCALE;
-        }
+        };
+        let original = attacker.has_original_type(move_type);
+        let tera = attacker.terastallized && attacker.tera_type == move_type;
+        let stab = match (original, tera) {
+            (false, false) => return MODIFIER_SCALE,
+            (true, true) => TERA_STAB_MODIFIER,
+            _ => STAB_MODIFIER,
+        };
         if !self.mask(side).intersects(HandlerMask::ATTACK_RULES) {
-            return STAB_MODIFIER;
+            return stab;
         }
-        self.handlers(side)
-            .find_map(|(_, handler)| match handler {
-                Handler::ModifyStab(modifier) => Some(*modifier),
-                _ => None,
+        let replacement = self.handlers(side).find_map(|(_, handler)| match handler {
+            Handler::ModifyStab(modifier) => Some(*modifier),
+            _ => None,
+        });
+        match replacement {
+            // Adaptability's ×2 becomes ×2.25 on top of a matching Tera type.
+            Some(_) if stab == TERA_STAB_MODIFIER => ADAPTED_TERA_STAB_MODIFIER,
+            Some(modifier) => modifier,
+            None => stab,
+        }
+    }
+
+    /// Terrain's base power modifiers: one for the attacker's move type if the attacker is
+    /// grounded, and one against a grounded target.
+    fn terrain_base_power_modifier(
+        &self,
+        side: SideId,
+        target: SideId,
+        move_data: &MoveData,
+    ) -> u32 {
+        let Some(move_type) = move_data.move_type else {
+            return MODIFIER_SCALE;
+        };
+        let find = |modifiers: &[(crate::dex::TypeId, u32)]| {
+            modifiers
+                .iter()
+                .find(|(type_id, _)| *type_id == move_type)
+                .map(|&(_, modifier)| modifier)
+        };
+        let attacker = self
+            .terrain_affecting(side, |terrain| {
+                find(&terrain.base_power_modifiers).is_some()
             })
-            .unwrap_or(STAB_MODIFIER)
+            .and_then(|terrain| find(&terrain.base_power_modifiers));
+        let defender = self
+            .terrain_affecting(target, |terrain| {
+                find(&terrain.target_base_power_modifiers).is_some()
+            })
+            .and_then(|terrain| find(&terrain.target_base_power_modifiers));
+        chain_modifiers(attacker.into_iter().chain(defender))
     }
 
     /// Showdown's `ModifyDamage` chain: the attacker's `modifyDamage` handlers, the

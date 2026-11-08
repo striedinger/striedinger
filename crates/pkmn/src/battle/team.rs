@@ -40,6 +40,9 @@ pub struct PokemonSet {
     /// The level; defaults to 100.
     #[serde(default = "default_level")]
     pub level: u8,
+    /// The type it Terastallizes into; defaults to its primary type.
+    #[serde(default)]
+    pub tera_type: Option<String>,
 }
 
 impl PokemonSet {
@@ -56,6 +59,7 @@ impl PokemonSet {
             evs: StatTable::default(),
             ivs: max_ivs(),
             level: default_level(),
+            tera_type: None,
         }
     }
 
@@ -130,6 +134,12 @@ impl PokemonSet {
         )?
         .and_then(|id| dex.nature(id).nature);
         let species = dex.species(species_id);
+        let tera_type = match self.tera_type.as_deref() {
+            Some(name) => dex
+                .type_id(name)
+                .ok_or_else(|| TeamErrorReason::UnknownType(name.to_owned()))?,
+            None => species.primary_type,
+        };
         let stats = calculate_stats(
             &species.base_stats,
             &self.ivs,
@@ -152,6 +162,8 @@ impl PokemonSet {
             boosts: Boosts::default(),
             volatiles: Volatiles::default(),
             active_turns: 0,
+            tera_type,
+            terastallized: false,
         })
     }
 }
@@ -224,6 +236,8 @@ pub enum TeamErrorReason {
     UnknownItem(String),
     /// The nature does not exist.
     UnknownNature(String),
+    /// The Tera type does not exist.
+    UnknownType(String),
     /// The set has no moves or more than four.
     MoveCount(usize),
     /// The set lists a move twice.
@@ -259,6 +273,7 @@ impl fmt::Display for TeamError {
             }
             TeamErrorReason::UnknownItem(name) => write!(formatter, ": unknown item {name:?}"),
             TeamErrorReason::UnknownNature(name) => write!(formatter, ": unknown nature {name:?}"),
+            TeamErrorReason::UnknownType(name) => write!(formatter, ": unknown Tera type {name:?}"),
             TeamErrorReason::MoveCount(count) => {
                 write!(formatter, " has {count} moves; it needs 1 to {MAX_MOVES}")
             }
@@ -295,10 +310,13 @@ pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result
                 .map_err(|reason| team_error(Some(slot), reason))
         })
         .collect::<Result<_, _>>()?;
+    let switch_order = (0..sets.len()).collect();
     Ok(Side {
         team,
         active: 0,
         conditions: Vec::new(),
         switch_flag: false,
+        can_terastallize: true,
+        switch_order,
     })
 }

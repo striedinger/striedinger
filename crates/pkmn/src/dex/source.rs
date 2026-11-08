@@ -34,6 +34,57 @@ pub struct DexSource {
     /// Side conditions: entry hazards and screens.
     #[serde(default)]
     pub side_conditions: Vec<SideConditionSource>,
+    /// Terrains.
+    #[serde(default)]
+    pub terrains: Vec<TerrainSource>,
+}
+
+/// Side conditions a move removes.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ClearSideConditionsSource {
+    /// Removed from the user's side.
+    #[serde(default)]
+    pub user: Vec<String>,
+    /// Removed from the target's side.
+    #[serde(default)]
+    pub target: Vec<String>,
+}
+
+/// A terrain. Like Showdown's, its effects apply only to grounded creatures.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TerrainSource {
+    /// Display name, also used to reference the terrain.
+    pub name: String,
+    /// Turns it lasts.
+    #[serde(default = "default_terrain_duration")]
+    pub duration: u8,
+    /// Creatures immune to this type (by the type chart or an `immunity` handler) are not
+    /// grounded and ignore the terrain.
+    pub grounded_type: String,
+    /// Base power multipliers for a grounded attacker's moves of each type.
+    #[serde(default)]
+    pub base_power_modifiers: BTreeMap<String, Fraction>,
+    /// Base power multipliers for moves of each type against a grounded target.
+    #[serde(default)]
+    pub target_base_power_modifiers: BTreeMap<String, Fraction>,
+    /// Fraction of max HP restored to grounded creatures at the end of each turn.
+    #[serde(default)]
+    pub residual_heal: Option<Fraction>,
+    /// Statuses grounded creatures cannot receive.
+    #[serde(default)]
+    pub prevents_statuses: Vec<Status>,
+    /// Volatile statuses grounded creatures cannot receive.
+    #[serde(default)]
+    pub prevents_volatiles: Vec<VolatileStatus>,
+    /// Moves with positive priority fail against grounded targets.
+    #[serde(default)]
+    pub blocks_priority: bool,
+}
+
+fn default_terrain_duration() -> u8 {
+    5
 }
 
 /// A condition on one side of the field, like Showdown's `sideConditions`.
@@ -242,6 +293,27 @@ pub struct MoveSource {
     /// After the move works, the user switches out, like U-turn.
     #[serde(default)]
     pub self_switch: bool,
+    /// After the move works, the target is dragged out for a random replacement, like Roar.
+    #[serde(default)]
+    pub force_switch: bool,
+    /// A terrain, by name, that the move sets.
+    #[serde(default)]
+    pub terrain: Option<String>,
+    /// Stat stages the user gains on a `charge` move's first turn, like Skull Bash.
+    #[serde(default)]
+    pub charge_boosts: Option<Boosts>,
+    /// Weathers in which a `charge` move hits at once, like Solar Beam in sun.
+    #[serde(default)]
+    pub charge_skipped_in: Vec<String>,
+    /// While charging, every move aimed at the user misses, like Fly.
+    #[serde(default)]
+    pub semi_invulnerable: bool,
+    /// Side conditions, by name, removed after the move works, like Rapid Spin and Defog.
+    #[serde(default)]
+    pub clear_side_conditions: Option<ClearSideConditionsSource>,
+    /// Ends the terrain after the move works, like Defog.
+    #[serde(default)]
+    pub clear_terrain: bool,
 }
 
 fn default_crit_ratio() -> u8 {
@@ -268,6 +340,12 @@ pub struct MoveFlags {
     /// Protect blocks the move.
     #[serde(default, deserialize_with = "deserialize_flag")]
     pub protect: bool,
+    /// The move charges for a turn before it hits, like Solar Beam.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub charge: bool,
+    /// The move ignores a substitute, like sound moves.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub bypasssub: bool,
 }
 
 /// Effects on the move's user.
@@ -275,7 +353,12 @@ pub struct MoveFlags {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SelfEffectSource {
     /// Stat stages applied to the user.
-    pub boosts: Boosts,
+    #[serde(default)]
+    pub boosts: Option<Boosts>,
+    /// A volatile status on the user: `lockedmove` locks it into the move for 2–3 turns, like
+    /// Outrage.
+    #[serde(default)]
+    pub volatile_status: Option<VolatileStatus>,
 }
 
 /// A chance-based effect.
