@@ -55,7 +55,7 @@ jobs:
           key: cargo-core-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
           restore-keys: cargo-core-v2-${{ runner.os }}-
       - run: cargo fmt --all --check
-      - run: cargo clippy -p murmur-core --all-targets --locked -- -D warnings
+      - run: cargo clippy -p murmur-core -p murmur-bindgen --all-targets --locked -- -D warnings
       - run: cargo test -p murmur-core --locked
 
   mac:
@@ -90,3 +90,54 @@ jobs:
           # Every bundled dylib must resolve through @rpath, not a path on the build machine.
           ! otool -L "$app"/Contents/Frameworks/*.dylib "$app/Contents/MacOS/Murmur" \
             | grep -E '^\s+/(Users|opt|private|var)/'
+
+  linux-cross:
+    name: macOS app cross-built on Linux (xtool)
+    runs-on: ubuntu-latest
+    # xtool's Darwin SDK must match the Swift toolchain it was built with.
+    container: swift:6.4-noble
+    env:
+      # A fine-grained token with read access to the private SDK repo. Without it
+      # (forks, or before the SDK is uploaded) the job skips its steps.
+      DARWIN_SDK_TOKEN: ${{ secrets.DARWIN_SDK_TOKEN }}
+      DARWIN_SDK_REPO: striedinger/darwin-sdk
+      RCODESIGN_VERSION: "0.29.0"
+    steps:
+      - if: env.DARWIN_SDK_TOKEN == ''
+        run: echo "::notice::DARWIN_SDK_TOKEN isn't set, so the Linux cross-build is skipped."
+      - if: env.DARWIN_SDK_TOKEN != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install tools
+        if: env.DARWIN_SDK_TOKEN != ''
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends curl ca-certificates git gh zstd cmake llvm libclang-dev
+          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --target aarch64-apple-darwin
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          curl -fsSL "https://github.com/xtool-org/xtool/releases/latest/download/xtool-x86_64.AppImage" -o /usr/local/bin/xtool
+          chmod +x /usr/local/bin/xtool
+          curl -fsSL "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F${RCODESIGN_VERSION}/apple-codesign-${RCODESIGN_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar xz --strip-components=1 -C /usr/local/bin --wildcards '*/rcodesign'
+      - name: Install the Darwin SDK
+        if: env.DARWIN_SDK_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.DARWIN_SDK_TOKEN }}
+          # AppImages need FUSE, which containers lack; extract and run instead.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          gh release download --repo "$DARWIN_SDK_REPO" --pattern 'darwin-x86_64.xtoolsdk.tar.zst' --dir /tmp
+          tar --zstd -xf /tmp/darwin-x86_64.xtoolsdk.tar.zst -C /tmp
+          xtool sdk install /tmp/darwin.xtoolsdk
+          swift sdk list
+      - name: Build Murmur.app
+        if: env.DARWIN_SDK_TOKEN != ''
+        run: apps/murmur/scripts/build-mac.sh
+      - name: Check the bundle
+        if: env.DARWIN_SDK_TOKEN != ''
+        run: |
+          app=apps/murmur/build/Murmur.app
+          test -f "$app/Contents/MacOS/Murmur"
+          rcodesign verify "$app/Contents/MacOS/Murmur"
+          llvm-otool -L "$app/Contents/MacOS/Murmur"

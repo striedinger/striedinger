@@ -33,6 +33,8 @@ mac/sources/                 Swift / AppKit / SwiftUI shell (~600 lines)
   overlay.swift              non-activating floating pill with level meter
   app-delegate.swift         menu bar (built lazily on open), permissions, engine lifecycle
 mac/resources/*.lproj        translations: en, es, de, it, fr, pt, zh-Hans, ja
+mac/Package.swift            SwiftPM package: Swift wrapper and C module over the Rust dylib, plus the app
+crates/murmur-bindgen/       UniFFI generator; reads the built dylib, so it never builds the core for the host
 ```
 
 ## Performance notes
@@ -61,7 +63,7 @@ curl https://sh.rustup.rs -sSf | sh    # Rust
 brew install cmake                     # needed to build llama.cpp
 
 ./scripts/download-models.sh           # ~3.5 GB total
-./scripts/build-mac.sh
+./scripts/build-mac.sh                 # or ARCH=x86_64 for Intel Macs
 open build/Murmur.app
 ```
 
@@ -91,18 +93,36 @@ To use a different trigger key, change `HotkeyMonitor.triggerKeyCode` and
 
 ## Status
 
-This is a first scaffold. It was written without compiling, so expect a handful of fixes on
-the first build. The likeliest spots:
+CI (`.github/workflows/murmur.yml`) builds everything on each change: the Rust core is
+formatted, linted and tested on Linux, and the full `Murmur.app` is built and checked on a
+macOS runner. Nobody has run the app against real models yet, so expect tuning on first use.
 
-- **`llm.rs`**: the llama-cpp-2 API moves between 0.1.x releases (`chat_template`,
-  `apply_chat_template`, `token_to_bytes`, `clear_kv_cache_seq`). Pin the version that
-  `cargo` picks and adjust names if needed. If `LlamaModel` isn't `Sync` in your version,
-  wrap it the same way `Session` is wrapped.
-- **`stt.rs`**: the sherpa-rs `TransducerConfig` field names. Check them against the crate's
-  `examples/parakeet.rs`.
-- **`build-mac.sh`**: how sherpa-rs ships onnxruntime (static or dylib) decides which
-  dylibs get bundled. Run `otool -L build/Murmur.app/Contents/Frameworks/*.dylib` if
-  the app fails to launch.
+## Building on Linux (xtool)
+
+`build-mac.sh` also cross-compiles the whole app from Linux. It uses xtool's Darwin Swift
+SDK for Swift and as the sysroot for clang, ld64.lld for Mach-O linking, and
+[rcodesign](https://github.com/indygreg/apple-platform-rs) for ad-hoc signing.
+You copy the resulting `Murmur.app` to a Mac to run it.
+
+One-time setup (on Linux or WSL):
+
+1. Install [Swift 6.4](https://swift.org/install/linux), [xtool](https://xtool.sh),
+   rustup, `cmake`, `llvm` (for `llvm-ar`, `llvm-otool` and `llvm-install-name-tool`),
+   `libclang-dev`, and `rcodesign`.
+2. Download Xcode.xip with your Apple ID from developer.apple.com.
+3. Build the SDK and publish it to the private `striedinger/darwin-sdk` repo. The script
+   creates the repo if it doesn't exist:
+   ```bash
+   apps/murmur/scripts/publish-darwin-sdk.sh ~/Downloads/Xcode_27.1.xip
+   ```
+4. Install it locally (`xtool sdk install <darwin.xtoolsdk>`). For CI, add the
+   `DARWIN_SDK_TOKEN` secret (read access to that repo), which enables the
+   `linux-cross` job.
+
+Then run `apps/murmur/scripts/build-mac.sh` as on a Mac.
+
+The SDK stays in a private repo because it's Apple's. Apple's license allows it only on
+Apple-branded hardware, so using it on Linux is your call.
 
 ## Roadmap
 
