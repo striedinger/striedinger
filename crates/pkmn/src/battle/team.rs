@@ -108,7 +108,9 @@ impl PokemonSet {
             let line = std::iter::successors(Some(species), |stage| {
                 stage.prevo.map(|prevo| dex.species(prevo))
             });
-            let mut known = line.filter_map(|stage| stage.learn_sources(move_slot.id)).peekable();
+            let mut known = line
+                .filter_map(|stage| stage.learn_sources(move_slot.id))
+                .peekable();
             if known.peek().is_none() {
                 return Err(TeamErrorReason::CannotLearn(name.clone()));
             }
