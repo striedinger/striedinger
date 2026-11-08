@@ -53,24 +53,6 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 - Residual effects in Showdown's order, with faints checked after each, so a battle can end partway through.
 - The Generation 5+ rule that in a double KO, the side whose creature fainted last wins.
 
-## Differential testing against Showdown
-
-`oracle/` is a dev-only pnpm workspace package; nothing in the engine depends on it.
-
-1. It injects this crate's sample pack into Showdown's simulator. The data format matches Showdown's, so species and moves pass through almost unchanged.
-2. It maps each sample ability and item to the Showdown one it reproduces.
-3. It records seeded random battles into `tests/fixtures/showdown.json`.
-
-`tests/showdown.rs` replays every recorded step and requires identical stats, HP, statuses, items, active slots, stat stages, weather, turn, and winner. Showdown draws extra random numbers when the active creatures are speed-tied, so each recording stops at its battle's first speed tie.
-
-```sh
-pnpm install
-pnpm --filter @workspace/pkmn-oracle generate   # writes tests/fixtures/showdown.json
-cargo test -p pkmn --test showdown
-```
-
-Until the recording exists, the replay test skips with a message. Regenerate it after changing mechanics or the sample pack.
-
 ## Not yet
 
-Entry hazards, screens, terrain, Terastallization, two-turn and locking moves, switch-forcing moves, doubles, and learnset validation.
+Differential testing against a reference simulator, entry hazards, screens, terrain, Terastallization, two-turn and locking moves, switch-forcing moves, doubles, and learnset validation.

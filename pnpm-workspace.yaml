@@ -1,26 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
-  - "crates/*/oracle"
-
-# Pokémon Showdown's optional dependencies serve its chat server, not the simulator the pkmn
-# oracle uses, so they are never installed.
-ignoredOptionalDependencies:
-  - better-sqlite3
-  - cloud-env
-  - githubhook
-  - nodemailer
-  - permessage-deflate
-  - pg
-  - probe-image-size
-  - source-map-support
-  - sql-template-strings
-  - sqlite
-  - sqlite3
 
 allowBuilds:
-  # The pkmn oracle only runs Pokémon Showdown's simulator, never its server, bundler, or databases.
-  esbuild: false
   # Transformers.js runs in the browser here, so its Node.js native bindings are never built.
   onnxruntime-node: false
   protobufjs: false

@@ -22,7 +22,7 @@ These guidelines apply to the entire monorepo. Update this file as the project�
 - Keep Clippy's pedantic group enabled through `[workspace.lints]` and fix warnings instead of allowing them. Format with `cargo fmt`.
 - Run `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` after Rust changes.
 - Keep engine crates free of I/O and presentation: they take inputs and return data or events, and frontends render them.
-- Treat Pokémon Showdown as the reference for `pkmn` mechanics. After changing mechanics or `crates/pkmn/data/sample.json`, regenerate `crates/pkmn/tests/fixtures/showdown.json` with `pnpm --filter @workspace/pkmn-oracle generate` and keep `cargo test -p pkmn --test showdown` passing.
+- Treat Pokémon Showdown as the reference for `pkmn` mechanics: match its formulas, ordering, and random-number consumption, and document any deliberate difference.
 
 ## Testing
 
