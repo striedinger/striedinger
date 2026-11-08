@@ -5,7 +5,7 @@ use std::fmt;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, Volatiles};
-use crate::dex::Dex;
+use crate::dex::{Dex, LearnMethod};
 use crate::stats::{Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, StatTable, calculate_stats};
 
 /// The most creatures a team can have.
@@ -75,6 +75,44 @@ impl PokemonSet {
     pub fn with_item(mut self, item: &str) -> Self {
         self.item = Some(item.to_owned());
         self
+    }
+
+    /// Checks that the set is legal, as Showdown's `TeamValidator` does: everything
+    /// [`Battle::new`](crate::Battle::new) checks, and that the species can learn each move.
+    /// A level-up move needs the set's level to be at least the level it is learned at, unless
+    /// the species also learns it another way. Learnsets are each species' own; evolution
+    /// lines are not followed.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first problem found.
+    pub fn validate(&self, dex: &Dex) -> Result<(), TeamErrorReason> {
+        let pokemon = self.build(dex)?;
+        let species = dex.species(pokemon.species);
+        for (name, (_, move_slot)) in self.moves.iter().zip(pokemon.moves()) {
+            let Some(sources) = species.learn_sources(move_slot.id) else {
+                return Err(TeamErrorReason::CannotLearn(name.clone()));
+            };
+            let earliest_level = sources
+                .iter()
+                .map(|source| match source.method {
+                    LearnMethod::LevelUp(level) => level,
+                    LearnMethod::Machine
+                    | LearnMethod::Tutor
+                    | LearnMethod::Egg
+                    | LearnMethod::Event => 1,
+                })
+                .min();
+            if let Some(level) = earliest_level
+                && level > self.level
+            {
+                return Err(TeamErrorReason::LearnedAtLevel {
+                    name: name.clone(),
+                    level,
+                });
+            }
+        }
+        Ok(())
     }
 
     /// Builds the creature this set describes, as it enters battle.
@@ -248,6 +286,15 @@ pub enum TeamErrorReason {
     Iv,
     /// An EV is above 252 or the total is above 510.
     Ev,
+    /// The species cannot learn this move.
+    CannotLearn(String),
+    /// The species learns this move only by level-up, at a level above the set's.
+    LearnedAtLevel {
+        /// The move.
+        name: String,
+        /// The level it is learned at.
+        level: u8,
+    },
 }
 
 impl fmt::Display for TeamError {
@@ -288,6 +335,10 @@ impl fmt::Display for TeamError {
                 formatter,
                 " has an EV above {MAX_EV} or more than {MAX_TOTAL_EVS} in total"
             ),
+            TeamErrorReason::CannotLearn(name) => write!(formatter, " can't learn {name:?}"),
+            TeamErrorReason::LearnedAtLevel { name, level } => {
+                write!(formatter, " learns {name:?} only at level {level}")
+            }
         }
     }
 }

@@ -427,6 +427,81 @@ pub struct SpeciesData {
     pub secondary_type: Option<TypeId>,
     /// Base stats.
     pub base_stats: StatTable,
+    /// The moves it can learn, sorted by move, or `None` if it may use any move.
+    pub learnset: Option<Vec<(MoveId, Vec<LearnSource>)>>,
+}
+
+impl SpeciesData {
+    /// How the species learns a move, or `None` if it cannot. A species without a learnset
+    /// learns everything, with no sources.
+    #[must_use]
+    pub fn learn_sources(&self, move_id: MoveId) -> Option<&[LearnSource]> {
+        let Some(learnset) = &self.learnset else {
+            return Some(&[]);
+        };
+        learnset
+            .binary_search_by_key(&move_id, |(id, _)| *id)
+            .ok()
+            .map(|index| learnset[index].1.as_slice())
+    }
+}
+
+/// One way a species learns a move, from Showdown's notation like `"9L15"`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LearnSource {
+    /// The generation it was learned in.
+    pub generation: u8,
+    /// How.
+    pub method: LearnMethod,
+}
+
+/// How a move is learned.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearnMethod {
+    /// `L`: on reaching this level.
+    LevelUp(u8),
+    /// `M`: from a machine.
+    Machine,
+    /// `T`: from a tutor.
+    Tutor,
+    /// `E`: as an egg move.
+    Egg,
+    /// `S`: from an event distribution.
+    Event,
+}
+
+impl LearnSource {
+    fn parse(source: &str, owner: &str) -> Result<Self, DexError> {
+        let invalid = || {
+            DexError::invalid(
+                owner,
+                "learnset sources look like 9L15, 9M, 9T, 9E, or 9S0, for generations 1 to 9",
+            )
+        };
+        let split = source
+            .find(|character: char| !character.is_ascii_digit())
+            .ok_or_else(invalid)?;
+        let (generation, rest) = source.split_at(split);
+        let generation: u8 = generation.parse().map_err(|_| invalid())?;
+        if !(1..=9).contains(&generation) {
+            return Err(invalid());
+        }
+        let mut characters = rest.chars();
+        let letter = characters.next().ok_or_else(invalid)?;
+        let detail = characters.as_str();
+        let method = match (letter, detail) {
+            ('L', level) => match level.parse::<u8>() {
+                Ok(level @ 1..=100) => LearnMethod::LevelUp(level),
+                _ => return Err(invalid()),
+            },
+            ('M', "") => LearnMethod::Machine,
+            ('T', "") => LearnMethod::Tutor,
+            ('E', "") => LearnMethod::Egg,
+            ('S', index) if index.parse::<u32>().is_ok() => LearnMethod::Event,
+            _ => return Err(invalid()),
+        };
+        Ok(Self { generation, method })
+    }
 }
 
 /// A compiled move.
@@ -654,6 +729,9 @@ impl Dex {
             Some(&id) => id,
             None => dex.compile_move(&built_in_struggle())?,
         };
+        for (index, species) in source.species.iter().enumerate() {
+            dex.compile_learnset(index, species)?;
+        }
         for ability in &source.abilities {
             let id =
                 AbilityId::from_index(dex.abilities.len()).ok_or(DexError::TooMany("abilities"))?;
@@ -928,7 +1006,47 @@ impl Dex {
             primary_type,
             secondary_type,
             base_stats: source.base_stats,
+            learnset: None,
         });
+        Ok(())
+    }
+
+    /// Resolves a species' learnset, once every move has an ID.
+    fn compile_learnset(&mut self, index: usize, source: &SpeciesSource) -> Result<(), DexError> {
+        let Some(learnset) = &source.learnset else {
+            return Ok(());
+        };
+        let mut compiled = learnset
+            .iter()
+            .map(|(move_name, sources)| {
+                let move_id = lookup(&self.move_ids, move_name).ok_or_else(|| {
+                    DexError::UnknownReference {
+                        kind: "move",
+                        name: move_name.clone(),
+                        referenced_by: source.name.clone(),
+                    }
+                })?;
+                if sources.is_empty() {
+                    return Err(DexError::invalid(
+                        &source.name,
+                        "each learnset move needs at least one source",
+                    ));
+                }
+                let sources = sources
+                    .iter()
+                    .map(|learned| LearnSource::parse(learned, &source.name))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok((move_id, sources))
+            })
+            .collect::<Result<Vec<_>, DexError>>()?;
+        compiled.sort_unstable_by_key(|(move_id, _)| *move_id);
+        if compiled.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+            return Err(DexError::invalid(
+                &source.name,
+                "its learnset names a move twice",
+            ));
+        }
+        self.species[index].learnset = Some(compiled);
         Ok(())
     }
 
@@ -1617,6 +1735,22 @@ mod tests {
             error,
             DexError::DuplicateName { kind: "type", .. }
         ));
+    }
+
+    #[test]
+    fn rejects_learnset_sources_outside_showdowns_notation() {
+        for source in ["9L0", "9L101", "9X", "10M", "L5", "9M1"] {
+            let json = format!(
+                r#"{{"types":[{{"name":"Fire"}}],"species":[{{"name":"Blob","types":["Fire"],
+                "baseStats":{{"hp":1,"atk":1,"def":1,"spa":1,"spd":1,"spe":1}},
+                "learnset":{{"Glow":["{source}"]}}}}],"moves":[{{"name":"Glow","type":"Fire",
+                "category":"Special","basePower":40,"accuracy":true,"pp":10}}]}}"#
+            );
+            assert!(
+                matches!(Dex::from_json(&json), Err(DexError::InvalidValue { .. })),
+                "{source} should be rejected"
+            );
+        }
     }
 
     #[test]

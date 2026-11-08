@@ -219,6 +219,13 @@ pub struct SpeciesSource {
     pub types: Vec<String>,
     /// Base stats.
     pub base_stats: StatTable,
+    /// Showdown's `learnset`: each move the species can learn, by name, with how it learns it,
+    /// in Showdown's source notation: a generation, then `L` and a level (level-up), `M`
+    /// (machine), `T` (tutor), `E` (egg), or `S` and an index (event), like `"9L15"` or
+    /// `"9M"`. Without one, [`PokemonSet::validate`](crate::PokemonSet::validate) allows any
+    /// move.
+    #[serde(default)]
+    pub learnset: Option<BTreeMap<String, Vec<String>>>,
 }
 
 /// A move, in the shape of Showdown's move data.

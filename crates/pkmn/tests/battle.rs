@@ -590,3 +590,31 @@ fn random_battles_always_finish_with_consistent_state() {
         }
     }
 }
+
+#[test]
+fn sets_are_validated_against_learnsets() {
+    let dex = dex();
+    let legal = PokemonSet::new("Cindercub", &["Ember Snap", "Pounce", "Tremor", "Sunlance"]);
+    assert_eq!(legal.validate(&dex), Ok(()));
+
+    let unlearnable = PokemonSet::new("Cindercub", &["Riptide"]);
+    assert_eq!(
+        unlearnable.validate(&dex),
+        Err(TeamErrorReason::CannotLearn("Riptide".to_owned()))
+    );
+
+    let mut early = PokemonSet::new("Cindercub", &["Sunny Call"]);
+    early.level = 10;
+    assert_eq!(
+        early.validate(&dex),
+        Err(TeamErrorReason::LearnedAtLevel {
+            name: "Sunny Call".to_owned(),
+            level: 18
+        })
+    );
+    early.level = 18;
+    assert_eq!(early.validate(&dex), Ok(()), "learned on reaching level 18");
+
+    // Battles, like Showdown's simulator, leave legality to the validator.
+    assert!(Battle::new(Arc::clone(&dex), [&[unlearnable], &[legal]], 0).is_ok());
+}

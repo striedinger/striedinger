@@ -317,8 +317,9 @@ function injectSample(sample: SampleDex): void {
   const pokedex: Record<string, unknown> = {};
   for (const [index, species] of sample.species.entries()) {
     pokedex[toID(injectedName(species.name))] = {
-      ...species,
       name: injectedName(species.name),
+      types: species.types,
+      baseStats: species.baseStats,
       num: 20_000 + index,
       gender: "N",
       abilities: { 0: "No Ability" },
