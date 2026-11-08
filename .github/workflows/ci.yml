@@ -101,6 +101,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --filter @workspace/pkmn-oracle
       - run: pnpm --filter @workspace/pkmn-oracle generate
+      - run: pnpm --filter @workspace/pkmn-oracle generate -- --doubles
       - run: cargo test -p pkmn --locked
         env:
           PKMN_REQUIRE_SHOWDOWN: 1

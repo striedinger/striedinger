@@ -59,19 +59,14 @@ impl Engine<'_> {
     ) -> Option<Position> {
         let dex = self.dex;
         let user = self.active(side);
-        // A rampage or a charged move continues without spending PP, at the target it
-        // started on (Showdown's `lockedMoveTargetLoc`).
+        // A rampage or a charged move continues without spending PP; its queued target is
+        // the one it started on.
         let forced = user.forced_move();
-        let target = if user.volatiles.charging.is_some() {
-            user.volatiles.charge_target
-        } else if forced.is_some() {
-            user.volatiles.last_target
-        } else {
-            target
-        };
         let move_id = forced
             .or_else(|| slot.and_then(|slot| user.move_slots[slot].map(|move_slot| move_slot.id)))
             .unwrap_or_else(|| dex.struggle());
+        // Showdown's `runMove` resolves the target first, which in doubles may draw.
+        let resolved = Some(self.get_target(side, dex.move_data(move_id), target));
         if !self.before_move(side, move_id) {
             // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
             let volatiles = &mut self.active_mut(side).volatiles;
@@ -94,7 +89,7 @@ impl Engine<'_> {
             }
         }
         let priority = dex.move_data(move_id).priority;
-        let drag = self.use_move(side, move_id, priority, target, false, others_will_act);
+        let drag = self.use_move(side, move_id, priority, resolved, false, others_will_act);
         self.after_move_lock(side);
         drag
     }
@@ -107,7 +102,7 @@ impl Engine<'_> {
         side: Position,
         move_id: MoveId,
         priority: i8,
-        target: Option<i8>,
+        target: Option<Position>,
         called: bool,
         others_will_act: bool,
     ) -> Option<Position> {
@@ -119,9 +114,17 @@ impl Engine<'_> {
         self.active_move = Some(move_id);
         self.stellar_boosted = false;
         let move_data = dex.move_data(move_id);
-        // Showdown resolves the targets, drawing for any random one, before `onTryMove`.
+        // A called move has no target yet (Showdown's `useMoveInner` picks one). The targets
+        // are then resolved, drawing for any random one, before `onTryMove`.
+        let target = if called {
+            Some(self.get_random_target(side, move_data))
+        } else {
+            target
+        };
         let targets = self.move_targets(side, move_data, target);
-        if self.charge_turn(side, move_data, called.then(|| targets.first()).flatten()) {
+        // `onTryMove` sees the last target, or the original one when none is left.
+        let defender = targets.as_slice().last().copied().or(target);
+        if self.charge_turn(side, move_data, called.then_some(defender).flatten()) {
             return None;
         }
         if let Some(calls) = move_data.calls {
@@ -207,13 +210,43 @@ impl Engine<'_> {
         drags.then_some(target)
     }
 
-    /// Showdown's `getTarget` and `getMoveTargets`: who the move hits. A chosen foe that has
-    /// fainted is replaced by a random foe; a spread move hits every other creature it can.
+    /// Showdown's `getTarget`: the creature at the chosen location, if the move is aimed and
+    /// that creature stands, or is a fainted ally; otherwise [`Engine::get_random_target`].
+    pub(super) fn get_target(
+        &mut self,
+        side: Position,
+        move_data: &MoveData,
+        location: Option<i8>,
+    ) -> Position {
+        if move_data.target.needs_choice()
+            && let Some(chosen) = location
+                .and_then(|location| side.from_target_location(location))
+                .filter(|&chosen| {
+                    chosen != side && self.positions().iter().any(|open| open == chosen)
+                })
+            && (!self.active(chosen).is_fainted() || chosen.side == side.side)
+        {
+            return chosen;
+        }
+        self.get_random_target(side, move_data)
+    }
+
+    /// Showdown's `getRandomTarget`: the user for a move at itself or its side, otherwise a
+    /// foe ([`Engine::random_target`]).
+    pub(super) fn get_random_target(&mut self, side: Position, move_data: &MoveData) -> Position {
+        match move_data.target {
+            MoveTarget::User | MoveTarget::AllySide => side,
+            _ => self.random_target(side),
+        }
+    }
+
+    /// Showdown's `getMoveTargets`: who the move hits. A target that is missing or a fainted
+    /// foe is replaced by a random foe; a spread move hits every other creature it can.
     fn move_targets(
         &mut self,
         side: Position,
         move_data: &MoveData,
-        target: Option<i8>,
+        target: Option<Position>,
     ) -> Positions {
         let positions = self.positions();
         let others = |engine: &Self, allies: bool| -> Positions {
@@ -239,18 +272,11 @@ impl Engine<'_> {
             }
             MoveTarget::AllAdjacentFoes => others(self, false),
             MoveTarget::Normal | MoveTarget::RandomNormal => {
-                let chosen = target
-                    .filter(|_| move_data.target == MoveTarget::Normal)
-                    .and_then(|location| side.from_target_location(location))
-                    .filter(|&chosen| {
-                        chosen != side && positions.iter().any(|open| open == chosen)
-                    });
-                let target = match chosen {
-                    // A fainted ally stays the target, and the move fails.
-                    Some(chosen)
-                        if !self.active(chosen).is_fainted() || chosen.side == side.side =>
+                let target = match target {
+                    Some(target)
+                        if !self.active(target).is_fainted() || target.side == side.side =>
                     {
-                        chosen
+                        target
                     }
                     _ => self.random_target(side),
                 };
@@ -355,6 +381,20 @@ impl Engine<'_> {
         }
         let charge_target = match called_target {
             Some(target) if move_data.target != MoveTarget::User => {
+                // A fainted defender is replaced by any foe position, fainted or not, with a
+                // draw (`this.sample(attacker.foes(true))`).
+                let target = if self.active(target).is_fainted() {
+                    let foes: Positions = self
+                        .positions()
+                        .iter()
+                        .filter(|other| other.side != side.side)
+                        .collect();
+                    let count = u32::try_from(foes.len()).unwrap_or(1).max(1);
+                    let index = usize::try_from(self.state.prng.below(count)).unwrap_or(0);
+                    foes.iter().nth(index).unwrap_or(target)
+                } else {
+                    target
+                };
                 Some(side.target_location(target))
             }
             _ => self.active(side).volatiles.last_target,
@@ -609,7 +649,9 @@ impl Engine<'_> {
             self.emit(Event::Miss { pokemon: side });
             return false;
         }
+        // Like Psychic Terrain, which spares moves at an ally.
         if priority > 0
+            && target.side != side.side
             && self
                 .terrain_affecting(target, |terrain| terrain.blocks_priority)
                 .is_some()

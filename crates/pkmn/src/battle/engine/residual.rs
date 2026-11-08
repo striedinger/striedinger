@@ -24,7 +24,7 @@
 
 use super::Engine;
 use crate::battle::events::{DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{Position, SideId, Stall};
+use crate::battle::state::{Position, Positions, SideId, Stall};
 use crate::dex::{Fraction, Handler, HandlerMask, Status};
 use crate::stats::Boosts;
 
@@ -295,8 +295,13 @@ impl Engine<'_> {
         self.state.field.weather = Some(weather);
         let data = self.dex.weather(weather.id);
         if let Some(fraction) = data.residual_damage {
-            let positions = self.positions();
-            for side in self.speed_order(positions).iter() {
+            // Showdown's `eachEvent('Weather')` sorts the creatures that have not fainted.
+            let standing: Positions = self
+                .positions()
+                .iter()
+                .filter(|&side| !self.active(side).is_fainted())
+                .collect();
+            for side in self.speed_order(standing).iter() {
                 let pokemon = self.active(side);
                 if pokemon.is_fainted() {
                     continue;

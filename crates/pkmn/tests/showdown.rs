@@ -7,19 +7,21 @@
 //! stat stages, Substitute, confusion, Terastallization, weather, terrain, side conditions and
 //! their durations, the turn, and the winner.
 //!
-//! The recording is generated, not committed. Create it with
+//! The recordings, singles and doubles, are generated, not committed. Create it with
 //! `pnpm --filter @workspace/pkmn-oracle generate`; without it this test is skipped, unless
-//! `PKMN_REQUIRE_SHOWDOWN` is set, as CI does.
+//! `PKMN_REQUIRE_SHOWDOWN` is set, as CI does. To debug a divergence, set `PKMN_ONLY` to a
+//! battle's seed to replay only that battle, and `PKMN_TRACE_EVENTS` to print each step's
+//! events.
 
 use std::sync::Arc;
 
 use pkmn::dex::Status;
 use pkmn::stats::{BoostStat, StatTable};
-use pkmn::{Battle, Choice, Dex, Outcome, PokemonSet, SideId};
+use pkmn::{Battle, Choice, Dex, GameType, Outcome, PokemonSet, SideId};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-const FIXTURE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/showdown.json");
+const FIXTURES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures");
 
 const BOOST_ORDER: [BoostStat; 7] = [
     BoostStat::Attack,
@@ -38,7 +40,9 @@ struct Recording {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct RecordedBattle {
+    game_type: GameType,
     seed: String,
     teams: [Vec<PokemonSet>; 2],
     stats: [Vec<StatTable>; 2],
@@ -48,7 +52,7 @@ struct RecordedBattle {
 
 #[derive(Deserialize)]
 struct Step {
-    choices: [Choice; 2],
+    choices: [Vec<Choice>; 2],
     after: Snapshot,
 }
 
@@ -70,13 +74,18 @@ struct Timed {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SideSnapshot {
-    active: usize,
+    active: Vec<usize>,
     team: Vec<PokemonSnapshot>,
+    positions: Vec<PositionSnapshot>,
+    conditions: Vec<ConditionSnapshot>,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct PositionSnapshot {
     boosts: Vec<i8>,
     substitute: Option<u16>,
     confused: bool,
     terastallized: bool,
-    conditions: Vec<ConditionSnapshot>,
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,7 +128,8 @@ fn snapshot(battle: &Battle) -> Snapshot {
             .sides
             .iter()
             .map(|side| {
-                let active = side.active();
+                let actives: Vec<&pkmn::battle::Pokemon> =
+                    (0..2).filter_map(|index| side.active_at(index)).collect();
                 let mut conditions: Vec<ConditionSnapshot> = side
                     .conditions
                     .iter()
@@ -131,7 +141,7 @@ fn snapshot(battle: &Battle) -> Snapshot {
                     .collect();
                 conditions.sort_by(|left, right| left.name.cmp(&right.name));
                 SideSnapshot {
-                    active: side.active[0].unwrap_or(0),
+                    active: side.active.iter().flatten().copied().collect(),
                     team: side
                         .team
                         .iter()
@@ -143,13 +153,18 @@ fn snapshot(battle: &Battle) -> Snapshot {
                             pp: pokemon.moves().map(|(_, slot)| slot.pp).collect(),
                         })
                         .collect(),
-                    boosts: BOOST_ORDER
+                    positions: actives
                         .iter()
-                        .map(|&stat| active.boosts.get(stat))
+                        .map(|active| PositionSnapshot {
+                            boosts: BOOST_ORDER
+                                .iter()
+                                .map(|&stat| active.boosts.get(stat))
+                                .collect(),
+                            substitute: active.volatiles.substitute,
+                            confused: active.volatiles.confusion.is_some(),
+                            terastallized: active.terastallized,
+                        })
                         .collect(),
-                    substitute: active.volatiles.substitute,
-                    confused: active.volatiles.confusion.is_some(),
-                    terastallized: active.terastallized,
                     conditions,
                 }
             })
@@ -190,11 +205,11 @@ fn difference(showdown: &Snapshot, pkmn: &Snapshot) -> String {
 fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
     let seed = u64::from_str_radix(&recorded.seed, 16).expect("seeds are 16 hex digits");
     let context = format!("battle {index} (seed {})", recorded.seed);
-    let mut battle = Battle::new(
-        Arc::clone(dex),
-        [&recorded.teams[0], &recorded.teams[1]],
-        seed,
-    )
+    let teams = [recorded.teams[0].as_slice(), recorded.teams[1].as_slice()];
+    let mut battle = match recorded.game_type {
+        GameType::Singles => Battle::new(Arc::clone(dex), teams, seed),
+        GameType::Doubles => Battle::doubles(Arc::clone(dex), teams, seed),
+    }
     .unwrap_or_else(|error| panic!("{context}: {error}"));
     for (side, expected) in battle.state().sides.iter().zip(&recorded.stats) {
         let stats: Vec<StatTable> = side.team.iter().map(|pokemon| pokemon.stats).collect();
@@ -207,10 +222,17 @@ fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
         difference(&recorded.start, &start)
     );
     for (number, step) in recorded.steps.iter().enumerate() {
+        let choices = step
+            .choices
+            .each_ref()
+            .map(|side| [0, 1].map(|index| side.get(index).copied().unwrap_or(Choice::Pass)));
         let events = battle
-            .submit(step.choices)
+            .submit_doubles(choices)
             .unwrap_or_else(|error| panic!("{context}, step {number}: {error}"))
             .to_vec();
+        if std::env::var_os("PKMN_TRACE_EVENTS").is_some() {
+            eprintln!("step {number}: {events:?}");
+        }
         let actual = snapshot(&battle);
         assert!(
             actual == step.after,
@@ -221,16 +243,15 @@ fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
     }
 }
 
-#[test]
-fn replays_showdown_battles_identically() {
-    let Ok(json) = std::fs::read_to_string(FIXTURE) else {
+/// Replays one recording, unless it has not been generated.
+fn replay_recording(file: &str, generate: &str) {
+    let path = format!("{FIXTURES}/{file}");
+    let Ok(json) = std::fs::read_to_string(&path) else {
         assert!(
             std::env::var_os("PKMN_REQUIRE_SHOWDOWN").is_none(),
-            "no Showdown recording at {FIXTURE}"
+            "no Showdown recording at {path}"
         );
-        eprintln!(
-            "skipping: no Showdown recording at {FIXTURE}; run `pnpm --filter @workspace/pkmn-oracle generate`"
-        );
+        eprintln!("skipping: no Showdown recording at {path}; run `{generate}`");
         return;
     };
     let recording: Recording = serde_json::from_str(&json).expect("the recording parses");
@@ -241,6 +262,25 @@ fn replays_showdown_battles_identically() {
     );
     let dex = Arc::new(Dex::from_json(pkmn::SAMPLE_DEX_JSON).expect("the sample dex compiles"));
     for (index, recorded) in recording.battles.iter().enumerate() {
+        if std::env::var("PKMN_ONLY").is_ok_and(|seed| seed != recorded.seed) {
+            continue;
+        }
         replay(&dex, index, recorded);
     }
+}
+
+#[test]
+fn replays_showdown_singles_battles_identically() {
+    replay_recording(
+        "showdown.json",
+        "pnpm --filter @workspace/pkmn-oracle generate",
+    );
+}
+
+#[test]
+fn replays_showdown_doubles_battles_identically() {
+    replay_recording(
+        "showdown-doubles.json",
+        "pnpm --filter @workspace/pkmn-oracle generate -- --doubles",
+    );
 }

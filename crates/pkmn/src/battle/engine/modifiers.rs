@@ -116,6 +116,11 @@ impl Engine<'_> {
     /// Showdown's `getActionSpeed`: the speed used to order actions and end-of-turn effects.
     pub(super) fn action_speed(&self, side: Position) -> u32 {
         let pokemon = self.active(side);
+        // A fainted creature is no longer active, so Showdown gathers none of its handlers:
+        // its queued action sorts at its bare stat, without status, ability, or item.
+        if pokemon.is_fainted() {
+            return u32::from(pokemon.stats.speed).min(MAX_SPEED) % (1 << ACTION_SPEED_BITS);
+        }
         let stage = pokemon.boosts.get(BoostStat::Speed);
         let mut speed = self.modified_stat(side, Stat::Speed, stage, Context::NO_MOVE);
         if pokemon.status == Some(Status::Paralysis) {

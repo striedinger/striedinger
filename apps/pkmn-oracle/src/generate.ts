@@ -13,7 +13,7 @@
  * Showdown draws extra random numbers whenever the two active creatures are speed-tied, a
  * documented difference, so a battle's recording stops at its first speed tie.
  *
- * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles]
+ * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles] [--doubles]
  */
 
 import type { Battle as ShowdownBattle, Pokemon, Side } from "pokemon-showdown";
@@ -28,7 +28,14 @@ const { Battle, Dex, Pokemon: ShowdownPokemon, toID } = showdown;
 
 type StatName = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
 type StatTable = Record<StatName, number>;
-type Choice = { move: number } | { terastallize: number } | { switch: number } | "pass";
+type Choice =
+  | { move: number }
+  | { terastallize: number }
+  | { moveAt: [number, number] }
+  | { terastallizeAt: [number, number] }
+  | { switch: number }
+  | "pass";
+type GameType = "singles" | "doubles";
 
 interface SampleMove {
   name: string;
@@ -92,13 +99,17 @@ interface PokemonSnapshot {
   pp: number[];
 }
 
-interface SideSnapshot {
-  active: number;
-  team: PokemonSnapshot[];
+interface PositionSnapshot {
   boosts: number[];
   substitute: number | null;
   confused: boolean;
   terastallized: boolean;
+}
+
+interface SideSnapshot {
+  active: number[];
+  team: PokemonSnapshot[];
+  positions: PositionSnapshot[];
   conditions: (Timed & { layers: number })[];
 }
 
@@ -111,15 +122,28 @@ interface Snapshot {
 }
 
 interface RecordedBattle {
+  gameType: GameType;
   seed: string;
   teams: PokemonSet[][];
   stats: StatTable[][];
   start: Snapshot;
-  steps: { choices: Choice[]; after: Snapshot }[];
+  steps: { choices: Choice[][]; after: Snapshot }[];
   stopped: "finished" | "speed_tie" | "step_limit" | "called_rampage";
 }
 
-const TEAM_SIZE = 3;
+const TEAM_SIZE: Record<GameType, number> = { singles: 3, doubles: 4 };
+const FORMATS: Record<GameType, string> = {
+  singles: "gen9customgame",
+  doubles: "gen9doublescustomgame",
+};
+/** Showdown's `targetTypeChoices`: target types a doubles choice must aim. */
+const AIMED_TARGETS = new Set([
+  "normal",
+  "any",
+  "adjacentFoe",
+  "adjacentAlly",
+  "adjacentAllyOrSelf",
+]);
 const STEP_LIMIT = 300;
 const STAT_NAMES: readonly StatName[] = ["hp", "atk", "def", "spa", "spd", "spe"];
 const BOOST_NAMES = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"] as const;
@@ -490,10 +514,18 @@ function timed(names: Map<string, string>, id: string, duration: unknown): Timed
   return { name: sampleName(names, id), duration: typeof duration === "number" ? duration : null };
 }
 
-function snapshotSide(side: Side): SideSnapshot {
-  const active = side.active[0];
-  if (active === undefined) throw new Error("A side has no active creature");
+function snapshotPosition(active: Pokemon): PositionSnapshot {
   const substitute = active.volatiles["substitute"] as { hp: number } | undefined;
+  return {
+    boosts: BOOST_NAMES.map((name) => active.boosts[name]),
+    substitute: substitute?.hp ?? null,
+    confused: "confusion" in active.volatiles,
+    terastallized: active.terastallized !== undefined,
+  };
+}
+
+function snapshotSide(side: Side): SideSnapshot {
+  const actives = side.active;
   const conditions = Object.entries(side.sideConditions).map(([id, state]) => {
     const effect = state as { duration?: number; layers?: number };
     return {
@@ -503,7 +535,7 @@ function snapshotSide(side: Side): SideSnapshot {
     };
   });
   return {
-    active: slotOf(active),
+    active: actives.map(slotOf),
     team: bySlot(side).map((pokemon) => ({
       hp: pokemon.hp,
       // Showdown marks a fainted creature's status `fnt` at its next check; pkmn keeps none.
@@ -511,10 +543,7 @@ function snapshotSide(side: Side): SideSnapshot {
       item: pokemon.item === "" ? null : (OUR_ITEMS.get(pokemon.item) ?? null),
       pp: pokemon.baseMoveSlots.map((slot) => slot.pp),
     })),
-    boosts: BOOST_NAMES.map((name) => active.boosts[name]),
-    substitute: substitute?.hp ?? null,
-    confused: "confusion" in active.volatiles,
-    terastallized: active.terastallized !== undefined,
+    positions: actives.map(snapshotPosition),
     conditions: conditions.toSorted((left, right) => left.name.localeCompare(right.name)),
   };
 }
@@ -532,47 +561,96 @@ function snapshot(battle: ShowdownBattle): Snapshot {
   };
 }
 
-interface Option {
-  ours: Choice;
+interface SideChoices {
+  ours: Choice[];
   theirs: string | null;
 }
 
-/** Picks a legal choice from Showdown's request, expressed in pkmn's team and move slots. */
-function chooseFor(side: Side, random: (bound: number) => number): Option {
+/**
+ * Picks legal choices for each of a side's positions from Showdown's request, in pkmn's team
+ * and move slots: at most one Terastallization, no two switches to the same creature, and a
+ * target location for each aimed move in doubles.
+ */
+function chooseForSide(side: Side, random: (bound: number) => number): SideChoices {
   const request = side.activeRequest;
-  if (request === null || request.wait === true) return { ours: "pass", theirs: null };
-  if (request.teamPreview === true) throw new Error("Team preview should be resolved already");
-  const switches = side.pokemon
-    .map((pokemon, position) => ({ pokemon, position }))
-    .filter(({ pokemon }) => !pokemon.fainted && !pokemon.isActive);
-  const toSwitch = ({ pokemon, position }: (typeof switches)[number]): Option => ({
-    ours: { switch: slotOf(pokemon) },
-    theirs: `switch ${position + 1}`,
-  });
-  if (request.forceSwitch !== undefined) return toSwitch(pick(random, switches));
-  const active = request.active[0];
-  const user = side.active[0];
-  if (active === undefined || user === undefined) throw new Error("A move request has no user");
-  if (active.trapped === true) switches.length = 0;
-  // Showdown lists only the forced move while a creature is locked in; pkmn names its slot.
-  // A move outside the moveset, Struggle or one a calling move locked in, is pkmn's slot 0.
-  const slotOfMove = (id: string) =>
-    Math.max(
-      0,
-      user.baseMoveSlots.findIndex((slot) => slot.id === id),
-    );
-  const terastallize = active.canTerastallize !== undefined && random(6) === 0;
-  const moves: Option[] = active.moves
-    .map((move, index) => ({ move, index }))
-    .filter(({ move }) => move.disabled !== true && typeof move.disabled !== "string")
-    .map(({ move, index }) => ({
-      ours: terastallize ? { terastallize: slotOfMove(move.id) } : { move: slotOfMove(move.id) },
-      theirs: `move ${index + 1}${terastallize ? " terastallize" : ""}`,
-    }));
-  if (switches.length > 0 && (moves.length === 0 || random(10) === 0)) {
-    return toSwitch(pick(random, switches));
+  const count = side.active.length;
+  if (request === null || request.wait === true) {
+    return { ours: Array.from({ length: count }, () => "pass"), theirs: null };
   }
-  return pick(random, moves);
+  if (request.teamPreview === true) throw new Error("Team preview should be resolved already");
+  const taken = new Set<number>();
+  const bench = () =>
+    side.pokemon
+      .map((pokemon, position) => ({ pokemon, position }))
+      .filter(
+        ({ pokemon, position }) => !pokemon.fainted && !pokemon.isActive && !taken.has(position),
+      );
+  const ours: Choice[] = [];
+  const theirs: string[] = [];
+  const pass = () => {
+    ours.push("pass");
+    theirs.push("pass");
+  };
+  const switchTo = ({ pokemon, position }: ReturnType<typeof bench>[number]) => {
+    taken.add(position);
+    ours.push({ switch: slotOf(pokemon) });
+    theirs.push(`switch ${position + 1}`);
+  };
+  let terastallizing = false;
+  for (let index = 0; index < count; index++) {
+    if (request.forceSwitch !== undefined) {
+      const options = bench();
+      if (request.forceSwitch[index] === true && options.length > 0)
+        switchTo(pick(random, options));
+      else pass();
+      continue;
+    }
+    const active = request.active[index];
+    const user = side.active[index];
+    if (active === undefined || user === undefined || user.fainted) {
+      pass();
+      continue;
+    }
+    const switches = active.trapped === true ? [] : bench();
+    // Showdown lists only the forced move while a creature is locked in; pkmn names its
+    // slot. A move outside the moveset, Struggle or one a calling move locked in, is slot 0.
+    const slotOfMove = (id: string) =>
+      Math.max(
+        0,
+        user.baseMoveSlots.findIndex((slot) => slot.id === id),
+      );
+    const moves = active.moves
+      .map((move, moveIndex) => ({ move, moveIndex }))
+      .filter(({ move }) => move.disabled !== true && typeof move.disabled !== "string");
+    if (switches.length > 0 && (moves.length === 0 || random(10) === 0)) {
+      switchTo(pick(random, switches));
+      continue;
+    }
+    const { move, moveIndex } = pick(random, moves);
+    const terastallize: boolean =
+      !terastallizing && active.canTerastallize !== undefined && random(6) === 0;
+    terastallizing ||= terastallize;
+    const slot = slotOfMove(move.id);
+    const aimed = count > 1 && AIMED_TARGETS.has(move.target ?? "");
+    const tera = terastallize ? " terastallize" : "";
+    if (!aimed) {
+      ours.push(terastallize ? { terastallize: slot } : { move: slot });
+      theirs.push(`move ${moveIndex + 1}${tera}`);
+      continue;
+    }
+    // Every other position is adjacent in doubles: either foe, or the ally.
+    const foeCount = side.foe.active.length;
+    const locations = [
+      ...Array.from({ length: foeCount }, (_, foe) => foe + 1),
+      ...Array.from({ length: count }, (_, ally) => -(ally + 1)).filter(
+        (location) => location !== -(index + 1),
+      ),
+    ];
+    const location = pick(random, locations);
+    ours.push(terastallize ? { terastallizeAt: [slot, location] } : { moveAt: [slot, location] });
+    theirs.push(`move ${moveIndex + 1} ${location}${tera}`);
+  }
+  return { ours, theirs: theirs.join(", ") };
 }
 
 interface SortedHandler {
@@ -634,28 +712,27 @@ function hexSeed(index: number): string {
  * the rampage goes on. A documented difference.
  */
 function calledRampage(battle: ShowdownBattle): boolean {
-  return battle.sides.some((side) => {
-    const user = side.active[0];
-    return (
-      user !== undefined &&
-      "lockedmove" in user.volatiles &&
-      user.lastMoveTargetLoc === user.getLocOf(user)
-    );
-  });
+  return battle.sides.some((side) =>
+    side.active.some(
+      (user) => "lockedmove" in user.volatiles && user.lastMoveTargetLoc === user.getLocOf(user),
+    ),
+  );
 }
 
 /** Records one battle, or returns `null` if it hits a speed tie before the first choice. */
-function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
+function recordBattle(index: number, sample: SampleDex, gameType: GameType): RecordedBattle | null {
   const random = createRandom(index);
+  const teamSize = TEAM_SIZE[gameType];
   const teams = [0, 1].map(() =>
-    Array.from({ length: TEAM_SIZE }, (_, slot) => randomSet(random, sample, slot)),
+    Array.from({ length: teamSize }, (_, slot) => randomSet(random, sample, slot)),
   );
   const seed = hexSeed(index);
-  const battle = new Battle({ formatid: toID("gen9customgame"), seed: `gen5,${seed}` });
+  const battle = new Battle({ formatid: toID(FORMATS[gameType]), seed: `gen5,${seed}` });
   const speedTieSeen = watchSpeedTies(battle);
   battle.setPlayer("p1", { name: "p1", team: (teams[0] ?? []).map(toShowdownSet) });
   battle.setPlayer("p2", { name: "p2", team: (teams[1] ?? []).map(toShowdownSet) });
-  battle.makeChoices("team 123", "team 123");
+  const order = `team ${Array.from({ length: teamSize }, (_, slot) => slot + 1).join("")}`;
+  battle.makeChoices(order, order);
   const stats = battle.sides.map((side) =>
     bySlot(side).map(({ storedStats, maxhp }) => ({
       hp: maxhp,
@@ -667,6 +744,7 @@ function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
     })),
   );
   const recorded: RecordedBattle = {
+    gameType,
     seed,
     teams,
     stats,
@@ -678,7 +756,7 @@ function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
   while (!battle.ended) {
     if (recorded.steps.length >= STEP_LIMIT) return { ...recorded, stopped: "step_limit" };
     if (calledRampage(battle)) return { ...recorded, stopped: "called_rampage" };
-    const choices = battle.sides.map((side) => chooseFor(side, random));
+    const choices = battle.sides.map((side) => chooseForSide(side, random));
     for (const [sideIndex, choice] of choices.entries()) {
       if (choice.theirs !== null) battle.choose(sideIndex === 0 ? "p1" : "p2", choice.theirs);
     }
@@ -689,15 +767,17 @@ function recordBattle(index: number, sample: SampleDex): RecordedBattle | null {
 }
 
 function main(): void {
-  const battles = Number(process.argv[2] ?? 2000);
+  const options = process.argv.slice(2);
+  const gameType: GameType = options.includes("--doubles") ? "doubles" : "singles";
+  const battles = Number(options.find((option) => !option.startsWith("--")) ?? 2000);
   const sample = JSON.parse(readFileSync(SAMPLE, "utf8")) as SampleDex;
   injectSample(sample);
   const recorded = Array.from({ length: battles }, (_, index) =>
-    recordBattle(index, sample),
+    recordBattle(index, sample, gameType),
   ).filter((battle) => battle !== null);
   mkdirSync(FIXTURES, { recursive: true });
   writeFileSync(
-    new URL("showdown.json", FIXTURES),
+    new URL(gameType === "doubles" ? "showdown-doubles.json" : "showdown.json", FIXTURES),
     `${JSON.stringify({ generator: "pokemon-showdown@0.11.11", battles: recorded })}\n`,
   );
   const steps = recorded.reduce((total, battle) => total + battle.steps.length, 0);

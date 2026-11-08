@@ -161,6 +161,9 @@ impl<'a> Engine<'a> {
             for position in positions.iter() {
                 queue[position.flat()] = self.action_for(position, choices[position.flat()]);
             }
+            if self.state.game_type.active_per_side() > 1 {
+                self.resolve_targets(&mut queue);
+            }
             if choices.iter().any(|choice| choice.terastallizes()) {
                 // Showdown's queue order: switches (103), then Terastallization (106), then
                 // moves.
@@ -199,13 +202,20 @@ impl<'a> Engine<'a> {
             Choice::Pass => None,
             _ => {
                 let slot = choice.move_slot()?;
+                let pokemon = self.active(side);
+                // A rampage or a charged move keeps its target (Showdown's
+                // `lockedMoveTargetLoc`).
+                let target = if pokemon.volatiles.charging.is_some() {
+                    pokemon.volatiles.charge_target
+                } else if pokemon.forced_move().is_some() {
+                    pokemon.volatiles.last_target
+                } else {
+                    choice.target()
+                };
                 // A validated move choice that is not selectable can only be Struggle's slot 0.
                 Some(QueuedAction::Move {
-                    slot: self
-                        .active(side)
-                        .can_select_move(self.dex, slot)
-                        .then_some(slot),
-                    target: choice.target(),
+                    slot: pokemon.can_select_move(self.dex, slot).then_some(slot),
+                    target,
                 })
             }
         }
@@ -237,12 +247,61 @@ impl<'a> Engine<'a> {
     fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; 4]) {
         // The next actor is picked from the remaining actions each time, re-reading speed after
         // every action as Generation 8 onward does.
+        // Showdown re-reads the queue after each action that ran, when a move comes next; a
+        // fainted creature's move is skipped without one.
+        let mut ran = true;
         while let Some(side) = self.next_actor(&queue, false) {
+            let is_move = matches!(queue[side.flat()], Some(QueuedAction::Move { .. }));
+            if ran && is_move && self.state.game_type.active_per_side() > 1 {
+                self.redraw_targets(&queue);
+            }
+            ran = !(is_move && self.active(side).is_fainted());
             if self.act(side, &mut queue) {
                 return;
             }
         }
         self.residual();
+    }
+
+    /// The move a queued action uses: a forced move, the slot's move, or Struggle.
+    fn queued_move(&self, side: Position, slot: Option<usize>) -> MoveId {
+        let pokemon = self.active(side);
+        pokemon
+            .forced_move()
+            .or_else(|| {
+                slot.and_then(|slot| pokemon.move_slots[slot].map(|move_slot| move_slot.id))
+            })
+            .unwrap_or_else(|| self.dex.struggle())
+    }
+
+    /// Showdown's `resolveAction` for each move choice, in choice order: a move with no target
+    /// location gets a random one, and `getActionSpeed` then resolves the target, either of
+    /// which can draw in doubles.
+    fn resolve_targets(&mut self, queue: &mut [Option<QueuedAction>; 4]) {
+        for position in Position::ALL {
+            let Some(QueuedAction::Move { slot, target }) = queue[position.flat()] else {
+                continue;
+            };
+            let move_data = self.dex.move_data(self.queued_move(position, slot));
+            let target = target.or_else(|| {
+                let chosen = self.get_random_target(position, move_data);
+                Some(position.target_location(chosen))
+            });
+            queue[position.flat()] = Some(QueuedAction::Move { slot, target });
+            self.get_target(position, move_data, target);
+        }
+    }
+
+    /// Before each move in doubles, Showdown re-reads every queued action's speed, and so
+    /// resolves each queued move's target again, drawing for those that fall back to a random
+    /// foe (Showdown's `getActionSpeed` in `runAction`).
+    fn redraw_targets(&mut self, queue: &[Option<QueuedAction>; 4]) {
+        for position in Position::ALL {
+            if let Some(QueuedAction::Move { slot, target }) = queue[position.flat()] {
+                let move_data = self.dex.move_data(self.queued_move(position, slot));
+                self.get_target(position, move_data, target);
+            }
+        }
     }
 
     /// Runs a position's queued action and the checks after it. Returns whether the turn
