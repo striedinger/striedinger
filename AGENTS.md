@@ -18,9 +18,9 @@ These guidelines apply to the entire monorepo. Update this file as the project‚Ä
 
 ## Rust crates
 
-- Keep Rust crates under `crates/` in the root Cargo workspace, which shares the edition, MSRV, dependency versions, and lints. Commit `Cargo.lock`.
+- The root Cargo workspace shares dependency versions, the release profile, and, for crates that opt in with `workspace = true`, the edition, MSRV, and lints. Commit `Cargo.lock`.
 - Keep Clippy's pedantic group enabled through `[workspace.lints]` and fix warnings instead of allowing them. Format with `cargo fmt`.
-- Run `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` after Rust changes.
+- After Rust changes, run `cargo fmt --all --check`, then `cargo clippy -p <crate> --all-targets --locked -- -D warnings` and `cargo test -p <crate> --locked` for each changed crate. `murmur-core` also needs the ALSA and libclang headers its workflow installs.
 - Keep engine crates free of I/O and presentation: they take inputs and return data or events, and frontends render them.
 - Treat Pok√©mon Showdown as the reference for `pkmn` mechanics: match its formulas, ordering, and random-number consumption, and document any deliberate difference.
 
