@@ -16,6 +16,13 @@ These guidelines apply to the entire monorepo. Update this file as the projectâ€
 - Keep React Compiler enabled for the web app and treat compiler diagnostics as correctness failures. Prefer compiler-friendly React patterns over manual memoization added without profiling evidence. The compiler memoizes context values and derived data, so `react/jsx-no-constructed-context-values` is off; pass plain objects instead of wrapping them in `useMemo`.
 - Do not create commits or push branches unless the user explicitly requests that action.
 
+## Rust crates
+
+- Keep Rust crates under `crates/` in the root Cargo workspace, which shares the edition, MSRV, dependency versions, and lints. Commit `Cargo.lock`.
+- Keep Clippy's pedantic group enabled through `[workspace.lints]` and fix warnings instead of allowing them. Format with `cargo fmt`.
+- Run `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo test --workspace` after Rust changes.
+- Keep engine crates free of I/O and presentation: they take inputs and return data or events, and frontends render them.
+
 ## Testing
 
 - Use Vitest for unit tests and React Testing Library for UI component behavior.

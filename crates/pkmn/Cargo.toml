@@ -1,0 +1,15 @@
+[package]
+name = "pkmn"
+version = "0.1.0"
+description = "A deterministic, data-driven creature battle engine."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

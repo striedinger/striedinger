@@ -3,7 +3,28 @@ resolver = "2"
 # Every Rust crate lives in crates/.
 members = ["crates/*"]
 
+# Shared settings for crates that opt in with `edition.workspace = true` and `[lints] workspace = true`.
+[workspace.package]
+edition = "2024"
+rust-version = "1.97"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
 [profile.release]
 opt-level = 3
 lto = "thin"
 debug = false
+
+# The battle engine's hot loop gains from a single codegen unit.
+[profile.release.package.pkmn]
+codegen-units = 1

@@ -1,0 +1,881 @@
+{
+  "types": [
+    {
+      "name": "Normal",
+      "not_very_effective_against": ["Rock", "Steel"],
+      "no_effect_against": ["Ghost"]
+    },
+    {
+      "name": "Fire",
+      "super_effective_against": ["Grass", "Ice", "Bug", "Steel"],
+      "not_very_effective_against": ["Fire", "Water", "Rock", "Dragon"],
+      "status_immunities": ["burn"],
+      "thaws_frozen_targets": true
+    },
+    {
+      "name": "Water",
+      "super_effective_against": ["Fire", "Ground", "Rock"],
+      "not_very_effective_against": ["Water", "Grass", "Dragon"]
+    },
+    {
+      "name": "Electric",
+      "super_effective_against": ["Water", "Flying"],
+      "not_very_effective_against": ["Electric", "Grass", "Dragon"],
+      "no_effect_against": ["Ground"],
+      "status_immunities": ["paralysis"]
+    },
+    {
+      "name": "Grass",
+      "super_effective_against": ["Water", "Ground", "Rock"],
+      "not_very_effective_against": ["Fire", "Grass", "Poison", "Flying", "Bug", "Dragon", "Steel"]
+    },
+    {
+      "name": "Ice",
+      "super_effective_against": ["Grass", "Ground", "Flying", "Dragon"],
+      "not_very_effective_against": ["Fire", "Water", "Ice", "Steel"],
+      "status_immunities": ["freeze"]
+    },
+    {
+      "name": "Fighting",
+      "super_effective_against": ["Normal", "Ice", "Rock", "Dark", "Steel"],
+      "not_very_effective_against": ["Poison", "Flying", "Psychic", "Bug", "Fairy"],
+      "no_effect_against": ["Ghost"]
+    },
+    {
+      "name": "Poison",
+      "super_effective_against": ["Grass", "Fairy"],
+      "not_very_effective_against": ["Poison", "Ground", "Rock", "Ghost"],
+      "no_effect_against": ["Steel"],
+      "status_immunities": ["poison"]
+    },
+    {
+      "name": "Ground",
+      "super_effective_against": ["Fire", "Electric", "Poison", "Rock", "Steel"],
+      "not_very_effective_against": ["Grass", "Bug"],
+      "no_effect_against": ["Flying"]
+    },
+    {
+      "name": "Flying",
+      "super_effective_against": ["Grass", "Fighting", "Bug"],
+      "not_very_effective_against": ["Electric", "Rock", "Steel"]
+    },
+    {
+      "name": "Psychic",
+      "super_effective_against": ["Fighting", "Poison"],
+      "not_very_effective_against": ["Psychic", "Steel"],
+      "no_effect_against": ["Dark"]
+    },
+    {
+      "name": "Bug",
+      "super_effective_against": ["Grass", "Psychic", "Dark"],
+      "not_very_effective_against": [
+        "Fire",
+        "Fighting",
+        "Poison",
+        "Flying",
+        "Ghost",
+        "Steel",
+        "Fairy"
+      ]
+    },
+    {
+      "name": "Rock",
+      "super_effective_against": ["Fire", "Ice", "Flying", "Bug"],
+      "not_very_effective_against": ["Fighting", "Ground", "Steel"]
+    },
+    {
+      "name": "Ghost",
+      "super_effective_against": ["Psychic", "Ghost"],
+      "not_very_effective_against": ["Dark"],
+      "no_effect_against": ["Normal"]
+    },
+    {
+      "name": "Dragon",
+      "super_effective_against": ["Dragon"],
+      "not_very_effective_against": ["Steel"],
+      "no_effect_against": ["Fairy"]
+    },
+    {
+      "name": "Dark",
+      "super_effective_against": ["Psychic", "Ghost"],
+      "not_very_effective_against": ["Fighting", "Dark", "Fairy"]
+    },
+    {
+      "name": "Steel",
+      "super_effective_against": ["Ice", "Rock", "Fairy"],
+      "not_very_effective_against": ["Fire", "Water", "Electric", "Steel"],
+      "status_immunities": ["poison"]
+    },
+    {
+      "name": "Fairy",
+      "super_effective_against": ["Fighting", "Dragon", "Dark"],
+      "not_very_effective_against": ["Fire", "Poison", "Steel"]
+    }
+  ],
+  "weathers": [
+    {
+      "name": "Rain",
+      "damage_modifiers": {
+        "Water": [3, 2],
+        "Fire": [1, 2]
+      }
+    },
+    {
+      "name": "Sun",
+      "damage_modifiers": {
+        "Fire": [3, 2],
+        "Water": [1, 2]
+      },
+      "prevents_statuses": ["freeze"]
+    },
+    {
+      "name": "Sandstorm",
+      "residual_damage": [1, 16],
+      "residual_damage_immune_types": ["Rock", "Ground", "Steel"],
+      "defense_boosts": [
+        {
+          "type": "Rock",
+          "stat": "special_defense",
+          "modifier": [3, 2]
+        }
+      ]
+    },
+    {
+      "name": "Snow",
+      "defense_boosts": [
+        {
+          "type": "Ice",
+          "stat": "defense",
+          "modifier": [3, 2]
+        }
+      ]
+    }
+  ],
+  "species": [
+    {
+      "name": "Cindercub",
+      "types": ["Fire"],
+      "base_stats": {
+        "hp": 65,
+        "attack": 80,
+        "defense": 60,
+        "special_attack": 85,
+        "special_defense": 65,
+        "speed": 95
+      }
+    },
+    {
+      "name": "Tidewhelp",
+      "types": ["Water"],
+      "base_stats": {
+        "hp": 80,
+        "attack": 70,
+        "defense": 80,
+        "special_attack": 85,
+        "special_defense": 80,
+        "speed": 60
+      }
+    },
+    {
+      "name": "Bramblehog",
+      "types": ["Grass"],
+      "base_stats": {
+        "hp": 75,
+        "attack": 85,
+        "defense": 85,
+        "special_attack": 60,
+        "special_defense": 75,
+        "speed": 55
+      }
+    },
+    {
+      "name": "Zaplet",
+      "types": ["Electric"],
+      "base_stats": {
+        "hp": 55,
+        "attack": 60,
+        "defense": 55,
+        "special_attack": 100,
+        "special_defense": 70,
+        "speed": 110
+      }
+    },
+    {
+      "name": "Craghorn",
+      "types": ["Rock", "Ground"],
+      "base_stats": {
+        "hp": 90,
+        "attack": 110,
+        "defense": 120,
+        "special_attack": 40,
+        "special_defense": 60,
+        "speed": 40
+      }
+    },
+    {
+      "name": "Galewing",
+      "types": ["Normal", "Flying"],
+      "base_stats": {
+        "hp": 70,
+        "attack": 85,
+        "defense": 65,
+        "special_attack": 60,
+        "special_defense": 65,
+        "speed": 105
+      }
+    },
+    {
+      "name": "Frostmaw",
+      "types": ["Ice", "Dark"],
+      "base_stats": {
+        "hp": 85,
+        "attack": 100,
+        "defense": 70,
+        "special_attack": 70,
+        "special_defense": 70,
+        "speed": 75
+      }
+    },
+    {
+      "name": "Mirewisp",
+      "types": ["Ghost", "Poison"],
+      "base_stats": {
+        "hp": 60,
+        "attack": 50,
+        "defense": 70,
+        "special_attack": 100,
+        "special_defense": 90,
+        "speed": 85
+      }
+    },
+    {
+      "name": "Ironmantis",
+      "types": ["Bug", "Steel"],
+      "base_stats": {
+        "hp": 70,
+        "attack": 105,
+        "defense": 100,
+        "special_attack": 45,
+        "special_defense": 75,
+        "speed": 65
+      }
+    },
+    {
+      "name": "Lumifae",
+      "types": ["Fairy", "Psychic"],
+      "base_stats": {
+        "hp": 75,
+        "attack": 45,
+        "defense": 70,
+        "special_attack": 105,
+        "special_defense": 105,
+        "speed": 70
+      }
+    },
+    {
+      "name": "Dunewyrm",
+      "types": ["Ground", "Dragon"],
+      "base_stats": {
+        "hp": 95,
+        "attack": 105,
+        "defense": 80,
+        "special_attack": 60,
+        "special_defense": 70,
+        "speed": 85
+      }
+    },
+    {
+      "name": "Brawlstag",
+      "types": ["Fighting"],
+      "base_stats": {
+        "hp": 85,
+        "attack": 115,
+        "defense": 75,
+        "special_attack": 45,
+        "special_defense": 70,
+        "speed": 85
+      }
+    }
+  ],
+  "moves": [
+    {
+      "name": "Pounce",
+      "type": "Normal",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 100,
+      "pp": 35
+    },
+    {
+      "name": "Swift Strike",
+      "type": "Normal",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 100,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "name": "Reckless Rush",
+      "type": "Normal",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 100,
+      "pp": 15,
+      "recoil": {
+        "damage_dealt": [33, 100]
+      }
+    },
+    {
+      "name": "Tail Flurry",
+      "type": "Normal",
+      "category": "physical",
+      "power": 25,
+      "accuracy": 100,
+      "pp": 20,
+      "hits": [2, 5]
+    },
+    {
+      "name": "Rally Cry",
+      "type": "Normal",
+      "category": "status",
+      "pp": 20,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "boost": {
+              "stat": "attack",
+              "stages": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hunker Down",
+      "type": "Normal",
+      "category": "status",
+      "pp": 20,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "boost": {
+              "stat": "defense",
+              "stages": 1
+            }
+          }
+        },
+        {
+          "effect": {
+            "boost": {
+              "stat": "special_defense",
+              "stages": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tailwind Step",
+      "type": "Flying",
+      "category": "status",
+      "pp": 20,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "boost": {
+              "stat": "speed",
+              "stages": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Second Wind",
+      "type": "Normal",
+      "category": "status",
+      "pp": 5,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "heal": [1, 2]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dizzy Dance",
+      "type": "Normal",
+      "category": "status",
+      "accuracy": 100,
+      "pp": 10,
+      "effects": [
+        {
+          "effect": "confuse"
+        }
+      ]
+    },
+    {
+      "name": "Glare Down",
+      "type": "Normal",
+      "category": "status",
+      "accuracy": 100,
+      "pp": 30,
+      "effects": [
+        {
+          "effect": {
+            "boost": {
+              "stat": "attack",
+              "stages": -1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ember Snap",
+      "type": "Fire",
+      "category": "physical",
+      "power": 75,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 10,
+          "effect": {
+            "status": "burn"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Blaze Burst",
+      "type": "Fire",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 10,
+          "effect": {
+            "status": "burn"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scorch Veil",
+      "type": "Fire",
+      "category": "status",
+      "accuracy": 85,
+      "pp": 15,
+      "effects": [
+        {
+          "effect": {
+            "status": "burn"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sunny Call",
+      "type": "Fire",
+      "category": "status",
+      "pp": 5,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "weather": "Sun"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Riptide",
+      "type": "Water",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 15
+    },
+    {
+      "name": "Aqua Lunge",
+      "type": "Water",
+      "category": "physical",
+      "power": 80,
+      "accuracy": 100,
+      "pp": 10
+    },
+    {
+      "name": "Rain Call",
+      "type": "Water",
+      "category": "status",
+      "pp": 5,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "weather": "Rain"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Thorn Volley",
+      "type": "Grass",
+      "category": "physical",
+      "power": 25,
+      "accuracy": 100,
+      "pp": 20,
+      "hits": [2, 5]
+    },
+    {
+      "name": "Sap Siphon",
+      "type": "Grass",
+      "category": "special",
+      "power": 75,
+      "accuracy": 100,
+      "pp": 10,
+      "drain": [1, 2]
+    },
+    {
+      "name": "Spore Cloud",
+      "type": "Grass",
+      "category": "status",
+      "accuracy": 75,
+      "pp": 15,
+      "effects": [
+        {
+          "effect": {
+            "status": "sleep"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Static Jolt",
+      "type": "Electric",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 10,
+          "effect": {
+            "status": "paralysis"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Volt Snare",
+      "type": "Electric",
+      "category": "status",
+      "accuracy": 90,
+      "pp": 20,
+      "respects_type_immunity": true,
+      "effects": [
+        {
+          "effect": {
+            "status": "paralysis"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Frost Fang",
+      "type": "Ice",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 10,
+          "effect": {
+            "status": "freeze"
+          }
+        },
+        {
+          "chance": 10,
+          "effect": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Blizzard Breath",
+      "type": "Ice",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 10,
+      "effects": [
+        {
+          "chance": 10,
+          "effect": {
+            "status": "freeze"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Snow Call",
+      "type": "Ice",
+      "category": "status",
+      "pp": 10,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "weather": "Snow"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Haymaker",
+      "type": "Fighting",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 100,
+      "pp": 5,
+      "effects": [
+        {
+          "target": "user",
+          "effect": {
+            "boost": {
+              "stat": "defense",
+              "stages": -1
+            }
+          }
+        },
+        {
+          "target": "user",
+          "effect": {
+            "boost": {
+              "stat": "special_defense",
+              "stages": -1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Venom Mist",
+      "type": "Poison",
+      "category": "status",
+      "accuracy": 90,
+      "pp": 10,
+      "effects": [
+        {
+          "effect": {
+            "status": "toxic"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sludge Spit",
+      "type": "Poison",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 10,
+      "effects": [
+        {
+          "chance": 30,
+          "effect": {
+            "status": "poison"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tremor",
+      "type": "Ground",
+      "category": "physical",
+      "power": 100,
+      "accuracy": 100,
+      "pp": 10
+    },
+    {
+      "name": "Sand Call",
+      "type": "Rock",
+      "category": "status",
+      "pp": 10,
+      "target": "user",
+      "effects": [
+        {
+          "effect": {
+            "weather": "Sandstorm"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Gale Dive",
+      "type": "Flying",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 100,
+      "pp": 15,
+      "recoil": {
+        "damage_dealt": [33, 100]
+      }
+    },
+    {
+      "name": "Wind Cutter",
+      "type": "Flying",
+      "category": "special",
+      "power": 75,
+      "accuracy": 95,
+      "pp": 15,
+      "crit_stage": 1
+    },
+    {
+      "name": "Mind Pulse",
+      "type": "Psychic",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 10,
+      "effects": [
+        {
+          "chance": 10,
+          "effect": {
+            "boost": {
+              "stat": "special_defense",
+              "stages": -1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pincer Slash",
+      "type": "Bug",
+      "category": "physical",
+      "power": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "crit_stage": 1
+    },
+    {
+      "name": "Rockfall",
+      "type": "Rock",
+      "category": "physical",
+      "power": 75,
+      "accuracy": 90,
+      "pp": 10,
+      "effects": [
+        {
+          "chance": 30,
+          "effect": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Shade Claw",
+      "type": "Ghost",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 100,
+      "pp": 15,
+      "crit_stage": 1
+    },
+    {
+      "name": "Phantom Wail",
+      "type": "Ghost",
+      "category": "special",
+      "power": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 20,
+          "effect": {
+            "boost": {
+              "stat": "special_defense",
+              "stages": -1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wyrm Fang",
+      "type": "Dragon",
+      "category": "physical",
+      "power": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 20,
+          "effect": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Night Bite",
+      "type": "Dark",
+      "category": "physical",
+      "power": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 20,
+          "effect": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Alloy Ram",
+      "type": "Steel",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 90,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 10,
+          "target": "user",
+          "effect": {
+            "boost": {
+              "stat": "defense",
+              "stages": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Glimmer Beam",
+      "type": "Fairy",
+      "category": "special",
+      "power": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 30,
+          "effect": {
+            "boost": {
+              "stat": "special_attack",
+              "stages": -1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
