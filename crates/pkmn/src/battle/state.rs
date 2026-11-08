@@ -147,6 +147,10 @@ pub enum QueuedAction {
         slot: Option<usize>,
         /// The chosen target location in doubles (see [`Position::target_location`]).
         target: Option<i8>,
+        /// The move it uses, fixed when it is chosen (Showdown's `action.move`): a creature
+        /// that faints loses its rampage, but its queued move does not change.
+        #[serde(rename = "move")]
+        move_id: MoveId,
     },
 }
 

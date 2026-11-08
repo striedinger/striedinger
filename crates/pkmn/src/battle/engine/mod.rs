@@ -216,9 +216,11 @@ impl<'a> Engine<'a> {
                     choice.target()
                 };
                 // A validated move choice that is not selectable can only be Struggle's slot 0.
+                let slot = pokemon.can_select_move(self.dex, slot).then_some(slot);
                 Some(QueuedAction::Move {
-                    slot: pokemon.can_select_move(self.dex, slot).then_some(slot),
+                    slot,
                     target,
+                    move_id: self.queued_move(side, slot),
                 })
             }
         }
@@ -282,15 +284,24 @@ impl<'a> Engine<'a> {
     /// which can draw in doubles.
     fn resolve_targets(&mut self, queue: &mut [Option<QueuedAction>; 4]) {
         for position in Position::ALL {
-            let Some(QueuedAction::Move { slot, target }) = queue[position.flat()] else {
+            let Some(QueuedAction::Move {
+                slot,
+                target,
+                move_id,
+            }) = queue[position.flat()]
+            else {
                 continue;
             };
-            let move_data = self.dex.move_data(self.queued_move(position, slot));
+            let move_data = self.dex.move_data(move_id);
             let target = target.or_else(|| {
                 let chosen = self.get_random_target(position, move_data);
                 Some(position.target_location(chosen))
             });
-            queue[position.flat()] = Some(QueuedAction::Move { slot, target });
+            queue[position.flat()] = Some(QueuedAction::Move {
+                slot,
+                target,
+                move_id,
+            });
             self.get_target(position, move_data, target);
         }
     }
@@ -300,8 +311,11 @@ impl<'a> Engine<'a> {
     /// foe (Showdown's `getActionSpeed` in `runAction`).
     fn redraw_targets(&mut self, queue: &[Option<QueuedAction>; 4]) {
         for position in Position::ALL {
-            if let Some(QueuedAction::Move { slot, target }) = queue[position.flat()] {
-                let move_data = self.dex.move_data(self.queued_move(position, slot));
+            if let Some(QueuedAction::Move {
+                target, move_id, ..
+            }) = queue[position.flat()]
+            {
+                let move_data = self.dex.move_data(move_id);
                 self.get_target(position, move_data, target);
             }
         }
@@ -319,7 +333,7 @@ impl<'a> Engine<'a> {
                 self.switch_in(side, slot);
                 self.run_switch_in([side].into_iter().collect());
             }
-            QueuedAction::Move { slot, target } => {
+            QueuedAction::Move { slot, target, .. } => {
                 if !self.active(side).is_fainted() {
                     let others_will_act = queue.iter().any(Option::is_some);
                     self.will_move =
@@ -352,20 +366,11 @@ impl<'a> Engine<'a> {
         false
     }
 
-    fn priority(&self, side: Position, action: QueuedAction) -> i8 {
-        let pokemon = self.active(side);
-        let move_id = match action {
-            QueuedAction::Switch(_) => return 0,
-            _ if pokemon.forced_move().is_some() => pokemon.forced_move(),
-            QueuedAction::Move {
-                slot: Some(slot), ..
-            } => pokemon.move_slots[slot].map(|move_slot| move_slot.id),
-            QueuedAction::Move { slot: None, .. } => Some(self.dex.struggle()),
-        };
-        let Some(move_id) = move_id else {
-            return 0;
-        };
-        self.dex.move_data(move_id).priority
+    fn priority(&self, action: QueuedAction) -> i8 {
+        match action {
+            QueuedAction::Switch(_) => 0,
+            QueuedAction::Move { move_id, .. } => self.dex.move_data(move_id).priority,
+        }
     }
 
     /// The position whose queued action runs next: switches first, then by priority, then by
@@ -389,14 +394,14 @@ impl<'a> Engine<'a> {
         if let [first, second] = *waiting.as_mut_slice() {
             let first_action = queue[first.flat()].expect("a waiting position has an action");
             let second_action = queue[second.flat()].expect("a waiting position has an action");
-            let key = |engine: &Self, position, action| {
+            let key = |engine: &Self, action| {
                 (
                     matches!(action, QueuedAction::Switch(_)),
-                    engine.priority(position, action),
+                    engine.priority(action),
                 )
             };
             return Some(
-                match key(self, first, first_action).cmp(&key(self, second, second_action)) {
+                match key(self, first_action).cmp(&key(self, second_action)) {
                     Ordering::Greater => first,
                     Ordering::Less => second,
                     Ordering::Equal => {
@@ -411,7 +416,7 @@ impl<'a> Engine<'a> {
             let action = queue[position.flat()].expect("a waiting position has an action");
             (
                 matches!(action, QueuedAction::Switch(_)),
-                engine.priority(position, action),
+                engine.priority(action),
             )
         };
         // Speed is only computed when switching and priority do not decide.

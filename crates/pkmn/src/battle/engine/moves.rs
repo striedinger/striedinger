@@ -165,7 +165,8 @@ impl Engine<'_> {
             | MoveTarget::AllAdjacentFoes
             | MoveTarget::AllAdjacent => self.hit_targets(side, targets, move_data, priority)?,
         };
-        if worked && (move_data.stalling_move || move_data.guard) {
+        // A guard's `onHitSide` builds the stall counter even when the guard is already up.
+        if (worked && move_data.stalling_move) || move_data.guard {
             self.restart_stall(side);
         }
         let index = usize::from(side.index);

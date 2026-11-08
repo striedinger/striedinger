@@ -245,8 +245,14 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
     }
     let queued_slot_is_valid = |side: &Side, action: &QueuedAction| match *action {
         QueuedAction::Switch(slot) => slot < side.team.len(),
-        QueuedAction::Move { slot, target } => {
-            slot.is_none_or(|slot| slot < MAX_MOVES) && target.is_none_or(|target| target != 0)
+        QueuedAction::Move {
+            slot,
+            target,
+            move_id,
+        } => {
+            slot.is_none_or(|slot| slot < MAX_MOVES)
+                && target.is_none_or(|target| target != 0)
+                && move_id.index() < dex.move_count()
         }
     };
     if state
