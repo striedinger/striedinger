@@ -273,29 +273,30 @@ impl<'a> Engine<'a> {
         // every action as Generation 8 onward does. Showdown re-sorts the queue after an
         // action that ran only when the head of the old order is a move, resolving every
         // queued move's target again; a fainted creature's skipped move or shift re-sorts
-        // nothing. Only a shift, in triples, can make the old head and the next actor differ.
+        // nothing. Only a shift, in triples, can make the old head and the next actor differ,
+        // so the old order is kept only while the queue holds one.
         let mut ran = true;
-        // The head of the old order, once an action has run, when the queue holds a shift.
-        let mut old_head: Option<Position> = None;
+        let mut old_order: Option<Positions> = None;
         loop {
-            let stale = old_head.filter(|head| queue[head.flat()] == Some(QueuedAction::Shift));
+            let head = old_order
+                .as_ref()
+                .and_then(|order| order.iter().find(|head| queue[head.flat()].is_some()));
+            let stale = head.filter(|head| !ran || queue[head.flat()] == Some(QueuedAction::Shift));
             let Some(side) = stale.or_else(|| self.next_actor(&queue, false)) else {
                 break;
             };
             let action = queue[side.flat()];
             let is_move = matches!(action, Some(QueuedAction::Move { .. }));
-            let head_is_move = old_head.map_or(is_move, |head| {
-                matches!(queue[head.flat()], Some(QueuedAction::Move { .. }))
-            });
-            if ran && stale.is_none() && head_is_move && self.state.game_type.active_per_side() > 1
-            {
-                self.redraw_targets(&queue);
-            }
-            old_head = None;
-            if queue.contains(&Some(QueuedAction::Shift)) {
-                let mut rest = queue;
-                rest[side.flat()] = None;
-                old_head = self.next_actor(&rest, false);
+            if stale.is_none() {
+                let head_is_move = head.map_or(is_move, |head| {
+                    matches!(queue[head.flat()], Some(QueuedAction::Move { .. }))
+                });
+                if ran && head_is_move && self.state.game_type.active_per_side() > 1 {
+                    self.redraw_targets(&queue);
+                }
+                old_order = queue
+                    .contains(&Some(QueuedAction::Shift))
+                    .then(|| self.queue_order(queue, side));
             }
             let skippable = is_move || action == Some(QueuedAction::Shift);
             ran = !(skippable && self.active(side).is_fainted());
@@ -305,11 +306,32 @@ impl<'a> Engine<'a> {
             if self.act(side, &mut queue) {
                 return;
             }
-            if shifts && old_head == Some(center) {
-                old_head = Some(side);
+            if shifts && let Some(order) = old_order.as_mut() {
+                for position in order.as_mut_slice() {
+                    if *position == center {
+                        *position = side;
+                    } else if *position == side {
+                        *position = center;
+                    }
+                }
             }
         }
         self.residual();
+    }
+
+    /// The order the rest of the queue runs in after `first`, as Showdown's sort leaves it.
+    fn queue_order(
+        &mut self,
+        mut queue: [Option<QueuedAction>; MAX_POSITIONS],
+        first: Position,
+    ) -> Positions {
+        queue[first.flat()] = None;
+        let mut order = Positions::new();
+        while let Some(next) = self.next_actor(&queue, false) {
+            queue[next.flat()] = None;
+            order.push(next);
+        }
+        order
     }
 
     /// The move a queued action uses: a forced move, the slot's move, or Struggle.
