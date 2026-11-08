@@ -166,7 +166,7 @@ jobs:
           app=apps/murmur/build/Murmur.app
           test -f "$app/Contents/MacOS/Murmur"
           rcodesign verify "$app/Contents/MacOS/Murmur"
-          llvm-otool -L "$app/Contents/MacOS/Murmur"
+          "$(ls /usr/bin/llvm-otool* | head -n 1)" -L "$app/Contents/MacOS/Murmur"
 
   delete-darwin-sdk:
     name: Delete the SDK artifact

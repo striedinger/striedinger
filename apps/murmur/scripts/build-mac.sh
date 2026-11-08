@@ -66,21 +66,35 @@ else
   fi
   export SDKROOT
   echo "==> Using $SDKROOT"
-  for tool in clang clang++ llvm-ar llvm-ranlib llvm-install-name-tool llvm-otool rcodesign; do
-    command -v "$tool" >/dev/null || { echo "Missing $tool (see README: Building on Linux)" >&2; exit 1; }
-  done
-  INSTALL_NAME_TOOL=llvm-install-name-tool
-  OTOOL=llvm-otool
+  TOOLSET_BIN="$(dirname "$(dirname "$LD64")")"
+  # Resolve a tool from PATH, then the SDK's toolset, then a versioned name such as
+  # llvm-otool-18 (Debian/Ubuntu don't always install the unversioned links).
+  find_tool() {
+    local name="$1" found
+    if found="$(command -v "$name")"; then echo "$found"; return; fi
+    if [[ -x "$TOOLSET_BIN/$name" ]]; then echo "$TOOLSET_BIN/$name"; return; fi
+    found="$(compgen -c "$name-" | grep -E "^$name-[0-9]+$" | sort -t- -k3 -n | tail -n 1 || true)"
+    if [[ -n "$found" ]]; then command -v "$found"; return; fi
+    echo "Missing $name (see README: Building on Linux)" >&2
+    exit 1
+  }
+  CLANG="$(find_tool clang)"
+  CLANGXX="$(find_tool clang++)"
+  AR="$(find_tool llvm-ar)"
+  RANLIB="$(find_tool llvm-ranlib)"
+  INSTALL_NAME_TOOL="$(find_tool llvm-install-name-tool)"
+  OTOOL="$(find_tool llvm-otool)"
+  find_tool rcodesign >/dev/null
   SWIFT_SDK_ARGS=(--swift-sdk "$SWIFT_TRIPLE")
 
   # Rust and cc-crate builds: clang targeting macOS against the SDK, linked by ld64.lld.
   TRIPLE_ENV="${RUST_TARGET//-/_}"
   TRIPLE_ENV_UPPER="$(echo "$TRIPLE_ENV" | tr '[:lower:]' '[:upper:]')"
   APPLE_FLAGS="--target=$CLANG_TARGET -isysroot $SDKROOT"
-  export "CC_$TRIPLE_ENV=clang" "CXX_$TRIPLE_ENV=clang++" "AR_$TRIPLE_ENV=llvm-ar"
+  export "CC_$TRIPLE_ENV=$CLANG" "CXX_$TRIPLE_ENV=$CLANGXX" "AR_$TRIPLE_ENV=$AR"
   export "CFLAGS_$TRIPLE_ENV=$APPLE_FLAGS" "CXXFLAGS_$TRIPLE_ENV=$APPLE_FLAGS"
   export "BINDGEN_EXTRA_CLANG_ARGS_$TRIPLE_ENV=$APPLE_FLAGS"
-  export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_LINKER=clang"
+  export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_LINKER=$CLANG"
   export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_RUSTFLAGS=-C link-arg=--target=$CLANG_TARGET -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=-fuse-ld=$LD64"
 
   # CMake builds (llama.cpp): a toolchain file that targets Darwin with the same tools.
@@ -92,13 +106,13 @@ set(CMAKE_SYSTEM_PROCESSOR $ARCH)
 set(CMAKE_OSX_SYSROOT "$SDKROOT")
 set(CMAKE_OSX_ARCHITECTURES $ARCH)
 set(CMAKE_OSX_DEPLOYMENT_TARGET $DEPLOYMENT_TARGET)
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_C_COMPILER "$CLANG")
+set(CMAKE_CXX_COMPILER "$CLANGXX")
 set(CMAKE_C_COMPILER_TARGET $CLANG_TARGET)
 set(CMAKE_CXX_COMPILER_TARGET $CLANG_TARGET)
-set(CMAKE_AR llvm-ar)
-set(CMAKE_RANLIB llvm-ranlib)
-set(CMAKE_INSTALL_NAME_TOOL llvm-install-name-tool)
+set(CMAKE_AR "$AR")
+set(CMAKE_RANLIB "$RANLIB")
+set(CMAKE_INSTALL_NAME_TOOL "$INSTALL_NAME_TOOL")
 set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=$LD64")
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "-fuse-ld=$LD64")
 set(CMAKE_MODULE_LINKER_FLAGS_INIT "-fuse-ld=$LD64")
