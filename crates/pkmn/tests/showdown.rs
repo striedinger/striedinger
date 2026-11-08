@@ -10,7 +10,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use pkmn::dex::StatusKind;
+use pkmn::dex::Status;
 use pkmn::stats::{BoostStat, StatTable};
 use pkmn::{Battle, Choice, Dex, Outcome, PokemonSet};
 use serde::Deserialize;
@@ -66,7 +66,7 @@ struct SideSnapshot {
 #[derive(Debug, PartialEq, Eq, Deserialize)]
 struct PokemonSnapshot {
     hp: u16,
-    status: Option<StatusKind>,
+    status: Option<Status>,
     item: Option<String>,
 }
 
@@ -81,8 +81,8 @@ fn snapshot(battle: &Battle) -> Snapshot {
             .map(|weather| dex.weather(weather.id).name.clone()),
         winner: battle.outcome().map(|outcome| {
             match outcome {
-                Outcome::Winner(pkmn::SideId::P1) => "p1",
-                Outcome::Winner(pkmn::SideId::P2) => "p2",
+                Outcome::Win(pkmn::SideId::P1) => "p1",
+                Outcome::Win(pkmn::SideId::P2) => "p2",
                 Outcome::Tie => "tie",
             }
             .to_owned()
@@ -97,7 +97,7 @@ fn snapshot(battle: &Battle) -> Snapshot {
                     .iter()
                     .map(|pokemon| PokemonSnapshot {
                         hp: pokemon.hp,
-                        status: pokemon.status.map(pkmn::battle::StatusCondition::kind),
+                        status: pokemon.status,
                         item: pokemon.item.map(|item| dex.item(item).name.clone()),
                     })
                     .collect(),

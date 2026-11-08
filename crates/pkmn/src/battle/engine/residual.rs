@@ -1,99 +1,77 @@
-//! End-of-turn effects.
+//! End-of-turn ("residual") effects.
 //!
-//! Showdown sorts residual handlers by order, then speed, then sub-order, and checks for faints
-//! after each one, so a battle can end partway through the end of a turn.
+//! Showdown sorts residual handlers by `onResidualOrder`, then speed, then sub-order, and runs
+//! `faintMessages` after each one, so a battle can end partway through the end of a turn. The
+//! orders used here are fixed, so the engine walks them in sequence instead of sorting:
+//! weather (1), healing handlers (5), poison and bad poison (9), burn (10), then boosting
+//! handlers (28).
 
 use super::Engine;
-use crate::battle::events::{DamageCause, Event, HealCause, TraitRef};
-use crate::battle::state::{SideId, StatusCondition};
-use crate::dex::{Fraction, TraitEffect};
-use crate::stats::BoostStat;
+use crate::battle::events::{DamageSource, HealSource};
+use crate::battle::state::SideId;
+use crate::dex::{Handler, HandlerMask, Status};
 
-/// Toxic damage stops growing after this many sixteenths.
+/// Bad poison stops growing after this many sixteenths.
 const MAX_TOXIC_STAGE: u8 = 15;
 
-#[derive(Clone, Copy, Debug)]
-enum Residual {
-    Status,
-    Heal(TraitRef, Fraction),
-    Boost(TraitRef, BoostStat, i8),
-}
-
-impl Residual {
-    /// Showdown's `onResidualOrder` and `onResidualSubOrder` for each kind of handler.
-    fn order(self, status: Option<StatusCondition>) -> (u8, u8) {
-        match self {
-            Self::Status => match status {
-                Some(StatusCondition::Burn) => (10, 0),
-                _ => (9, 0),
-            },
-            Self::Heal(..) => (5, 4),
-            Self::Boost(..) => (28, 2),
-        }
-    }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    Heal,
+    Poison,
+    Burn,
+    Boosts,
 }
 
 impl Engine<'_> {
-    pub(super) fn end_of_turn(&mut self) {
-        let order = self.speed_order();
-        if self.run_weather(order) {
-            return;
-        }
-        let mut handlers = Vec::new();
-        for (rank, &side) in order.iter().enumerate() {
-            let pokemon = self.active(side);
-            if pokemon.is_fainted() {
-                continue;
-            }
-            let status = pokemon.status;
-            if matches!(
-                status,
-                Some(
-                    StatusCondition::Burn | StatusCondition::Poison | StatusCondition::Toxic { .. }
-                )
-            ) {
-                handlers.push((Residual::Status.order(status), rank, side, Residual::Status));
-            }
-            for (source, effect) in self.trait_effects(side) {
-                let handler = match *effect {
-                    TraitEffect::EndOfTurnHeal(fraction) => Residual::Heal(source, fraction),
-                    TraitEffect::EndOfTurnBoost(stat, stages) => {
-                        Residual::Boost(source, stat, stages)
-                    }
-                    _ => continue,
-                };
-                handlers.push((handler.order(status), rank, side, handler));
-            }
-        }
-        handlers.sort_by_key(|&((order, sub_order), rank, _, _)| (order, rank, sub_order));
-        for (_, _, side, handler) in handlers {
-            if self.active(side).is_fainted() {
-                continue;
-            }
-            self.run_residual(side, handler);
-            if self.resolve_faints() {
+    pub(super) fn residual(&mut self) {
+        let has_work = SideId::BOTH.map(|side| self.has_residual_work(side));
+        let weather = self.state.field.weather.is_some();
+        if weather || has_work.iter().any(|&work| work) {
+            // Speed only decides anything when more than one creature has a handler.
+            let order = if weather || has_work == [true, true] {
+                self.speed_order()
+            } else {
+                SideId::BOTH
+            };
+            if self.weather_residual(order) {
                 return;
+            }
+            for phase in [Phase::Heal, Phase::Poison, Phase::Burn, Phase::Boosts] {
+                for side in order {
+                    if has_work[side.index()] && self.residual_phase(side, phase) {
+                        return;
+                    }
+                }
             }
         }
         for side in SideId::BOTH {
-            self.active_mut(side).volatiles.flinched = false;
+            self.active_mut(side).volatiles.flinch = false;
         }
         self.update();
-        self.begin_next_turn();
+        self.next_turn();
     }
 
-    /// Counts down the weather and applies its residual damage. Returns whether the battle
+    /// Whether the creature has a residual handler: damaging status or a residual ability or
+    /// item.
+    fn has_residual_work(&self, side: SideId) -> bool {
+        let pokemon = self.active(side);
+        !pokemon.is_fainted()
+            && (matches!(
+                pokemon.status,
+                Some(Status::Burn | Status::Poison | Status::Toxic)
+            ) || self.mask(side).intersects(HandlerMask::RESIDUAL))
+    }
+
+    /// Counts down the weather and deals its residual damage. Returns whether the battle
     /// ended.
-    fn run_weather(&mut self, order: [SideId; 2]) -> bool {
+    fn weather_residual(&mut self, order: [SideId; 2]) -> bool {
         let Some(mut weather) = self.state.field.weather else {
             return false;
         };
-        weather.turns_left = weather.turns_left.saturating_sub(1);
-        if weather.turns_left == 0 {
+        weather.duration = weather.duration.saturating_sub(1);
+        if weather.duration == 0 {
             self.state.field.weather = None;
-            self.emit(Event::WeatherEnded {
-                weather: weather.id,
-            });
+            self.emit(crate::battle::events::Event::Weather { weather: None });
             return false;
         }
         self.state.field.weather = Some(weather);
@@ -101,45 +79,79 @@ impl Engine<'_> {
         if let Some(fraction) = data.residual_damage {
             for side in order {
                 let pokemon = self.active(side);
-                let immune = data
-                    .residual_damage_immune_types
-                    .iter()
-                    .any(|&type_id| pokemon.has_type(type_id));
+                let immune = pokemon.types().any(|type_id| {
+                    self.dex
+                        .type_data(type_id)
+                        .weather_immunities
+                        .contains(&weather.id)
+                });
                 if !immune {
                     let amount = fraction.of_floored(u32::from(pokemon.max_hp()));
-                    self.damage(side, amount.max(1), DamageCause::Weather);
+                    self.damage(side, amount.max(1), DamageSource::Weather(weather.id));
                 }
             }
         }
-        self.resolve_faints()
+        self.faint_messages()
     }
 
-    fn run_residual(&mut self, side: SideId, handler: Residual) {
-        let max_hp = u32::from(self.active(side).max_hp());
-        match handler {
-            Residual::Status => {
-                let amount = match &mut self.active_mut(side).status {
-                    Some(StatusCondition::Burn) => (max_hp / 16).max(1),
-                    Some(StatusCondition::Poison) => (max_hp / 8).max(1),
-                    Some(StatusCondition::Toxic { stage }) => {
-                        *stage = (*stage + 1).min(MAX_TOXIC_STAGE);
-                        (max_hp / 16).max(1) * u32::from(*stage)
-                    }
-                    _ => return,
+    /// Runs one side's handlers for one residual phase. Returns whether the battle ended.
+    fn residual_phase(&mut self, side: SideId, phase: Phase) -> bool {
+        if self.active(side).is_fainted() {
+            return false;
+        }
+        match phase {
+            Phase::Poison | Phase::Burn => {
+                let pokemon = self.active_mut(side);
+                let Some(status) = pokemon.status else {
+                    return false;
                 };
-                self.damage(side, amount, DamageCause::Status);
-            }
-            Residual::Heal(source, fraction) => {
-                if self.active(side).hp < self.active(side).max_hp() {
-                    self.emit(Event::TraitActivated { side, source });
-                    self.heal(side, fraction.of_floored(max_hp), HealCause::Trait(source));
+                let in_phase = match status {
+                    Status::Burn => phase == Phase::Burn,
+                    Status::Poison | Status::Toxic => phase == Phase::Poison,
+                    Status::Paralysis | Status::Sleep | Status::Freeze => false,
+                };
+                if !in_phase {
+                    return false;
                 }
-            }
-            Residual::Boost(source, stat, stages) => {
-                if !self.active(side).volatiles.entered_this_turn {
-                    self.emit(Event::TraitActivated { side, source });
-                    self.boost(side, stat, stages);
+                if status == Status::Toxic {
+                    pokemon.status_state.stage =
+                        (pokemon.status_state.stage + 1).min(MAX_TOXIC_STAGE);
                 }
+                let amount = Self::status_damage(
+                    status,
+                    u32::from(pokemon.max_hp()),
+                    pokemon.status_state.stage,
+                );
+                self.damage(side, amount, DamageSource::Status(status));
+                self.faint_messages()
+            }
+            Phase::Heal | Phase::Boosts => {
+                if !self.mask(side).intersects(HandlerMask::RESIDUAL) {
+                    return false;
+                }
+                for (effect, handler) in self.handlers(side) {
+                    match *handler {
+                        Handler::ResidualHeal(fraction) if phase == Phase::Heal => {
+                            let pokemon = self.active(side);
+                            if !pokemon.is_fainted() && pokemon.hp < pokemon.max_hp() {
+                                let amount = fraction.of_floored(u32::from(pokemon.max_hp()));
+                                self.announce(side, effect);
+                                self.heal(side, amount, HealSource::Effect(effect));
+                            }
+                        }
+                        Handler::ResidualBoosts(boosts)
+                            if phase == Phase::Boosts && self.active(side).active_turns > 0 =>
+                        {
+                            self.announce(side, effect);
+                            self.boost(side, boosts);
+                        }
+                        _ => {}
+                    }
+                    if self.faint_messages() {
+                        return true;
+                    }
+                }
+                false
             }
         }
     }

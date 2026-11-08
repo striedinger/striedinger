@@ -1,26 +1,19 @@
 //! Stats, speed, and damage with ability and item modifiers, chained in 4096 fixed point like
-//! the games.
+//! Showdown's `chainModify`. Each lookup first checks the holder's handler mask, so creatures
+//! without a relevant handler skip the work entirely.
 
 use super::Engine;
 use crate::battle::damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
-use crate::battle::state::{Pokemon, SideId, StatusCondition};
-use crate::dex::{Condition, MoveCategory, MoveData, TraitEffect};
-use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, apply_modifier, apply_stage};
+use crate::battle::state::{Pokemon, SideId};
+use crate::dex::{Condition, Handler, HandlerMask, MoveCategory, MoveData, Status};
+use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, apply_modifier, apply_stage, chain_modifiers};
 
 /// Speed is capped here before ordering.
 const MAX_SPEED: u32 = 10_000;
-/// Action order compares speed in 13 bits, as Showdown does.
+/// Action order compares speed in 13 bits, as Showdown's `getActionSpeed` does.
 const ACTION_SPEED_BITS: u32 = 13;
 /// Base power of a confusion self-hit.
 const CONFUSION_POWER: u16 = 40;
-
-/// Combines 4096-based modifiers, rounding each step like Showdown's `chainModify`.
-fn chain(modifiers: impl IntoIterator<Item = u32>) -> u32 {
-    modifiers.into_iter().fold(MODIFIER_SCALE, |total, next| {
-        let product = u64::from(total) * u64::from(next) + u64::from(MODIFIER_SCALE / 2);
-        u32::try_from(product >> 12).unwrap_or(u32::MAX)
-    })
-}
 
 /// What a modifier condition is evaluated against.
 #[derive(Clone, Copy)]
@@ -50,10 +43,7 @@ impl Engine<'_> {
             Condition::Category(category) => context
                 .move_data
                 .is_some_and(|data| data.category == category),
-            Condition::HpAtMost(fraction) => {
-                u32::from(holder.hp) * u32::from(fraction.denominator)
-                    <= u32::from(holder.max_hp()) * u32::from(fraction.numerator)
-            }
+            Condition::HpAtMost(fraction) => fraction.covers(holder.hp, holder.max_hp()),
             Condition::FullHp => holder.hp == holder.max_hp(),
             Condition::Statused => holder.status.is_some(),
             Condition::Weather(weather) => self.weather_id() == Some(weather),
@@ -61,16 +51,21 @@ impl Engine<'_> {
         }
     }
 
-    /// Chains every modifier the holder's traits contribute through `select`.
-    fn trait_modifier(
+    /// Chains every modifier `select` picks from the holder's handlers, skipping the walk
+    /// entirely when the holder has no handler of `kind`.
+    fn chained(
         &self,
         side: SideId,
+        kind: HandlerMask,
         context: Context<'_>,
-        select: impl Fn(&TraitEffect) -> Option<(u32, &[Condition])>,
+        select: impl Fn(&Handler) -> Option<(u32, &[Condition])>,
     ) -> u32 {
+        if !self.mask(side).intersects(kind) {
+            return MODIFIER_SCALE;
+        }
         let holder = self.active(side);
-        chain(self.trait_effects(side).filter_map(|(_, effect)| {
-            let (modifier, conditions) = select(effect)?;
+        chain_modifiers(self.handlers(side).filter_map(|(_, handler)| {
+            let (modifier, conditions) = select(handler)?;
             conditions
                 .iter()
                 .all(|&condition| self.condition_holds(condition, holder, context))
@@ -78,19 +73,27 @@ impl Engine<'_> {
         }))
     }
 
-    /// A stat after its stage, any weather boost, and trait modifiers.
+    /// A stat after its stage, any weather boost (applied first, as Showdown's sandstorm and
+    /// snow handlers are), and `modifyStat` handlers.
     fn modified_stat(&self, side: SideId, stat: Stat, stage: i8, context: Context<'_>) -> u32 {
         let pokemon = self.active(side);
         let mut value = apply_stage(pokemon.stats.get(stat), stage);
-        if let Some(weather) = self.weather() {
+        if matches!(stat, Stat::Defense | Stat::SpecialDefense)
+            && let Some(weather) = self.weather()
+        {
             for boost in &weather.defense_boosts {
                 if boost.stat == stat && pokemon.has_type(boost.type_id) {
                     value = apply_modifier(value, boost.modifier);
                 }
             }
         }
-        let modifier = self.trait_modifier(side, context, |effect| match effect {
-            TraitEffect::StatModifier {
+        let kind = if stat == Stat::Speed {
+            HandlerMask::MODIFY_SPEED
+        } else {
+            HandlerMask::MODIFY_STAT
+        };
+        let modifier = self.chained(side, kind, context, |handler| match handler {
+            Handler::ModifyStat {
                 stat: modified,
                 modifier,
                 conditions,
@@ -100,12 +103,12 @@ impl Engine<'_> {
         apply_modifier(value, modifier)
     }
 
-    /// The speed used to order actions and end-of-turn effects.
+    /// Showdown's `getActionSpeed`: the speed used to order actions and end-of-turn effects.
     pub(super) fn action_speed(&self, side: SideId) -> u32 {
         let pokemon = self.active(side);
         let stage = pokemon.boosts.get(BoostStat::Speed);
         let mut speed = self.modified_stat(side, Stat::Speed, stage, Context::NO_MOVE);
-        if pokemon.status == Some(StatusCondition::Paralysis) {
+        if pokemon.status == Some(Status::Paralysis) {
             speed /= 2;
         }
         speed.min(MAX_SPEED) % (1 << ACTION_SPEED_BITS)
@@ -134,8 +137,8 @@ impl Engine<'_> {
         calculate_damage(&DamageInput { roll, ..input })
     }
 
-    /// Everything about a hit except the random roll.
-    pub(crate) fn damage_input(
+    /// Showdown's `getDamage` and `modifyDamage`, short of the random roll.
+    fn damage_input(
         &self,
         side: SideId,
         target: SideId,
@@ -169,46 +172,28 @@ impl Engine<'_> {
             move_data: Some(move_data),
             type_modifier,
         };
-        let power_modifier = self.trait_modifier(side, context, |effect| match effect {
-            TraitEffect::PowerModifier {
-                modifier,
-                conditions,
-            } => Some((*modifier, conditions.as_slice())),
-            _ => None,
-        });
-        let power = apply_modifier(u32::from(move_data.power), power_modifier).max(1);
-        let has_stab = move_data
-            .move_type
-            .is_some_and(|move_type| attacker.has_type(move_type));
-        let stab_modifier = if has_stab {
-            self.trait_effects(side)
-                .find_map(|(_, effect)| match effect {
-                    TraitEffect::StabModifier(modifier) => Some(*modifier),
+        let base_power_modifier =
+            self.chained(
+                side,
+                HandlerMask::BASE_POWER,
+                context,
+                |handler| match handler {
+                    Handler::BasePower {
+                        modifier,
+                        conditions,
+                    } => Some((*modifier, conditions.as_slice())),
                     _ => None,
-                })
-                .unwrap_or(STAB_MODIFIER)
-        } else {
-            MODIFIER_SCALE
-        };
-        let dealt = self.trait_modifier(side, context, |effect| match effect {
-            TraitEffect::DamageDealtModifier {
-                modifier,
-                conditions,
-            } => Some((*modifier, conditions.as_slice())),
-            _ => None,
-        });
-        let taken = self.trait_modifier(target, context, |effect| match effect {
-            TraitEffect::DamageTakenModifier {
-                modifier,
-                conditions,
-            } => Some((*modifier, conditions.as_slice())),
-            _ => None,
-        });
-        let ignores_burn =
-            attacker.has_trait_effect(self.dex, |effect| *effect == TraitEffect::IgnoresBurn);
+                },
+            );
+        let base_power =
+            apply_modifier(u32::from(move_data.base_power), base_power_modifier).max(1);
+        let ignores_burn = self.mask(side).intersects(HandlerMask::ATTACK_RULES)
+            && self
+                .handlers(side)
+                .any(|(_, handler)| *handler == Handler::IgnoreBurnPenalty);
         DamageInput {
             level: attacker.level,
-            power: u16::try_from(power).unwrap_or(u16::MAX),
+            power: u16::try_from(base_power).unwrap_or(u16::MAX),
             attack: self.modified_stat(side, attack_stat, attack_stage, context),
             defense: self.modified_stat(target, defense_stat, defense_stage, context),
             weather_modifier: self.weather().and_then(|weather| {
@@ -220,40 +205,76 @@ impl Engine<'_> {
             }),
             critical,
             roll: 0,
-            stab_modifier,
+            stab_modifier: self.stab_modifier(side, move_data),
             type_modifier,
             burned: move_data.category == MoveCategory::Physical
-                && attacker.status == Some(StatusCondition::Burn)
+                && attacker.status == Some(Status::Burn)
                 && !ignores_burn,
-            final_modifier: chain([dealt, taken]),
+            final_modifier: self.final_damage_modifier(side, target, context),
         }
     }
 
-    /// Rolls the damage of a confusion self-hit, which ignores every modifier but stages.
+    /// The same-type attack bonus, or a `modifySTAB` handler's replacement for it.
+    fn stab_modifier(&self, side: SideId, move_data: &MoveData) -> u32 {
+        let attacker = self.active(side);
+        if !move_data
+            .move_type
+            .is_some_and(|move_type| attacker.has_type(move_type))
+        {
+            return MODIFIER_SCALE;
+        }
+        if !self.mask(side).intersects(HandlerMask::ATTACK_RULES) {
+            return STAB_MODIFIER;
+        }
+        self.handlers(side)
+            .find_map(|(_, handler)| match handler {
+                Handler::ModifyStab(modifier) => Some(*modifier),
+                _ => None,
+            })
+            .unwrap_or(STAB_MODIFIER)
+    }
+
+    /// Showdown's `ModifyDamage` chain: the attacker's `modifyDamage` handlers, then the
+    /// defender's `sourceModifyDamage` handlers.
+    fn final_damage_modifier(&self, side: SideId, target: SideId, context: Context<'_>) -> u32 {
+        let dealt = self.chained(
+            side,
+            HandlerMask::MODIFY_DAMAGE,
+            context,
+            |handler| match handler {
+                Handler::ModifyDamage {
+                    modifier,
+                    conditions,
+                } => Some((*modifier, conditions.as_slice())),
+                _ => None,
+            },
+        );
+        let taken = self.chained(
+            target,
+            HandlerMask::SOURCE_MODIFY_DAMAGE,
+            context,
+            |handler| match handler {
+                Handler::SourceModifyDamage {
+                    modifier,
+                    conditions,
+                } => Some((*modifier, conditions.as_slice())),
+                _ => None,
+            },
+        );
+        chain_modifiers([dealt, taken])
+    }
+
+    /// Showdown's `getConfusionDamage`: a 40-power typeless hit that ignores every modifier
+    /// but stat stages.
     pub(super) fn confusion_damage(&mut self, side: SideId) -> u32 {
         let pokemon = self.active(side);
         let input = DamageInput::neutral(
             pokemon.level,
             CONFUSION_POWER,
-            apply_stage(pokemon.stats.attack, pokemon.boosts.get(BoostStat::Attack)),
-            apply_stage(
-                pokemon.stats.defense,
-                pokemon.boosts.get(BoostStat::Defense),
-            ),
+            apply_stage(pokemon.stats.attack, pokemon.boosts.attack),
+            apply_stage(pokemon.stats.defense, pokemon.boosts.defense),
         );
         let roll = self.state.prng.below(DAMAGE_ROLLS);
         calculate_damage(&DamageInput { roll, ..input })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::chain;
-
-    #[test]
-    fn chained_modifiers_round_at_each_step() {
-        assert_eq!(chain([]), 4096);
-        assert_eq!(chain([6144, 6144]), 9216);
-        assert_eq!(chain([5324, 4915]), 6389);
     }
 }

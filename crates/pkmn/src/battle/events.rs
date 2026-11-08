@@ -1,23 +1,28 @@
+//! What happened in battle, named after Pokémon Showdown's protocol messages (`switch`,
+//! `move`, `-damage`, `-boost`, `-weather`, `faint`, `win`, ...).
+
 use serde::{Deserialize, Serialize};
 
-use super::state::{Outcome, SideId};
-use crate::dex::{AbilityId, ItemId, MoveId, SpeciesId, StatusKind, WeatherId};
+use super::state::SideId;
+use crate::dex::{AbilityId, ItemId, MoveId, SpeciesId, Status, VolatileStatus, WeatherId};
 use crate::stats::BoostStat;
 
-/// Something that happened in battle, in the order it happened.
-///
-/// Frontends render these; the engine never produces text. Sides name the creature that is
-/// currently active on that side.
+/// Something that happened in battle, in order. Frontends render these; the engine never
+/// produces text. A side names the creature currently active on it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "event", rename_all = "snake_case")]
+#[serde(
+    tag = "event",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum Event {
-    /// A new turn begins and both sides may choose actions.
-    TurnStarted {
+    /// `turn`: a new turn begins and both sides choose.
+    Turn {
         /// The turn number.
         turn: u32,
     },
-    /// A creature entered the field.
-    SwitchedIn {
+    /// `switch`: a creature entered the field.
+    Switch {
         /// The side.
         side: SideId,
         /// Its team slot.
@@ -29,203 +34,211 @@ pub enum Event {
         /// Its max HP.
         max_hp: u16,
     },
-    /// A creature used a move.
-    MoveUsed {
+    /// `move`: a creature used a move.
+    Move {
         /// The user's side.
         side: SideId,
         /// The move.
         move_id: MoveId,
     },
-    /// A creature could not act.
-    CantMove {
+    /// `cant`: a creature could not move.
+    Cant {
         /// The creature's side.
         side: SideId,
-        /// Why it could not act.
-        reason: CantMoveReason,
+        /// Why.
+        reason: CantReason,
     },
-    /// A move missed.
-    Missed {
+    /// `-miss`: a move missed.
+    Miss {
         /// The user's side.
         side: SideId,
     },
-    /// A move had no effect for a reason other than type immunity.
-    Failed {
+    /// `-fail`: a move did nothing.
+    Fail {
         /// The user's side.
         side: SideId,
     },
-    /// The target's type made it immune.
+    /// `-immune`: the target was unaffected.
     Immune {
         /// The target's side.
         side: SideId,
     },
-    /// A hit was critical.
-    CriticalHit {
+    /// `-crit`: a critical hit.
+    Crit {
         /// The target's side.
         side: SideId,
     },
-    /// A hit was super effective.
+    /// `-supereffective`.
     SuperEffective {
         /// The target's side.
         side: SideId,
     },
-    /// A hit was not very effective.
-    NotVeryEffective {
+    /// `-resisted`: not very effective.
+    Resisted {
         /// The target's side.
         side: SideId,
     },
-    /// A creature lost HP.
-    Damaged {
+    /// `-damage`: a creature lost HP.
+    Damage {
         /// The creature's side.
         side: SideId,
         /// HP lost.
         amount: u16,
         /// HP left.
         hp: u16,
-        /// What caused it.
-        cause: DamageCause,
+        /// What caused it (Showdown's `[from]`).
+        from: DamageSource,
     },
-    /// A creature restored HP.
-    Healed {
+    /// `-heal`: a creature restored HP.
+    Heal {
         /// The creature's side.
         side: SideId,
         /// HP restored.
         amount: u16,
         /// HP after healing.
         hp: u16,
-        /// What caused it.
-        cause: HealCause,
+        /// What caused it (Showdown's `[from]`).
+        from: HealSource,
     },
-    /// A multi-hit move finished.
+    /// `-hitcount`: a multi-hit move finished.
     HitCount {
         /// Hits that landed.
         hits: u8,
     },
-    /// A creature received a status.
-    StatusInflicted {
+    /// `-status`: a creature received a status.
+    Status {
         /// The creature's side.
         side: SideId,
         /// The status.
-        status: StatusKind,
+        status: Status,
     },
-    /// A creature's status ended.
-    StatusCured {
+    /// `-curestatus`: a creature's status ended.
+    CureStatus {
         /// The creature's side.
         side: SideId,
         /// The status.
-        status: StatusKind,
+        status: Status,
     },
-    /// A creature became confused.
-    ConfusionStarted {
+    /// `-start`: a volatile status began.
+    Start {
         /// The creature's side.
         side: SideId,
+        /// The volatile status.
+        volatile: VolatileStatus,
     },
-    /// A confused creature tried to move while still confused.
-    ConfusionActivated {
+    /// `-activate`: a volatile status took effect, such as confusion on a move attempt.
+    Activate {
         /// The creature's side.
         side: SideId,
+        /// The volatile status.
+        volatile: VolatileStatus,
     },
-    /// A creature snapped out of confusion.
-    ConfusionEnded {
+    /// `-end`: a volatile status ended.
+    End {
         /// The creature's side.
         side: SideId,
+        /// The volatile status.
+        volatile: VolatileStatus,
     },
-    /// A stat stage changed.
-    StatChanged {
+    /// `-boost` / `-unboost`: a stat stage changed.
+    Boost {
         /// The creature's side.
         side: SideId,
         /// The stat.
         stat: BoostStat,
-        /// The change that applied after clamping.
+        /// The change that applied after clamping; negative for `-unboost`.
         stages: i8,
     },
-    /// A weather began.
-    WeatherStarted {
-        /// The weather.
-        weather: WeatherId,
+    /// `-weather`: the weather changed; `None` means it ended.
+    Weather {
+        /// The new weather.
+        weather: Option<WeatherId>,
     },
-    /// A weather ended.
-    WeatherEnded {
-        /// The weather.
-        weather: WeatherId,
-    },
-    /// An ability or item took effect; the events it caused follow.
-    TraitActivated {
+    /// `-ability`: an ability took effect; the events it caused follow.
+    Ability {
         /// The holder's side.
         side: SideId,
-        /// The ability or item.
-        source: TraitRef,
+        /// The ability.
+        ability: AbilityId,
     },
-    /// A held item was used up.
-    ItemConsumed {
+    /// `-item`: an item took effect; the events it caused follow.
+    Item {
         /// The holder's side.
         side: SideId,
         /// The item.
         item: ItemId,
     },
-    /// A creature fainted.
-    Fainted {
+    /// `-enditem`: a held item was used up.
+    EndItem {
+        /// The holder's side.
+        side: SideId,
+        /// The item.
+        item: ItemId,
+    },
+    /// `faint`: a creature fainted.
+    Faint {
         /// The creature's side.
         side: SideId,
     },
-    /// The battle ended.
-    BattleEnded {
-        /// The result.
-        outcome: Outcome,
+    /// `win`: the battle ended with a winner.
+    Win {
+        /// The winning side.
+        side: SideId,
     },
+    /// `tie`: the battle ended without a winner.
+    Tie,
 }
 
-/// An ability or an item.
+/// An ability or item, as named in Showdown's `[from] ability: ...` and `[from] item: ...`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TraitRef {
+#[serde(rename_all = "camelCase")]
+pub enum Effect {
     /// An ability.
     Ability(AbilityId),
     /// A held item.
     Item(ItemId),
 }
 
-/// Why a creature could not act.
+/// Why a creature could not move, with Showdown's `cant` reasons.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CantMoveReason {
-    /// It is asleep.
-    Asleep,
-    /// It is frozen.
-    Frozen,
-    /// It is fully paralyzed.
-    Paralyzed,
-    /// It flinched.
-    Flinched,
-    /// It hurt itself in confusion.
-    HurtItselfInConfusion,
+#[serde(rename_all = "camelCase")]
+pub enum CantReason {
+    /// `slp`: asleep.
+    Sleep,
+    /// `frz`: frozen.
+    Freeze,
+    /// `par`: fully paralyzed.
+    Paralysis,
+    /// `flinch`.
+    Flinch,
 }
 
 /// What caused HP loss.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DamageCause {
+#[serde(rename_all = "camelCase")]
+pub enum DamageSource {
     /// A move hit it.
     Move,
-    /// Recoil from its own move.
+    /// `[from] Recoil`: recoil from its own move.
     Recoil,
-    /// It hit itself in confusion.
+    /// `[from] confusion`: it hurt itself in confusion.
     Confusion,
-    /// Burn or poison.
-    Status,
-    /// The weather.
-    Weather,
-    /// An ability or item.
-    Trait(TraitRef),
+    /// `[from] brn` / `psn` / `tox`.
+    Status(Status),
+    /// `[from] <weather>`.
+    Weather(WeatherId),
+    /// `[from] ability: ...` or `[from] item: ...`.
+    Effect(Effect),
 }
 
 /// What caused HP recovery.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum HealCause {
-    /// It drained HP from its target.
+#[serde(rename_all = "camelCase")]
+pub enum HealSource {
+    /// `[from] drain`.
     Drain,
     /// A healing move.
     Move,
-    /// An ability or item.
-    Trait(TraitRef),
+    /// `[from] ability: ...` or `[from] item: ...`.
+    Effect(Effect),
 }

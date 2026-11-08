@@ -1,25 +1,28 @@
-//! Battle content: types, weather, species, and moves, compiled from an editable [`DexSource`].
+//! Battle content, compiled from an editable [`DexSource`] whose shape follows Pokémon
+//! Showdown's data files.
 //!
 //! Content is referenced by name in data files and by compact numeric IDs during battle, so a
 //! turn never looks up a string.
 
+mod handlers;
 mod source;
-mod traits;
 
 use std::collections::HashMap;
 use std::fmt;
+use std::hash::{BuildHasherDefault, Hasher};
 
 use serde::{Deserialize, Serialize};
 
-pub use source::{
-    DexSource, EffectSource, MoveEffectSource, MoveSource, SpeciesSource, TypeSource,
-    WeatherDefenseBoostSource, WeatherSource,
+pub use handlers::{
+    AbilityData, Condition, ConditionSource, Handler, HandlerMask, HandlerSource, ItemData,
 };
-pub use traits::{
-    BoostSource, Condition, ConditionSource, TraitData, TraitEffect, TraitEffectSource, TraitSource,
+pub use source::{
+    AbilitySource, Accuracy, DexSource, ItemSource, MoveFlags, MoveSource, Multihit, NatureSource,
+    SecondarySource, SelfEffectSource, SpeciesSource, TypeSource, WeatherDefenseBoostSource,
+    WeatherSource,
 };
 
-use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, StatTable};
+use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
 
 macro_rules! id_type {
     ($(#[$meta:meta])* $name:ident($repr:ty)) => {
@@ -47,16 +50,20 @@ id_type!(
     TypeId(u8)
 );
 id_type!(
+    /// Identifies a weather within a [`Dex`].
+    WeatherId(u8)
+);
+id_type!(
+    /// Identifies a nature within a [`Dex`].
+    NatureId(u8)
+);
+id_type!(
     /// Identifies a species within a [`Dex`].
     SpeciesId(u16)
 );
 id_type!(
     /// Identifies a move within a [`Dex`].
     MoveId(u16)
-);
-id_type!(
-    /// Identifies a weather within a [`Dex`].
-    WeatherId(u8)
 );
 id_type!(
     /// Identifies an ability within a [`Dex`].
@@ -93,13 +100,14 @@ impl From<Fraction> for (u16, u16) {
 }
 
 impl Fraction {
-    /// Converts the ratio to the games' 4096-based fixed-point modifier.
+    /// Converts the ratio to a 4096-based modifier, truncating like Showdown.
     #[must_use]
     pub fn to_modifier(self) -> u32 {
         u32::from(self.numerator) * MODIFIER_SCALE / u32::from(self.denominator)
     }
 
-    /// Multiplies `value` by the ratio and rounds to the nearest integer, halves up.
+    /// Multiplies `value` by the ratio and rounds to the nearest integer, halves up, like
+    /// JavaScript's `Math.round`.
     #[must_use]
     pub fn of_rounded(self, value: u32) -> u32 {
         let numerator = u64::from(value) * u64::from(self.numerator) * 2;
@@ -114,40 +122,75 @@ impl Fraction {
             u64::from(value) * u64::from(self.numerator) / u64::from(self.denominator),
         )
     }
+
+    /// Whether `value / total` is at most this ratio, compared exactly.
+    #[must_use]
+    pub fn covers(self, value: u16, total: u16) -> bool {
+        u32::from(value) * u32::from(self.denominator)
+            <= u32::from(total) * u32::from(self.numerator)
+    }
 }
 
-/// A non-volatile status condition.
+/// A non-volatile status, written with Showdown's IDs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum StatusKind {
-    /// Halves physical damage and deals 1/16 max HP each turn.
+pub enum Status {
+    /// Burn: halves physical damage and deals 1/16 max HP each turn.
+    #[serde(rename = "brn")]
     Burn,
-    /// Halves speed and prevents moving 25% of the time.
+    /// Paralysis: halves speed and prevents moving 25% of the time.
+    #[serde(rename = "par")]
     Paralysis,
-    /// Deals 1/8 max HP each turn.
+    /// Poison: deals 1/8 max HP each turn.
+    #[serde(rename = "psn")]
     Poison,
-    /// Deals escalating damage each turn, starting at 1/16 max HP.
+    /// Bad poison: deals escalating damage each turn, starting at 1/16 max HP.
+    #[serde(rename = "tox")]
     Toxic,
-    /// Prevents moving for one to three turns.
+    /// Sleep: prevents moving for one to three turns.
+    #[serde(rename = "slp")]
     Sleep,
-    /// Prevents moving until thawed, with a 20% chance each turn.
+    /// Freeze: prevents moving until thawed, with a 20% chance each turn.
+    #[serde(rename = "frz")]
     Freeze,
 }
 
-impl StatusKind {
-    /// The status a type immunity must list to block this one: `toxic` is blocked by `poison`.
+impl Status {
+    /// Every status.
+    pub const ALL: [Self; 6] = [
+        Self::Burn,
+        Self::Paralysis,
+        Self::Poison,
+        Self::Toxic,
+        Self::Sleep,
+        Self::Freeze,
+    ];
+
+    /// Showdown's ID for the status.
     #[must_use]
-    pub fn immunity_group(self) -> Self {
+    pub fn id(self) -> &'static str {
         match self {
-            Self::Toxic => Self::Poison,
-            other => other,
+            Self::Burn => "brn",
+            Self::Paralysis => "par",
+            Self::Poison => "psn",
+            Self::Toxic => "tox",
+            Self::Sleep => "slp",
+            Self::Freeze => "frz",
         }
     }
 }
 
-/// Whether a move deals physical damage, special damage, or none.
+/// A volatile status: cleared on switching out.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum VolatileStatus {
+    /// Confusion: 2–5 move attempts, each with a 33% chance of hitting itself.
+    Confusion,
+    /// Flinch: cannot move for the rest of the turn.
+    Flinch,
+}
+
+/// A move's category.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum MoveCategory {
     /// Uses Attack against Defense.
     Physical,
@@ -157,31 +200,20 @@ pub enum MoveCategory {
     Status,
 }
 
-/// Who a move is aimed at.
+/// Who a move is aimed at, with Showdown's names.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
 pub enum MoveTarget {
-    /// The opposing active creature. Subject to immunity and accuracy checks.
+    /// `normal`: the opposing active creature. Subject to immunity and accuracy checks.
     #[default]
-    Opponent,
-    /// The user itself. Never misses.
+    #[serde(rename = "normal")]
+    Normal,
+    /// `self`: the user. Never misses.
+    #[serde(rename = "self")]
     User,
 }
 
-/// Who receives a move effect.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EffectTarget {
-    /// Whoever the move hit.
-    #[default]
-    Target,
-    /// The move's user.
-    User,
-}
-
-/// How many times a move strikes, written as `[min, max]` in data files.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(from = "(u8, u8)", into = "(u8, u8)")]
+/// How many times a move strikes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HitRange {
     /// The fewest hits.
     pub min: u8,
@@ -189,31 +221,26 @@ pub struct HitRange {
     pub max: u8,
 }
 
-impl HitRange {
-    /// A move that strikes exactly once.
-    pub const SINGLE: Self = Self { min: 1, max: 1 };
+/// Effects applied to a move's target: its primary effects, or a secondary's.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct MoveEffect {
+    /// Stat stages applied to the target.
+    pub boosts: Option<Boosts>,
+    /// Status inflicted on the target.
+    pub status: Option<Status>,
+    /// Volatile status inflicted on the target.
+    pub volatile_status: Option<VolatileStatus>,
 }
 
-impl From<(u8, u8)> for HitRange {
-    fn from((min, max): (u8, u8)) -> Self {
-        Self { min, max }
-    }
-}
-
-impl From<HitRange> for (u8, u8) {
-    fn from(range: HitRange) -> Self {
-        (range.min, range.max)
-    }
-}
-
-/// Damage a move's user takes after hitting.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case", deny_unknown_fields)]
-pub enum Recoil {
-    /// A fraction of the damage dealt, rounded.
-    DamageDealt(Fraction),
-    /// A fraction of the user's max HP, rounded.
-    MaxHp(Fraction),
+/// A chance-based effect. Each secondary consumes one roll even when its chance is 100%.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Secondary {
+    /// Percent chance; `None` always applies.
+    pub chance: Option<u8>,
+    /// Effects on the target.
+    pub effect: MoveEffect,
+    /// Stat stages applied to the user.
+    pub self_boosts: Option<Boosts>,
 }
 
 /// A compiled type.
@@ -222,8 +249,10 @@ pub struct TypeData {
     /// Display name.
     pub name: String,
     /// Statuses creatures of this type cannot receive.
-    pub status_immunities: Vec<StatusKind>,
-    /// Whether damaging moves of this type thaw a frozen target.
+    pub status_immunities: Vec<Status>,
+    /// Weathers whose residual damage this type ignores.
+    pub weather_immunities: Vec<WeatherId>,
+    /// Whether this type's damaging moves thaw a frozen target.
     pub thaws_frozen_targets: bool,
 }
 
@@ -232,18 +261,16 @@ pub struct TypeData {
 pub struct WeatherData {
     /// Display name.
     pub name: String,
-    /// Turns the weather lasts once summoned.
+    /// Turns it lasts.
     pub duration: u8,
     /// 4096-based damage modifiers by move type.
     pub damage_modifiers: Vec<(TypeId, u32)>,
-    /// Fraction of max HP dealt to each active creature at the end of every turn.
+    /// Fraction of max HP dealt at the end of each turn.
     pub residual_damage: Option<Fraction>,
-    /// Types that ignore the residual damage.
-    pub residual_damage_immune_types: Vec<TypeId>,
-    /// 4096-based defensive stat modifiers by type.
+    /// Defensive stat boosts by type.
     pub defense_boosts: Vec<WeatherDefenseBoost>,
-    /// Statuses that cannot be inflicted during the weather.
-    pub prevents_statuses: Vec<StatusKind>,
+    /// Statuses that cannot be inflicted while it lasts.
+    pub prevents_statuses: Vec<Status>,
 }
 
 /// A defensive stat boost a weather grants to one type.
@@ -255,6 +282,15 @@ pub struct WeatherDefenseBoost {
     pub stat: Stat,
     /// The 4096-based modifier.
     pub modifier: u32,
+}
+
+/// A compiled nature.
+#[derive(Clone, Debug)]
+pub struct NatureData {
+    /// Display name.
+    pub name: String,
+    /// The stats it changes; `None` for neutral natures.
+    pub nature: Option<Nature>,
 }
 
 /// A compiled species.
@@ -270,72 +306,49 @@ pub struct SpeciesData {
     pub base_stats: StatTable,
 }
 
-/// A compiled move effect.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MoveEffect {
-    /// Percent chance the effect applies; `None` always applies.
-    pub chance: Option<u8>,
-    /// Who receives the effect.
-    pub target: EffectTarget,
-    /// What the effect does.
-    pub kind: EffectKind,
-}
-
-/// What a compiled move effect does.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum EffectKind {
-    /// Changes a stat stage.
-    Boost {
-        /// The stat to change.
-        stat: BoostStat,
-        /// Stages to add; negative values lower the stat.
-        stages: i8,
-    },
-    /// Inflicts a non-volatile status.
-    Status(StatusKind),
-    /// Confuses the recipient.
-    Confuse,
-    /// Makes the recipient flinch.
-    Flinch,
-    /// Summons a weather.
-    Weather(WeatherId),
-    /// Restores a fraction of the recipient's max HP.
-    Heal(Fraction),
-}
-
 /// A compiled move.
 #[derive(Clone, Debug)]
 pub struct MoveData {
     /// Display name.
     pub name: String,
-    /// The move's type; `None` for typeless moves.
+    /// The type; `None` for typeless moves.
     pub move_type: Option<TypeId>,
-    /// Physical, special, or status.
+    /// The category.
     pub category: MoveCategory,
     /// Base power; zero for status moves.
-    pub power: u16,
+    pub base_power: u16,
     /// Accuracy percentage; `None` never misses.
     pub accuracy: Option<u8>,
     /// Base PP before PP Ups.
     pub pp: u8,
     /// Priority bracket.
     pub priority: i8,
-    /// Who the move is aimed at.
+    /// Who it is aimed at.
     pub target: MoveTarget,
-    /// Extra critical-hit stages.
-    pub crit_stage: u8,
-    /// How many times the move strikes.
-    pub hits: HitRange,
+    /// Critical-hit ratio; 0 never crits.
+    pub crit_ratio: u8,
+    /// How many times it strikes.
+    pub multihit: HitRange,
     /// Fraction of damage dealt restored to the user.
     pub drain: Option<Fraction>,
-    /// Damage the user takes after hitting.
-    pub recoil: Option<Recoil>,
-    /// Whether a status move fails against types immune to its type.
-    pub respects_type_immunity: bool,
-    /// Whether the move makes contact, triggering contact traits such as `contact_damage`.
-    pub contact: bool,
-    /// Effects applied when the move hits.
-    pub effects: Vec<MoveEffect>,
+    /// Fraction of damage dealt taken as recoil.
+    pub recoil: Option<Fraction>,
+    /// Whether the user loses 1/4 of its max HP after hitting.
+    pub struggle_recoil: bool,
+    /// Move flags.
+    pub flags: MoveFlags,
+    /// Whether type immunities are ignored.
+    pub ignore_immunity: bool,
+    /// Effects on the target without a roll.
+    pub primary: MoveEffect,
+    /// Weather summoned.
+    pub weather: Option<WeatherId>,
+    /// Fraction of the target's max HP restored.
+    pub heal: Option<Fraction>,
+    /// Stat stages applied to the user after one shared roll.
+    pub self_boosts: Option<Boosts>,
+    /// Chance-based effects.
+    pub secondaries: Vec<Secondary>,
 }
 
 impl MoveData {
@@ -346,9 +359,8 @@ impl MoveData {
     }
 }
 
-/// The combined type effectiveness of an attack, as a power of two.
-///
-/// `Some(1)` is super effective (×2), `Some(-2)` is ×0.25, and `None` means no effect.
+/// Combined type effectiveness as a power of two: `Some(1)` is ×2, `Some(-2)` is ×0.25, and
+/// `None` means no effect.
 pub type TypeModifier = Option<i8>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -365,20 +377,66 @@ pub struct Dex {
     types: Vec<TypeData>,
     matchups: Vec<Matchup>,
     weathers: Vec<WeatherData>,
+    natures: Vec<NatureData>,
     species: Vec<SpeciesData>,
     moves: Vec<MoveData>,
-    abilities: Vec<TraitData>,
-    items: Vec<TraitData>,
-    type_ids: HashMap<String, TypeId>,
-    weather_ids: HashMap<String, WeatherId>,
-    species_ids: HashMap<String, SpeciesId>,
-    move_ids: HashMap<String, MoveId>,
-    ability_ids: HashMap<String, AbilityId>,
-    item_ids: HashMap<String, ItemId>,
+    abilities: Vec<AbilityData>,
+    items: Vec<ItemData>,
+    type_ids: NameMap<TypeId>,
+    weather_ids: NameMap<WeatherId>,
+    nature_ids: NameMap<NatureId>,
+    species_ids: NameMap<SpeciesId>,
+    move_ids: NameMap<MoveId>,
+    ability_ids: NameMap<AbilityId>,
+    item_ids: NameMap<ItemId>,
     struggle: MoveId,
 }
 
-/// Normalizes a display name into a lookup key: lowercase letters and digits only.
+/// The 64-bit FNV-1a hash: much cheaper than the default hasher for short name keys, which
+/// come from trusted content packs.
+#[derive(Clone, Copy, Debug)]
+struct FnvHasher(u64);
+
+impl Default for FnvHasher {
+    fn default() -> Self {
+        Self(0xcbf2_9ce4_8422_2325)
+    }
+}
+
+impl Hasher for FnvHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+
+    fn write(&mut self, bytes: &[u8]) {
+        for &byte in bytes {
+            self.0 = (self.0 ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3);
+        }
+    }
+}
+
+type NameMap<Id> = HashMap<String, Id, BuildHasherDefault<FnvHasher>>;
+
+/// The longest name, after normalization, that is looked up without allocating.
+const INLINE_ID_LENGTH: usize = 64;
+
+/// Looks `name` up by its normalized ID, normalizing into a stack buffer when it fits.
+fn lookup<Id: Copy>(ids: &NameMap<Id>, name: &str) -> Option<Id> {
+    let mut buffer = [0_u8; INLINE_ID_LENGTH];
+    let mut length = 0;
+    for byte in name.bytes().filter(u8::is_ascii_alphanumeric) {
+        if length == INLINE_ID_LENGTH {
+            return ids.get(&to_id(name)).copied();
+        }
+        buffer[length] = byte.to_ascii_lowercase();
+        length += 1;
+    }
+    let key = std::str::from_utf8(&buffer[..length]).ok()?;
+    ids.get(key).copied()
+}
+
+/// Normalizes a display name into a lookup key the way Showdown's `toID` does: lowercase
+/// letters and digits only.
 #[must_use]
 pub fn to_id(name: &str) -> String {
     name.chars()
@@ -405,24 +463,33 @@ impl Dex {
     /// Returns an error for duplicate names, unknown references, or impossible values.
     pub fn from_source(source: &DexSource) -> Result<Self, DexError> {
         let mut dex = Self {
-            types: Vec::with_capacity(source.types.len()),
+            types: Vec::new(),
             matchups: Vec::new(),
-            weathers: Vec::with_capacity(source.weathers.len()),
-            species: Vec::with_capacity(source.species.len()),
-            moves: Vec::with_capacity(source.moves.len() + 1),
-            abilities: Vec::with_capacity(source.abilities.len()),
-            items: Vec::with_capacity(source.items.len()),
-            type_ids: HashMap::new(),
-            weather_ids: HashMap::new(),
-            species_ids: HashMap::new(),
-            move_ids: HashMap::new(),
-            ability_ids: HashMap::new(),
-            item_ids: HashMap::new(),
+            weathers: Vec::new(),
+            natures: Vec::new(),
+            species: Vec::new(),
+            moves: Vec::new(),
+            abilities: Vec::new(),
+            items: Vec::new(),
+            type_ids: NameMap::default(),
+            weather_ids: NameMap::default(),
+            nature_ids: NameMap::default(),
+            species_ids: NameMap::default(),
+            move_ids: NameMap::default(),
+            ability_ids: NameMap::default(),
+            item_ids: NameMap::default(),
             struggle: MoveId(0),
         };
-        dex.compile_types(&source.types)?;
+        for type_source in &source.types {
+            let id = TypeId::from_index(dex.type_ids.len()).ok_or(DexError::TooMany("types"))?;
+            insert_unique(&mut dex.type_ids, "type", &type_source.name, id)?;
+        }
         for weather in &source.weathers {
             dex.compile_weather(weather)?;
+        }
+        dex.compile_type_chart(&source.types)?;
+        for nature in &source.natures {
+            dex.compile_nature(nature)?;
         }
         for species in &source.species {
             dex.compile_species(species)?;
@@ -430,60 +497,81 @@ impl Dex {
         for move_source in &source.moves {
             dex.compile_move(move_source)?;
         }
-        for ability in &source.abilities {
-            let id =
-                AbilityId::from_index(dex.abilities.len()).ok_or(DexError::TooMany("abilities"))?;
-            insert_unique(&mut dex.ability_ids, "ability", &ability.name, id)?;
-            let compiled = dex.compile_trait(ability, false)?;
-            dex.abilities.push(compiled);
-        }
-        for item in &source.items {
-            let id = ItemId::from_index(dex.items.len()).ok_or(DexError::TooMany("items"))?;
-            insert_unique(&mut dex.item_ids, "item", &item.name, id)?;
-            let compiled = dex.compile_trait(item, true)?;
-            dex.items.push(compiled);
-        }
         dex.struggle = match dex.move_ids.get("struggle") {
             Some(&id) => id,
             None => dex.compile_move(&built_in_struggle())?,
         };
+        for ability in &source.abilities {
+            let id =
+                AbilityId::from_index(dex.abilities.len()).ok_or(DexError::TooMany("abilities"))?;
+            insert_unique(&mut dex.ability_ids, "ability", &ability.name, id)?;
+            let (handlers, mask) = dex.compile_handlers(&ability.handlers, &ability.name)?;
+            dex.abilities.push(AbilityData {
+                name: ability.name.clone(),
+                handlers,
+                mask,
+            });
+        }
+        for item in &source.items {
+            let id = ItemId::from_index(dex.items.len()).ok_or(DexError::TooMany("items"))?;
+            insert_unique(&mut dex.item_ids, "item", &item.name, id)?;
+            let (handlers, mask) = dex.compile_handlers(&item.handlers, &item.name)?;
+            dex.items.push(ItemData {
+                name: item.name.clone(),
+                consumable: item.consumable,
+                handlers,
+                mask,
+            });
+        }
         Ok(dex)
     }
 
-    fn compile_types(&mut self, sources: &[TypeSource]) -> Result<(), DexError> {
-        for source in sources {
-            let id = TypeId::from_index(self.types.len()).ok_or(DexError::TooMany("types"))?;
-            insert_unique(&mut self.type_ids, "type", &source.name, id)?;
-            self.types.push(TypeData {
-                name: source.name.clone(),
-                status_immunities: source.status_immunities.clone(),
-                thaws_frozen_targets: source.thaws_frozen_targets,
-            });
-        }
-        let count = self.types.len();
+    /// Builds the attacker-by-defender matchup table and immunities from each type's
+    /// `damageTaken`, which may also list status IDs and weather names.
+    fn compile_type_chart(&mut self, sources: &[TypeSource]) -> Result<(), DexError> {
+        let count = sources.len();
         self.matchups = vec![Matchup::Neutral; count * count];
-        for (attacker, source) in sources.iter().enumerate() {
-            let lists = [
-                (&source.super_effective_against, Matchup::SuperEffective),
-                (
-                    &source.not_very_effective_against,
-                    Matchup::NotVeryEffective,
-                ),
-                (&source.no_effect_against, Matchup::NoEffect),
-            ];
-            for (names, matchup) in lists {
-                for name in names {
-                    let defender = self.resolve_type(name, &source.name)?;
-                    let cell = &mut self.matchups[attacker * count + defender.index()];
-                    if *cell != Matchup::Neutral {
-                        return Err(DexError::invalid(
-                            &source.name,
-                            format!("lists its matchup against {name} more than once"),
-                        ));
+        for (defender, source) in sources.iter().enumerate() {
+            let mut status_immunities = Vec::new();
+            let mut weather_immunities = Vec::new();
+            for (key, &code) in &source.damage_taken {
+                if code > 3 {
+                    return Err(DexError::invalid(
+                        &source.name,
+                        format!("damageTaken {key} must be 0, 1, 2, or 3"),
+                    ));
+                }
+                if let Some(attacker) = lookup(&self.type_ids, key) {
+                    self.matchups[attacker.index() * count + defender] = match code {
+                        1 => Matchup::SuperEffective,
+                        2 => Matchup::NotVeryEffective,
+                        3 => Matchup::NoEffect,
+                        _ => Matchup::Neutral,
+                    };
+                } else if let Some(status) =
+                    Status::ALL.into_iter().find(|status| status.id() == key)
+                {
+                    if code == 3 {
+                        status_immunities.push(status);
                     }
-                    *cell = matchup;
+                } else if let Some(weather) = lookup(&self.weather_ids, key) {
+                    if code == 3 {
+                        weather_immunities.push(weather);
+                    }
+                } else {
+                    return Err(DexError::UnknownReference {
+                        kind: "type, status, or weather",
+                        name: key.clone(),
+                        referenced_by: source.name.clone(),
+                    });
                 }
             }
+            self.types.push(TypeData {
+                name: source.name.clone(),
+                status_immunities,
+                weather_immunities,
+                thaws_frozen_targets: source.thaws_frozen_targets,
+            });
         }
         Ok(())
     }
@@ -510,20 +598,12 @@ impl Dex {
         if let Some(fraction) = source.residual_damage {
             validate_fraction(fraction, &source.name)?;
         }
-        let residual_damage_immune_types = source
-            .residual_damage_immune_types
-            .iter()
-            .map(|type_name| self.resolve_type(type_name, &source.name))
-            .collect::<Result<_, _>>()?;
         let defense_boosts = source
             .defense_boosts
             .iter()
             .map(|boost| {
                 if !matches!(boost.stat, Stat::Defense | Stat::SpecialDefense) {
-                    return Err(DexError::invalid(
-                        &source.name,
-                        "can only boost defense or special_defense",
-                    ));
+                    return Err(DexError::invalid(&source.name, "can only boost def or spd"));
                 }
                 Ok(WeatherDefenseBoost {
                     type_id: self.resolve_type(&boost.type_name, &source.name)?,
@@ -537,9 +617,31 @@ impl Dex {
             duration: source.duration,
             damage_modifiers,
             residual_damage: source.residual_damage,
-            residual_damage_immune_types,
             defense_boosts,
             prevents_statuses: source.prevents_statuses.clone(),
+        });
+        Ok(())
+    }
+
+    fn compile_nature(&mut self, source: &NatureSource) -> Result<(), DexError> {
+        let id = NatureId::from_index(self.natures.len()).ok_or(DexError::TooMany("natures"))?;
+        insert_unique(&mut self.nature_ids, "nature", &source.name, id)?;
+        let nature = match (source.plus, source.minus) {
+            (None, None) => None,
+            (Some(plus), Some(minus)) if plus == minus => None,
+            (Some(plus), Some(minus)) if plus != Stat::Hp && minus != Stat::Hp => {
+                Some(Nature { plus, minus })
+            }
+            _ => {
+                return Err(DexError::invalid(
+                    &source.name,
+                    "needs both plus and minus (not HP), or neither",
+                ));
+            }
+        };
+        self.natures.push(NatureData {
+            name: source.name.clone(),
+            nature,
         });
         Ok(())
     }
@@ -562,17 +664,7 @@ impl Dex {
                 ));
             }
         };
-        let base = source.base_stats;
-        if [
-            base.hp,
-            base.attack,
-            base.defense,
-            base.special_attack,
-            base.special_defense,
-            base.speed,
-        ]
-        .contains(&0)
-        {
+        if source.base_stats.min() == 0 {
             return Err(DexError::invalid(
                 &source.name,
                 "every base stat must be at least 1",
@@ -582,7 +674,7 @@ impl Dex {
             name: source.name.clone(),
             primary_type,
             secondary_type,
-            base_stats: base,
+            base_stats: source.base_stats,
         });
         Ok(())
     }
@@ -591,241 +683,149 @@ impl Dex {
         let id = MoveId::from_index(self.moves.len()).ok_or(DexError::TooMany("moves"))?;
         insert_unique(&mut self.move_ids, "move", &source.name, id)?;
         let name = source.name.as_str();
-        let move_type = source
-            .type_name
-            .as_deref()
-            .map(|type_name| self.resolve_type(type_name, name))
-            .transpose()?;
+        let move_type = match source.type_name.as_deref() {
+            None | Some("???") => None,
+            Some(type_name) => Some(self.resolve_type(type_name, name)?),
+        };
         let damaging = source.category != MoveCategory::Status;
-        if damaging && source.power == 0 {
-            return Err(DexError::invalid(name, "damaging moves need power"));
-        }
-        if !damaging
-            && (source.power > 0
-                || source.hits.is_some()
-                || source.drain.is_some()
-                || matches!(source.recoil, Some(Recoil::DamageDealt(_))))
-        {
-            return Err(DexError::invalid(
-                name,
-                "status moves cannot have power, hits, drain, or damage-based recoil",
-            ));
-        }
-        if source.pp == 0 {
-            return Err(DexError::invalid(name, "needs at least 1 PP"));
-        }
-        if source
-            .accuracy
-            .is_some_and(|accuracy| accuracy == 0 || accuracy > 100)
-        {
-            return Err(DexError::invalid(
-                name,
-                "accuracy must be between 1 and 100",
-            ));
-        }
-        let hits = source.hits.unwrap_or(HitRange::SINGLE);
-        if hits.min == 0 || hits.min > hits.max {
-            return Err(DexError::invalid(
-                name,
-                "hits must be [min, max] with 1 <= min <= max",
-            ));
-        }
-        for fraction in [source.drain, source.recoil.map(recoil_fraction)]
-            .into_iter()
-            .flatten()
-        {
-            validate_fraction(fraction, name)?;
-        }
-        let effects = source
-            .effects
+        let multihit = validate_move_shape(source)?;
+        let primary = MoveEffect {
+            boosts: validate_boosts(source.boosts, name)?,
+            status: source.status,
+            volatile_status: source.volatile_status,
+        };
+        let weather = source
+            .weather
+            .as_deref()
+            .map(|weather_name| self.resolve_weather(weather_name, name))
+            .transpose()?;
+        let secondaries = source
+            .secondaries
             .iter()
-            .map(|effect| self.compile_effect(effect, name))
-            .collect::<Result<_, _>>()?;
+            .map(|secondary| compile_secondary(secondary, name))
+            .collect::<Result<_, DexError>>()?;
+        let self_boosts = validate_boosts(
+            source.self_effect.as_ref().map(|effect| effect.boosts),
+            name,
+        )?;
         self.moves.push(MoveData {
             name: source.name.clone(),
             move_type,
             category: source.category,
-            power: source.power,
-            accuracy: source.accuracy,
+            base_power: source.base_power,
+            accuracy: source.accuracy.0,
             pp: source.pp,
             priority: source.priority,
             target: source.target,
-            crit_stage: source.crit_stage,
-            hits,
+            crit_ratio: source.crit_ratio,
+            multihit,
             drain: source.drain,
             recoil: source.recoil,
-            respects_type_immunity: source.respects_type_immunity,
-            contact: source.contact,
-            effects,
+            struggle_recoil: source.struggle_recoil,
+            flags: source.flags,
+            ignore_immunity: source.ignore_immunity.unwrap_or(!damaging),
+            primary,
+            weather,
+            heal: source.heal,
+            self_boosts,
+            secondaries,
         });
         Ok(id)
     }
 
-    fn compile_effect(
-        &self,
-        source: &MoveEffectSource,
-        owner: &str,
-    ) -> Result<MoveEffect, DexError> {
-        traits::validate_chance(source.chance, owner)?;
-        let kind = match &source.effect {
-            EffectSource::Boost { stat, stages } => {
-                if *stages == 0 {
-                    return Err(DexError::invalid(
-                        owner,
-                        "boost effects need non-zero stages",
-                    ));
-                }
-                EffectKind::Boost {
-                    stat: *stat,
-                    stages: *stages,
-                }
-            }
-            EffectSource::Status(status) => EffectKind::Status(*status),
-            EffectSource::Confuse => EffectKind::Confuse,
-            EffectSource::Flinch => EffectKind::Flinch,
-            EffectSource::Weather(weather_name) => {
-                EffectKind::Weather(self.resolve_weather(weather_name, owner)?)
-            }
-            EffectSource::Heal(fraction) => EffectKind::Heal(validate_fraction(*fraction, owner)?),
-        };
-        Ok(MoveEffect {
-            chance: source.chance,
-            target: source.target,
-            kind,
-        })
-    }
-
     fn resolve_type(&self, name: &str, referenced_by: &str) -> Result<TypeId, DexError> {
-        self.type_ids
-            .get(&to_id(name))
-            .copied()
-            .ok_or_else(|| DexError::UnknownReference {
-                kind: "type",
-                name: name.to_owned(),
-                referenced_by: referenced_by.to_owned(),
-            })
+        resolve(&self.type_ids, "type", name, referenced_by)
     }
 
     fn resolve_weather(&self, name: &str, referenced_by: &str) -> Result<WeatherId, DexError> {
-        self.weather_ids
-            .get(&to_id(name))
-            .copied()
-            .ok_or_else(|| DexError::UnknownReference {
-                kind: "weather",
-                name: name.to_owned(),
-                referenced_by: referenced_by.to_owned(),
-            })
+        resolve(&self.weather_ids, "weather", name, referenced_by)
     }
 
-    /// Returns an ability by ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the ID is not from this dex.
-    #[must_use]
-    pub fn ability(&self, id: AbilityId) -> &TraitData {
-        &self.abilities[id.index()]
-    }
-
-    /// Returns an item by ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the ID is not from this dex.
-    #[must_use]
-    pub fn item(&self, id: ItemId) -> &TraitData {
-        &self.items[id.index()]
-    }
-
-    /// Looks up an ability by name, ignoring case, spaces, and punctuation.
-    #[must_use]
-    pub fn ability_id(&self, name: &str) -> Option<AbilityId> {
-        self.ability_ids.get(&to_id(name)).copied()
-    }
-
-    /// Looks up an item by name, ignoring case, spaces, and punctuation.
-    #[must_use]
-    pub fn item_id(&self, name: &str) -> Option<ItemId> {
-        self.item_ids.get(&to_id(name)).copied()
-    }
-
-    /// The number of abilities.
-    #[must_use]
-    pub fn ability_count(&self) -> usize {
-        self.abilities.len()
-    }
-
-    /// The number of items.
-    #[must_use]
-    pub fn item_count(&self) -> usize {
-        self.items.len()
-    }
-
-    /// Returns a type by ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the ID is not from this dex.
+    /// Returns a type. Panics if the ID is not from this dex.
     #[must_use]
     pub fn type_data(&self, id: TypeId) -> &TypeData {
         &self.types[id.index()]
     }
 
-    /// Returns a weather by ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the ID is not from this dex.
+    /// Returns a weather. Panics if the ID is not from this dex.
     #[must_use]
     pub fn weather(&self, id: WeatherId) -> &WeatherData {
         &self.weathers[id.index()]
     }
 
-    /// Returns a species by ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the ID is not from this dex.
+    /// Returns a nature. Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn nature(&self, id: NatureId) -> &NatureData {
+        &self.natures[id.index()]
+    }
+
+    /// Returns a species. Panics if the ID is not from this dex.
     #[must_use]
     pub fn species(&self, id: SpeciesId) -> &SpeciesData {
         &self.species[id.index()]
     }
 
-    /// Returns a move by ID.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the ID is not from this dex.
+    /// Returns a move. Panics if the ID is not from this dex.
     #[must_use]
     pub fn move_data(&self, id: MoveId) -> &MoveData {
         &self.moves[id.index()]
     }
 
+    /// Returns an ability. Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn ability(&self, id: AbilityId) -> &AbilityData {
+        &self.abilities[id.index()]
+    }
+
+    /// Returns an item. Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn item(&self, id: ItemId) -> &ItemData {
+        &self.items[id.index()]
+    }
+
     /// Looks up a type by name, ignoring case, spaces, and punctuation.
     #[must_use]
     pub fn type_id(&self, name: &str) -> Option<TypeId> {
-        self.type_ids.get(&to_id(name)).copied()
+        lookup(&self.type_ids, name)
     }
 
-    /// Looks up a weather by name, ignoring case, spaces, and punctuation.
+    /// Looks up a weather by name.
     #[must_use]
     pub fn weather_id(&self, name: &str) -> Option<WeatherId> {
-        self.weather_ids.get(&to_id(name)).copied()
+        lookup(&self.weather_ids, name)
     }
 
-    /// Looks up a species by name, ignoring case, spaces, and punctuation.
+    /// Looks up a nature by name.
+    #[must_use]
+    pub fn nature_id(&self, name: &str) -> Option<NatureId> {
+        lookup(&self.nature_ids, name)
+    }
+
+    /// Looks up a species by name.
     #[must_use]
     pub fn species_id(&self, name: &str) -> Option<SpeciesId> {
-        self.species_ids.get(&to_id(name)).copied()
+        lookup(&self.species_ids, name)
     }
 
-    /// Looks up a move by name, ignoring case, spaces, and punctuation.
+    /// Looks up a move by name.
     #[must_use]
     pub fn move_id(&self, name: &str) -> Option<MoveId> {
-        self.move_ids.get(&to_id(name)).copied()
+        lookup(&self.move_ids, name)
     }
 
-    /// The move used when a creature has no PP left in any move.
+    /// Looks up an ability by name.
+    #[must_use]
+    pub fn ability_id(&self, name: &str) -> Option<AbilityId> {
+        lookup(&self.ability_ids, name)
+    }
+
+    /// Looks up an item by name.
+    #[must_use]
+    pub fn item_id(&self, name: &str) -> Option<ItemId> {
+        lookup(&self.item_ids, name)
+    }
+
+    /// The move used when nothing else can be selected.
     #[must_use]
     pub fn struggle(&self) -> MoveId {
         self.struggle
@@ -843,6 +843,12 @@ impl Dex {
         self.weathers.len()
     }
 
+    /// The number of natures.
+    #[must_use]
+    pub fn nature_count(&self) -> usize {
+        self.natures.len()
+    }
+
     /// The number of species.
     #[must_use]
     pub fn species_count(&self) -> usize {
@@ -853,6 +859,18 @@ impl Dex {
     #[must_use]
     pub fn move_count(&self) -> usize {
         self.moves.len()
+    }
+
+    /// The number of abilities.
+    #[must_use]
+    pub fn ability_count(&self) -> usize {
+        self.abilities.len()
+    }
+
+    /// The number of items.
+    #[must_use]
+    pub fn item_count(&self) -> usize {
+        self.items.len()
     }
 
     /// Combines an attacking type's matchups against every defending type.
@@ -880,24 +898,106 @@ fn built_in_struggle() -> MoveSource {
         name: "Struggle".to_owned(),
         type_name: None,
         category: MoveCategory::Physical,
-        power: 50,
-        accuracy: None,
+        base_power: 50,
+        accuracy: Accuracy(None),
         pp: 1,
         priority: 0,
-        target: MoveTarget::Opponent,
-        crit_stage: 0,
-        hits: None,
+        target: MoveTarget::Normal,
+        crit_ratio: 1,
+        multihit: None,
         drain: None,
-        recoil: Some(Recoil::MaxHp(Fraction::from((1, 4)))),
-        respects_type_immunity: false,
-        contact: true,
-        effects: Vec::new(),
+        recoil: None,
+        struggle_recoil: true,
+        flags: MoveFlags { contact: true },
+        ignore_immunity: None,
+        boosts: None,
+        status: None,
+        volatile_status: None,
+        weather: None,
+        heal: None,
+        self_effect: None,
+        secondaries: Vec::new(),
     }
 }
 
-fn recoil_fraction(recoil: Recoil) -> Fraction {
-    match recoil {
-        Recoil::DamageDealt(fraction) | Recoil::MaxHp(fraction) => fraction,
+/// Checks a move's fields fit its category and returns its hit range.
+fn validate_move_shape(source: &MoveSource) -> Result<HitRange, DexError> {
+    let name = source.name.as_str();
+    let damaging = source.category != MoveCategory::Status;
+    if damaging && source.base_power == 0 {
+        return Err(DexError::invalid(name, "damaging moves need basePower"));
+    }
+    if !damaging
+        && (source.base_power > 0
+            || source.multihit.is_some()
+            || source.drain.is_some()
+            || source.recoil.is_some()
+            || source.struggle_recoil)
+    {
+        return Err(DexError::invalid(
+            name,
+            "status moves cannot have basePower, multihit, drain, or recoil",
+        ));
+    }
+    if source.pp == 0 {
+        return Err(DexError::invalid(name, "needs at least 1 PP"));
+    }
+    if source
+        .accuracy
+        .0
+        .is_some_and(|accuracy| accuracy == 0 || accuracy > 100)
+    {
+        return Err(DexError::invalid(
+            name,
+            "accuracy must be true or between 1 and 100",
+        ));
+    }
+    let multihit = match source.multihit {
+        None => HitRange { min: 1, max: 1 },
+        Some(Multihit::Fixed(hits)) => HitRange {
+            min: hits,
+            max: hits,
+        },
+        Some(Multihit::Range(min, max)) => HitRange { min, max },
+    };
+    if multihit.min == 0 || multihit.min > multihit.max {
+        return Err(DexError::invalid(
+            name,
+            "multihit must be a count or [min, max] with 1 <= min <= max",
+        ));
+    }
+    for fraction in [source.drain, source.recoil, source.heal]
+        .into_iter()
+        .flatten()
+    {
+        validate_fraction(fraction, name)?;
+    }
+    Ok(multihit)
+}
+
+fn compile_secondary(secondary: &SecondarySource, owner: &str) -> Result<Secondary, DexError> {
+    handlers::validate_chance(secondary.chance, owner)?;
+    Ok(Secondary {
+        chance: secondary.chance,
+        effect: MoveEffect {
+            boosts: validate_boosts(secondary.boosts, owner)?,
+            status: secondary.status,
+            volatile_status: secondary.volatile_status,
+        },
+        self_boosts: validate_boosts(
+            secondary.self_effect.as_ref().map(|effect| effect.boosts),
+            owner,
+        )?,
+    })
+}
+
+fn validate_boosts(boosts: Option<Boosts>, owner: &str) -> Result<Option<Boosts>, DexError> {
+    match boosts {
+        Some(boosts) if boosts.is_empty() => Err(DexError::invalid(
+            owner,
+            "boosts need at least one non-zero stage",
+        )),
+        other => Ok(other),
     }
 }
 
@@ -911,8 +1011,21 @@ fn validate_fraction(fraction: Fraction, owner: &str) -> Result<Fraction, DexErr
     Ok(fraction)
 }
 
+fn resolve<Id: Copy>(
+    ids: &NameMap<Id>,
+    kind: &'static str,
+    name: &str,
+    referenced_by: &str,
+) -> Result<Id, DexError> {
+    lookup(ids, name).ok_or_else(|| DexError::UnknownReference {
+        kind,
+        name: name.to_owned(),
+        referenced_by: referenced_by.to_owned(),
+    })
+}
+
 fn insert_unique<Id: Copy>(
-    ids: &mut HashMap<String, Id>,
+    ids: &mut NameMap<Id>,
     kind: &'static str,
     name: &str,
     id: Id,
@@ -1006,14 +1119,10 @@ impl std::error::Error for DexError {
 
 #[cfg(test)]
 mod tests {
-    use super::{Dex, DexError};
+    use super::{Dex, DexError, Status};
 
     fn sample() -> Dex {
         Dex::from_json(crate::SAMPLE_DEX_JSON).expect("the sample dex compiles")
-    }
-
-    fn compile(json: &str) -> Result<Dex, DexError> {
-        Dex::from_json(json)
     }
 
     #[test]
@@ -1035,6 +1144,18 @@ mod tests {
     }
 
     #[test]
+    fn reads_status_and_weather_immunities_from_damage_taken() {
+        let dex = sample();
+        let fire = dex.type_data(dex.type_id("Fire").expect("Fire exists"));
+        assert_eq!(fire.status_immunities, [Status::Burn]);
+        let rock = dex.type_data(dex.type_id("Rock").expect("Rock exists"));
+        let sandstorm = dex
+            .weather_id("Sandstorm")
+            .expect("the sample has sandstorm");
+        assert_eq!(rock.weather_immunities, [sandstorm]);
+    }
+
+    #[test]
     fn looks_up_names_ignoring_case_and_punctuation() {
         let dex = sample();
         assert_eq!(dex.move_id("swift-strike"), dex.move_id("Swift Strike"));
@@ -1044,10 +1165,9 @@ mod tests {
 
     #[test]
     fn rejects_references_to_unknown_content() {
-        let error = compile(
+        let error = Dex::from_json(
             r#"{"types":[{"name":"Fire"}],"species":[{"name":"Blob","types":["Water"],
-            "base_stats":{"hp":1,"attack":1,"defense":1,"special_attack":1,
-            "special_defense":1,"speed":1}}],"moves":[]}"#,
+            "baseStats":{"hp":1,"atk":1,"def":1,"spa":1,"spd":1,"spe":1}}],"moves":[]}"#,
         )
         .unwrap_err();
         assert!(matches!(
@@ -1058,9 +1178,10 @@ mod tests {
 
     #[test]
     fn rejects_names_that_collide_after_normalization() {
-        let error =
-            compile(r#"{"types":[{"name":"Fire"},{"name":"fire"}],"species":[],"moves":[]}"#)
-                .unwrap_err();
+        let error = Dex::from_json(
+            r#"{"types":[{"name":"Fire"},{"name":"fire"}],"species":[],"moves":[]}"#,
+        )
+        .unwrap_err();
         assert!(matches!(
             error,
             DexError::DuplicateName { kind: "type", .. }
@@ -1068,10 +1189,10 @@ mod tests {
     }
 
     #[test]
-    fn rejects_status_moves_with_power() {
-        let error = compile(
+    fn rejects_status_moves_with_base_power() {
+        let error = Dex::from_json(
             r#"{"types":[{"name":"Fire"}],"species":[],"moves":[{"name":"Glow",
-            "type":"Fire","category":"status","power":40,"pp":10}]}"#,
+            "type":"Fire","category":"Status","basePower":40,"accuracy":true,"pp":10}]}"#,
         )
         .unwrap_err();
         assert!(matches!(error, DexError::InvalidValue { .. }));
@@ -1079,8 +1200,8 @@ mod tests {
 
     #[test]
     fn rejects_misspelled_fields() {
-        let error = compile(
-            r#"{"types":[{"name":"Fire","super_efective_against":[]}],"species":[],"moves":[]}"#,
+        let error = Dex::from_json(
+            r#"{"types":[{"name":"Fire","damageTakn":{}}],"species":[],"moves":[]}"#,
         )
         .unwrap_err();
         assert!(matches!(error, DexError::Json(_)));

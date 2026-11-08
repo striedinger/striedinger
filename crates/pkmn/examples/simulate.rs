@@ -1,51 +1,66 @@
-//! Plays random battles with the sample content and reports throughput.
+//! Plays random battles with the sample content and reports engine throughput.
+//!
+//! Teams are generated before timing starts, and choices come from [`Battle::choices`] into a
+//! reused buffer, so the measurement covers building battles and resolving turns.
 //!
 //! ```sh
-//! cargo run --release -p pkmn --example simulate -- 10000
+//! cargo run --release -p pkmn --example simulate -- 20000
 //! cargo run -p pkmn --example simulate -- 1 --log
 //! ```
 
 use std::sync::Arc;
 use std::time::Instant;
 
-use pkmn::battle::{DamageCause, HealCause, TraitRef};
-use pkmn::dex::{AbilityId, ItemId, MoveId, SpeciesId};
+use pkmn::battle::{DamageSource, Effect, HealSource};
+use pkmn::dex::{AbilityId, ItemId, MoveId, NatureId, SpeciesId};
 use pkmn::prng::Prng;
-use pkmn::{Battle, Choice, Dex, Event, Outcome, PokemonSet, Request, SideId};
+use pkmn::{Battle, Dex, Event, Outcome, PokemonSet, SideId};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut arguments = std::env::args().skip(1);
     let battles: u64 = arguments.next().map_or(Ok(1_000), |count| count.parse())?;
     let log = arguments.any(|argument| argument == "--log");
     let dex = Arc::new(Dex::from_json(pkmn::SAMPLE_DEX_JSON)?);
+    let names = Names::new(&dex);
+    let setups: Vec<[Vec<PokemonSet>; 2]> = (0..battles)
+        .map(|seed| {
+            let mut prng = Prng::new(seed ^ 0x9E37_79B9_7F4A_7C15);
+            [names.random_team(&mut prng), names.random_team(&mut prng)]
+        })
+        .collect();
 
     let started = Instant::now();
-    let mut turns = 0_u64;
+    let mut steps = 0_u64;
     let mut wins = [0_u64; 2];
-    for seed in 0..battles {
-        let mut prng = Prng::new(seed ^ 0x9E37_79B9_7F4A_7C15);
-        let teams = [random_team(&dex, &mut prng), random_team(&dex, &mut prng)];
+    let mut options = Vec::with_capacity(16);
+    for (seed, teams) in (0..battles).zip(&setups) {
+        let mut prng = Prng::new(seed);
         let mut battle = Battle::new(Arc::clone(&dex), [&teams[0], &teams[1]], seed)?;
         if log {
             print_events(&dex, battle.events());
         }
         while battle.outcome().is_none() {
-            let choices = SideId::BOTH.map(|side| random_choice(&battle, side, &mut prng));
+            let choices = SideId::BOTH.map(|side| {
+                options.clear();
+                options.extend(battle.choices(side));
+                pick(&options, &mut prng)
+            });
             let events = battle.submit(choices)?;
             if log {
                 print_events(&dex, events);
             }
-            turns += 1;
+            steps += 1;
         }
-        if let Some(Outcome::Winner(side)) = battle.outcome() {
+        if let Some(Outcome::Win(side)) = battle.outcome() {
             wins[side.index()] += 1;
         }
     }
     let elapsed = started.elapsed().as_secs_f64();
+    let per_second = |count: u64| f64::from(u32::try_from(count).unwrap_or(u32::MAX)) / elapsed;
     println!(
-        "{battles} battles, {turns} steps in {elapsed:.3}s: {:.0} battles/s, {:.0} steps/s (P1 {} / P2 {})",
-        f64::from(u32::try_from(battles).unwrap_or(u32::MAX)) / elapsed,
-        f64::from(u32::try_from(turns).unwrap_or(u32::MAX)) / elapsed,
+        "{battles} battles, {steps} steps in {elapsed:.3}s: {:.0} battles/s, {:.0} steps/s (P1 {} / P2 {})",
+        per_second(battles),
+        per_second(steps),
         wins[0],
         wins[1],
     );
@@ -57,77 +72,66 @@ fn pick<T: Copy>(options: &[T], prng: &mut Prng) -> T {
     options[usize::try_from(prng.below(length)).expect("index fits")]
 }
 
-fn random_team(dex: &Dex, prng: &mut Prng) -> Vec<PokemonSet> {
-    let move_names: Vec<&str> = (0..dex.move_count())
-        .filter_map(|index| u16::try_from(index).ok())
-        .map(|index| dex.move_data(MoveId(index)).name.as_str())
-        .filter(|&name| name != "Struggle")
-        .collect();
-    let species: Vec<u16> = (0..dex.species_count())
-        .filter_map(|index| u16::try_from(index).ok())
-        .collect();
-    (0..6)
-        .map(|_| {
-            let mut moves = Vec::new();
-            while moves.len() < 4 {
-                let name = pick(&move_names, prng);
-                if !moves.contains(&name) {
-                    moves.push(name);
-                }
-            }
-            let mut set =
-                PokemonSet::new(&dex.species(SpeciesId(pick(&species, prng))).name, &moves);
-            if let Some(ability) = random_name(prng, dex.ability_count(), |id| {
-                &dex.ability(AbilityId(id)).name
-            }) {
-                set = set.with_ability(ability);
-            }
-            if let Some(item) = random_name(prng, dex.item_count(), |id| &dex.item(ItemId(id)).name)
-            {
-                set = set.with_item(item);
-            }
-            set
-        })
-        .collect()
+/// Content names to build random sets from, gathered once.
+struct Names {
+    species: Vec<String>,
+    moves: Vec<String>,
+    abilities: Vec<String>,
+    items: Vec<String>,
+    natures: Vec<String>,
 }
 
-/// Picks a random name from a table of `count` entries, or none a third of the time.
-fn random_name<'a>(
-    prng: &mut Prng,
-    count: usize,
-    name: impl Fn(u16) -> &'a str,
-) -> Option<&'a str> {
-    let count = u32::try_from(count).ok().filter(|&count| count > 0)?;
-    if prng.chance(1, 3) {
-        return None;
-    }
-    u16::try_from(prng.below(count)).ok().map(name)
-}
-
-fn random_choice(battle: &Battle, side: SideId, prng: &mut Prng) -> Choice {
-    match battle.request(side) {
-        Some(Request::Turn {
-            moves,
-            switches,
-            must_struggle,
-        }) => {
-            let mut options: Vec<Choice> = moves
-                .iter()
-                .filter(|option| !option.disabled)
-                .map(|option| Choice::Move(option.slot))
-                .collect();
-            if must_struggle {
-                options.push(Choice::Struggle);
-            }
-            // Switch rarely so battles look like battles rather than musical chairs.
-            if options.is_empty() || prng.chance(1, 10) {
-                options.extend(switches.into_iter().map(Choice::Switch));
-            }
-            pick(&options, prng)
+impl Names {
+    fn new(dex: &Dex) -> Self {
+        let ids = |count: usize| (0..count).filter_map(|index| u16::try_from(index).ok());
+        let small_ids = |count: usize| (0..count).filter_map(|index| u8::try_from(index).ok());
+        Self {
+            species: ids(dex.species_count())
+                .map(|id| dex.species(SpeciesId(id)).name.clone())
+                .collect(),
+            moves: ids(dex.move_count())
+                .map(|id| dex.move_data(MoveId(id)).name.clone())
+                .filter(|name| name != "Struggle")
+                .collect(),
+            abilities: ids(dex.ability_count())
+                .map(|id| dex.ability(AbilityId(id)).name.clone())
+                .collect(),
+            items: ids(dex.item_count())
+                .map(|id| dex.item(ItemId(id)).name.clone())
+                .collect(),
+            natures: small_ids(dex.nature_count())
+                .map(|id| dex.nature(NatureId(id)).name.clone())
+                .collect(),
         }
-        Some(Request::Replace { switches }) => Choice::Switch(pick(&switches, prng)),
-        Some(Request::Wait) | None => Choice::Pass,
     }
+
+    fn random_team(&self, prng: &mut Prng) -> Vec<PokemonSet> {
+        (0..6)
+            .map(|_| {
+                let mut moves: Vec<&str> = Vec::new();
+                while moves.len() < 4 {
+                    let name = pick_name(&self.moves, prng);
+                    if !moves.contains(&name.as_str()) {
+                        moves.push(name);
+                    }
+                }
+                let mut set = PokemonSet::new(pick_name(&self.species, prng), &moves);
+                set.nature = Some(pick_name(&self.natures, prng).clone());
+                if !prng.chance(1, 3) {
+                    set.ability = Some(pick_name(&self.abilities, prng).clone());
+                }
+                if !prng.chance(1, 3) {
+                    set.item = Some(pick_name(&self.items, prng).clone());
+                }
+                set
+            })
+            .collect()
+    }
+}
+
+fn pick_name<'a>(names: &'a [String], prng: &mut Prng) -> &'a String {
+    let length = u32::try_from(names.len()).expect("few names");
+    &names[usize::try_from(prng.below(length)).expect("index fits")]
 }
 
 fn print_events(dex: &Dex, events: &[Event]) {
@@ -137,17 +141,17 @@ fn print_events(dex: &Dex, events: &[Event]) {
 }
 
 fn describe(dex: &Dex, event: &Event) -> String {
-    let trait_name = |source: &TraitRef| match source {
-        TraitRef::Ability(id) => dex.ability(*id).name.as_str(),
-        TraitRef::Item(id) => dex.item(*id).name.as_str(),
+    let effect_name = |effect: &Effect| match effect {
+        Effect::Ability(id) => dex.ability(*id).name.as_str(),
+        Effect::Item(id) => dex.item(*id).name.as_str(),
     };
     let side = |side: &SideId| match side {
         SideId::P1 => "P1",
         SideId::P2 => "P2",
     };
     match event {
-        Event::TurnStarted { turn } => format!("\n== Turn {turn} =="),
-        Event::SwitchedIn {
+        Event::Turn { turn } => format!("\n== Turn {turn} =="),
+        Event::Switch {
             side: who,
             species,
             hp,
@@ -158,64 +162,79 @@ fn describe(dex: &Dex, event: &Event) -> String {
             side(who),
             dex.species(*species).name
         ),
-        Event::MoveUsed { side: who, move_id } => {
+        Event::Move { side: who, move_id } => {
             format!("{} used {}!", side(who), dex.move_data(*move_id).name)
         }
-        Event::CantMove { side: who, reason } => format!("{} can't move: {reason:?}", side(who)),
-        Event::Missed { side: who } => format!("{}'s attack missed!", side(who)),
-        Event::Failed { .. } => "But it failed!".to_owned(),
+        Event::Cant { side: who, reason } => format!("{} can't move: {reason:?}", side(who)),
+        Event::Miss { side: who } => format!("{}'s attack missed!", side(who)),
+        Event::Fail { .. } => "But it failed!".to_owned(),
         Event::Immune { side: who } => format!("It doesn't affect {}...", side(who)),
-        Event::CriticalHit { .. } => "A critical hit!".to_owned(),
+        Event::Crit { .. } => "A critical hit!".to_owned(),
         Event::SuperEffective { .. } => "It's super effective!".to_owned(),
-        Event::NotVeryEffective { .. } => "It's not very effective...".to_owned(),
-        Event::Damaged {
+        Event::Resisted { .. } => "It's not very effective...".to_owned(),
+        Event::Damage {
             side: who,
             amount,
             hp,
-            cause,
+            from,
         } => {
-            let source = match cause {
-                DamageCause::Move => String::new(),
-                DamageCause::Trait(source) => format!(" from {}", trait_name(source)),
+            let source = match from {
+                DamageSource::Move => String::new(),
+                DamageSource::Status(status) => format!(" from {}", status.id()),
+                DamageSource::Weather(weather) => format!(" from {}", dex.weather(*weather).name),
+                DamageSource::Effect(effect) => format!(" from {}", effect_name(effect)),
                 other => format!(" from {other:?}"),
             };
             format!("{} lost {amount} HP{source} ({hp} left)", side(who))
         }
-        Event::Healed {
+        Event::Heal {
             side: who,
             amount,
             hp,
-            cause,
+            from,
         } => {
-            let source = match cause {
-                HealCause::Drain => " by draining".to_owned(),
-                HealCause::Move => String::new(),
-                HealCause::Trait(source) => format!(" from {}", trait_name(source)),
+            let source = match from {
+                HealSource::Drain => " by draining".to_owned(),
+                HealSource::Move => String::new(),
+                HealSource::Effect(effect) => format!(" from {}", effect_name(effect)),
             };
             format!("{} restored {amount} HP{source} ({hp} now)", side(who))
         }
         Event::HitCount { hits } => format!("Hit {hits} time(s)!"),
-        Event::StatusInflicted { side: who, status } => format!("{} got {status:?}!", side(who)),
-        Event::StatusCured { side: who, status } => {
-            format!("{} is no longer affected by {status:?}", side(who))
+        Event::Status { side: who, status } => format!("{} got {}!", side(who), status.id()),
+        Event::CureStatus { side: who, status } => {
+            format!("{} is cured of {}", side(who), status.id())
         }
-        Event::ConfusionStarted { side: who } => format!("{} became confused!", side(who)),
-        Event::ConfusionActivated { side: who } => format!("{} is confused...", side(who)),
-        Event::ConfusionEnded { side: who } => format!("{} snapped out of confusion!", side(who)),
-        Event::StatChanged {
+        Event::Start {
+            side: who,
+            volatile,
+        } => format!("{} gained {volatile:?}!", side(who)),
+        Event::Activate {
+            side: who,
+            volatile,
+        } => format!("{} is affected by {volatile:?}...", side(who)),
+        Event::End {
+            side: who,
+            volatile,
+        } => format!("{}'s {volatile:?} ended.", side(who)),
+        Event::Boost {
             side: who,
             stat,
             stages,
         } => format!("{}'s {stat:?} changed by {stages:+}", side(who)),
-        Event::WeatherStarted { weather } => format!("{} began.", dex.weather(*weather).name),
-        Event::WeatherEnded { weather } => format!("{} ended.", dex.weather(*weather).name),
-        Event::TraitActivated { side: who, source } => {
-            format!("[{}'s {}]", side(who), trait_name(source))
+        Event::Weather {
+            weather: Some(weather),
+        } => format!("{} began.", dex.weather(*weather).name),
+        Event::Weather { weather: None } => "The weather cleared.".to_owned(),
+        Event::Ability { side: who, ability } => {
+            format!("[{}'s {}]", side(who), dex.ability(*ability).name)
         }
-        Event::ItemConsumed { side: who, item } => {
+        Event::Item { side: who, item } => format!("[{}'s {}]", side(who), dex.item(*item).name),
+        Event::EndItem { side: who, item } => {
             format!("{} used up its {}", side(who), dex.item(*item).name)
         }
-        Event::Fainted { side: who } => format!("{} fainted!", side(who)),
-        Event::BattleEnded { outcome } => format!("\nBattle over: {outcome:?}"),
+        Event::Faint { side: who } => format!("{} fainted!", side(who)),
+        Event::Win { side: who } => format!("\n{} wins!", side(who)),
+        Event::Tie => "\nIt's a tie!".to_owned(),
     }
 }

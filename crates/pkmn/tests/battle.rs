@@ -5,10 +5,8 @@ mod common;
 use std::sync::Arc;
 
 use common::{P1, P2, damage_to, dex, edit, max_hp, movers, play, set, start};
-use pkmn::battle::{
-    CantMoveReason, ChoiceErrorReason, DamageCause, HealCause, StatusCondition, TeamErrorReason,
-};
-use pkmn::dex::StatusKind;
+use pkmn::battle::{CantReason, ChoiceErrorReason, DamageSource, HealSource, TeamErrorReason};
+use pkmn::dex::{Status, VolatileStatus, WeatherId};
 use pkmn::prng::Prng;
 use pkmn::stats::BoostStat;
 use pkmn::{Battle, BattleState, Choice, Event, Outcome, PokemonSet, Request, SideId};
@@ -38,7 +36,7 @@ fn paralysis_halves_speed() {
         3,
     );
     let mut battle = edit(battle, |state| {
-        state.sides[0].team[0].status = Some(StatusCondition::Paralysis);
+        state.sides[0].team[0].status = Some(Status::Paralysis);
     });
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     assert_eq!(movers(&events).first(), Some(&P2));
@@ -56,15 +54,15 @@ fn type_immunities_stop_damaging_moves_and_opted_in_status_moves() {
     );
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     assert!(events.contains(&Event::Immune { side: P2 }));
-    assert!(damage_to(&events, P2, DamageCause::Move).is_empty());
+    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 
     let events = play(&mut battle, Choice::Move(1), Choice::Move(0));
     assert!(events.contains(&Event::Immune { side: P2 }));
 
     let events = play(&mut battle, Choice::Move(1), Choice::Switch(1));
-    let hit = !events.contains(&Event::Missed { side: P1 });
+    let hit = !events.contains(&Event::Miss { side: P1 });
     assert!(
-        !hit || events.contains(&Event::Failed { side: P1 }),
+        !hit || events.contains(&Event::Fail { side: P1 }),
         "Electric types cannot be paralyzed"
     );
 }
@@ -81,20 +79,20 @@ fn burn_deals_a_sixteenth_each_turn_and_fire_types_are_immune() {
             seed,
         );
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-        if !events.contains(&Event::StatusInflicted {
+        if !events.contains(&Event::Status {
             side: P2,
-            status: StatusKind::Burn,
+            status: Status::Burn,
         }) {
             continue;
         }
         assert_eq!(
-            damage_to(&events, P2, DamageCause::Status),
+            damage_to(&events, P2, DamageSource::Status(Status::Burn)),
             [max_hp(&battle, P2) / 16]
         );
 
         let events = play(&mut battle, Choice::Move(0), Choice::Switch(1));
-        if !events.contains(&Event::Missed { side: P1 }) {
-            assert!(events.contains(&Event::Failed { side: P1 }));
+        if !events.contains(&Event::Miss { side: P1 }) {
+            assert!(events.contains(&Event::Fail { side: P1 }));
         }
         return;
     }
@@ -113,10 +111,12 @@ fn weather_lasts_five_turns() {
         .dex()
         .weather_id("Rain")
         .expect("the sample dex has rain");
-    assert!(events.contains(&Event::WeatherStarted { weather: rain }));
+    assert!(events.contains(&Event::Weather {
+        weather: Some(rain)
+    }));
     for turn in 2..=5 {
         let events = play(&mut battle, Choice::Move(1), Choice::Move(0));
-        let ended = events.contains(&Event::WeatherEnded { weather: rain });
+        let ended = events.contains(&Event::Weather { weather: None });
         assert_eq!(ended, turn == 5, "turn {turn}");
     }
 }
@@ -130,10 +130,10 @@ fn sandstorm_chips_creatures_that_are_not_immune() {
     );
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     assert_eq!(
-        damage_to(&events, P2, DamageCause::Weather),
+        damage_to(&events, P2, DamageSource::Weather(sandstorm(&battle))),
         [max_hp(&battle, P2) / 16]
     );
-    assert!(damage_to(&events, P1, DamageCause::Weather).is_empty());
+    assert!(damage_to(&events, P1, DamageSource::Weather(sandstorm(&battle))).is_empty());
 }
 
 #[test]
@@ -146,16 +146,16 @@ fn rain_boosts_water_moves() {
         );
         let mut battle = edit(battle, |state| {
             if rain {
-                state.field.weather = Some(pkmn::battle::ActiveWeather {
+                state.field.weather = Some(pkmn::battle::WeatherState {
                     id: pkmn::dex::WeatherId(0),
-                    turns_left: 5,
+                    duration: 5,
                 });
             }
         });
         damage_to(
             &play(&mut battle, Choice::Move(0), Choice::Move(0)),
             P2,
-            DamageCause::Move,
+            DamageSource::Move,
         )
     };
     let dry = damage_with_rain(false)[0];
@@ -178,15 +178,15 @@ fn fainted_creatures_must_be_replaced_before_the_next_turn() {
     );
     let mut battle = edit(battle, |state| state.sides[0].team[0].hp = 1);
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-    assert!(events.contains(&Event::Fainted { side: P1 }));
+    assert!(events.contains(&Event::Faint { side: P1 }));
     assert!(
         !events
             .iter()
-            .any(|event| matches!(event, Event::TurnStarted { .. }))
+            .any(|event| matches!(event, Event::Turn { .. }))
     );
     assert_eq!(
         battle.request(P1),
-        Some(Request::Replace { switches: vec![1] })
+        Some(Request::ForceSwitch { switches: vec![1] })
     );
     assert_eq!(battle.request(P2), Some(Request::Wait));
 
@@ -196,13 +196,13 @@ fn fainted_creatures_must_be_replaced_before_the_next_turn() {
     let events = play(&mut battle, Choice::Switch(1), Choice::Pass);
     assert!(matches!(
         events[0],
-        Event::SwitchedIn {
+        Event::Switch {
             side: P1,
             slot: 1,
             ..
         }
     ));
-    assert_eq!(events.last(), Some(&Event::TurnStarted { turn: 2 }));
+    assert_eq!(events.last(), Some(&Event::Turn { turn: 2 }));
 }
 
 #[test]
@@ -215,7 +215,7 @@ fn the_battle_ends_when_a_side_has_no_creatures_left() {
     let mut battle = edit(battle, |state| state.sides[1].team[0].hp = 1);
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     assert_eq!(movers(&events), [P1]);
-    assert_eq!(battle.outcome(), Some(Outcome::Winner(P1)));
+    assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
     assert_eq!(battle.request(P1), None);
     let error = battle
         .submit([Choice::Move(0), Choice::Move(0)])
@@ -237,13 +237,13 @@ fn an_attacker_knocked_out_by_its_own_recoil_still_wins() {
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     let faints: Vec<_> = events
         .iter()
-        .filter(|event| matches!(event, Event::Fainted { .. }))
+        .filter(|event| matches!(event, Event::Faint { .. }))
         .collect();
     assert_eq!(
         faints,
-        [&Event::Fainted { side: P2 }, &Event::Fainted { side: P1 }]
+        [&Event::Faint { side: P2 }, &Event::Faint { side: P1 }]
     );
-    assert_eq!(battle.outcome(), Some(Outcome::Winner(P1)));
+    assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
 }
 
 #[test]
@@ -254,31 +254,34 @@ fn struggle_replaces_moves_once_pp_runs_out() {
         29,
     );
     let mut battle = edit(battle, |state| {
-        if let Some(slot) = &mut state.sides[0].team[0].moves[0] {
+        if let Some(slot) = &mut state.sides[0].team[0].move_slots[0] {
             slot.pp = 0;
         }
     });
-    assert!(matches!(
-        battle.request(P1),
-        Some(Request::Turn {
-            must_struggle: true,
-            ..
-        })
-    ));
-    let error = battle
-        .submit([Choice::Move(0), Choice::Move(0)])
-        .unwrap_err();
-    assert_eq!(error.reason, ChoiceErrorReason::MustStruggle);
-
-    let events = play(&mut battle, Choice::Struggle, Choice::Move(0));
     let struggle = battle.dex().struggle();
-    assert!(events.contains(&Event::MoveUsed {
+    let Some(Request::Move { moves, .. }) = battle.request(P1) else {
+        panic!("expected a move request");
+    };
+    assert_eq!(
+        moves
+            .iter()
+            .map(|option| option.move_id)
+            .collect::<Vec<_>>(),
+        [struggle]
+    );
+    let error = battle
+        .submit([Choice::Move(1), Choice::Move(0)])
+        .unwrap_err();
+    assert_eq!(error.reason, ChoiceErrorReason::DisabledMove);
+
+    let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
+    assert!(events.contains(&Event::Move {
         side: P1,
         move_id: struggle
     }));
     let quarter = (u32::from(max_hp(&battle, P1)) * 2 + 4) / 8;
     assert_eq!(
-        damage_to(&events, P1, DamageCause::Recoil),
+        damage_to(&events, P1, DamageSource::Recoil),
         [u16::try_from(quarter).unwrap()]
     );
 }
@@ -293,9 +296,9 @@ fn sleep_lasts_one_to_three_move_attempts() {
             seed,
         );
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-        if !events.contains(&Event::StatusInflicted {
+        if !events.contains(&Event::Status {
             side: P2,
-            status: StatusKind::Sleep,
+            status: Status::Sleep,
         }) {
             continue;
         }
@@ -306,15 +309,15 @@ fn sleep_lasts_one_to_three_move_attempts() {
                 .iter()
                 .filter(|event| {
                     **event
-                        == Event::CantMove {
+                        == Event::Cant {
                             side: P2,
-                            reason: CantMoveReason::Asleep,
+                            reason: CantReason::Sleep,
                         }
                 })
                 .count();
-            if events.contains(&Event::StatusCured {
+            if events.contains(&Event::CureStatus {
                 side: P2,
-                status: StatusKind::Sleep,
+                status: Status::Sleep,
             }) {
                 break;
             }
@@ -341,7 +344,7 @@ fn multi_hit_moves_strike_two_to_five_times() {
             _ => None,
         });
         if let Some(hits) = hits {
-            assert_eq!(damage_to(&events, P2, DamageCause::Move).len(), hits);
+            assert_eq!(damage_to(&events, P2, DamageSource::Move).len(), hits);
             counts.insert(hits);
         }
     }
@@ -357,12 +360,12 @@ fn draining_moves_restore_half_the_damage_dealt() {
     );
     let mut battle = edit(battle, |state| state.sides[0].team[0].hp = 10);
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-    let dealt = u32::from(damage_to(&events, P2, DamageCause::Move)[0]);
+    let dealt = u32::from(damage_to(&events, P2, DamageSource::Move)[0]);
     let healed = events.iter().find_map(|event| match *event {
-        Event::Healed {
+        Event::Heal {
             side: P1,
             amount,
-            cause: HealCause::Drain,
+            from: HealSource::Drain,
             ..
         } => Some(u32::from(amount)),
         _ => None,
@@ -379,14 +382,14 @@ fn boosting_past_six_stages_fails() {
     );
     for _ in 0..3 {
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-        assert!(events.contains(&Event::StatChanged {
+        assert!(events.contains(&Event::Boost {
             side: P1,
             stat: BoostStat::Attack,
             stages: 2
         }));
     }
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-    assert!(events.contains(&Event::Failed { side: P1 }));
+    assert!(events.contains(&Event::Fail { side: P1 }));
     assert_eq!(battle.state().active(P1).boosts.get(BoostStat::Attack), 6);
 }
 
@@ -403,7 +406,10 @@ fn switching_out_clears_boosts_and_confusion() {
     let mut confused = false;
     for _ in 0..5 {
         let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
-        confused |= events.contains(&Event::ConfusionStarted { side: P1 });
+        confused |= events.contains(&Event::Start {
+            side: P1,
+            volatile: VolatileStatus::Confusion,
+        });
         if confused {
             break;
         }
@@ -412,7 +418,7 @@ fn switching_out_clears_boosts_and_confusion() {
     play(&mut battle, Choice::Switch(1), Choice::Move(0));
     let brawlstag = &battle.state().side(P1).team[0];
     assert_eq!(brawlstag.boosts.get(BoostStat::Attack), 0);
-    assert_eq!(brawlstag.volatiles.confusion_turns, 0);
+    assert_eq!(brawlstag.volatiles.confusion, None);
 }
 
 #[test]
@@ -423,24 +429,24 @@ fn fire_moves_thaw_frozen_targets() {
         43,
     );
     let mut battle = edit(battle, |state| {
-        state.sides[1].team[0].status = Some(StatusCondition::Freeze);
+        state.sides[1].team[0].status = Some(Status::Freeze);
     });
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     let hit = events.iter().position(|event| {
         matches!(
             event,
-            Event::Damaged {
+            Event::Damage {
                 side: P2,
-                cause: DamageCause::Move,
+                from: DamageSource::Move,
                 ..
             }
         )
     });
     let thawed = events.iter().position(|event| {
         *event
-            == Event::StatusCured {
+            == Event::CureStatus {
                 side: P2,
-                status: StatusKind::Freeze,
+                status: Status::Freeze,
             }
     });
     assert!(hit.is_some() && thawed > hit, "{events:?}");
@@ -463,7 +469,7 @@ fn saved_battles_resume_identically() {
     let state: BattleState = serde_json::from_str(&saved).unwrap();
     let mut restored = Battle::from_state(dex(), state).unwrap();
     for _ in 0..3 {
-        if original.outcome().is_some() || original.state().awaiting_replacements() {
+        if original.outcome().is_some() || original.state().awaiting_switch() {
             break;
         }
         let a = play(&mut original, Choice::Move(1), Choice::Move(0));
@@ -502,33 +508,27 @@ fn invalid_teams_are_rejected() {
 }
 
 fn random_choice(battle: &Battle, side: SideId, prng: &mut Prng) -> Choice {
-    let pick = |options: &[Choice], prng: &mut Prng| {
-        let index = prng.below(u32::try_from(options.len()).unwrap());
-        options[usize::try_from(index).unwrap()]
-    };
-    match battle.request(side).expect("the battle is ongoing") {
-        Request::Turn {
-            moves,
-            switches,
-            must_struggle,
-        } => {
-            let mut options: Vec<Choice> = moves
-                .iter()
-                .filter(|option| !option.disabled)
-                .map(|option| Choice::Move(option.slot))
-                .collect();
-            if must_struggle {
-                options.push(Choice::Struggle);
-            }
-            options.extend(switches.into_iter().map(Choice::Switch));
-            pick(&options, prng)
-        }
-        Request::Replace { switches } => {
-            let options: Vec<Choice> = switches.into_iter().map(Choice::Switch).collect();
-            pick(&options, prng)
-        }
-        Request::Wait => Choice::Pass,
+    let options: Vec<Choice> = battle.choices(side).collect();
+    assert!(
+        !options.is_empty(),
+        "an ongoing battle always offers a choice"
+    );
+    for &choice in &options {
+        assert!(
+            battle.validate(side, choice).is_ok(),
+            "{choice:?} is offered but invalid"
+        );
     }
+    let index = prng.below(u32::try_from(options.len()).unwrap());
+    options[usize::try_from(index).unwrap()]
+}
+
+/// The sample pack's sandstorm.
+fn sandstorm(battle: &Battle) -> WeatherId {
+    battle
+        .dex()
+        .weather_id("Sandstorm")
+        .expect("the sample pack has sandstorm")
 }
 
 #[test]

@@ -3,8 +3,8 @@
 mod common;
 
 use common::{P1, P2, damage_to, edit, max_hp, movers, play, set, start};
-use pkmn::battle::{DamageCause, HealCause, StatusCondition, TraitRef};
-use pkmn::dex::{StatusKind, WeatherId};
+use pkmn::battle::{DamageSource, HealSource};
+use pkmn::dex::{Status, WeatherId};
 use pkmn::stats::BoostStat;
 use pkmn::{Battle, BattleState, Choice, Event, Outcome, PokemonSet, Request};
 
@@ -15,7 +15,7 @@ fn first_hit(p1: PokemonSet, p2: PokemonSet, change: impl FnOnce(&mut BattleStat
     let battle = edit(start(&[p1], &[p2], 7), change);
     let mut battle = battle;
     let events = play(&mut battle, MOVE, MOVE);
-    damage_to(&events, P2, DamageCause::Move)[0]
+    damage_to(&events, P2, DamageSource::Move)[0]
 }
 
 fn ratio(boosted: u16, plain: u16) -> f64 {
@@ -24,13 +24,13 @@ fn ratio(boosted: u16, plain: u16) -> f64 {
 
 fn activated(events: &[Event], battle: &Battle, side: pkmn::SideId, name: &str) -> bool {
     events.iter().any(|event| match event {
-        Event::TraitActivated {
+        Event::Ability {
             side: holder,
-            source,
-        } if *holder == side => match source {
-            TraitRef::Ability(id) => battle.dex().ability(*id).name == name,
-            TraitRef::Item(id) => battle.dex().item(*id).name == name,
-        },
+            ability,
+        } if *holder == side => battle.dex().ability(*ability).name == name,
+        Event::Item { side: holder, item } if *holder == side => {
+            battle.dex().item(*item).name == name
+        }
         _ => false,
     })
 }
@@ -57,7 +57,7 @@ fn type_immunity_traits_block_moves_of_that_type() {
     );
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.contains(&Event::Immune { side: P2 }));
-    assert!(damage_to(&events, P2, DamageCause::Move).is_empty());
+    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 }
 
 #[test]
@@ -72,9 +72,9 @@ fn absorbing_traits_heal_instead_of_taking_damage() {
     let quarter = max_hp(&battle, P2) / 4;
     assert!(events.iter().any(|event| matches!(
         event,
-        Event::Healed { side: P2, amount, cause: HealCause::Trait(_), .. } if *amount == quarter
+        Event::Heal { side: P2, amount, from: HealSource::Effect(_), .. } if *amount == quarter
     )));
-    assert!(damage_to(&events, P2, DamageCause::Move).is_empty());
+    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn entry_traits_trigger_for_leads_and_switch_ins() {
     let mut battle = battle;
     let events = play(&mut battle, Choice::Switch(1), MOVE);
     assert!(activated(&events, &battle, P1, "Menace"));
-    assert!(events.contains(&Event::StatChanged {
+    assert!(events.contains(&Event::Boost {
         side: P2,
         stat: BoostStat::Attack,
         stages: -1
@@ -120,10 +120,10 @@ fn contact_traits_punish_attackers_only_for_contact_moves() {
     let punished: Vec<u16> = events
         .iter()
         .filter_map(|event| match event {
-            Event::Damaged {
+            Event::Damage {
                 side: P1,
                 amount,
-                cause: DamageCause::Trait(_),
+                from: DamageSource::Effect(_),
                 ..
             } => Some(*amount),
             _ => None,
@@ -134,9 +134,9 @@ fn contact_traits_punish_attackers_only_for_contact_moves() {
     let events = play(&mut battle, Choice::Move(1), MOVE);
     assert!(!events.iter().any(|event| matches!(
         event,
-        Event::Damaged {
+        Event::Damage {
             side: P1,
-            cause: DamageCause::Trait(_),
+            from: DamageSource::Effect(_),
             ..
         }
     )));
@@ -151,9 +151,9 @@ fn contact_status_traits_eventually_paralyze_attackers() {
             seed,
         );
         let events = play(&mut battle, MOVE, MOVE);
-        events.contains(&Event::StatusInflicted {
+        events.contains(&Event::Status {
             side: P1,
-            status: StatusKind::Paralysis,
+            status: Status::Paralysis,
         })
     });
     assert!(paralyzed);
@@ -186,8 +186,7 @@ fn stab_and_defensive_modifiers_scale_damage() {
 
 #[test]
 fn grit_turns_a_burn_into_a_boost() {
-    let burned =
-        |state: &mut BattleState| state.sides[0].team[0].status = Some(StatusCondition::Burn);
+    let burned = |state: &mut BattleState| state.sides[0].team[0].status = Some(Status::Burn);
     let defender = || set("Tidewhelp", &["Hunker Down"]);
     let plain = first_hit(set("Brawlstag", &["Pounce"]), defender(), burned);
     let gritty = first_hit(
@@ -215,10 +214,10 @@ fn end_of_turn_boosts_skip_the_turn_the_holder_switched_in() {
     assert!(
         !events
             .iter()
-            .any(|event| matches!(event, Event::StatChanged { side: P1, .. }))
+            .any(|event| matches!(event, Event::Boost { side: P1, .. }))
     );
     let events = play(&mut battle, MOVE, MOVE);
-    assert!(events.contains(&Event::StatChanged {
+    assert!(events.contains(&Event::Boost {
         side: P1,
         stat: BoostStat::Speed,
         stages: 1
@@ -238,11 +237,11 @@ fn endure_traits_leave_one_hp_once_and_ribbons_are_used_up() {
     assert!(
         events
             .iter()
-            .any(|event| matches!(event, Event::ItemConsumed { side: P2, .. }))
+            .any(|event| matches!(event, Event::EndItem { side: P2, .. }))
     );
     assert_eq!(battle.state().active(P2).item, None);
     play(&mut battle, MOVE, MOVE);
-    assert_eq!(battle.outcome(), Some(Outcome::Winner(P1)));
+    assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
 }
 
 #[test]
@@ -257,7 +256,7 @@ fn status_immunity_traits_block_their_status() {
         assert!(
             !events
                 .iter()
-                .any(|event| matches!(event, Event::StatusInflicted { .. }))
+                .any(|event| matches!(event, Event::Status { .. }))
         );
     }
 }
@@ -272,7 +271,7 @@ fn leftover_style_items_heal_at_the_end_of_the_turn() {
     let mut battle = edit(battle, |state| state.sides[1].team[0].hp = 100);
     let events = play(&mut battle, MOVE, MOVE);
     let healed = events.iter().rev().find_map(|event| match event {
-        Event::Healed {
+        Event::Heal {
             side: P2, amount, ..
         } => Some(*amount),
         _ => None,
@@ -302,7 +301,7 @@ fn life_orb_style_items_trade_hp_for_damage() {
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.iter().any(|event| matches!(
         event,
-        Event::Damaged { side: P1, amount, cause: DamageCause::Trait(_), .. }
+        Event::Damage { side: P1, amount, from: DamageSource::Effect(_), .. }
             if *amount == max_hp(&battle, P1) / 10
     )));
 }
@@ -318,7 +317,7 @@ fn choice_items_lock_the_first_move_until_switching_out() {
         21,
     );
     play(&mut battle, Choice::Move(1), MOVE);
-    let Some(Request::Turn { moves, .. }) = battle.request(P1) else {
+    let Some(Request::Move { moves, .. }) = battle.request(P1) else {
         panic!("expected a turn request");
     };
     assert_eq!(
@@ -361,7 +360,7 @@ fn threshold_berries_heal_once_below_half() {
     let quarter = max_hp(&battle, P2) / 4;
     assert!(events.iter().any(|event| matches!(
         event,
-        Event::Healed { side: P2, amount, cause: HealCause::Trait(_), .. } if *amount == quarter
+        Event::Heal { side: P2, amount, from: HealSource::Effect(_), .. } if *amount == quarter
     )));
     assert_eq!(battle.state().active(P2).item, None);
 }
@@ -375,15 +374,15 @@ fn cure_berries_remove_a_status_as_soon_as_it_lands() {
             seed,
         );
         let events = play(&mut battle, MOVE, MOVE);
-        if events.contains(&Event::StatusInflicted {
+        if events.contains(&Event::Status {
             side: P2,
-            status: StatusKind::Burn,
+            status: Status::Burn,
         }) {
-            assert!(events.contains(&Event::StatusCured {
+            assert!(events.contains(&Event::CureStatus {
                 side: P2,
-                status: StatusKind::Burn
+                status: Status::Burn
             }));
-            assert!(damage_to(&events, P2, DamageCause::Status).is_empty());
+            assert!(damage_to(&events, P2, DamageSource::Status(Status::Burn)).is_empty());
             return;
         }
     }
@@ -409,17 +408,17 @@ fn poison_ticks_before_burn_regardless_of_speed() {
         27,
     );
     let battle = edit(battle, |state| {
-        state.sides[0].team[0].status = Some(StatusCondition::Burn);
-        state.sides[1].team[0].status = Some(StatusCondition::Poison);
+        state.sides[0].team[0].status = Some(Status::Burn);
+        state.sides[1].team[0].status = Some(Status::Poison);
     });
     let mut battle = battle;
     let events = play(&mut battle, MOVE, MOVE);
     let ticks: Vec<_> = events
         .iter()
         .filter_map(|event| match event {
-            Event::Damaged {
+            Event::Damage {
                 side,
-                cause: DamageCause::Status,
+                from: DamageSource::Status(_),
                 ..
             } => Some(*side),
             _ => None,
@@ -436,13 +435,13 @@ fn a_battle_can_end_partway_through_the_end_of_a_turn() {
         29,
     );
     let battle = edit(battle, |state| {
-        state.sides[0].team[0].status = Some(StatusCondition::Burn);
+        state.sides[0].team[0].status = Some(Status::Burn);
         state.sides[0].team[0].hp = 1;
-        state.sides[1].team[0].status = Some(StatusCondition::Poison);
+        state.sides[1].team[0].status = Some(Status::Poison);
         state.sides[1].team[0].hp = 1;
     });
     let mut battle = battle;
     let events = play(&mut battle, MOVE, MOVE);
-    assert_eq!(battle.outcome(), Some(Outcome::Winner(P1)));
-    assert!(damage_to(&events, P1, DamageCause::Status).is_empty());
+    assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
+    assert!(damage_to(&events, P1, DamageSource::Status(Status::Burn)).is_empty());
 }

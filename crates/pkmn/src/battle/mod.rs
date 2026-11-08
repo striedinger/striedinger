@@ -10,12 +10,12 @@ mod team;
 use std::fmt;
 use std::sync::Arc;
 
-pub use damage::{DAMAGE_ROLLS, DamageInput, calculate_damage};
-pub use events::{CantMoveReason, DamageCause, Event, HealCause, TraitRef};
+pub use damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
+pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, MoveOption, Request};
 pub use state::{
-    ActiveWeather, BattleState, Field, MAX_MOVES, MoveSlot, Outcome, Pokemon, Side, SideId,
-    StatusCondition, Volatiles,
+    BattleState, Field, MAX_MOVES, MoveSlot, Outcome, Pokemon, Side, SideId, StatusState,
+    Volatiles, WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -55,7 +55,7 @@ impl Battle {
                 field: Field::default(),
                 outcome: None,
             },
-            events: Vec::new(),
+            events: Vec::with_capacity(64),
         };
         Engine::new(&battle.dex, &mut battle.state, &mut battle.events).start();
         Ok(battle)
@@ -109,6 +109,11 @@ impl Battle {
     #[must_use]
     pub fn request(&self, side: SideId) -> Option<Request> {
         request::request(&self.dex, &self.state, side)
+    }
+
+    /// Every legal choice for `side`, without allocating; empty once the battle has ended.
+    pub fn choices(&self, side: SideId) -> impl Iterator<Item = Choice> + '_ {
+        request::choices(&self.dex, &self.state, side)
     }
 
     /// Checks a choice against the current request without submitting it.
@@ -179,12 +184,12 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
                 return invalid("unknown type");
             }
             if pokemon
-                .move_slots()
+                .moves()
                 .any(|(_, move_slot)| move_slot.id.index() >= dex.move_count())
             {
                 return invalid("unknown move");
             }
-            if pokemon.move_slots().next().is_none() {
+            if pokemon.moves().next().is_none() {
                 return invalid("a team member has no moves");
             }
             if pokemon

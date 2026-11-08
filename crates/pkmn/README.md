@@ -1,62 +1,67 @@
 # pkmn
 
-A deterministic, data-driven battle engine that follows the main series' Generation 9 singles mechanics. It has no I/O and no UI. You give it choices, it returns events, and any frontend (web through WASM, desktop, terminal, bots, AI search) can render them.
+A deterministic, data-driven battle engine that follows the main series' Generation 9 singles mechanics, with Pokémon Showdown as its reference. It has no I/O and no UI. You give it choices, it returns events, and any frontend (web through WASM, desktop, terminal, bots, AI search) can render them.
 
 ```sh
 cargo test -p pkmn
-cargo run --release -p pkmn --example simulate -- 10000   # throughput
+cargo run --release -p pkmn --example simulate -- 20000   # throughput
 cargo run -p pkmn --example simulate -- 1 --log           # one narrated battle
 ```
 
+## Terminology
+
+Names follow Pokémon Showdown, which follows the games, so its documentation and data apply directly. Rust identifiers spell words out (`Stat::SpecialAttack`, `Status::Burn`), and serialized names use Showdown's IDs (`spa`, `brn`).
+
+| Concept              | Data format                                                                                                                                                                                                                                                                                                                                                                   | Rust                                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Base stats, EVs, IVs | `baseStats`, `evs`, `ivs` with `hp` `atk` `def` `spa` `spd` `spe`                                                                                                                                                                                                                                                                                                             | `StatTable`                               |
+| Stat stages          | `boosts: {"atk": 2}`                                                                                                                                                                                                                                                                                                                                                          | `Boosts`, `BoostStat`                     |
+| Type chart           | `damageTaken` per type: 1 weak, 2 resists, 3 immune; also status IDs and weather names                                                                                                                                                                                                                                                                                        | `TypeData`                                |
+| Statuses             | `brn` `par` `psn` `tox` `slp` `frz`                                                                                                                                                                                                                                                                                                                                           | `Status`, `StatusState` (`time`, `stage`) |
+| Volatile statuses    | `volatileStatus: "confusion"` or `"flinch"`                                                                                                                                                                                                                                                                                                                                   | `VolatileStatus`, `Volatiles`             |
+| Moves                | `basePower`, `accuracy` (number or `true`), `critRatio`, `multihit`, `drain`, `recoil`, `struggleRecoil`, `flags.contact`, `ignoreImmunity`, `target` (`normal` / `self`)                                                                                                                                                                                                     | `MoveData`                                |
+| Move effects         | primary `boosts` / `status` / `volatileStatus` / `weather` / `heal`, `self`, `secondaries`                                                                                                                                                                                                                                                                                    | `MoveEffect`, `Secondary`                 |
+| Abilities and items  | `handlers` named after Showdown events: `modifyStat`, `basePower`, `modifyDamage`, `sourceModifyDamage`, `modifyStab`, `immunity`, `absorb`, `statusImmunity`, `startWeather`, `startFoeBoosts`, `contactStatus`, `contactDamage`, `residualHeal`, `residualBoosts`, `choiceLock`, `disableStatusMoves`, `endureFromFull`, `healAtThreshold`, `cureStatus`, `afterMoveRecoil` | `Handler`, `AbilityData`, `ItemData`      |
+| Sets                 | `PokemonSet`: `species`, `item`, `ability`, `moves`, `nature`, `evs`, `ivs`, `level`                                                                                                                                                                                                                                                                                          | `PokemonSet`                              |
+| Requests and choices | move request, `forceSwitch`, `wait`; `move N`, `switch N`, `pass`                                                                                                                                                                                                                                                                                                             | `Request`, `Choice`                       |
+| Events               | protocol messages: `switch`, `move`, `cant`, `-damage`, `-heal`, `-status`, `-boost`, `-weather`, `-ability`, `-item`, `-enditem`, `faint`, `win`, ...                                                                                                                                                                                                                        | `Event`                                   |
+| End of turn          | residual handlers, then `Update`                                                                                                                                                                                                                                                                                                                                              | `residual`, `update`                      |
+
 ## Design
 
-- **Content is data.** Types, the type chart, weather, species, moves, abilities, and items live in a JSON `DexSource` that refers to everything by name. `Dex::from_json` checks it (it rejects unknown fields, unknown references, duplicate names, and impossible values) and compiles it to numeric IDs, so a turn never looks up a string. `data/sample.json` is a small original pack with the standard 18-type chart and works as a template.
-- **Move behavior is composed.** A move combines data fields (power, accuracy, priority, crit stage, multi-hit range, drain, recoil, contact) with a list of effects: `boost`, `status`, `confuse`, `flinch`, `weather`, and `heal`, each with an optional chance and recipient. New moves usually need no code.
-- **Abilities and items are composed too.** Both are "traits": a name plus effects from one vocabulary.
-  - Conditional modifiers for stats, base power, STAB, and damage dealt or taken. Conditions can be move type, category, HP threshold, full HP, statused, weather, or super-effective.
-  - Type immunities and absorption, and status immunities.
-  - Effects on entering battle: weather, or a stat change to the opponent.
-  - Reactions to contact: a status or damage to the attacker.
-  - End-of-turn healing and boosts.
-  - Choice locking, a ban on status moves, enduring a hit from full HP, threshold berries, status cures, and recoil after attacking.
-  - Items can be `consumable`.
-- **Battles are deterministic values.** `BattleState` holds the whole battle, including the seeded RNG (the Generation 5+ 64-bit LCG). You can clone it, serialize it with serde, and restore it with `Battle::from_state` to replay, save, sync over a network, or run a tree search.
-- **Choices in, events out.** `Battle::request` says what each side must decide (`Turn`, `Replace`, or `Wait`). `Battle::submit` validates both choices and then resolves them, and changes nothing if either choice is invalid. It returns `Event`s that frontends turn into text or animation.
+- **Content is data.** A JSON `DexSource` refers to everything by name. `Dex::from_json` checks it (it rejects unknown fields, unknown references, duplicate names, and impossible values) and compiles it to numeric IDs, so a turn never looks up a string. `data/sample.json` is a small original pack with the standard 18-type chart, four weathers, the 25 natures, and original species, moves, abilities, and items. Use it as a template.
+- **Effects say how they roll.** As in Showdown, primary effects apply without a roll. `self` boosts the user after one shared roll. Each secondary rolls its own chance, even at 100%.
+- **Abilities and items are handlers.** Most new ones are a list of handlers rather than code. Each ability and item compiles to a bitmask of its handler kinds, so a creature without a relevant handler adds no cost to a check.
+- **Battles are deterministic values.** `BattleState` holds the whole battle, including the seeded RNG (the Generation 5+ 64-bit LCG, also used by Showdown's `gen5` seeds). Clone it, serialize it with serde, and restore it with `Battle::from_state` to replay, save, sync over a network, or run a tree search.
+- **Choices in, events out.**
+  - `Battle::request` describes the decision as Showdown would.
+  - `Battle::choices` lists the legal choices without allocating.
+  - `Battle::submit` validates both choices and resolves them, changing nothing if either is invalid.
 
 ## Mechanics covered
 
-- Generation 3+ stat formulas, natures, IVs, and EVs; stat stages, plus accuracy and evasion stages.
-- The Generation 5+ damage formula, in the games' order with their rounding.
-  - Base power, attack, defense, and final damage modifiers are chained in 4096 fixed point.
-  - Then weather, crits (×1.5, Generation 7+ odds), 85–100% damage rolls, STAB, dual-type effectiveness, and burn.
-- Turn order: switches go first, then priority, then speed. Speed includes trait modifiers, paralysis halves it, and it's capped at 10000. Ties are random, and speed is re-read after every action.
-- Statuses with their Generation 9 durations and immunities:
-  - burn, paralysis, poison, and toxic;
-  - sleep (1–3 turns);
-  - freeze (20% thaw chance; Fire moves thaw the target);
-  - confusion (2–5 turns, 33% self-hit) and flinch.
-- Weather defined as data: damage modifiers, residual damage, defensive boosts, and statuses it prevents.
-- Multi-hit (35/35/15/15 for 2–5 hits), drain, recoil, Struggle, and forced replacements.
-- End-of-turn effects in residual order: weather, then healing items, poison, burn, and end-of-turn boosts. Faints are checked after each one, so a battle can end partway through the end of a turn.
+- Generation 3+ stats and natures; stat stages, including accuracy and evasion.
+- The Generation 5+ damage formula, in Showdown's order with its rounding.
+  - `BasePower`, `ModifyAtk`/`ModifyDef`, and `ModifyDamage` chains in 4096 fixed point.
+  - Then weather, crits (Generation 7+ odds by `critRatio`), 85–100% rolls, STAB, dual-type effectiveness, and burn.
+- Action order: switches, then priority, then speed (with modifiers and paralysis, capped at 10000 and compared in 13 bits). Ties are random, and speed is re-read after every action.
+- Statuses, with Showdown's durations and immunities from `damageTaken`.
+  - Sleep lasts 1–3 turns, and freeze has a 20% thaw chance each turn (Fire moves thaw the target).
+  - Confusion lasts 2–5 turns with a 33% self-hit; flinch.
+- Weather as data: damage modifiers, residual damage, defensive boosts, and prevented statuses.
+- Multi-hit (35/35/15/15 for 2–5 hits), drain, recoil, Struggle, and forced switches.
+- Residual effects in Showdown's order, with faints checked after each, so a battle can end partway through.
 - The Generation 5+ rule that in a double KO, the side whose creature fainted last wins.
 
-## Faithfulness to Pokémon Showdown
+## Differential testing against Showdown
 
-The engine follows Pokémon Showdown's Generation 9 simulator, including where and how often it draws random numbers. Both seed the same 64-bit LCG, so they can be compared roll for roll:
+`oracle/` is a dev-only pnpm workspace package; nothing in the engine depends on it.
 
-- Every secondary effect consumes a roll, even at 100%.
-- Unconditional self effects of a damaging move share one roll and apply before the secondaries.
-- Healing moves round half up, and drain has no minimum.
-- Contact traits and thawing react after the secondaries.
-- Berries check at Showdown's "update" points.
+1. It injects this crate's sample pack into Showdown's simulator. The data format matches Showdown's, so species and moves pass through almost unchanged.
+2. It maps each sample ability and item to the Showdown one it reproduces.
+3. It records seeded random battles into `tests/fixtures/showdown.json`.
 
-`oracle/` is a pnpm workspace package that records reference battles from Showdown into `tests/fixtures/showdown.json`:
-
-1. It injects this crate's sample pack into Showdown's data tables.
-2. It maps each sample ability and item to the Showdown trait it reproduces.
-3. It plays seeded random 3v3 battles.
-
-`tests/showdown.rs` replays those battles and requires identical stats, HP, statuses, items, active slots, stat stages, weather, turn, and winner after every step. Showdown draws extra random numbers whenever the active creatures are speed-tied, so a recording stops at a battle's first speed tie.
+`tests/showdown.rs` replays every recorded step and requires identical stats, HP, statuses, items, active slots, stat stages, weather, turn, and winner. Showdown draws extra random numbers when the active creatures are speed-tied, so each recording stops at its battle's first speed tie.
 
 ```sh
 pnpm install
@@ -64,7 +69,7 @@ pnpm --filter @workspace/pkmn-oracle generate   # writes tests/fixtures/showdown
 cargo test -p pkmn --test showdown
 ```
 
-Until the recording exists, the replay test skips with a message. Regenerate the recording after changing mechanics or the sample pack.
+Until the recording exists, the replay test skips with a message. Regenerate it after changing mechanics or the sample pack.
 
 ## Not yet
 

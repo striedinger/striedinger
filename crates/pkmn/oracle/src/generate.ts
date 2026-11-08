@@ -1,13 +1,14 @@
 /**
  * Records reference battles from Pokémon Showdown for pkmn's differential test.
  *
- * pkmn's sample content pack is injected into Showdown's data tables. Its original abilities
- * and items are mapped to the Showdown traits they are written to reproduce. Random battles
- * then run from `gen5` seeds, which use the same 64-bit LCG as pkmn's PRNG. Every step's
- * choices and resulting state are written to `tests/fixtures/showdown.json`, and
- * `tests/showdown.rs` replays them through pkmn and compares the states.
+ * pkmn's content format follows Showdown's data files, so the sample pack's species and moves
+ * are injected into Showdown's data tables almost unchanged. The sample's original abilities
+ * and items are mapped to the Showdown ones they are written to reproduce, and its weather
+ * names to Showdown's weather IDs. Random battles then run from `gen5` seeds, which use the
+ * same 64-bit LCG as pkmn's PRNG. Every step's choices and resulting state are written to
+ * `tests/fixtures/showdown.json`; `tests/showdown.rs` replays them through pkmn and compares.
  *
- * Showdown makes extra RNG calls whenever the two active creatures are speed-tied, so a
+ * Showdown draws extra random numbers whenever the two active creatures are speed-tied, so a
  * battle's recording stops at its first speed tie.
  *
  * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles]
@@ -21,83 +22,43 @@ import showdown from "pokemon-showdown";
 
 const { Battle, Dex, toID } = showdown;
 
-interface StatTable {
-  hp: number;
-  attack: number;
-  defense: number;
-  special_attack: number;
-  special_defense: number;
-  speed: number;
-}
+type StatName = "hp" | "atk" | "def" | "spa" | "spd" | "spe";
+type StatTable = Record<StatName, number>;
+type Choice = { move: number } | { switch: number } | "pass";
 
 interface SampleMove {
   name: string;
   type: string | null;
-  category: "physical" | "special" | "status";
-  power?: number;
-  accuracy?: number;
-  pp: number;
-  priority?: number;
-  target?: "opponent" | "user";
-  crit_stage?: number;
-  hits?: [number, number];
-  drain?: [number, number];
-  recoil?: { damage_dealt: [number, number] } | { max_hp: [number, number] };
-  respects_type_immunity?: boolean;
-  contact?: boolean;
-  effects?: SampleEffect[];
-}
-
-interface SampleEffect {
-  chance?: number;
-  target?: "target" | "user";
-  effect:
-    | { boost: { stat: BoostName; stages: number } }
-    | { status: StatusName }
-    | { weather: string }
-    | { heal: [number, number] }
-    | "confuse"
-    | "flinch";
+  weather?: string;
+  flags?: Record<string, number | boolean>;
+  [field: string]: unknown;
 }
 
 interface SampleDex {
-  species: { name: string; types: string[]; base_stats: StatTable }[];
+  weathers: { name: string }[];
+  natures: { name: string }[];
+  species: { name: string; types: string[]; baseStats: StatTable }[];
   moves: SampleMove[];
   abilities: { name: string }[];
   items: { name: string }[];
 }
 
-type BoostName =
-  | "attack"
-  | "defense"
-  | "special_attack"
-  | "special_defense"
-  | "speed"
-  | "accuracy"
-  | "evasion";
-type StatusName = "burn" | "paralysis" | "poison" | "toxic" | "sleep" | "freeze";
-type Choice = { move: number } | { switch: number } | "struggle" | "pass";
-
+/** A set in pkmn's format, which is Showdown's `PokemonSet` with pkmn's content names. */
 interface PokemonSet {
+  name: string;
   species: string;
-  level: number;
+  item: string | null;
+  ability: string | null;
   moves: string[];
+  nature: string;
   evs: StatTable;
   ivs: StatTable;
-  nature: { increased: keyof StatTable; decreased: keyof StatTable } | null;
-  ability: string | null;
-  item: string | null;
-}
-
-interface PokemonSnapshot {
-  hp: number;
-  status: StatusName | null;
-  item: string | null;
+  level: number;
 }
 
 interface SideSnapshot {
   active: number;
-  team: PokemonSnapshot[];
+  team: { hp: number; status: string | null; item: string | null }[];
   boosts: number[];
 }
 
@@ -119,39 +80,17 @@ interface RecordedBattle {
 
 const TEAM_SIZE = 3;
 const STEP_LIMIT = 300;
+const STAT_NAMES: readonly StatName[] = ["hp", "atk", "def", "spa", "spd", "spe"];
+const BOOST_NAMES = ["atk", "def", "spa", "spd", "spe", "accuracy", "evasion"] as const;
 
-const STAT_KEYS = {
-  hp: "hp",
-  attack: "atk",
-  defense: "def",
-  special_attack: "spa",
-  special_defense: "spd",
-  speed: "spe",
-} as const;
-const BOOST_KEYS = {
-  attack: "atk",
-  defense: "def",
-  special_attack: "spa",
-  special_defense: "spd",
-  speed: "spe",
-  accuracy: "accuracy",
-  evasion: "evasion",
-} as const;
-const STATUS_IDS = {
-  burn: "brn",
-  paralysis: "par",
-  poison: "psn",
-  toxic: "tox",
-  sleep: "slp",
-  freeze: "frz",
-} as const;
-const WEATHER_IDS: Record<string, string> = {
+/** Showdown's weather condition for each sample weather. */
+const WEATHERS: Record<string, string> = {
   Rain: "RainDance",
   Sun: "SunnyDay",
   Sandstorm: "Sandstorm",
   Snow: "Snowscape",
 };
-/** The Showdown trait each sample trait is written to reproduce. */
+/** The Showdown ability each sample ability is written to reproduce. */
 const ABILITIES: Record<string, string> = {
   "Kindling Heart": "Blaze",
   "Undertow Heart": "Torrent",
@@ -170,6 +109,7 @@ const ABILITIES: Record<string, string> = {
   Steadfast: "Sturdy",
   "Loose Limbs": "Limber",
 };
+/** The Showdown item each sample item is written to reproduce. */
 const ITEMS: Record<string, string> = {
   "Moss Pouch": "Leftovers",
   "Glass Charm": "Life Orb",
@@ -184,34 +124,8 @@ const ITEMS: Record<string, string> = {
   "Bastion Vest": "Assault Vest",
   "Spike Guard": "Rocky Helmet",
 };
-const NATURES: Record<string, string> = {
-  "attack/defense": "Lonely",
-  "attack/special_attack": "Adamant",
-  "attack/special_defense": "Naughty",
-  "attack/speed": "Brave",
-  "defense/attack": "Bold",
-  "defense/special_attack": "Impish",
-  "defense/special_defense": "Lax",
-  "defense/speed": "Relaxed",
-  "special_attack/attack": "Modest",
-  "special_attack/defense": "Mild",
-  "special_attack/special_defense": "Rash",
-  "special_attack/speed": "Quiet",
-  "special_defense/attack": "Calm",
-  "special_defense/defense": "Gentle",
-  "special_defense/special_attack": "Careful",
-  "special_defense/speed": "Sassy",
-  "speed/attack": "Timid",
-  "speed/defense": "Hasty",
-  "speed/special_attack": "Jolly",
-  "speed/special_defense": "Naive",
-};
 
-function toId(name: string): string {
-  return name.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
-}
-
-function lookup<T>(table: Record<string, T>, key: string, kind: string): T {
+function lookup(table: Record<string, string>, key: string, kind: string): string {
   const value = table[key];
   if (value === undefined) throw new Error(`No Showdown equivalent for ${kind} ${key}`);
   return value;
@@ -234,83 +148,14 @@ function pick<T>(random: (bound: number) => number, items: readonly T[]): T {
   return item;
 }
 
-function toShowdownBoosts(stat: BoostName, stages: number): Record<string, number> {
-  return { [BOOST_KEYS[stat]]: stages };
-}
-
-/** Translates pkmn's effect list into Showdown's move fields, following the engine's rules. */
-function toShowdownEffects(move: SampleMove): Record<string, unknown> {
-  const fields: Record<string, unknown> = {};
-  const effects = move.effects ?? [];
-  const damaging = move.category !== "status";
-  const recipientIsUser = (effect: SampleEffect) =>
-    effect.target === "user" || move.target === "user";
-  if (!damaging) {
-    for (const effect of effects) {
-      if (effect.chance !== undefined) {
-        throw new Error(`${move.name}: chance effects on status moves are not mapped`);
-      }
-      if (recipientIsUser(effect) !== (move.target === "user")) {
-        throw new Error(`${move.name}: status moves must affect their own target`);
-      }
-      const kind = effect.effect;
-      if (kind === "confuse") fields["volatileStatus"] = "confusion";
-      else if (kind === "flinch") throw new Error(`${move.name}: flinching status moves`);
-      else if ("boost" in kind)
-        fields["boosts"] = {
-          ...(fields["boosts"] as object | undefined),
-          ...toShowdownBoosts(kind.boost.stat, kind.boost.stages),
-        };
-      else if ("status" in kind) fields["status"] = STATUS_IDS[kind.status];
-      else if ("weather" in kind) fields["weather"] = lookup(WEATHER_IDS, kind.weather, "weather");
-      else fields["heal"] = kind.heal;
-    }
-    return fields;
-  }
-  const selfBoosts: Record<string, number> = {};
-  const secondaries: Record<string, unknown>[] = [];
-  for (const effect of effects) {
-    const kind = effect.effect;
-    if (effect.target === "user" && effect.chance === undefined) {
-      if (typeof kind === "string" || !("boost" in kind)) {
-        throw new Error(`${move.name}: only boosts are mapped as unconditional self effects`);
-      }
-      Object.assign(selfBoosts, toShowdownBoosts(kind.boost.stat, kind.boost.stages));
-      continue;
-    }
-    let secondary: Record<string, unknown>;
-    if (kind === "confuse") secondary = { volatileStatus: "confusion" };
-    else if (kind === "flinch") secondary = { volatileStatus: "flinch" };
-    else if ("boost" in kind)
-      secondary = { boosts: toShowdownBoosts(kind.boost.stat, kind.boost.stages) };
-    else if ("status" in kind) secondary = { status: STATUS_IDS[kind.status] };
-    else throw new Error(`${move.name}: weather and heal secondaries are not mapped`);
-    if (effect.target === "user") secondary = { self: secondary };
-    if (effect.chance !== undefined) secondary["chance"] = effect.chance;
-    secondaries.push(secondary);
-  }
-  if (Object.keys(selfBoosts).length > 0) fields["self"] = { boosts: selfBoosts };
-  if (secondaries.length > 0) fields["secondaries"] = secondaries;
-  return fields;
-}
-
+/** Adds the sample's species and moves to Showdown's data tables, which load lazily. */
 function injectSample(sample: SampleDex): void {
   const pokedex: Record<string, unknown> = {};
   for (const [index, species] of sample.species.entries()) {
-    const stats = species.base_stats;
-    pokedex[toId(species.name)] = {
+    pokedex[toID(species.name)] = {
+      ...species,
       num: 20_000 + index,
-      name: species.name,
-      types: species.types,
       gender: "N",
-      baseStats: {
-        hp: stats.hp,
-        atk: stats.attack,
-        def: stats.defense,
-        spa: stats.special_attack,
-        spd: stats.special_defense,
-        spe: stats.speed,
-      },
       abilities: { 0: "No Ability" },
       heightm: 1,
       weightkg: 10,
@@ -319,102 +164,47 @@ function injectSample(sample: SampleDex): void {
   }
   const moves: Record<string, unknown> = {};
   for (const [index, move] of sample.moves.entries()) {
-    const recoil = move.recoil;
-    if (recoil !== undefined && "max_hp" in recoil) {
-      throw new Error(`${move.name}: max-HP recoil is only supported for Struggle`);
-    }
-    const hits = move.hits;
-    moves[toId(move.name)] = {
+    moves[toID(move.name)] = {
+      ...move,
       num: 20_000 + index,
-      name: move.name,
       type: move.type ?? "???",
-      category: move.category[0]?.toUpperCase() + move.category.slice(1),
-      basePower: move.power ?? 0,
-      accuracy: move.accuracy ?? true,
-      pp: move.pp,
-      priority: move.priority ?? 0,
-      target: move.target === "user" ? "self" : "normal",
-      critRatio: 1 + (move.crit_stage ?? 0),
-      flags: move.contact === true ? { contact: 1, protect: 1 } : { protect: 1 },
-      ...(hits === undefined ? {} : { multihit: hits[0] === hits[1] ? hits[0] : hits }),
-      ...(move.drain === undefined ? {} : { drain: move.drain }),
-      ...(recoil === undefined ? {} : { recoil: recoil.damage_dealt }),
-      ...(move.respects_type_immunity === true ? { ignoreImmunity: false } : {}),
-      ...toShowdownEffects(move),
+      flags: { protect: 1, ...move.flags },
+      ...(move.weather === undefined ? {} : { weather: lookup(WEATHERS, move.weather, "weather") }),
     };
   }
   Object.assign(Dex.data.Pokedex, pokedex);
   Object.assign(Dex.data.Moves, moves);
 }
 
-function randomSet(random: (bound: number) => number, sample: SampleDex): PokemonSet {
+function randomSet(random: (bound: number) => number, sample: SampleDex, slot: number): PokemonSet {
   const moves: string[] = [];
   while (moves.length < 4) {
     const name = pick(random, sample.moves).name;
     if (!moves.includes(name)) moves.push(name);
   }
-  const statNames = Object.keys(STAT_KEYS) as (keyof StatTable)[];
-  const evs: StatTable = {
-    hp: 0,
-    attack: 0,
-    defense: 0,
-    special_attack: 0,
-    special_defense: 0,
-    speed: 0,
-  };
+  const evs: StatTable = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   for (let budget = 127; budget > 0; budget--) {
-    const stat = pick(random, statNames);
+    const stat = pick(random, STAT_NAMES);
     if (evs[stat] < 252) evs[stat] += 4;
   }
-  const ivs: StatTable = {
-    hp: random(32),
-    attack: random(32),
-    defense: random(32),
-    special_attack: random(32),
-    special_defense: random(32),
-    speed: random(32),
-  };
-  const nonHp = statNames.filter((stat) => stat !== "hp");
-  const increased = pick(random, nonHp);
-  const decreased = pick(random, nonHp);
-  const ability = random(4) === 0 ? null : pick(random, sample.abilities).name;
-  const item = random(4) === 0 ? null : pick(random, sample.items).name;
-  return {
-    species: pick(random, sample.species).name,
-    level: 50 + random(51),
-    moves,
-    evs,
-    ivs,
-    nature: increased === decreased ? null : { increased, decreased },
-    ability,
-    item,
-  };
-}
-
-function toShowdownStats(table: StatTable): ShowdownSet["evs"] {
-  return {
-    hp: table.hp,
-    atk: table.attack,
-    def: table.defense,
-    spa: table.special_attack,
-    spd: table.special_defense,
-    spe: table.speed,
-  };
-}
-
-function toShowdownSet(set: PokemonSet, slot: number): ShowdownSet {
+  const ivs = Object.fromEntries(STAT_NAMES.map((stat) => [stat, random(32)])) as StatTable;
   return {
     name: `slot${slot}`,
-    species: set.species,
-    level: set.level,
+    species: pick(random, sample.species).name,
+    item: random(4) === 0 ? null : pick(random, sample.items).name,
+    ability: random(4) === 0 ? null : pick(random, sample.abilities).name,
+    moves,
+    nature: pick(random, sample.natures).name,
+    evs,
+    ivs,
+    level: 50 + random(51),
+  };
+}
+
+function toShowdownSet(set: PokemonSet): ShowdownSet {
+  return {
+    ...set,
     gender: "N",
-    moves: set.moves,
-    evs: toShowdownStats(set.evs),
-    ivs: toShowdownStats(set.ivs),
-    nature:
-      set.nature === null
-        ? "Hardy"
-        : lookup(NATURES, `${set.nature.increased}/${set.nature.decreased}`, "nature"),
     ability: set.ability === null ? "No Ability" : lookup(ABILITIES, set.ability, "ability"),
     item: set.item === null ? "" : lookup(ITEMS, set.item, "item"),
   };
@@ -425,25 +215,23 @@ function slotOf(pokemon: Pokemon): number {
 }
 
 function snapshot(battle: ShowdownBattle): Snapshot {
-  const ourItems = new Map(Object.entries(ITEMS).map(([ours, theirs]) => [toId(theirs), ours]));
+  const ourItems = new Map(Object.entries(ITEMS).map(([ours, theirs]) => [toID(theirs), ours]));
   const ourWeathers = new Map(
-    Object.entries(WEATHER_IDS).map(([ours, theirs]) => [toId(theirs), ours]),
-  );
-  const ourStatuses = new Map(
-    Object.entries(STATUS_IDS).map(([ours, theirs]) => [theirs as string, ours as StatusName]),
+    Object.entries(WEATHERS).map(([ours, theirs]) => [toID(theirs), ours]),
   );
   const sides = battle.sides.map((side) => {
-    const bySlot = side.pokemon.toSorted((left, right) => slotOf(left) - slotOf(right));
     const active = side.active[0];
     if (active === undefined) throw new Error("A side has no active creature");
     return {
       active: slotOf(active),
-      team: bySlot.map((pokemon) => ({
-        hp: pokemon.hp,
-        status: ourStatuses.get(pokemon.status) ?? null,
-        item: pokemon.item === "" ? null : (ourItems.get(pokemon.item) ?? null),
-      })),
-      boosts: Object.values(BOOST_KEYS).map((key) => active.boosts[key]),
+      team: side.pokemon
+        .toSorted((left, right) => slotOf(left) - slotOf(right))
+        .map((pokemon) => ({
+          hp: pokemon.hp,
+          status: pokemon.status === "" ? null : pokemon.status,
+          item: pokemon.item === "" ? null : (ourItems.get(pokemon.item) ?? null),
+        })),
+      boosts: BOOST_NAMES.map((name) => active.boosts[name]),
     };
   });
   let winner: Snapshot["winner"] = null;
@@ -472,11 +260,7 @@ function chooseFor(
   });
   if (request.forceSwitch !== undefined) return toSwitch(pick(random, switches));
   if (request.teamPreview === true) throw new Error("Team preview should be resolved already");
-  const moves = request.active[0]?.moves ?? [];
-  if (moves.length === 1 && moves[0]?.id === "struggle") {
-    return { ours: "struggle", theirs: "move 1" };
-  }
-  const options = moves
+  const options = (request.active[0]?.moves ?? [])
     .map((move, index) => ({ move, index }))
     .filter(({ move }) => move.disabled !== true && typeof move.disabled !== "string")
     .map(({ index }) => ({
@@ -508,7 +292,7 @@ function hexSeed(index: number): string {
 function recordBattle(index: number, sample: SampleDex): RecordedBattle {
   const random = createRandom(index);
   const teams = [0, 1].map(() =>
-    Array.from({ length: TEAM_SIZE }, () => randomSet(random, sample)),
+    Array.from({ length: TEAM_SIZE }, (_, slot) => randomSet(random, sample, slot)),
   );
   const seed = hexSeed(index);
   const battle = new Battle({ formatid: toID("gen9customgame"), seed: `gen5,${seed}` });
@@ -519,13 +303,13 @@ function recordBattle(index: number, sample: SampleDex): RecordedBattle {
   const stats = battle.sides.map((side) =>
     side.pokemon
       .toSorted((left, right) => slotOf(left) - slotOf(right))
-      .map((pokemon) => ({
-        hp: pokemon.maxhp,
-        attack: pokemon.storedStats.atk,
-        defense: pokemon.storedStats.def,
-        special_attack: pokemon.storedStats.spa,
-        special_defense: pokemon.storedStats.spd,
-        speed: pokemon.storedStats.spe,
+      .map(({ storedStats, maxhp }) => ({
+        hp: maxhp,
+        atk: storedStats.atk,
+        def: storedStats.def,
+        spa: storedStats.spa,
+        spd: storedStats.spd,
+        spe: storedStats.spe,
       })),
   );
   const recorded: RecordedBattle = {
@@ -558,9 +342,8 @@ function main(): void {
   const recorded = Array.from({ length: battles }, (_, index) => recordBattle(index, sample));
   const fixtures = new URL("../../tests/fixtures/", import.meta.url);
   mkdirSync(fixtures, { recursive: true });
-  const output = new URL("showdown.json", fixtures);
   writeFileSync(
-    output,
+    new URL("showdown.json", fixtures),
     `${JSON.stringify({ generator: "pokemon-showdown@0.11.11", battles: recorded })}\n`,
   );
   const steps = recorded.reduce((total, battle) => total + battle.steps.length, 0);

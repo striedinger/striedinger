@@ -1,15 +1,18 @@
+//! Battle state, shaped like Pokémon Showdown's: sides with teams and an active slot, each
+//! creature's `status` with its `statusState`, its `volatiles`, and the field's weather.
+
 use serde::{Deserialize, Serialize};
 
 use crate::dex::{
-    AbilityId, Dex, ItemId, MoveCategory, MoveId, SpeciesId, StatusKind, TraitData, TraitEffect,
-    TypeId, WeatherId,
+    AbilityId, Dex, Handler, HandlerMask, ItemId, MoveCategory, MoveId, SpeciesId, Status, TypeId,
+    WeatherId,
 };
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
 
 /// One of the two players.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum SideId {
     /// The first player.
     P1,
@@ -27,9 +30,9 @@ impl SideId {
         self as usize
     }
 
-    /// Returns the other side.
+    /// Returns the other side, the "foe".
     #[must_use]
-    pub fn opponent(self) -> Self {
+    pub fn foe(self) -> Self {
         match self {
             Self::P1 => Self::P2,
             Self::P2 => Self::P1,
@@ -37,47 +40,31 @@ impl SideId {
     }
 }
 
-/// A non-volatile status together with the counters it needs.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum StatusCondition {
-    /// Burned.
-    Burn,
-    /// Paralyzed.
-    Paralysis,
-    /// Poisoned.
-    Poison,
-    /// Badly poisoned; `stage` grows each turn and resets on switching out.
-    Toxic {
-        /// Sixteenths of max HP dealt by the last residual.
-        stage: u8,
-    },
-    /// Asleep until the counter reaches zero on a move attempt.
-    Sleep {
-        /// Move attempts left, including the one that wakes it up.
-        turns_left: u8,
-    },
-    /// Frozen.
-    Freeze,
+/// Counters a status keeps, like Showdown's `statusState`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusState {
+    /// Sleep: move attempts left, counting the one that wakes it.
+    pub time: u8,
+    /// Bad poison: sixteenths of max HP dealt by the last residual; reset on switching in.
+    pub stage: u8,
 }
 
-impl StatusCondition {
-    /// The status without its counters.
-    #[must_use]
-    pub fn kind(self) -> StatusKind {
-        match self {
-            Self::Burn => StatusKind::Burn,
-            Self::Paralysis => StatusKind::Paralysis,
-            Self::Poison => StatusKind::Poison,
-            Self::Toxic { .. } => StatusKind::Toxic,
-            Self::Sleep { .. } => StatusKind::Sleep,
-            Self::Freeze => StatusKind::Freeze,
-        }
-    }
+/// Volatile statuses, cleared when the creature switches out.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Volatiles {
+    /// Confusion's remaining move attempts, counting the one that snaps it out.
+    pub confusion: Option<u8>,
+    /// Whether it flinched this turn.
+    pub flinch: bool,
+    /// The move slot a choice item has locked it into (Showdown's `choicelock`).
+    pub choice_lock: Option<u8>,
 }
 
-/// A known move and its remaining PP.
+/// A known move and its remaining PP, like Showdown's `moveSlots`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoveSlot {
     /// The move.
     pub id: MoveId,
@@ -87,25 +74,12 @@ pub struct MoveSlot {
     pub max_pp: u8,
 }
 
-/// Conditions cleared when a creature switches out.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Volatiles {
-    /// Move attempts left while confused, including the one that snaps it out; zero when not
-    /// confused.
-    pub confusion_turns: u8,
-    /// Whether it flinched this turn.
-    pub flinched: bool,
-    /// The move slot a choice item has locked it into.
-    pub choice_locked_slot: Option<u8>,
-    /// Whether it entered battle during the current turn.
-    pub entered_this_turn: bool,
-}
-
 /// The most moves a creature can know.
 pub const MAX_MOVES: usize = 4;
 
 /// A creature in battle.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Pokemon {
     /// The species.
     pub species: SpeciesId,
@@ -115,22 +89,26 @@ pub struct Pokemon {
     pub primary_type: TypeId,
     /// The secondary type, if any.
     pub secondary_type: Option<TypeId>,
-    /// Permanent stats; `stats.hp` is the max HP.
+    /// Permanent stats (Showdown's `storedStats`); `stats.hp` is the max HP.
     pub stats: StatTable,
     /// Current HP.
     pub hp: u16,
     /// Known moves in slot order.
-    pub moves: [Option<MoveSlot>; MAX_MOVES],
+    pub move_slots: [Option<MoveSlot>; MAX_MOVES],
     /// The ability, if any.
     pub ability: Option<AbilityId>,
     /// The held item, if any.
     pub item: Option<ItemId>,
     /// The non-volatile status, if any.
-    pub status: Option<StatusCondition>,
+    pub status: Option<Status>,
+    /// The status's counters.
+    pub status_state: StatusState,
     /// Stat stages.
     pub boosts: Boosts,
-    /// Conditions cleared on switching out.
+    /// Volatile statuses.
     pub volatiles: Volatiles,
+    /// Turns started while active; zero during the turn it switched in.
+    pub active_turns: u16,
 }
 
 impl Pokemon {
@@ -158,59 +136,70 @@ impl Pokemon {
     }
 
     /// Known moves with their slot index.
-    pub fn move_slots(&self) -> impl Iterator<Item = (usize, &MoveSlot)> {
-        self.moves
+    pub fn moves(&self) -> impl Iterator<Item = (usize, &MoveSlot)> {
+        self.move_slots
             .iter()
             .enumerate()
             .filter_map(|(slot, move_slot)| move_slot.as_ref().map(|move_slot| (slot, move_slot)))
     }
 
-    /// The ability and item, in that order.
-    pub fn traits<'a>(&self, dex: &'a Dex) -> impl Iterator<Item = &'a TraitData> + use<'a> {
-        let ability = self.ability.map(|id| dex.ability(id));
-        let item = self.item.map(|id| dex.item(id));
-        ability.into_iter().chain(item)
+    /// The kinds of handler its ability and item have.
+    #[must_use]
+    pub fn handler_mask(&self, dex: &Dex) -> HandlerMask {
+        let ability = self
+            .ability
+            .map_or(HandlerMask::default(), |id| dex.ability(id).mask);
+        let item = self
+            .item
+            .map_or(HandlerMask::default(), |id| dex.item(id).mask);
+        ability.union(item)
     }
 
-    /// Whether the ability or item has an effect matching `predicate`.
-    pub fn has_trait_effect(&self, dex: &Dex, predicate: impl Fn(&TraitEffect) -> bool) -> bool {
-        self.traits(dex)
-            .any(|data| data.effects.iter().any(&predicate))
+    /// The handlers of its ability, then its item.
+    pub fn handlers<'a>(&self, dex: &'a Dex) -> impl Iterator<Item = &'a Handler> + use<'a> {
+        let ability = self.ability.map(|id| dex.ability(id).handlers.as_slice());
+        let item = self.item.map(|id| dex.item(id).handlers.as_slice());
+        ability.into_iter().chain(item).flatten()
     }
 
-    /// Whether the move in `slot` can be selected: it has PP and no choice lock or trait
-    /// forbids it.
+    /// The move slots that can be selected, as a bitset: a slot qualifies if it has PP and
+    /// neither a choice lock nor `disableStatusMoves` rules it out.
+    #[must_use]
+    pub fn selectable_moves(&self, dex: &Dex) -> u8 {
+        let disables_status = self
+            .handler_mask(dex)
+            .intersects(HandlerMask::DISABLE_STATUS_MOVES);
+        let mut selectable = 0;
+        for (slot, move_slot) in self.moves() {
+            let locked_out = self
+                .volatiles
+                .choice_lock
+                .is_some_and(|locked| usize::from(locked) != slot);
+            let disabled =
+                disables_status && dex.move_data(move_slot.id).category == MoveCategory::Status;
+            if move_slot.pp > 0 && !locked_out && !disabled {
+                selectable |= 1 << slot;
+            }
+        }
+        selectable
+    }
+
+    /// Whether the move in `slot` can be selected.
     #[must_use]
     pub fn can_select_move(&self, dex: &Dex, slot: usize) -> bool {
-        let Some(move_slot) = self.moves.get(slot).copied().flatten() else {
-            return false;
-        };
-        if move_slot.pp == 0 {
-            return false;
-        }
-        if self
-            .volatiles
-            .choice_locked_slot
-            .is_some_and(|locked| usize::from(locked) != slot)
-        {
-            return false;
-        }
-        let is_status = dex.move_data(move_slot.id).category == MoveCategory::Status;
-        !(is_status
-            && self.has_trait_effect(dex, |effect| *effect == TraitEffect::BlocksStatusMoves))
+        slot < MAX_MOVES && self.selectable_moves(dex) & (1 << slot) != 0
     }
 
-    /// Whether no move can be selected, which forces Struggle.
+    /// Whether no move can be selected, so its only move is Struggle.
     #[must_use]
     pub fn must_struggle(&self, dex: &Dex) -> bool {
-        !self
-            .move_slots()
-            .any(|(slot, _)| self.can_select_move(dex, slot))
+        self.selectable_moves(dex) == 0
     }
 }
 
 /// A player's team.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Side {
     /// Every team member in team order.
     pub team: Vec<Pokemon>,
@@ -240,7 +229,7 @@ impl Side {
     }
 
     /// Team slots that can be switched in.
-    pub fn switch_options(&self) -> impl Iterator<Item = usize> {
+    pub fn switches(&self) -> impl Iterator<Item = usize> {
         (0..self.team.len()).filter(|&slot| self.can_switch_to(slot))
     }
 
@@ -250,48 +239,47 @@ impl Side {
         self.team.iter().all(Pokemon::is_fainted)
     }
 
-    pub(crate) fn pokemon_mut(&mut self, slot: usize) -> &mut Pokemon {
-        &mut self.team[slot]
-    }
-
-    /// Whether the active creature fainted and a replacement must be chosen.
+    /// Whether the active creature fainted and a replacement must switch in.
     #[must_use]
-    pub fn needs_replacement(&self) -> bool {
-        self.active().is_fainted() && self.switch_options().next().is_some()
+    pub fn must_switch(&self) -> bool {
+        self.active().is_fainted() && self.switches().next().is_some()
     }
 }
 
-/// A weather and the turns it has left.
+/// The active weather and its remaining duration, like Showdown's `weatherState`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ActiveWeather {
+#[serde(rename_all = "camelCase")]
+pub struct WeatherState {
     /// The weather.
     pub id: WeatherId,
     /// End-of-turn checks left before it ends.
-    pub turns_left: u8,
+    pub duration: u8,
 }
 
 /// Conditions affecting the whole battle.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Field {
     /// The current weather, if any.
-    pub weather: Option<ActiveWeather>,
+    pub weather: Option<WeatherState>,
 }
 
 /// How a battle ended.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum Outcome {
     /// One side won.
-    Winner(SideId),
-    /// Both sides were defeated at once with no tiebreak.
+    Win(SideId),
+    /// Both sides lost their last creature at once with no tiebreak.
     Tie,
 }
 
-/// Everything needed to resume a battle, given the same [`Dex`](crate::dex::Dex).
+/// Everything needed to resume a battle, given the same [`Dex`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BattleState {
-    /// The turn being played, starting at 1; it advances once the next turn starts, after any
-    /// replacements.
+    /// The turn being played, starting at 1. It advances when the next turn starts, after any
+    /// replacements, as in Showdown.
     pub turn: u32,
     /// The random number generator.
     pub prng: Prng,
@@ -316,9 +304,10 @@ impl BattleState {
         self.side(side).active()
     }
 
-    /// Whether either side must choose a replacement for a fainted creature before the turn.
+    /// Whether either side must switch in a replacement before the next turn, which is when
+    /// Showdown sends a `forceSwitch` request.
     #[must_use]
-    pub fn awaiting_replacements(&self) -> bool {
-        self.sides.iter().any(Side::needs_replacement)
+    pub fn awaiting_switch(&self) -> bool {
+        self.sides.iter().any(Side::must_switch)
     }
 }

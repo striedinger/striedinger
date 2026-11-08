@@ -2,7 +2,9 @@
 //! be read while the state is mutated.
 //!
 //! Ordering and random-number consumption follow Pokémon Showdown's Generation 9 simulator, so
-//! that both can be driven from the same seed and compared roll for roll.
+//! both can be driven from the same seed and compared roll for roll. Handler lookups are gated
+//! by each creature's [`HandlerMask`], so creatures without a relevant ability or item cost
+//! nothing extra.
 
 mod modifiers;
 mod moves;
@@ -10,12 +12,10 @@ mod residual;
 
 use std::cmp::Ordering;
 
-use super::events::{DamageCause, Event, HealCause, TraitRef};
+use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
-use super::state::{
-    ActiveWeather, BattleState, Outcome, Pokemon, SideId, StatusCondition, Volatiles,
-};
-use crate::dex::{Dex, TraitData, TraitEffect, WeatherData, WeatherId};
+use super::state::{BattleState, Outcome, Pokemon, SideId, Volatiles, WeatherState};
+use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
 use crate::stats::{BoostStat, Boosts, saturate_u16};
 
 #[derive(Clone, Copy, Debug)]
@@ -25,12 +25,22 @@ enum Action {
     Move(Option<usize>),
 }
 
-fn action_for(choice: Choice) -> Option<Action> {
-    match choice {
-        Choice::Switch(slot) => Some(Action::Switch(slot)),
-        Choice::Move(slot) => Some(Action::Move(Some(slot))),
-        Choice::Struggle => Some(Action::Move(None)),
-        Choice::Pass => None,
+/// Creatures whose HP reached zero, in order, until the next faint check. At most both
+/// actives can be queued between checks.
+#[derive(Clone, Copy, Debug, Default)]
+struct FaintQueue {
+    sides: [Option<SideId>; 2],
+}
+
+impl FaintQueue {
+    fn push(&mut self, side: SideId) {
+        if let Some(free) = self.sides.iter_mut().find(|entry| entry.is_none()) {
+            *free = Some(side);
+        }
+    }
+
+    fn take(&mut self) -> impl Iterator<Item = SideId> + use<> {
+        std::mem::take(&mut self.sides).into_iter().flatten()
     }
 }
 
@@ -38,7 +48,7 @@ pub(crate) struct Engine<'a> {
     dex: &'a Dex,
     state: &'a mut BattleState,
     events: &'a mut Vec<Event>,
-    faint_queue: Vec<SideId>,
+    faint_queue: FaintQueue,
 }
 
 impl<'a> Engine<'a> {
@@ -47,7 +57,7 @@ impl<'a> Engine<'a> {
             dex,
             state,
             events,
-            faint_queue: Vec::new(),
+            faint_queue: FaintQueue::default(),
         }
     }
 
@@ -72,109 +82,139 @@ impl<'a> Engine<'a> {
         self.weather_id().map(|id| dex.weather(id))
     }
 
-    /// The holder's ability and item with their references, ability first.
-    fn traits(&self, side: SideId) -> impl Iterator<Item = (TraitRef, &'a TraitData)> + use<'a> {
+    /// The kinds of handler the active creature's ability and item have.
+    fn mask(&self, side: SideId) -> HandlerMask {
+        self.active(side).handler_mask(self.dex)
+    }
+
+    /// The active creature's handlers with the ability or item each comes from, ability first.
+    fn handlers(&self, side: SideId) -> impl Iterator<Item = (Effect, &'a Handler)> + use<'a> {
         let dex = self.dex;
         let pokemon = self.active(side);
         let ability = pokemon
             .ability
-            .map(|id| (TraitRef::Ability(id), dex.ability(id)));
-        let item = pokemon.item.map(|id| (TraitRef::Item(id), dex.item(id)));
-        ability.into_iter().chain(item)
+            .map(|id| (Effect::Ability(id), dex.ability(id).handlers.as_slice()));
+        let item = pokemon
+            .item
+            .map(|id| (Effect::Item(id), dex.item(id).handlers.as_slice()));
+        ability
+            .into_iter()
+            .chain(item)
+            .flat_map(|(effect, handlers)| handlers.iter().map(move |handler| (effect, handler)))
     }
 
-    /// Every trait effect on the holder with the trait it came from.
-    fn trait_effects(
-        &self,
-        side: SideId,
-    ) -> impl Iterator<Item = (TraitRef, &'a TraitEffect)> + use<'a> {
-        self.traits(side)
-            .flat_map(|(source, data)| data.effects.iter().map(move |effect| (source, effect)))
+    /// Announces an ability or item taking effect (`-ability` or `-item`).
+    fn announce(&mut self, side: SideId, effect: Effect) {
+        self.emit(match effect {
+            Effect::Ability(ability) => Event::Ability { side, ability },
+            Effect::Item(item) => Event::Item { side, item },
+        });
     }
 
     pub fn start(&mut self) {
         for side in SideId::BOTH {
-            self.active_mut(side).volatiles.entered_this_turn = true;
-            self.emit_switched_in(side);
+            self.emit_switch(side);
         }
-        self.run_entry_effects(SideId::BOTH);
+        self.run_switch_in(SideId::BOTH);
         self.update();
         self.state.turn = 0;
-        self.begin_next_turn();
+        self.next_turn();
     }
 
     /// Runs validated choices: replacements between turns, or a full turn.
     pub fn run(&mut self, choices: [Choice; 2]) {
-        if !self.state.awaiting_replacements() {
+        if !self.state.awaiting_switch() {
             self.run_turn(choices);
             return;
         }
-        let mut switched = Vec::with_capacity(2);
+        let mut switched = [None; 2];
         for side in SideId::BOTH {
             if let Choice::Switch(slot) = choices[side.index()] {
                 self.switch_in(side, slot);
-                switched.push(side);
+                switched[side.index()] = Some(side);
             }
         }
-        self.run_entry_effects(switched);
-        if self.resolve_faints() {
+        self.run_switch_in(switched.into_iter().flatten());
+        if self.faint_messages() {
             return;
         }
         self.update();
-        self.begin_next_turn();
+        self.next_turn();
+    }
+
+    fn action_for(&self, side: SideId, choice: Choice) -> Option<Action> {
+        match choice {
+            Choice::Switch(slot) => Some(Action::Switch(slot)),
+            Choice::Move(_) if self.active(side).must_struggle(self.dex) => {
+                Some(Action::Move(None))
+            }
+            Choice::Move(slot) => Some(Action::Move(Some(slot))),
+            Choice::Pass => None,
+        }
     }
 
     fn run_turn(&mut self, choices: [Choice; 2]) {
-        let mut pending = choices.map(action_for);
+        let mut queue = [
+            self.action_for(SideId::P1, choices[0]),
+            self.action_for(SideId::P2, choices[1]),
+        ];
         // The next actor is picked from the remaining actions each time, re-reading speed after
         // every action as Generation 8 onward does.
-        while let Some(side) = self.next_actor(&pending) {
-            let Some(action) = pending[side.index()].take() else {
+        while let Some(side) = self.next_actor(&queue) {
+            let Some(action) = queue[side.index()].take() else {
                 break;
             };
             match action {
                 Action::Switch(slot) => {
                     self.switch_in(side, slot);
-                    self.run_entry_effects([side]);
+                    self.run_switch_in([side]);
                 }
                 Action::Move(slot) => {
                     if !self.active(side).is_fainted() {
-                        self.use_move(side, slot);
+                        self.run_move(side, slot);
                     }
                 }
             }
-            if self.resolve_faints() {
+            if self.faint_messages() {
                 return;
             }
             self.update();
         }
-        self.end_of_turn();
+        self.residual();
     }
 
-    fn move_priority(&self, side: SideId, action: Action) -> i8 {
-        match action {
-            Action::Move(Some(slot)) => self.active(side).moves[slot]
-                .map_or(0, |move_slot| self.dex.move_data(move_slot.id).priority),
-            Action::Move(None) => self.dex.move_data(self.dex.struggle()).priority,
-            Action::Switch(_) => 0,
-        }
+    fn priority(&self, side: SideId, action: Action) -> i8 {
+        let move_id = match action {
+            Action::Move(Some(slot)) => match self.active(side).move_slots[slot] {
+                Some(move_slot) => move_slot.id,
+                None => return 0,
+            },
+            Action::Move(None) => self.dex.struggle(),
+            Action::Switch(_) => return 0,
+        };
+        self.dex.move_data(move_id).priority
     }
 
-    fn next_actor(&mut self, pending: &[Option<Action>; 2]) -> Option<SideId> {
-        match (pending[0], pending[1]) {
+    fn next_actor(&mut self, queue: &[Option<Action>; 2]) -> Option<SideId> {
+        match (queue[0], queue[1]) {
             (None, None) => None,
             (Some(_), None) => Some(SideId::P1),
             (None, Some(_)) => Some(SideId::P2),
             (Some(first), Some(second)) => {
                 let key = |engine: &Self, side, action| {
-                    let is_switch = matches!(action, Action::Switch(_));
                     (
-                        is_switch,
-                        engine.move_priority(side, action),
-                        engine.action_speed(side),
+                        matches!(action, Action::Switch(_)),
+                        engine.priority(side, action),
                     )
                 };
-                match key(self, SideId::P1, first).cmp(&key(self, SideId::P2, second)) {
+                // Speed is only computed when switching and priority do not decide.
+                let order = key(self, SideId::P1, first)
+                    .cmp(&key(self, SideId::P2, second))
+                    .then_with(|| {
+                        self.action_speed(SideId::P1)
+                            .cmp(&self.action_speed(SideId::P2))
+                    });
+                match order {
                     Ordering::Greater => Some(SideId::P1),
                     Ordering::Less => Some(SideId::P2),
                     Ordering::Equal => Some(self.random_side()),
@@ -202,25 +242,13 @@ impl<'a> Engine<'a> {
             Ordering::Less => SideId::P2,
             Ordering::Equal => self.random_side(),
         };
-        [first, first.opponent()]
+        [first, first.foe()]
     }
 
-    /// Orders a subset of sides fastest first.
-    fn order_by_speed(&mut self, sides: impl IntoIterator<Item = SideId>) -> Vec<SideId> {
-        let sides: Vec<SideId> = sides.into_iter().collect();
-        if sides.len() < 2 {
-            return sides;
-        }
-        self.speed_order()
-            .into_iter()
-            .filter(|side| sides.contains(side))
-            .collect()
-    }
-
-    fn emit_switched_in(&mut self, side: SideId) {
+    fn emit_switch(&mut self, side: SideId) {
         let team = &self.state.sides[side.index()];
         let pokemon = team.active();
-        let event = Event::SwitchedIn {
+        let event = Event::Switch {
             side,
             slot: team.active,
             species: pokemon.species,
@@ -234,78 +262,44 @@ impl<'a> Engine<'a> {
         let outgoing = self.active_mut(side);
         outgoing.boosts = Boosts::default();
         outgoing.volatiles = Volatiles::default();
-        if let Some(StatusCondition::Toxic { stage }) = &mut outgoing.status {
-            *stage = 0;
-        }
         let team = &mut self.state.sides[side.index()];
         team.active = slot;
-        team.pokemon_mut(slot).volatiles.entered_this_turn = true;
-        self.emit_switched_in(side);
+        let incoming = team.active_mut();
+        incoming.active_turns = 0;
+        incoming.status_state.stage = 0;
+        self.emit_switch(side);
     }
 
-    /// Runs entry abilities and items for creatures that just entered, fastest first.
-    fn run_entry_effects(&mut self, sides: impl IntoIterator<Item = SideId>) {
-        for side in self.order_by_speed(sides) {
-            if self.active(side).is_fainted() {
-                continue;
-            }
-            for (source, effect) in self.trait_effects(side) {
-                match *effect {
-                    TraitEffect::EntryWeather(weather) => {
-                        if self.weather_id() != Some(weather) {
-                            self.emit(Event::TraitActivated { side, source });
-                            self.set_weather(weather);
-                        }
-                    }
-                    TraitEffect::EntryOpponentBoost(stat, stages) => {
-                        let opponent = side.opponent();
-                        if !self.active(opponent).is_fainted() {
-                            self.emit(Event::TraitActivated { side, source });
-                            self.boost(opponent, stat, stages);
-                        }
-                    }
-                    _ => {}
-                }
-            }
+    /// Runs `onStart` abilities and items for creatures that just switched in, fastest first.
+    fn run_switch_in(&mut self, sides: impl IntoIterator<Item = SideId>) {
+        let mut entering = [false; 2];
+        for side in sides {
+            entering[side.index()] = true;
         }
-    }
-
-    /// Showdown's "Update" checkpoint: held items that react to HP or status get a chance to
-    /// trigger, fastest creature first.
-    fn update(&mut self) {
-        let reacts = |effect: &TraitEffect| {
-            matches!(
-                effect,
-                TraitEffect::HealAtThreshold { .. } | TraitEffect::CureStatus
-            )
+        let order = match entering {
+            [true, true] => self.speed_order(),
+            _ => SideId::BOTH,
         };
-        if !SideId::BOTH
-            .into_iter()
-            .any(|side| self.trait_effects(side).any(|(_, effect)| reacts(effect)))
-        {
-            return;
-        }
-        for side in self.speed_order() {
-            if self.active(side).is_fainted() {
+        for side in order {
+            if !entering[side.index()]
+                || self.active(side).is_fainted()
+                || !self.mask(side).intersects(HandlerMask::START)
+            {
                 continue;
             }
-            for (source, effect) in self.trait_effects(side) {
-                match *effect {
-                    TraitEffect::HealAtThreshold { threshold, amount } => {
-                        let pokemon = self.active(side);
-                        let hp = u32::from(pokemon.hp) * u32::from(threshold.denominator);
-                        let limit = u32::from(pokemon.max_hp()) * u32::from(threshold.numerator);
-                        if hp <= limit {
-                            let restore = amount.of_floored(u32::from(pokemon.max_hp()));
-                            self.emit(Event::TraitActivated { side, source });
-                            self.consume_if_item(side, source);
-                            self.heal(side, restore, HealCause::Trait(source));
+            for (effect, handler) in self.handlers(side) {
+                match handler {
+                    Handler::StartWeather(weather) => {
+                        if self.weather_id() != Some(*weather) {
+                            self.announce(side, effect);
+                            self.set_weather(*weather);
                         }
                     }
-                    TraitEffect::CureStatus => {
-                        let pokemon = self.active(side);
-                        if pokemon.status.is_some() || pokemon.volatiles.confusion_turns > 0 {
-                            self.trigger_cure(side, source);
+                    Handler::StartFoeBoosts(boosts) => {
+                        let foe = side.foe();
+                        if !self.active(foe).is_fainted() {
+                            self.announce(side, effect);
+                            self.boost(foe, *boosts);
                         }
                     }
                     _ => {}
@@ -314,23 +308,65 @@ impl<'a> Engine<'a> {
         }
     }
 
-    fn trigger_cure(&mut self, side: SideId, source: TraitRef) {
-        self.emit(Event::TraitActivated { side, source });
-        self.consume_if_item(side, source);
-        self.cure_status(side);
-        if self.active(side).volatiles.confusion_turns > 0 {
-            self.active_mut(side).volatiles.confusion_turns = 0;
-            self.emit(Event::ConfusionEnded { side });
+    /// Showdown's `Update` event: items that react to HP or status get a chance to trigger,
+    /// fastest creature first.
+    fn update(&mut self) {
+        let reacts = SideId::BOTH.map(|side| {
+            !self.active(side).is_fainted() && self.mask(side).intersects(HandlerMask::UPDATE)
+        });
+        let order = match reacts {
+            [false, false] => return,
+            [true, true] => self.speed_order(),
+            _ => SideId::BOTH,
+        };
+        for side in order {
+            if !reacts[side.index()] || self.active(side).is_fainted() {
+                continue;
+            }
+            for (effect, handler) in self.handlers(side) {
+                match *handler {
+                    Handler::HealAtThreshold { threshold, amount } => {
+                        let pokemon = self.active(side);
+                        if threshold.covers(pokemon.hp, pokemon.max_hp()) && !pokemon.is_fainted() {
+                            let restore = amount.of_floored(u32::from(pokemon.max_hp()));
+                            self.announce(side, effect);
+                            self.use_item(side, effect);
+                            self.heal(side, restore, HealSource::Effect(effect));
+                        }
+                    }
+                    Handler::CureStatus => {
+                        let pokemon = self.active(side);
+                        if pokemon.status.is_some() || pokemon.volatiles.confusion.is_some() {
+                            self.cure(side, effect);
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
     }
 
-    /// Uses up a consumable item once one of its one-shot effects has triggered.
-    fn consume_if_item(&mut self, side: SideId, source: TraitRef) {
-        if let TraitRef::Item(item) = source
+    /// A `cureStatus` handler: removes the status and confusion.
+    fn cure(&mut self, side: SideId, effect: Effect) {
+        self.announce(side, effect);
+        self.use_item(side, effect);
+        self.cure_status(side);
+        if self.active(side).volatiles.confusion.is_some() {
+            self.active_mut(side).volatiles.confusion = None;
+            self.emit(Event::End {
+                side,
+                volatile: crate::dex::VolatileStatus::Confusion,
+            });
+        }
+    }
+
+    /// Uses up a consumable item once a one-shot handler has triggered (`-enditem`).
+    fn use_item(&mut self, side: SideId, effect: Effect) {
+        if let Effect::Item(item) = effect
             && self.dex.item(item).consumable
         {
             self.active_mut(side).item = None;
-            self.emit(Event::ItemConsumed { side, item });
+            self.emit(Event::EndItem { side, item });
         }
     }
 
@@ -338,22 +374,30 @@ impl<'a> Engine<'a> {
         if self.weather_id() == Some(id) {
             return false;
         }
-        self.state.field.weather = Some(ActiveWeather {
+        self.state.field.weather = Some(WeatherState {
             id,
-            turns_left: self.dex.weather(id).duration,
+            duration: self.dex.weather(id).duration,
         });
-        self.emit(Event::WeatherStarted { weather: id });
+        self.emit(Event::Weather { weather: Some(id) });
         true
     }
 
-    /// Changes a stat stage and returns whether anything changed.
-    fn boost(&mut self, side: SideId, stat: BoostStat, stages: i8) -> bool {
+    /// Applies stat stages and returns whether any changed.
+    fn boost(&mut self, side: SideId, boosts: Boosts) -> bool {
         if self.active(side).is_fainted() {
             return false;
         }
+        let mut changed = false;
+        for (stat, stages) in boosts.changes() {
+            changed |= self.boost_stat(side, stat, stages);
+        }
+        changed
+    }
+
+    fn boost_stat(&mut self, side: SideId, stat: BoostStat, stages: i8) -> bool {
         let applied = self.active_mut(side).boosts.apply(stat, stages);
         if applied != 0 {
-            self.emit(Event::StatChanged {
+            self.emit(Event::Boost {
                 side,
                 stat,
                 stages: applied,
@@ -364,32 +408,33 @@ impl<'a> Engine<'a> {
 
     fn cure_status(&mut self, side: SideId) {
         if let Some(status) = self.active_mut(side).status.take() {
-            self.emit(Event::StatusCured {
-                side,
-                status: status.kind(),
-            });
+            self.emit(Event::CureStatus { side, status });
         }
     }
 
     /// Removes up to `amount` HP and returns how much was actually lost.
     ///
-    /// Damage from a move or a confusion self-hit that would knock out a creature at full HP
-    /// is first offered to `endure_from_full` traits, ability before item.
-    fn damage(&mut self, side: SideId, amount: u32, cause: DamageCause) -> u32 {
+    /// Damage from a move or confusion that would knock out a creature at full HP is first
+    /// offered to `endureFromFull` handlers, ability before item, like Showdown's `onDamage`.
+    fn damage(&mut self, side: SideId, amount: u32, from: DamageSource) -> u32 {
         let pokemon = self.active(side);
         if pokemon.is_fainted() || amount == 0 {
             return 0;
         }
         let mut amount = amount;
-        let from_move = matches!(cause, DamageCause::Move | DamageCause::Confusion);
-        if from_move && pokemon.hp == pokemon.max_hp() && amount >= u32::from(pokemon.hp) {
+        let from_move = matches!(from, DamageSource::Move | DamageSource::Confusion);
+        if from_move
+            && pokemon.hp == pokemon.max_hp()
+            && amount >= u32::from(pokemon.hp)
+            && self.mask(side).intersects(HandlerMask::DAMAGE)
+        {
             let endure = self
-                .trait_effects(side)
-                .find(|(_, effect)| **effect == TraitEffect::EndureFromFull)
-                .map(|(source, _)| source);
-            if let Some(source) = endure {
-                self.emit(Event::TraitActivated { side, source });
-                self.consume_if_item(side, source);
+                .handlers(side)
+                .find(|(_, handler)| **handler == Handler::EndureFromFull)
+                .map(|(effect, _)| effect);
+            if let Some(effect) = endure {
+                self.announce(side, effect);
+                self.use_item(side, effect);
                 amount = u32::from(self.active(side).hp - 1);
                 if amount == 0 {
                     return 0;
@@ -400,11 +445,11 @@ impl<'a> Engine<'a> {
         let dealt = saturate_u16(amount).min(pokemon.hp);
         pokemon.hp -= dealt;
         let hp = pokemon.hp;
-        self.emit(Event::Damaged {
+        self.emit(Event::Damage {
             side,
             amount: dealt,
             hp,
-            cause,
+            from,
         });
         if hp == 0 {
             self.faint_queue.push(side);
@@ -413,7 +458,7 @@ impl<'a> Engine<'a> {
     }
 
     /// Restores up to `amount` HP and returns how much was actually restored.
-    fn heal(&mut self, side: SideId, amount: u32, cause: HealCause) -> u32 {
+    fn heal(&mut self, side: SideId, amount: u32, from: HealSource) -> u32 {
         let pokemon = self.active_mut(side);
         if pokemon.is_fainted() {
             return 0;
@@ -424,53 +469,65 @@ impl<'a> Engine<'a> {
         }
         pokemon.hp += restored;
         let hp = pokemon.hp;
-        self.emit(Event::Healed {
+        self.emit(Event::Heal {
             side,
             amount: restored,
             hp,
-            cause,
+            from,
         });
         u32::from(restored)
     }
 
-    /// Announces queued faints and ends the battle if a side is out of creatures.
+    /// Showdown's `faintMessages`: announces queued faints and ends the battle if a side is
+    /// out of creatures. Returns whether the battle ended.
     ///
     /// When both sides run out at once, the side whose creature fainted last wins, as in
     /// Generation 5 onward (for example, an attacker knocked out by its own recoil).
-    fn resolve_faints(&mut self) -> bool {
+    fn faint_messages(&mut self) -> bool {
         let mut last_fainted = None;
-        for side in std::mem::take(&mut self.faint_queue) {
-            self.emit(Event::Fainted { side });
+        for side in self.faint_queue.take() {
+            self.emit(Event::Faint { side });
             last_fainted = Some(side);
+        }
+        if last_fainted.is_none() {
+            return false;
         }
         let defeated = SideId::BOTH.map(|side| self.state.side(side).is_defeated());
         let outcome = match defeated {
-            [true, true] => Some(last_fainted.map_or(Outcome::Tie, Outcome::Winner)),
-            [true, false] => Some(Outcome::Winner(SideId::P2)),
-            [false, true] => Some(Outcome::Winner(SideId::P1)),
-            [false, false] => None,
+            [true, true] => last_fainted.map_or(Outcome::Tie, Outcome::Win),
+            [true, false] => Outcome::Win(SideId::P2),
+            [false, true] => Outcome::Win(SideId::P1),
+            [false, false] => return false,
         };
-        if let Some(outcome) = outcome {
-            self.state.outcome = Some(outcome);
-            self.emit(Event::BattleEnded { outcome });
-            return true;
-        }
-        false
+        self.state.outcome = Some(outcome);
+        self.emit(match outcome {
+            Outcome::Win(side) => Event::Win { side },
+            Outcome::Tie => Event::Tie,
+        });
+        true
     }
 
-    /// Starts the next turn unless the battle is over or a side must first replace a fainted
-    /// creature. Like Showdown, the turn counter only advances once the turn actually starts.
-    fn begin_next_turn(&mut self) {
-        if self.state.outcome.is_some() || self.state.awaiting_replacements() {
+    /// Starts the next turn unless the battle is over or a side must first switch in a
+    /// replacement. Like Showdown, the turn counter and `activeTurns` advance only then.
+    fn next_turn(&mut self) {
+        if self.state.outcome.is_some() || self.state.awaiting_switch() {
             return;
         }
-        self.state.turn += 1;
-        for side in &mut self.state.sides {
-            for pokemon in &mut side.team {
-                pokemon.volatiles.entered_this_turn = false;
-            }
+        for side in SideId::BOTH {
+            let active = self.active_mut(side);
+            active.active_turns = active.active_turns.saturating_add(1);
         }
+        self.state.turn += 1;
         let turn = self.state.turn;
-        self.emit(Event::TurnStarted { turn });
+        self.emit(Event::Turn { turn });
+    }
+
+    fn status_damage(status: Status, max_hp: u32, stage: u8) -> u32 {
+        match status {
+            Status::Burn => (max_hp / 16).max(1),
+            Status::Poison => (max_hp / 8).max(1),
+            Status::Toxic => (max_hp / 16).max(1) * u32::from(stage),
+            Status::Paralysis | Status::Sleep | Status::Freeze => 0,
+        }
     }
 }

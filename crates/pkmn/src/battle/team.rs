@@ -1,57 +1,61 @@
+//! Team building from sets written like Pokémon Showdown's `PokemonSet`.
+
 use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, Volatiles};
+use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, Volatiles};
 use crate::dex::Dex;
-use crate::stats::{
-    Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, Nature, Stat, StatTable, calculate_stats,
-};
+use crate::stats::{Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, StatTable, calculate_stats};
 
 /// The most creatures a team can have.
 pub const MAX_TEAM_SIZE: usize = 6;
 
-/// A team member as a player builds it, referencing content by name.
+/// A team member as a player builds it, in the shape of Showdown's `PokemonSet`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PokemonSet {
+    /// A nickname; defaults to the species name.
+    #[serde(default)]
+    pub name: Option<String>,
     /// The species name.
     pub species: String,
-    /// The level; defaults to 100.
-    #[serde(default = "default_level")]
-    pub level: u8,
+    /// The held item name.
+    #[serde(default)]
+    pub item: Option<String>,
+    /// The ability name.
+    #[serde(default)]
+    pub ability: Option<String>,
     /// One to four distinct move names.
     pub moves: Vec<String>,
+    /// The nature name; omitted is neutral.
+    #[serde(default)]
+    pub nature: Option<String>,
     /// Effort values; omitted stats are zero.
     #[serde(default)]
     pub evs: StatTable,
     /// Individual values; omitted stats are 31.
     #[serde(default = "max_ivs", deserialize_with = "deserialize_ivs")]
     pub ivs: StatTable,
-    /// The nature; omitted means neutral.
-    #[serde(default)]
-    pub nature: Option<Nature>,
-    /// The ability name, if any.
-    #[serde(default)]
-    pub ability: Option<String>,
-    /// The held item name, if any.
-    #[serde(default)]
-    pub item: Option<String>,
+    /// The level; defaults to 100.
+    #[serde(default = "default_level")]
+    pub level: u8,
 }
 
 impl PokemonSet {
-    /// A level 100 set with no EVs, perfect IVs, and a neutral nature.
+    /// A level 100 set with no EVs, perfect IVs, a neutral nature, and no ability or item.
     #[must_use]
     pub fn new(species: &str, moves: &[&str]) -> Self {
         Self {
+            name: None,
             species: species.to_owned(),
-            level: default_level(),
+            item: None,
+            ability: None,
             moves: moves.iter().map(|&name| name.to_owned()).collect(),
+            nature: None,
             evs: StatTable::default(),
             ivs: max_ivs(),
-            nature: None,
-            ability: None,
-            item: None,
+            level: default_level(),
         }
     }
 
@@ -75,8 +79,91 @@ impl PokemonSet {
     ///
     /// Returns why the set is invalid for `dex`.
     pub fn build(&self, dex: &Dex) -> Result<Pokemon, TeamErrorReason> {
-        build_pokemon(dex, self)
+        let species_id = dex
+            .species_id(&self.species)
+            .ok_or_else(|| TeamErrorReason::UnknownSpecies(self.species.clone()))?;
+        if !(1..=100).contains(&self.level) {
+            return Err(TeamErrorReason::Level(self.level));
+        }
+        if self.moves.is_empty() || self.moves.len() > MAX_MOVES {
+            return Err(TeamErrorReason::MoveCount(self.moves.len()));
+        }
+        if self.ivs.max() > MAX_IV {
+            return Err(TeamErrorReason::Iv);
+        }
+        if self.evs.max() > MAX_EV || self.evs.total() > MAX_TOTAL_EVS {
+            return Err(TeamErrorReason::Ev);
+        }
+        let mut move_slots = [None; MAX_MOVES];
+        for (slot, name) in self.moves.iter().enumerate() {
+            let id = dex
+                .move_id(name)
+                .ok_or_else(|| TeamErrorReason::UnknownMove(name.clone()))?;
+            if move_slots
+                .iter()
+                .flatten()
+                .any(|known: &MoveSlot| known.id == id)
+            {
+                return Err(TeamErrorReason::DuplicateMove(name.clone()));
+            }
+            let max_pp = u8::try_from(u16::from(dex.move_data(id).pp) * 8 / 5).unwrap_or(u8::MAX);
+            move_slots[slot] = Some(MoveSlot {
+                id,
+                pp: max_pp,
+                max_pp,
+            });
+        }
+        let ability = resolve_name(
+            self.ability.as_deref(),
+            |name| dex.ability_id(name),
+            TeamErrorReason::UnknownAbility,
+        )?;
+        let item = resolve_name(
+            self.item.as_deref(),
+            |name| dex.item_id(name),
+            TeamErrorReason::UnknownItem,
+        )?;
+        let nature = resolve_name(
+            self.nature.as_deref(),
+            |name| dex.nature_id(name),
+            TeamErrorReason::UnknownNature,
+        )?
+        .and_then(|id| dex.nature(id).nature);
+        let species = dex.species(species_id);
+        let stats = calculate_stats(
+            &species.base_stats,
+            &self.ivs,
+            &self.evs,
+            self.level,
+            nature,
+        );
+        Ok(Pokemon {
+            species: species_id,
+            level: self.level,
+            primary_type: species.primary_type,
+            secondary_type: species.secondary_type,
+            stats,
+            hp: stats.hp,
+            move_slots,
+            ability,
+            item,
+            status: None,
+            status_state: StatusState::default(),
+            boosts: Boosts::default(),
+            volatiles: Volatiles::default(),
+            active_turns: 0,
+        })
     }
+}
+
+/// Looks up an optional name, failing with `unknown` if it is given but does not exist.
+fn resolve_name<Id>(
+    name: Option<&str>,
+    find: impl Fn(&str) -> Option<Id>,
+    unknown: fn(String) -> TeamErrorReason,
+) -> Result<Option<Id>, TeamErrorReason> {
+    name.map(|name| find(name).ok_or_else(|| unknown(name.to_owned())))
+        .transpose()
 }
 
 fn default_level() -> u8 {
@@ -84,14 +171,7 @@ fn default_level() -> u8 {
 }
 
 fn max_ivs() -> StatTable {
-    StatTable {
-        hp: MAX_IV,
-        attack: MAX_IV,
-        defense: MAX_IV,
-        special_attack: MAX_IV,
-        special_defense: MAX_IV,
-        speed: MAX_IV,
-    }
+    StatTable::uniform(MAX_IV)
 }
 
 fn deserialize_ivs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<StatTable, D::Error> {
@@ -99,20 +179,20 @@ fn deserialize_ivs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<StatTab
     #[serde(deny_unknown_fields)]
     struct PartialIvs {
         hp: Option<u16>,
-        attack: Option<u16>,
-        defense: Option<u16>,
-        special_attack: Option<u16>,
-        special_defense: Option<u16>,
-        speed: Option<u16>,
+        atk: Option<u16>,
+        def: Option<u16>,
+        spa: Option<u16>,
+        spd: Option<u16>,
+        spe: Option<u16>,
     }
     let partial = PartialIvs::deserialize(deserializer)?;
     Ok(StatTable {
         hp: partial.hp.unwrap_or(MAX_IV),
-        attack: partial.attack.unwrap_or(MAX_IV),
-        defense: partial.defense.unwrap_or(MAX_IV),
-        special_attack: partial.special_attack.unwrap_or(MAX_IV),
-        special_defense: partial.special_defense.unwrap_or(MAX_IV),
-        speed: partial.speed.unwrap_or(MAX_IV),
+        attack: partial.atk.unwrap_or(MAX_IV),
+        defense: partial.def.unwrap_or(MAX_IV),
+        special_attack: partial.spa.unwrap_or(MAX_IV),
+        special_defense: partial.spd.unwrap_or(MAX_IV),
+        speed: partial.spe.unwrap_or(MAX_IV),
     })
 }
 
@@ -142,6 +222,8 @@ pub enum TeamErrorReason {
     UnknownAbility(String),
     /// The item does not exist.
     UnknownItem(String),
+    /// The nature does not exist.
+    UnknownNature(String),
     /// The set has no moves or more than four.
     MoveCount(usize),
     /// The set lists a move twice.
@@ -152,8 +234,6 @@ pub enum TeamErrorReason {
     Iv,
     /// An EV is above 252 or the total is above 510.
     Ev,
-    /// The nature changes HP.
-    Nature,
 }
 
 impl fmt::Display for TeamError {
@@ -178,6 +258,7 @@ impl fmt::Display for TeamError {
                 write!(formatter, ": unknown ability {name:?}")
             }
             TeamErrorReason::UnknownItem(name) => write!(formatter, ": unknown item {name:?}"),
+            TeamErrorReason::UnknownNature(name) => write!(formatter, ": unknown nature {name:?}"),
             TeamErrorReason::MoveCount(count) => {
                 write!(formatter, " has {count} moves; it needs 1 to {MAX_MOVES}")
             }
@@ -192,7 +273,6 @@ impl fmt::Display for TeamError {
                 formatter,
                 " has an EV above {MAX_EV} or more than {MAX_TOTAL_EVS} in total"
             ),
-            TeamErrorReason::Nature => write!(formatter, " has a nature that changes HP"),
         }
     }
 }
@@ -210,89 +290,10 @@ pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result
     let team = sets
         .iter()
         .enumerate()
-        .map(|(slot, set)| build_pokemon(dex, set).map_err(|reason| team_error(Some(slot), reason)))
+        .map(|(slot, set)| {
+            set.build(dex)
+                .map_err(|reason| team_error(Some(slot), reason))
+        })
         .collect::<Result<_, _>>()?;
     Ok(Side { team, active: 0 })
-}
-
-fn build_pokemon(dex: &Dex, set: &PokemonSet) -> Result<Pokemon, TeamErrorReason> {
-    let species_id = dex
-        .species_id(&set.species)
-        .ok_or_else(|| TeamErrorReason::UnknownSpecies(set.species.clone()))?;
-    if !(1..=100).contains(&set.level) {
-        return Err(TeamErrorReason::Level(set.level));
-    }
-    if set.moves.is_empty() || set.moves.len() > MAX_MOVES {
-        return Err(TeamErrorReason::MoveCount(set.moves.len()));
-    }
-    if set.ivs.max() > MAX_IV {
-        return Err(TeamErrorReason::Iv);
-    }
-    if set.evs.max() > MAX_EV || set.evs.total() > MAX_TOTAL_EVS {
-        return Err(TeamErrorReason::Ev);
-    }
-    if set
-        .nature
-        .is_some_and(|nature| nature.increased == Stat::Hp || nature.decreased == Stat::Hp)
-    {
-        return Err(TeamErrorReason::Nature);
-    }
-    let mut moves = [None; MAX_MOVES];
-    for (slot, name) in set.moves.iter().enumerate() {
-        let id = dex
-            .move_id(name)
-            .ok_or_else(|| TeamErrorReason::UnknownMove(name.clone()))?;
-        if moves
-            .iter()
-            .flatten()
-            .any(|known: &MoveSlot| known.id == id)
-        {
-            return Err(TeamErrorReason::DuplicateMove(name.clone()));
-        }
-        let pp = dex.move_data(id).pp;
-        let max_pp = u8::try_from(u16::from(pp) * 8 / 5).unwrap_or(u8::MAX);
-        moves[slot] = Some(MoveSlot {
-            id,
-            pp: max_pp,
-            max_pp,
-        });
-    }
-    let ability = set
-        .ability
-        .as_deref()
-        .map(|name| {
-            dex.ability_id(name)
-                .ok_or_else(|| TeamErrorReason::UnknownAbility(name.to_owned()))
-        })
-        .transpose()?;
-    let item = set
-        .item
-        .as_deref()
-        .map(|name| {
-            dex.item_id(name)
-                .ok_or_else(|| TeamErrorReason::UnknownItem(name.to_owned()))
-        })
-        .transpose()?;
-    let species = dex.species(species_id);
-    let stats = calculate_stats(
-        &species.base_stats,
-        &set.ivs,
-        &set.evs,
-        set.level,
-        set.nature,
-    );
-    Ok(Pokemon {
-        species: species_id,
-        level: set.level,
-        primary_type: species.primary_type,
-        secondary_type: species.secondary_type,
-        stats,
-        hp: stats.hp,
-        moves,
-        ability,
-        item,
-        status: None,
-        boosts: Boosts::default(),
-        volatiles: Volatiles::default(),
-    })
 }

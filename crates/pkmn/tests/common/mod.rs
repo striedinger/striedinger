@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use pkmn::battle::DamageCause;
+use pkmn::battle::DamageSource;
 use pkmn::{Battle, BattleState, Choice, Dex, Event, PokemonSet, SideId};
 
 pub const P1: SideId = SideId::P1;
@@ -38,22 +38,19 @@ pub fn movers(events: &[Event]) -> Vec<SideId> {
     events
         .iter()
         .filter_map(|event| match event {
-            Event::MoveUsed { side, .. } => Some(*side),
+            Event::Move { side, .. } => Some(*side),
             _ => None,
         })
         .collect()
 }
 
-pub fn damage_to(events: &[Event], target: SideId, wanted: DamageCause) -> Vec<u16> {
+pub fn damage_to(events: &[Event], target: SideId, wanted: DamageSource) -> Vec<u16> {
     events
         .iter()
         .filter_map(|event| match *event {
-            Event::Damaged {
-                side,
-                amount,
-                cause,
-                ..
-            } if side == target && cause == wanted => Some(amount),
+            Event::Damage {
+                side, amount, from, ..
+            } if side == target && from == wanted => Some(amount),
             _ => None,
         })
         .collect()
