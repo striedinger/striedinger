@@ -13,9 +13,10 @@ use llama_cpp_2::context::LlamaContext;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
-use llama_cpp_2::model::{AddBos, LlamaChatMessage, LlamaChatTemplate, LlamaModel, Special};
+use llama_cpp_2::model::{LlamaChatMessage, LlamaChatTemplate, LlamaModel};
 use llama_cpp_2::sampling::LlamaSampler;
 use llama_cpp_2::token::LlamaToken;
+use llama_cpp_2::vocab::LlamaVocab;
 use std::num::NonZeroU32;
 use std::path::Path;
 use std::sync::Mutex;
@@ -32,6 +33,7 @@ did not say.";
 
 pub struct Llm {
     model: &'static LlamaModel,
+    vocab: LlamaVocab<'static>,
     template: LlamaChatTemplate,
     session: Mutex<Session>,
     context_size: usize,
@@ -74,6 +76,7 @@ impl Llm {
 
         Ok(Self {
             model,
+            vocab: model.vocab(),
             template,
             session: Mutex::new(Session {
                 context,
@@ -126,9 +129,11 @@ impl Llm {
         let prompt = self
             .model
             .apply_chat_template(&self.template, &messages, true)?;
-        let tokens = self.model.str_to_token(&prompt, AddBos::Always)?;
+        // add_special: let the tokenizer add BOS if this model wants it.
+        // parse_special: the template's role markers must become control tokens, not text.
+        let tokens = self.vocab.tokenize(prompt.as_bytes(), true, true);
         anyhow::ensure!(
-            tokens.len() + budget as usize + 1 <= self.context_size,
+            tokens.len() + (budget as usize) < self.context_size,
             "Dictation too long for the cleanup model's context ({} tokens)",
             tokens.len()
         );
@@ -185,10 +190,11 @@ impl Llm {
 
         for _ in 0..budget {
             let token = sampler.sample(&session.context, logits_index);
-            if self.model.is_eog_token(token) {
+            if self.vocab.is_eog(token) {
                 break;
             }
-            bytes.extend(self.model.token_to_bytes(token, Special::Tokenize)?);
+            // special = false: control tokens (chat-template markers) never reach the text.
+            bytes.extend(self.vocab.token_to_piece(token, false, None));
             batch.clear();
             batch.add(token, position, &[0], true)?;
             session.context.decode(&mut batch)?;
