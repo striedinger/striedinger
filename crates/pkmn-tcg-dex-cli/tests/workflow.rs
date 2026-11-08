@@ -137,5 +137,23 @@ fn offline_preview_confirmation_and_backup_roundtrip() {
     let reverse_only: Vec<serde_json::Value> =
         serde_json::from_slice(&run(&["list", "--variant", "reverse"], "")).unwrap();
     assert!(reverse_only.is_empty());
+    let mut japanese_card = copies[0].card.clone();
+    japanese_card.language = "ja".into();
+    let japanese = OwnedCopy::new(
+        japanese_card,
+        "normal".into(),
+        "unknown".into(),
+        None,
+        String::new(),
+    )
+    .unwrap();
+    std::fs::write(&backup, serde_json::to_vec(&vec![japanese]).unwrap()).unwrap();
+    run(&["import", backup.to_str().unwrap()], "");
+    let all_languages: Vec<OwnedCopy> =
+        serde_json::from_slice(&run(&["--language", "ja", "list"], "")).unwrap();
+    assert_eq!(all_languages.len(), 4);
+    let japanese_only: Vec<OwnedCopy> =
+        serde_json::from_slice(&run(&["list", "--card-language", "ja"], "")).unwrap();
+    assert_eq!(japanese_only.len(), 1);
     std::fs::remove_dir_all(dir).unwrap();
 }

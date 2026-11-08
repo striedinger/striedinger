@@ -66,7 +66,7 @@ enum Command {
         #[arg(long)]
         folder: Option<String>,
         #[arg(long = "card-language")]
-        language: Option<String>,
+        card_language: Option<String>,
         #[arg(long)]
         variant: Option<String>,
         #[arg(long)]
@@ -295,7 +295,7 @@ fn main() -> Result<()> {
             query,
             set,
             folder,
-            language,
+            card_language,
             variant,
             condition,
             group,
@@ -308,7 +308,7 @@ fn main() -> Result<()> {
                     text: query,
                     set,
                     folder,
-                    language,
+                    language: card_language,
                     variant,
                     condition,
                     descending,
