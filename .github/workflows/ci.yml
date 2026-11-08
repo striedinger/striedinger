@@ -64,11 +64,35 @@ jobs:
   rust:
     name: Rust format, lint, and tests
     runs-on: ubuntu-latest
+    env:
+      # Keep cached artifacts small and lint/test build profiles consistent.
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      # Fail formatting before downloading/restoring build dependencies.
       - run: cargo +stable fmt -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -- --check
+      - name: Identify Rust compiler
+        id: rustc
+        run: echo "hash=$(rustc +stable -vV | sha256sum | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Cache Rust dependencies and build artifacts
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/src
+            ~/.cargo/git/db
+            target
+          # A per-commit key saves updated artifacts; prefixes reuse earlier builds.
+          # Bump v1 if build-profile settings above change.
+          key: rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-${{ hashFiles('Cargo.lock') }}-
+            rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-
       - run: cargo +stable clippy -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --all-targets --locked -- -D warnings
       - run: cargo +stable test -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --locked
