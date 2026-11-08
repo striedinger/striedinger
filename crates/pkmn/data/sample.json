@@ -1,0 +1,1735 @@
+{
+  "types": [
+    {
+      "name": "Normal",
+      "damageTaken": {
+        "Fighting": 1,
+        "Ghost": 3
+      }
+    },
+    {
+      "name": "Fire",
+      "damageTaken": {
+        "Bug": 2,
+        "Fairy": 2,
+        "Fire": 2,
+        "Grass": 2,
+        "Ground": 1,
+        "Ice": 2,
+        "Rock": 1,
+        "Steel": 2,
+        "Water": 1,
+        "brn": 3
+      },
+      "thawsFrozenTargets": true
+    },
+    {
+      "name": "Water",
+      "damageTaken": {
+        "Electric": 1,
+        "Fire": 2,
+        "Grass": 1,
+        "Ice": 2,
+        "Steel": 2,
+        "Water": 2
+      }
+    },
+    {
+      "name": "Electric",
+      "damageTaken": {
+        "Electric": 2,
+        "Flying": 2,
+        "Ground": 1,
+        "Steel": 2,
+        "par": 3
+      }
+    },
+    {
+      "name": "Grass",
+      "damageTaken": {
+        "Bug": 1,
+        "Electric": 2,
+        "Fire": 1,
+        "Flying": 1,
+        "Grass": 2,
+        "Ground": 2,
+        "Ice": 1,
+        "Poison": 1,
+        "Water": 2
+      }
+    },
+    {
+      "name": "Ice",
+      "damageTaken": {
+        "Fighting": 1,
+        "Fire": 1,
+        "Ice": 2,
+        "Rock": 1,
+        "Steel": 1,
+        "frz": 3
+      }
+    },
+    {
+      "name": "Fighting",
+      "damageTaken": {
+        "Bug": 2,
+        "Dark": 2,
+        "Fairy": 1,
+        "Flying": 1,
+        "Psychic": 1,
+        "Rock": 2
+      }
+    },
+    {
+      "name": "Poison",
+      "damageTaken": {
+        "Bug": 2,
+        "Fairy": 2,
+        "Fighting": 2,
+        "Grass": 2,
+        "Ground": 1,
+        "Poison": 2,
+        "Psychic": 1,
+        "psn": 3,
+        "tox": 3
+      }
+    },
+    {
+      "name": "Ground",
+      "damageTaken": {
+        "Electric": 3,
+        "Grass": 1,
+        "Ice": 1,
+        "Poison": 2,
+        "Rock": 2,
+        "Sandstorm": 3,
+        "Water": 1
+      }
+    },
+    {
+      "name": "Flying",
+      "damageTaken": {
+        "Bug": 2,
+        "Electric": 1,
+        "Fighting": 2,
+        "Grass": 2,
+        "Ground": 3,
+        "Ice": 1,
+        "Rock": 1
+      }
+    },
+    {
+      "name": "Psychic",
+      "damageTaken": {
+        "Bug": 1,
+        "Dark": 1,
+        "Fighting": 2,
+        "Ghost": 1,
+        "Psychic": 2
+      }
+    },
+    {
+      "name": "Bug",
+      "damageTaken": {
+        "Fighting": 2,
+        "Fire": 1,
+        "Flying": 1,
+        "Grass": 2,
+        "Ground": 2,
+        "Rock": 1
+      }
+    },
+    {
+      "name": "Rock",
+      "damageTaken": {
+        "Fighting": 1,
+        "Fire": 2,
+        "Flying": 2,
+        "Grass": 1,
+        "Ground": 1,
+        "Normal": 2,
+        "Poison": 2,
+        "Sandstorm": 3,
+        "Steel": 1,
+        "Water": 1
+      }
+    },
+    {
+      "name": "Ghost",
+      "damageTaken": {
+        "Bug": 2,
+        "Dark": 1,
+        "Fighting": 3,
+        "Ghost": 1,
+        "Normal": 3,
+        "Poison": 2
+      }
+    },
+    {
+      "name": "Dragon",
+      "damageTaken": {
+        "Dragon": 1,
+        "Electric": 2,
+        "Fairy": 1,
+        "Fire": 2,
+        "Grass": 2,
+        "Ice": 1,
+        "Water": 2
+      }
+    },
+    {
+      "name": "Dark",
+      "damageTaken": {
+        "Bug": 1,
+        "Dark": 2,
+        "Fairy": 1,
+        "Fighting": 1,
+        "Ghost": 2,
+        "Psychic": 3
+      }
+    },
+    {
+      "name": "Steel",
+      "damageTaken": {
+        "Bug": 2,
+        "Dragon": 2,
+        "Fairy": 2,
+        "Fighting": 1,
+        "Fire": 1,
+        "Flying": 2,
+        "Grass": 2,
+        "Ground": 1,
+        "Ice": 2,
+        "Normal": 2,
+        "Poison": 3,
+        "Psychic": 2,
+        "Rock": 2,
+        "Sandstorm": 3,
+        "Steel": 2,
+        "psn": 3,
+        "tox": 3
+      }
+    },
+    {
+      "name": "Fairy",
+      "damageTaken": {
+        "Bug": 2,
+        "Dark": 2,
+        "Dragon": 3,
+        "Fighting": 2,
+        "Poison": 1,
+        "Steel": 1
+      }
+    }
+  ],
+  "weathers": [
+    {
+      "name": "Rain",
+      "damageModifiers": {
+        "Water": [3, 2],
+        "Fire": [1, 2]
+      }
+    },
+    {
+      "name": "Sun",
+      "damageModifiers": {
+        "Fire": [3, 2],
+        "Water": [1, 2]
+      },
+      "preventsStatuses": ["frz"]
+    },
+    {
+      "name": "Sandstorm",
+      "residualDamage": [1, 16],
+      "defenseBoosts": [
+        {
+          "type": "Rock",
+          "stat": "spd",
+          "modifier": [3, 2]
+        }
+      ]
+    },
+    {
+      "name": "Snow",
+      "defenseBoosts": [
+        {
+          "type": "Ice",
+          "stat": "def",
+          "modifier": [3, 2]
+        }
+      ]
+    }
+  ],
+  "natures": [
+    {
+      "name": "Hardy"
+    },
+    {
+      "name": "Docile"
+    },
+    {
+      "name": "Serious"
+    },
+    {
+      "name": "Bashful"
+    },
+    {
+      "name": "Quirky"
+    },
+    {
+      "name": "Lonely",
+      "plus": "atk",
+      "minus": "def"
+    },
+    {
+      "name": "Adamant",
+      "plus": "atk",
+      "minus": "spa"
+    },
+    {
+      "name": "Naughty",
+      "plus": "atk",
+      "minus": "spd"
+    },
+    {
+      "name": "Brave",
+      "plus": "atk",
+      "minus": "spe"
+    },
+    {
+      "name": "Bold",
+      "plus": "def",
+      "minus": "atk"
+    },
+    {
+      "name": "Impish",
+      "plus": "def",
+      "minus": "spa"
+    },
+    {
+      "name": "Lax",
+      "plus": "def",
+      "minus": "spd"
+    },
+    {
+      "name": "Relaxed",
+      "plus": "def",
+      "minus": "spe"
+    },
+    {
+      "name": "Modest",
+      "plus": "spa",
+      "minus": "atk"
+    },
+    {
+      "name": "Mild",
+      "plus": "spa",
+      "minus": "def"
+    },
+    {
+      "name": "Rash",
+      "plus": "spa",
+      "minus": "spd"
+    },
+    {
+      "name": "Quiet",
+      "plus": "spa",
+      "minus": "spe"
+    },
+    {
+      "name": "Calm",
+      "plus": "spd",
+      "minus": "atk"
+    },
+    {
+      "name": "Gentle",
+      "plus": "spd",
+      "minus": "def"
+    },
+    {
+      "name": "Careful",
+      "plus": "spd",
+      "minus": "spa"
+    },
+    {
+      "name": "Sassy",
+      "plus": "spd",
+      "minus": "spe"
+    },
+    {
+      "name": "Timid",
+      "plus": "spe",
+      "minus": "atk"
+    },
+    {
+      "name": "Hasty",
+      "plus": "spe",
+      "minus": "def"
+    },
+    {
+      "name": "Jolly",
+      "plus": "spe",
+      "minus": "spa"
+    },
+    {
+      "name": "Naive",
+      "plus": "spe",
+      "minus": "spd"
+    }
+  ],
+  "species": [
+    {
+      "name": "Cindercub",
+      "types": ["Fire"],
+      "baseStats": {
+        "hp": 65,
+        "atk": 80,
+        "def": 60,
+        "spa": 85,
+        "spd": 65,
+        "spe": 95
+      }
+    },
+    {
+      "name": "Tidewhelp",
+      "types": ["Water"],
+      "baseStats": {
+        "hp": 80,
+        "atk": 70,
+        "def": 80,
+        "spa": 85,
+        "spd": 80,
+        "spe": 60
+      }
+    },
+    {
+      "name": "Bramblehog",
+      "types": ["Grass"],
+      "baseStats": {
+        "hp": 75,
+        "atk": 85,
+        "def": 85,
+        "spa": 60,
+        "spd": 75,
+        "spe": 55
+      }
+    },
+    {
+      "name": "Zaplet",
+      "types": ["Electric"],
+      "baseStats": {
+        "hp": 55,
+        "atk": 60,
+        "def": 55,
+        "spa": 100,
+        "spd": 70,
+        "spe": 110
+      }
+    },
+    {
+      "name": "Craghorn",
+      "types": ["Rock", "Ground"],
+      "baseStats": {
+        "hp": 90,
+        "atk": 110,
+        "def": 120,
+        "spa": 40,
+        "spd": 60,
+        "spe": 40
+      }
+    },
+    {
+      "name": "Galewing",
+      "types": ["Normal", "Flying"],
+      "baseStats": {
+        "hp": 70,
+        "atk": 85,
+        "def": 65,
+        "spa": 60,
+        "spd": 65,
+        "spe": 105
+      }
+    },
+    {
+      "name": "Frostmaw",
+      "types": ["Ice", "Dark"],
+      "baseStats": {
+        "hp": 85,
+        "atk": 100,
+        "def": 70,
+        "spa": 70,
+        "spd": 70,
+        "spe": 75
+      }
+    },
+    {
+      "name": "Mirewisp",
+      "types": ["Ghost", "Poison"],
+      "baseStats": {
+        "hp": 60,
+        "atk": 50,
+        "def": 70,
+        "spa": 100,
+        "spd": 90,
+        "spe": 85
+      }
+    },
+    {
+      "name": "Ironmantis",
+      "types": ["Bug", "Steel"],
+      "baseStats": {
+        "hp": 70,
+        "atk": 105,
+        "def": 100,
+        "spa": 45,
+        "spd": 75,
+        "spe": 65
+      }
+    },
+    {
+      "name": "Lumifae",
+      "types": ["Fairy", "Psychic"],
+      "baseStats": {
+        "hp": 75,
+        "atk": 45,
+        "def": 70,
+        "spa": 105,
+        "spd": 105,
+        "spe": 70
+      }
+    },
+    {
+      "name": "Dunewyrm",
+      "types": ["Ground", "Dragon"],
+      "baseStats": {
+        "hp": 95,
+        "atk": 105,
+        "def": 80,
+        "spa": 60,
+        "spd": 70,
+        "spe": 85
+      }
+    },
+    {
+      "name": "Brawlstag",
+      "types": ["Fighting"],
+      "baseStats": {
+        "hp": 85,
+        "atk": 115,
+        "def": 75,
+        "spa": 45,
+        "spd": 70,
+        "spe": 85
+      }
+    }
+  ],
+  "moves": [
+    {
+      "name": "Pounce",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 40,
+      "accuracy": 100,
+      "pp": 35,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Swift Strike",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 40,
+      "accuracy": 100,
+      "pp": 30,
+      "priority": 1,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Reckless Rush",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 15,
+      "recoil": [33, 100],
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Tail Flurry",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 25,
+      "accuracy": 100,
+      "pp": 20,
+      "multihit": [2, 5],
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Rally Cry",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "self",
+      "boosts": {
+        "atk": 2
+      }
+    },
+    {
+      "name": "Hunker Down",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "self",
+      "boosts": {
+        "def": 1,
+        "spd": 1
+      }
+    },
+    {
+      "name": "Tailwind Step",
+      "type": "Flying",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "self",
+      "boosts": {
+        "spe": 2
+      }
+    },
+    {
+      "name": "Second Wind",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 5,
+      "target": "self",
+      "heal": [1, 2]
+    },
+    {
+      "name": "Dizzy Dance",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 10,
+      "volatileStatus": "confusion",
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Glare Down",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 30,
+      "boosts": {
+        "atk": -1
+      },
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Ember Snap",
+      "type": "Fire",
+      "category": "Physical",
+      "basePower": 75,
+      "accuracy": 100,
+      "pp": 15,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "secondaries": [
+        {
+          "chance": 10,
+          "status": "brn"
+        }
+      ]
+    },
+    {
+      "name": "Blaze Burst",
+      "type": "Fire",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "secondaries": [
+        {
+          "chance": 10,
+          "status": "brn"
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Scorch Veil",
+      "type": "Fire",
+      "category": "Status",
+      "accuracy": 85,
+      "pp": 15,
+      "status": "brn",
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Sunny Call",
+      "type": "Fire",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 5,
+      "target": "self",
+      "weather": "Sun"
+    },
+    {
+      "name": "Riptide",
+      "type": "Water",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Aqua Lunge",
+      "type": "Water",
+      "category": "Physical",
+      "basePower": 80,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Rain Call",
+      "type": "Water",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 5,
+      "target": "self",
+      "weather": "Rain"
+    },
+    {
+      "name": "Thorn Volley",
+      "type": "Grass",
+      "category": "Physical",
+      "basePower": 25,
+      "accuracy": 100,
+      "pp": 20,
+      "multihit": [2, 5],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Sap Siphon",
+      "type": "Grass",
+      "category": "Special",
+      "basePower": 75,
+      "accuracy": 100,
+      "pp": 10,
+      "drain": [1, 2],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Spore Cloud",
+      "type": "Grass",
+      "category": "Status",
+      "accuracy": 75,
+      "pp": 15,
+      "status": "slp",
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Static Jolt",
+      "type": "Electric",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "secondaries": [
+        {
+          "chance": 10,
+          "status": "par"
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Volt Snare",
+      "type": "Electric",
+      "category": "Status",
+      "accuracy": 90,
+      "pp": 20,
+      "ignoreImmunity": false,
+      "status": "par",
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Frost Fang",
+      "type": "Ice",
+      "category": "Physical",
+      "basePower": 65,
+      "accuracy": 95,
+      "pp": 15,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "secondaries": [
+        {
+          "chance": 10,
+          "status": "frz"
+        },
+        {
+          "chance": 10,
+          "volatileStatus": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Blizzard Breath",
+      "type": "Ice",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 10,
+      "secondaries": [
+        {
+          "chance": 10,
+          "status": "frz"
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Snow Call",
+      "type": "Ice",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "weather": "Snow"
+    },
+    {
+      "name": "Haymaker",
+      "type": "Fighting",
+      "category": "Physical",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 5,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "self": {
+        "boosts": {
+          "def": -1,
+          "spd": -1
+        }
+      }
+    },
+    {
+      "name": "Venom Mist",
+      "type": "Poison",
+      "category": "Status",
+      "accuracy": 90,
+      "pp": 10,
+      "status": "tox",
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Sludge Spit",
+      "type": "Poison",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 10,
+      "secondaries": [
+        {
+          "chance": 30,
+          "status": "psn"
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Tremor",
+      "type": "Ground",
+      "category": "Physical",
+      "basePower": 100,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Sand Call",
+      "type": "Rock",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "weather": "Sandstorm"
+    },
+    {
+      "name": "Gale Dive",
+      "type": "Flying",
+      "category": "Physical",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 15,
+      "recoil": [33, 100],
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Wind Cutter",
+      "type": "Flying",
+      "category": "Special",
+      "basePower": 75,
+      "accuracy": 95,
+      "pp": 15,
+      "critRatio": 2,
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Mind Pulse",
+      "type": "Psychic",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 10,
+      "secondaries": [
+        {
+          "chance": 10,
+          "boosts": {
+            "spd": -1
+          }
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Pincer Slash",
+      "type": "Bug",
+      "category": "Physical",
+      "basePower": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "critRatio": 2,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Rockfall",
+      "type": "Rock",
+      "category": "Physical",
+      "basePower": 75,
+      "accuracy": 90,
+      "pp": 10,
+      "secondaries": [
+        {
+          "chance": 30,
+          "volatileStatus": "flinch"
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Shade Claw",
+      "type": "Ghost",
+      "category": "Physical",
+      "basePower": 70,
+      "accuracy": 100,
+      "pp": 15,
+      "critRatio": 2,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      }
+    },
+    {
+      "name": "Phantom Wail",
+      "type": "Ghost",
+      "category": "Special",
+      "basePower": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "secondaries": [
+        {
+          "chance": 20,
+          "boosts": {
+            "spd": -1
+          }
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Wyrm Fang",
+      "type": "Dragon",
+      "category": "Physical",
+      "basePower": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "secondaries": [
+        {
+          "chance": 20,
+          "volatileStatus": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Night Bite",
+      "type": "Dark",
+      "category": "Physical",
+      "basePower": 80,
+      "accuracy": 100,
+      "pp": 15,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "secondaries": [
+        {
+          "chance": 20,
+          "volatileStatus": "flinch"
+        }
+      ]
+    },
+    {
+      "name": "Alloy Ram",
+      "type": "Steel",
+      "category": "Physical",
+      "basePower": 70,
+      "accuracy": 90,
+      "pp": 25,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "secondaries": [
+        {
+          "chance": 10,
+          "self": {
+            "boosts": {
+              "def": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Glimmer Beam",
+      "type": "Fairy",
+      "category": "Special",
+      "basePower": 90,
+      "accuracy": 100,
+      "pp": 15,
+      "secondaries": [
+        {
+          "chance": 30,
+          "boosts": {
+            "spa": -1
+          }
+        }
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Brace Wall",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "priority": 4,
+      "target": "self",
+      "stallingMove": true,
+      "volatileStatus": "protect"
+    },
+    {
+      "name": "Stand-In",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "volatileStatus": "substitute"
+    },
+    {
+      "name": "Scatter Stones",
+      "type": "Rock",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Jagged Stones"
+    },
+    {
+      "name": "Sow Caltrops",
+      "type": "Ground",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Caltrops"
+    },
+    {
+      "name": "Raise Mirror Wall",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "allySide",
+      "sideCondition": "Mirror Wall"
+    },
+    {
+      "name": "Raise Prism Veil",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 30,
+      "target": "allySide",
+      "sideCondition": "Prism Veil"
+    },
+    {
+      "name": "Flit Strike",
+      "type": "Bug",
+      "category": "Physical",
+      "basePower": 70,
+      "accuracy": 100,
+      "pp": 20,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "selfSwitch": true
+    },
+    {
+      "name": "Static Ground",
+      "type": "Electric",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Charged Field"
+    },
+    {
+      "name": "Sprout Ground",
+      "type": "Grass",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Overgrowth"
+    },
+    {
+      "name": "Mist Ground",
+      "type": "Fairy",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Mist Field"
+    },
+    {
+      "name": "Mind Ground",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "terrain": "Mind Field"
+    },
+    {
+      "name": "Frenzy Claw",
+      "type": "Dragon",
+      "category": "Physical",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "self": {
+        "volatileStatus": "lockedmove"
+      }
+    },
+    {
+      "name": "Sunlance",
+      "type": "Grass",
+      "category": "Special",
+      "basePower": 120,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "charge": 1,
+        "protect": 1
+      },
+      "chargeSkippedIn": ["Sun"]
+    },
+    {
+      "name": "Sky Plunge",
+      "type": "Flying",
+      "category": "Physical",
+      "basePower": 90,
+      "accuracy": 95,
+      "pp": 15,
+      "flags": {
+        "contact": 1,
+        "charge": 1,
+        "protect": 1
+      },
+      "semiInvulnerable": true
+    },
+    {
+      "name": "Shell Charge",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 130,
+      "accuracy": 100,
+      "pp": 10,
+      "flags": {
+        "contact": 1,
+        "charge": 1,
+        "protect": 1
+      },
+      "chargeBoosts": {
+        "def": 1
+      }
+    },
+    {
+      "name": "Howl Away",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "priority": -6,
+      "flags": {
+        "bypasssub": 1
+      },
+      "forceSwitch": true
+    },
+    {
+      "name": "Tail Toss",
+      "type": "Dragon",
+      "category": "Physical",
+      "basePower": 60,
+      "accuracy": 90,
+      "pp": 10,
+      "priority": -6,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "forceSwitch": true
+    },
+    {
+      "name": "Spin Clear",
+      "type": "Normal",
+      "category": "Physical",
+      "basePower": 50,
+      "accuracy": 100,
+      "pp": 40,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "clearSideConditions": {
+        "user": ["Jagged Stones", "Caltrops"]
+      },
+      "secondaries": [
+        {
+          "chance": 100,
+          "self": {
+            "boosts": {
+              "spe": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clear Gust",
+      "type": "Flying",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 15,
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1
+      },
+      "boosts": {
+        "evasion": -1
+      },
+      "clearSideConditions": {
+        "user": ["Jagged Stones", "Caltrops"],
+        "target": ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"]
+      },
+      "clearTerrain": true
+    }
+  ],
+  "abilities": [
+    {
+      "name": "Kindling Heart",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "atk",
+            "modifier": [3, 2],
+            "conditions": [
+              {
+                "moveType": "Fire"
+              },
+              {
+                "hpAtMost": [1, 3]
+              }
+            ]
+          }
+        },
+        {
+          "modifyStat": {
+            "stat": "spa",
+            "modifier": [3, 2],
+            "conditions": [
+              {
+                "moveType": "Fire"
+              },
+              {
+                "hpAtMost": [1, 3]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Undertow Heart",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "atk",
+            "modifier": [3, 2],
+            "conditions": [
+              {
+                "moveType": "Water"
+              },
+              {
+                "hpAtMost": [1, 3]
+              }
+            ]
+          }
+        },
+        {
+          "modifyStat": {
+            "stat": "spa",
+            "modifier": [3, 2],
+            "conditions": [
+              {
+                "moveType": "Water"
+              },
+              {
+                "hpAtMost": [1, 3]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Featherfall",
+      "handlers": [
+        {
+          "immunity": "Ground"
+        }
+      ]
+    },
+    {
+      "name": "Stormcatcher",
+      "handlers": [
+        {
+          "absorb": {
+            "type": "Electric",
+            "heal": [1, 4]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menace",
+      "handlers": [
+        {
+          "startFoeBoosts": {
+            "atk": -1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cloudburst",
+      "handlers": [
+        {
+          "startWeather": "Rain"
+        }
+      ]
+    },
+    {
+      "name": "Dust Devil",
+      "handlers": [
+        {
+          "startWeather": "Sandstorm"
+        }
+      ]
+    },
+    {
+      "name": "Static Coat",
+      "handlers": [
+        {
+          "contactStatus": {
+            "chance": 30,
+            "status": "par"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Barbed Hide",
+      "handlers": [
+        {
+          "contactDamage": [1, 8]
+        }
+      ]
+    },
+    {
+      "name": "Purebred",
+      "handlers": [
+        {
+          "modifyStab": { "modifier": [2, 1], "teraModifier": [9, 4] }
+        }
+      ]
+    },
+    {
+      "name": "Hard Shell",
+      "handlers": [
+        {
+          "sourceModifyDamage": {
+            "modifier": [3, 4],
+            "conditions": ["superEffective"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grit",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "atk",
+            "modifier": [3, 2],
+            "conditions": ["statused"]
+          }
+        },
+        "ignoreBurnPenalty"
+      ]
+    },
+    {
+      "name": "Overdrive",
+      "handlers": [
+        {
+          "residualBoosts": {
+            "spe": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rain Runner",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "spe",
+            "modifier": [2, 1],
+            "conditions": [
+              {
+                "weather": "Rain"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Steadfast",
+      "handlers": ["endureFromFull"]
+    },
+    {
+      "name": "Loose Limbs",
+      "handlers": [
+        {
+          "statusImmunity": "par"
+        }
+      ]
+    },
+    {
+      "name": "Live Wire",
+      "handlers": [
+        {
+          "startTerrain": "Charged Field"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "Moss Pouch",
+      "handlers": [
+        {
+          "residualHeal": [1, 16]
+        }
+      ]
+    },
+    {
+      "name": "Glass Charm",
+      "handlers": [
+        {
+          "modifyDamage": {
+            "modifier": [5324, 4096]
+          }
+        },
+        {
+          "afterMoveRecoil": [1, 10]
+        }
+      ]
+    },
+    {
+      "name": "Power Band",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "atk",
+            "modifier": [3, 2]
+          }
+        },
+        "choiceLock"
+      ]
+    },
+    {
+      "name": "Focus Lens",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "spa",
+            "modifier": [3, 2]
+          }
+        },
+        "choiceLock"
+      ]
+    },
+    {
+      "name": "Sprint Shoes",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "spe",
+            "modifier": [3, 2]
+          }
+        },
+        "choiceLock"
+      ]
+    },
+    {
+      "name": "Ember Charm",
+      "handlers": [
+        {
+          "basePower": {
+            "modifier": [4915, 4096],
+            "conditions": [
+              {
+                "moveType": "Fire"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Weak Spot Lens",
+      "handlers": [
+        {
+          "modifyDamage": {
+            "modifier": [4915, 4096],
+            "conditions": ["superEffective"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Juice Berry",
+      "consumable": true,
+      "handlers": [
+        {
+          "healAtThreshold": {
+            "threshold": [1, 2],
+            "amount": [1, 4]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Remedy Berry",
+      "consumable": true,
+      "handlers": ["cureStatus"]
+    },
+    {
+      "name": "Lifeline Ribbon",
+      "consumable": true,
+      "handlers": ["endureFromFull"]
+    },
+    {
+      "name": "Bastion Vest",
+      "handlers": [
+        {
+          "modifyStat": {
+            "stat": "spd",
+            "modifier": [3, 2]
+          }
+        },
+        "disableStatusMoves"
+      ]
+    },
+    {
+      "name": "Spike Guard",
+      "handlers": [
+        {
+          "contactDamage": [1, 6]
+        }
+      ]
+    }
+  ],
+  "sideConditions": [
+    {
+      "name": "Jagged Stones",
+      "switchInDamage": {
+        "layers": [[1, 8]],
+        "type": "Rock"
+      }
+    },
+    {
+      "name": "Caltrops",
+      "switchInDamage": {
+        "layers": [
+          [1, 8],
+          [1, 6],
+          [1, 4]
+        ],
+        "groundedType": "Ground"
+      }
+    },
+    {
+      "name": "Mirror Wall",
+      "duration": 5,
+      "damageModifier": {
+        "category": "Physical",
+        "modifier": [1, 2]
+      }
+    },
+    {
+      "name": "Prism Veil",
+      "duration": 5,
+      "damageModifier": {
+        "category": "Special",
+        "modifier": [1, 2]
+      }
+    }
+  ],
+  "terrains": [
+    {
+      "name": "Charged Field",
+      "groundedType": "Ground",
+      "basePowerModifiers": {
+        "Electric": [5325, 4096]
+      },
+      "preventsStatuses": ["slp"]
+    },
+    {
+      "name": "Overgrowth",
+      "groundedType": "Ground",
+      "basePowerModifiers": {
+        "Grass": [5325, 4096]
+      },
+      "residualHeal": [1, 16]
+    },
+    {
+      "name": "Mist Field",
+      "groundedType": "Ground",
+      "targetBasePowerModifiers": {
+        "Dragon": [1, 2]
+      },
+      "preventsStatuses": ["brn", "par", "psn", "tox", "slp", "frz"],
+      "preventsVolatiles": ["confusion"]
+    },
+    {
+      "name": "Mind Field",
+      "groundedType": "Ground",
+      "basePowerModifiers": {
+        "Psychic": [5325, 4096]
+      },
+      "blocksPriority": true
+    }
+  ]
+}

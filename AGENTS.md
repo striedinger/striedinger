@@ -17,6 +17,14 @@ These guidelines apply to the entire monorepo. Update this file as the project‚Ä
 - Keep React Compiler enabled for the web app and treat compiler diagnostics as correctness failures. Prefer compiler-friendly React patterns over manual memoization added without profiling evidence. The compiler memoizes context values and derived data, so `react/jsx-no-constructed-context-values` is off; pass plain objects instead of wrapping them in `useMemo`.
 - Do not create commits or push branches unless the user explicitly requests that action.
 
+## Rust crates
+
+- The root Cargo workspace shares dependency versions, the release profile, and, for crates that opt in with `workspace = true`, the edition, MSRV, and lints. Commit `Cargo.lock`.
+- Keep Clippy's pedantic group enabled through `[workspace.lints]` and fix warnings instead of allowing them. Format with `cargo fmt`.
+- After Rust changes, run `cargo fmt --all --check`, then `cargo clippy -p <crate> --all-targets --locked -- -D warnings` and `cargo test -p <crate> --locked` for each changed crate. `murmur-core` also needs the ALSA and libclang headers its workflow installs.
+- Keep engine crates free of I/O and presentation: they take inputs and return data or events, and frontends render them.
+- Treat Pok√©mon Showdown as the reference for `pkmn` mechanics: match its formulas, ordering, and random-number consumption, and document any deliberate difference.
+
 ## Testing
 
 - Use Vitest for unit tests and React Testing Library for UI component behavior.

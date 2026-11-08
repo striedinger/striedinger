@@ -35,10 +35,18 @@ impl History {
             );
             CREATE INDEX IF NOT EXISTS history_ts ON history(ts DESC);",
         )?;
-        Ok(Self { conn: Mutex::new(conn) })
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
     }
 
-    pub fn add(&self, app: Option<&str>, mode: &str, raw: &str, output: &str) -> anyhow::Result<()> {
+    pub fn add(
+        &self,
+        app: Option<&str>,
+        mode: &str,
+        raw: &str,
+        output: &str,
+    ) -> anyhow::Result<()> {
         let ts = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
         self.conn.lock().unwrap().execute(
             "INSERT INTO history (ts, app, mode, raw, output) VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -63,5 +71,27 @@ impl History {
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recent_returns_newest_first_up_to_the_limit() {
+        let dir = std::env::temp_dir().join(format!("murmur-history-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let history = History::open(&dir.join("history.sqlite")).unwrap();
+        for text in ["first", "second", "third"] {
+            history
+                .add(Some("com.example.app"), "clean", text, text)
+                .unwrap();
+        }
+
+        let recent = history.recent(2).unwrap();
+        let outputs: Vec<&str> = recent.iter().map(|item| item.output.as_str()).collect();
+        assert_eq!(outputs, ["third", "second"]);
+        std::fs::remove_dir_all(dir).ok();
     }
 }

@@ -1,0 +1,3 @@
+# Content structs mirror Pokémon Showdown's data schema, whose move and flag fields are
+# independent yes/no switches (stallingMove, selfSwitch, forceSwitch, contact, charge, ...).
+max-struct-bools = 10

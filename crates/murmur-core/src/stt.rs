@@ -37,7 +37,7 @@ impl Stt {
             .map_err(|e| anyhow::anyhow!("Failed to load speech model: {e}"))?;
 
         // Warm up so the first real dictation isn't slow.
-        let _ = recognizer.transcribe(TARGET_RATE, &vec![0.0f32; TARGET_RATE as usize / 2]);
+        let _ = recognizer.transcribe(TARGET_RATE, &[0.0f32; TARGET_RATE as usize / 2]);
 
         Ok(Self { recognizer })
     }
@@ -46,6 +46,9 @@ impl Stt {
         if samples_16k.is_empty() {
             return String::new();
         }
-        self.recognizer.transcribe(TARGET_RATE, samples_16k).trim().to_string()
+        self.recognizer
+            .transcribe(TARGET_RATE, samples_16k)
+            .trim()
+            .to_string()
     }
 }

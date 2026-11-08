@@ -1,4 +1,5 @@
 import AppKit
+import MurmurCore
 import AVFoundation
 import ApplicationServices
 

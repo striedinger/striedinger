@@ -125,7 +125,11 @@ impl Config {
 
     pub fn resolve(dir: &Path, p: &str) -> PathBuf {
         let p = PathBuf::from(p);
-        if p.is_absolute() { p } else { dir.join(p) }
+        if p.is_absolute() {
+            p
+        } else {
+            dir.join(p)
+        }
     }
 
     pub fn mode(&self, id: &str) -> Option<&Mode> {
@@ -134,6 +138,42 @@ impl Config {
 
     pub fn tone_for(&self, app: Option<&str>) -> Option<&str> {
         let app = app?;
-        self.app_rules.iter().find(|r| r.app == app).map(|r| r.tone.as_str())
+        self.app_rules
+            .iter()
+            .find(|r| r.app == app)
+            .map(|r| r.tone.as_str())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_config_parses_and_its_default_mode_exists() {
+        let cfg: Config = toml::from_str(DEFAULT_CONFIG).expect("default config must parse");
+        assert!(cfg.mode(&cfg.default_mode).is_some());
+        assert!(cfg.mode("raw").is_some_and(|mode| !mode.use_llm));
+    }
+
+    #[test]
+    fn app_rules_match_by_app_id_only() {
+        let cfg: Config = toml::from_str(DEFAULT_CONFIG).unwrap();
+        assert!(cfg.tone_for(Some("com.tinyspeck.slackmacgap")).is_some());
+        assert!(cfg.tone_for(Some("com.example.unknown")).is_none());
+        assert!(cfg.tone_for(None).is_none());
+    }
+
+    #[test]
+    fn relative_paths_resolve_against_the_data_dir() {
+        let dir = Path::new("/data");
+        assert_eq!(
+            Config::resolve(dir, "models/a.gguf"),
+            Path::new("/data/models/a.gguf")
+        );
+        assert_eq!(
+            Config::resolve(dir, "/abs/a.gguf"),
+            Path::new("/abs/a.gguf")
+        );
     }
 }
