@@ -445,3 +445,137 @@ fn a_battle_can_end_partway_through_the_end_of_a_turn() {
     assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
     assert!(damage_to(&events, P1, DamageSource::Status(Status::Burn)).is_empty());
 }
+
+/// The sample pack plus extra moves and items, given as JSON arrays.
+fn extended_dex(moves: &str, items: &str) -> std::sync::Arc<pkmn::Dex> {
+    let mut source: pkmn::DexSource =
+        serde_json::from_str(pkmn::SAMPLE_DEX_JSON).expect("the sample pack parses");
+    source
+        .moves
+        .extend(serde_json::from_str::<Vec<pkmn::dex::MoveSource>>(moves).expect("moves parse"));
+    source
+        .items
+        .extend(serde_json::from_str::<Vec<pkmn::dex::ItemSource>>(items).expect("items parse"));
+    std::sync::Arc::new(pkmn::Dex::from_source(&source).expect("the extended pack compiles"))
+}
+
+#[test]
+fn berries_react_to_weather_damage_before_status_damage() {
+    let battle = start(
+        &[set("Brawlstag", &["Hunker Down"]).with_item("Juice Berry")],
+        &[set("Craghorn", &["Hunker Down"])],
+        31,
+    );
+    let mut battle = edit(battle, |state| {
+        let sandstorm = pkmn::dex::WeatherId(2);
+        state.field.weather = Some(pkmn::battle::WeatherState {
+            id: sandstorm,
+            duration: 5,
+        });
+        let pokemon = &mut state.sides[0].team[0];
+        pokemon.hp = pokemon.max_hp() * 55 / 100;
+        pokemon.status = Some(Status::Toxic);
+        pokemon.status_state.stage = 7;
+    });
+    let events = play(&mut battle, MOVE, MOVE);
+    let berry = events
+        .iter()
+        .position(|event| matches!(event, Event::EndItem { side: P1, .. }));
+    let toxic = events.iter().position(|event| {
+        matches!(
+            event,
+            Event::Damage {
+                side: P1,
+                from: DamageSource::Status(Status::Toxic),
+                ..
+            }
+        )
+    });
+    assert!(berry.is_some() && berry < toxic, "{events:?}");
+    assert_eq!(battle.outcome(), None);
+}
+
+#[test]
+fn damaging_moves_apply_their_weather_and_heal() {
+    let dex = extended_dex(
+        r#"[{"name": "Storm Slash", "type": "Water", "category": "Physical", "basePower": 40,
+            "accuracy": true, "pp": 10, "weather": "Rain"}]"#,
+        "[]",
+    );
+    let mut battle = pkmn::Battle::new(
+        dex,
+        [
+            &[set("Tidewhelp", &["Storm Slash"])],
+            &[set("Brawlstag", &["Hunker Down"])],
+        ],
+        33,
+    )
+    .expect("the teams are valid");
+    let events = play(&mut battle, MOVE, MOVE);
+    assert!(events.contains(&Event::Weather {
+        weather: Some(WeatherId(0))
+    }));
+}
+
+#[test]
+fn a_consumed_item_stops_reacting_within_the_same_update() {
+    let dex = extended_dex(
+        "[]",
+        r#"[{"name": "Twin Berry", "consumable": true,
+            "handlers": [{"healAtThreshold": {"threshold": [1, 2], "amount": [1, 4]}}, "cureStatus"]}]"#,
+    );
+    let battle = pkmn::Battle::new(
+        dex,
+        [
+            &[set("Brawlstag", &["Hunker Down"]).with_item("Twin Berry")],
+            &[set("Craghorn", &["Hunker Down"])],
+        ],
+        35,
+    )
+    .expect("the teams are valid");
+    let mut battle = edit(battle, |state| {
+        let pokemon = &mut state.sides[0].team[0];
+        pokemon.hp = pokemon.max_hp() / 3;
+        pokemon.status = Some(Status::Burn);
+    });
+    let events = play(&mut battle, MOVE, MOVE);
+    let used_up = events
+        .iter()
+        .filter(|event| matches!(event, Event::EndItem { .. }))
+        .count();
+    assert_eq!(used_up, 1);
+    assert_eq!(battle.state().active(P1).status, Some(Status::Burn));
+}
+
+#[test]
+fn fractional_item_heals_restore_at_least_one_hp() {
+    let mut low_level = set("Tidewhelp", &["Hunker Down"]).with_item("Moss Pouch");
+    low_level.level = 1;
+    let battle = start(&[low_level], &[set("Brawlstag", &["Hunker Down"])], 37);
+    let mut battle = edit(battle, |state| state.sides[0].team[0].hp = 5);
+    assert!(battle.state().active(P1).max_hp() < 16);
+    let events = play(&mut battle, MOVE, MOVE);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        Event::Heal {
+            side: P1,
+            amount: 1,
+            ..
+        }
+    )));
+}
+
+#[test]
+fn restored_states_with_extreme_counters_do_not_overflow() {
+    let battle = start(
+        &[set("Brawlstag", &["Hunker Down"])],
+        &[set("Craghorn", &["Hunker Down"])],
+        39,
+    );
+    let mut battle = edit(battle, |state| {
+        state.sides[0].team[0].status = Some(Status::Toxic);
+        state.sides[0].team[0].status_state.stage = u8::MAX;
+    });
+    play(&mut battle, MOVE, MOVE);
+    assert_eq!(battle.state().active(P1).status_state.stage, 15);
+}

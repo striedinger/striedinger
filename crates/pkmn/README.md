@@ -53,6 +53,8 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 - Residual effects in Showdown's order, with faints checked after each, so a battle can end partway through.
 - The Generation 5+ rule that in a double KO, the side whose creature fainted last wins.
 
+One deliberate difference: Showdown re-sorts the active creatures, and so rolls to break speed ties, at every `Update`, every switch-in, and each tied residual group. pkmn rolls only where the order changes an outcome, which keeps those checkpoints cheap. Battles without speed ties consume the same random numbers as Showdown. Speed-tied battles diverge from Showdown's from the first tie on.
+
 ## Not yet
 
 Differential testing against a reference simulator, entry hazards, screens, terrain, Terastallization, two-turn and locking moves, switch-forcing moves, doubles, and learnset validation.

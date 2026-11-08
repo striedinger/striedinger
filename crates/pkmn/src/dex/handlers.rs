@@ -91,7 +91,9 @@ pub enum HandlerSource {
     DisableStatusMoves,
     /// `onDamage`: survives a move that would knock it out from full HP, like Sturdy.
     EndureFromFull,
-    /// `onUpdate`: restores HP once at or below a fraction of max HP, like Sitrus Berry.
+    /// `onUpdate`: restores HP at or below a fraction of max HP, like Sitrus Berry. A
+    /// consumable item does this once; an ability or a lasting item does it at every `Update`
+    /// while the condition holds.
     HealAtThreshold {
         /// The HP fraction that triggers it.
         threshold: Fraction,

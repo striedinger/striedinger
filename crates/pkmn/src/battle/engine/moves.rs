@@ -138,15 +138,18 @@ impl Engine<'_> {
                     _ => None,
                 });
             if let Some((effect, heal, boosts)) = absorb {
-                self.announce(target, effect);
                 let max_hp = u32::from(self.active(target).max_hp());
                 let healed = heal.is_some_and(|fraction| {
                     self.heal(
                         target,
-                        fraction.of_floored(max_hp),
+                        fraction.of_floored(max_hp).max(1),
                         HealSource::Effect(effect),
                     ) > 0
                 });
+                // A heal names its source; boosts and immunity are announced instead.
+                if boosts.is_some() || !healed {
+                    self.announce(target, effect);
+                }
                 let boosted = boosts.is_some_and(|boosts| self.boost(target, boosts));
                 if !healed && !boosted {
                     self.emit(Event::Immune { side: target });
@@ -225,6 +228,8 @@ impl Engine<'_> {
         if let Some(recoil) = recoil {
             self.damage(side, recoil.max(1), DamageSource::Recoil);
         }
+        // Showdown runs an `Update` after recoil, before `onAfterMoveSecondarySelf`.
+        self.update();
         if !self.mask(side).intersects(HandlerMask::AFTER_MOVE) {
             return;
         }
@@ -233,17 +238,23 @@ impl Engine<'_> {
                 if self.active(side).is_fainted() {
                     break;
                 }
-                self.announce(side, effect);
                 let amount = fraction.of_floored(max_hp).max(1);
                 self.damage(side, amount, DamageSource::Effect(effect));
             }
         }
     }
 
-    /// Per hit, after damage: primary effects, then `self` (one roll), then each secondary
-    /// (one roll each), in Showdown's order.
+    /// Per hit, after damage: primary effects (including `heal` and `weather`), then `self`
+    /// (one roll), then each secondary (one roll each), in Showdown's order.
     fn move_effects(&mut self, side: SideId, target: SideId, move_data: &MoveData) {
         self.apply_effect(target, move_data.primary);
+        if let Some(fraction) = move_data.heal {
+            let max_hp = u32::from(self.active(target).max_hp());
+            self.heal(target, fraction.of_rounded(max_hp), HealSource::Move);
+        }
+        if let Some(weather) = move_data.weather {
+            self.set_weather(weather);
+        }
         if let Some(boosts) = move_data.self_boosts {
             self.state.prng.below(100);
             self.boost(side, boosts);
@@ -276,7 +287,6 @@ impl Engine<'_> {
                 if let Handler::ContactDamage(fraction) = *handler
                     && !self.active(side).is_fainted()
                 {
-                    self.announce(target, effect);
                     self.damage(
                         side,
                         fraction.of_floored(max_hp).max(1),

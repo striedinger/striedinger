@@ -4,8 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::dex::{
-    AbilityId, Dex, Handler, HandlerMask, ItemId, MoveCategory, MoveId, SpeciesId, Status, TypeId,
-    WeatherId,
+    AbilityId, Dex, HandlerMask, ItemId, MoveCategory, MoveId, SpeciesId, Status, TypeId, WeatherId,
 };
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
@@ -155,39 +154,49 @@ impl Pokemon {
         ability.union(item)
     }
 
-    /// The handlers of its ability, then its item.
-    pub fn handlers<'a>(&self, dex: &'a Dex) -> impl Iterator<Item = &'a Handler> + use<'a> {
-        let ability = self.ability.map(|id| dex.ability(id).handlers.as_slice());
-        let item = self.item.map(|id| dex.item(id).handlers.as_slice());
-        ability.into_iter().chain(item).flatten()
+    fn disables_status_moves(&self, dex: &Dex) -> bool {
+        self.handler_mask(dex)
+            .intersects(HandlerMask::DISABLE_STATUS_MOVES)
     }
 
-    /// The move slots that can be selected, as a bitset: a slot qualifies if it has PP and
-    /// neither a choice lock nor `disableStatusMoves` rules it out.
-    #[must_use]
-    pub fn selectable_moves(&self, dex: &Dex) -> u8 {
-        let disables_status = self
-            .handler_mask(dex)
-            .intersects(HandlerMask::DISABLE_STATUS_MOVES);
-        let mut selectable = 0;
-        for (slot, move_slot) in self.moves() {
-            let locked_out = self
-                .volatiles
-                .choice_lock
-                .is_some_and(|locked| usize::from(locked) != slot);
-            let disabled =
-                disables_status && dex.move_data(move_slot.id).category == MoveCategory::Status;
-            if move_slot.pp > 0 && !locked_out && !disabled {
-                selectable |= 1 << slot;
-            }
-        }
-        selectable
+    fn slot_selectable(&self, dex: &Dex, slot: usize, disables_status: bool) -> bool {
+        let Some(move_slot) = self.move_slots.get(slot).copied().flatten() else {
+            return false;
+        };
+        let locked_out = self
+            .volatiles
+            .choice_lock
+            .is_some_and(|locked| usize::from(locked) != slot);
+        move_slot.pp > 0
+            && !locked_out
+            && !(disables_status && dex.move_data(move_slot.id).category == MoveCategory::Status)
     }
 
-    /// Whether the move in `slot` can be selected.
+    /// Whether the move in `slot` can be selected: it has PP, and neither a choice lock nor
+    /// `disableStatusMoves` rules it out.
     #[must_use]
     pub fn can_select_move(&self, dex: &Dex, slot: usize) -> bool {
-        slot < MAX_MOVES && self.selectable_moves(dex) & (1 << slot) != 0
+        self.slot_selectable(dex, slot, self.disables_status_moves(dex))
+    }
+
+    /// The move slots that can be selected, as a bitset.
+    #[must_use]
+    pub fn selectable_moves(&self, dex: &Dex) -> u8 {
+        let disables_status = self.disables_status_moves(dex);
+        (0..MAX_MOVES)
+            .filter(|&slot| self.slot_selectable(dex, slot, disables_status))
+            .fold(0, |slots, slot| slots | 1 << slot)
+    }
+
+    /// The move slots a [`Choice::Move`](super::Choice::Move) may name, as a bitset. With
+    /// nothing selectable this is slot 0, which then stands for Struggle, as Showdown's lone
+    /// `move 1` does.
+    #[must_use]
+    pub fn choosable_moves(&self, dex: &Dex) -> u8 {
+        match self.selectable_moves(dex) {
+            0 => 1,
+            slots => slots,
+        }
     }
 
     /// Whether no move can be selected, so its only move is Struggle.

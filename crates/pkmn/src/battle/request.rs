@@ -152,12 +152,8 @@ pub(crate) fn choices<'a>(
     let switching = !over && state.awaiting_switch();
     let must_switch = switching && team.must_switch();
     let choosing_moves = !over && !switching;
-    // With nothing selectable, slot 0 stands for Struggle, as Showdown's lone "move 1" does.
     let selectable = if choosing_moves {
-        match team.active().selectable_moves(dex) {
-            0 => 1,
-            slots => slots,
-        }
+        team.active().choosable_moves(dex)
     } else {
         0
     };
@@ -197,15 +193,10 @@ pub(crate) fn validate(
             _ => reject(ChoiceErrorReason::WrongKind),
         };
     }
-    // With nothing selectable, slot 0 stands for Struggle.
-    let selectable = match team.active().selectable_moves(dex) {
-        0 => 1,
-        slots => slots,
-    };
+    let active = team.active();
     match choice {
-        Choice::Move(slot) if slot < super::state::MAX_MOVES && selectable & (1 << slot) != 0 => {
-            Ok(())
-        }
+        Choice::Move(slot) if active.can_select_move(dex, slot) => Ok(()),
+        Choice::Move(0) if active.must_struggle(dex) => Ok(()),
         Choice::Move(_) => reject(ChoiceErrorReason::DisabledMove),
         Choice::Switch(slot) if team.can_switch_to(slot) => Ok(()),
         Choice::Switch(_) => reject(ChoiceErrorReason::InvalidSwitch),

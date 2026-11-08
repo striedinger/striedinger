@@ -145,10 +145,11 @@ impl<'a> Engine<'a> {
     fn action_for(&self, side: SideId, choice: Choice) -> Option<Action> {
         match choice {
             Choice::Switch(slot) => Some(Action::Switch(slot)),
-            Choice::Move(_) if self.active(side).must_struggle(self.dex) => {
-                Some(Action::Move(None))
+            // A validated move choice that is not selectable can only be Struggle's slot 0.
+            Choice::Move(slot) if self.active(side).can_select_move(self.dex, slot) => {
+                Some(Action::Move(Some(slot)))
             }
-            Choice::Move(slot) => Some(Action::Move(Some(slot))),
+            Choice::Move(_) => Some(Action::Move(None)),
             Choice::Pass => None,
         }
     }
@@ -208,40 +209,42 @@ impl<'a> Engine<'a> {
                     )
                 };
                 // Speed is only computed when switching and priority do not decide.
-                let order = key(self, SideId::P1, first)
-                    .cmp(&key(self, SideId::P2, second))
-                    .then_with(|| {
-                        self.action_speed(SideId::P1)
-                            .cmp(&self.action_speed(SideId::P2))
-                    });
-                match order {
+                match key(self, SideId::P1, first).cmp(&key(self, SideId::P2, second)) {
                     Ordering::Greater => Some(SideId::P1),
                     Ordering::Less => Some(SideId::P2),
-                    Ordering::Equal => Some(self.random_side()),
+                    Ordering::Equal => Some(self.faster_side()),
                 }
             }
         }
     }
 
-    /// Resolves a speed tie the way Showdown's two-element shuffle does.
-    fn random_side(&mut self) -> SideId {
-        if self.state.prng.below(2) == 0 {
-            SideId::P1
-        } else {
-            SideId::P2
-        }
-    }
-
-    /// Both sides ordered fastest first, with speed ties broken at random.
-    fn speed_order(&mut self) -> [SideId; 2] {
-        let first = match self
+    /// The side whose active creature is faster. A tie is broken with one roll, as Showdown's
+    /// two-element shuffle does.
+    ///
+    /// Deliberate difference: Showdown also re-sorts, and so re-rolls, speed ties at every
+    /// `Update` and `runSwitch` and for each tied residual group. pkmn only rolls where the
+    /// order changes an outcome, so speed-tied battles draw fewer random numbers than
+    /// Showdown's from the first tie on.
+    fn faster_side(&mut self) -> SideId {
+        match self
             .action_speed(SideId::P1)
             .cmp(&self.action_speed(SideId::P2))
         {
             Ordering::Greater => SideId::P1,
             Ordering::Less => SideId::P2,
-            Ordering::Equal => self.random_side(),
-        };
+            Ordering::Equal => {
+                if self.state.prng.below(2) == 0 {
+                    SideId::P1
+                } else {
+                    SideId::P2
+                }
+            }
+        }
+    }
+
+    /// Both sides ordered fastest first.
+    fn speed_order(&mut self) -> [SideId; 2] {
+        let first = self.faster_side();
         [first, first.foe()]
     }
 
@@ -324,13 +327,16 @@ impl<'a> Engine<'a> {
                 continue;
             }
             for (effect, handler) in self.handlers(side) {
+                // A one-shot handler may have used the item up earlier in this loop.
+                if !self.holds(side, effect) {
+                    continue;
+                }
                 match *handler {
                     Handler::HealAtThreshold { threshold, amount } => {
                         let pokemon = self.active(side);
                         if threshold.covers(pokemon.hp, pokemon.max_hp()) && !pokemon.is_fainted() {
-                            let restore = amount.of_floored(u32::from(pokemon.max_hp()));
-                            self.announce(side, effect);
-                            self.use_item(side, effect);
+                            let restore = amount.of_floored(u32::from(pokemon.max_hp())).max(1);
+                            self.trigger(side, effect);
                             self.heal(side, restore, HealSource::Effect(effect));
                         }
                     }
@@ -348,8 +354,7 @@ impl<'a> Engine<'a> {
 
     /// A `cureStatus` handler: removes the status and confusion.
     fn cure(&mut self, side: SideId, effect: Effect) {
-        self.announce(side, effect);
-        self.use_item(side, effect);
+        self.trigger(side, effect);
         self.cure_status(side);
         if self.active(side).volatiles.confusion.is_some() {
             self.active_mut(side).volatiles.confusion = None;
@@ -360,13 +365,25 @@ impl<'a> Engine<'a> {
         }
     }
 
-    /// Uses up a consumable item once a one-shot handler has triggered (`-enditem`).
-    fn use_item(&mut self, side: SideId, effect: Effect) {
-        if let Effect::Item(item) = effect
-            && self.dex.item(item).consumable
-        {
-            self.active_mut(side).item = None;
-            self.emit(Event::EndItem { side, item });
+    /// Whether the active creature still has the ability or item.
+    fn holds(&self, side: SideId, effect: Effect) -> bool {
+        let pokemon = self.active(side);
+        match effect {
+            Effect::Ability(ability) => pokemon.ability == Some(ability),
+            Effect::Item(item) => pokemon.item == Some(item),
+        }
+    }
+
+    /// Reports a one-shot handler triggering. A consumable item is used up and only
+    /// `-enditem` is sent, as Showdown does for berries and Focus Sash; anything else is
+    /// announced with `-ability` or `-item`.
+    fn trigger(&mut self, side: SideId, effect: Effect) {
+        match effect {
+            Effect::Item(item) if self.dex.item(item).consumable => {
+                self.active_mut(side).item = None;
+                self.emit(Event::EndItem { side, item });
+            }
+            _ => self.announce(side, effect),
         }
     }
 
@@ -433,8 +450,7 @@ impl<'a> Engine<'a> {
                 .find(|(_, handler)| **handler == Handler::EndureFromFull)
                 .map(|(effect, _)| effect);
             if let Some(effect) = endure {
-                self.announce(side, effect);
-                self.use_item(side, effect);
+                self.trigger(side, effect);
                 amount = u32::from(self.active(side).hp - 1);
                 if amount == 0 {
                     return 0;
@@ -517,7 +533,7 @@ impl<'a> Engine<'a> {
             let active = self.active_mut(side);
             active.active_turns = active.active_turns.saturating_add(1);
         }
-        self.state.turn += 1;
+        self.state.turn = self.state.turn.saturating_add(1);
         let turn = self.state.turn;
         self.emit(Event::Turn { turn });
     }

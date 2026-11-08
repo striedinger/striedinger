@@ -91,6 +91,8 @@ impl Engine<'_> {
                 }
             }
         }
+        // Showdown's weather handler ends with an `Update`, before the faint check.
+        self.update();
         self.faint_messages()
     }
 
@@ -114,8 +116,11 @@ impl Engine<'_> {
                     return false;
                 }
                 if status == Status::Toxic {
-                    pokemon.status_state.stage =
-                        (pokemon.status_state.stage + 1).min(MAX_TOXIC_STAGE);
+                    pokemon.status_state.stage = pokemon
+                        .status_state
+                        .stage
+                        .saturating_add(1)
+                        .min(MAX_TOXIC_STAGE);
                 }
                 let amount = Self::status_damage(
                     status,
@@ -134,8 +139,8 @@ impl Engine<'_> {
                         Handler::ResidualHeal(fraction) if phase == Phase::Heal => {
                             let pokemon = self.active(side);
                             if !pokemon.is_fainted() && pokemon.hp < pokemon.max_hp() {
-                                let amount = fraction.of_floored(u32::from(pokemon.max_hp()));
-                                self.announce(side, effect);
+                                let amount =
+                                    fraction.of_floored(u32::from(pokemon.max_hp())).max(1);
                                 self.heal(side, amount, HealSource::Effect(effect));
                             }
                         }
