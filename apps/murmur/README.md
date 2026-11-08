@@ -112,7 +112,7 @@ these jobs, so forks never get the SDK.
 **On your own Linux machine:**
 
 1. Install [Swift](https://swift.org/install/linux) (the version that matches your Xcode),
-   [xtool](https://xtool.sh), rustup, `cmake`, `llvm` (for `llvm-ar`, `llvm-otool` and
+   [xtool](https://xtool.sh), rustup, `cmake`, `make`, `llvm` (for `llvm-ar`, `llvm-otool` and
    `llvm-install-name-tool`), `libclang-dev`, and `rcodesign`.
 2. Get the SDK, either way:
    - from a Mac: `xtool sdk build /Applications/Xcode.app out --arch x86_64` (or `arm64`
