@@ -176,6 +176,13 @@ pub enum Event {
         /// What it became.
         tera_type: TeraType,
     },
+    /// `-activate`: a side condition like Wide Guard blocked a move.
+    SideActivate {
+        /// The side it is on.
+        side: SideId,
+        /// The condition.
+        condition: SideConditionId,
+    },
     /// `-sidestart`: a side condition began, or gained a layer.
     SideStart {
         /// The side it is on.

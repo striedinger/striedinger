@@ -134,6 +134,13 @@ pub struct SideConditionSource {
     /// side conditions.
     #[serde(default = "default_side_residual_sub_order")]
     pub residual_sub_order: u8,
+    /// Showdown's `onSideResidualOrder`, like 26 for screens. Without one, a timed condition
+    /// ends among the effects that only count down, after every ordered handler.
+    #[serde(default)]
+    pub residual_order: Option<u8>,
+    /// Spread moves fail against creatures on this side, like Wide Guard.
+    #[serde(default)]
+    pub blocks_spread_moves: bool,
 }
 
 fn default_side_residual_sub_order() -> u8 {
@@ -381,6 +388,11 @@ pub struct MoveSource {
     /// The move can be used while asleep, like Sleep Talk.
     #[serde(default)]
     pub sleep_usable: bool,
+    /// A guard like Wide Guard: fails unless another creature will still act this turn, and
+    /// counts toward the user's consecutive Protect-like moves (Showdown's `onTry` and
+    /// `stall`).
+    #[serde(default)]
+    pub guard: bool,
 }
 
 /// Which move a calling move uses.

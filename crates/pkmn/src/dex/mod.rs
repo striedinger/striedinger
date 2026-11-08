@@ -208,6 +208,14 @@ pub enum VolatileStatus {
     /// Outrage.
     #[serde(rename = "lockedmove")]
     LockedMove,
+    /// Follow Me: for the rest of the turn, the foes' single-target moves are drawn to the
+    /// user. Fails in singles.
+    #[serde(rename = "followme")]
+    FollowMe,
+    /// Helping Hand: the ally's moves this turn have ×1.5 base power, again for each use.
+    /// Fails if the ally will not move.
+    #[serde(rename = "helpinghand")]
+    HelpingHand,
 }
 
 /// A move's category.
@@ -247,13 +255,16 @@ pub enum MoveTarget {
     /// `randomNormal`: a random opposing creature, like Outrage.
     #[serde(rename = "randomNormal")]
     RandomNormal,
+    /// `adjacentAlly`: the user's ally, like Helping Hand; fails in singles.
+    #[serde(rename = "adjacentAlly")]
+    AdjacentAlly,
 }
 
 impl MoveTarget {
     /// Whether a doubles choice must name the target (Showdown's `targetTypeChoices`).
     #[must_use]
     pub fn needs_choice(self) -> bool {
-        self == Self::Normal
+        matches!(self, Self::Normal | Self::AdjacentAlly)
     }
 
     /// Whether the move hits creatures, rather than its user or a side.
@@ -407,6 +418,10 @@ pub struct SideConditionData {
     pub screen: Option<Screen>,
     /// See [`SideConditionSource::residual_sub_order`].
     pub residual_sub_order: u8,
+    /// See [`SideConditionSource::residual_order`].
+    pub residual_order: Option<u8>,
+    /// Spread moves fail against creatures on this side, like Wide Guard.
+    pub blocks_spread_moves: bool,
 }
 
 impl SideConditionData {
@@ -609,6 +624,8 @@ pub struct MoveData {
     pub calls: Option<CallsMove>,
     /// See [`MoveSource::sleep_usable`].
     pub sleep_usable: bool,
+    /// See [`MoveSource::guard`].
+    pub guard: bool,
 }
 
 impl MoveData {
@@ -1070,6 +1087,8 @@ impl Dex {
             switch_in_damage,
             screen,
             residual_sub_order: source.residual_sub_order,
+            residual_order: source.residual_order,
+            blocks_spread_moves: source.blocks_spread_moves,
         });
         Ok(())
     }
@@ -1288,6 +1307,7 @@ impl Dex {
             substitute_blocks_boosts: source.substitute_blocks_boosts,
             calls: source.calls,
             sleep_usable: source.sleep_usable,
+            guard: source.guard,
         });
         Ok(id)
     }
@@ -1560,6 +1580,7 @@ fn built_in_struggle() -> MoveSource {
         substitute_blocks_boosts: false,
         calls: None,
         sleep_usable: false,
+        guard: false,
     }
 }
 
@@ -1646,6 +1667,22 @@ fn validate_move_effects(source: &MoveSource, damaging: bool) -> Result<(), DexE
             .secondaries
             .iter()
             .any(|secondary| secondary.volatile_status == Some(VolatileStatus::LockedMove));
+    let follow_me = source.volatile_status == Some(VolatileStatus::FollowMe);
+    let helping_hand = source.volatile_status == Some(VolatileStatus::HelpingHand);
+    if (follow_me && (damaging || source.target != MoveTarget::User))
+        || (helping_hand && (damaging || source.target != MoveTarget::AdjacentAlly))
+    {
+        return Err(DexError::invalid(
+            name,
+            "followme needs a status move at the user, helpinghand one at an adjacentAlly",
+        ));
+    }
+    if source.guard && (damaging || source.side_condition.is_none()) {
+        return Err(DexError::invalid(
+            name,
+            "guard needs a status move that sets a sideCondition",
+        ));
+    }
     if primary_or_secondary_lock {
         return Err(DexError::invalid(
             name,

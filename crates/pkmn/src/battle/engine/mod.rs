@@ -52,6 +52,8 @@ pub(crate) struct Engine<'a> {
     /// The move in use, which becomes [`BattleState::last_move`] when the action ends
     /// (Showdown's `activeMove`).
     active_move: Option<MoveId>,
+    /// Which positions still have a move queued this turn (Showdown's `queue.willMove`).
+    will_move: [bool; 4],
 }
 
 impl<'a> Engine<'a> {
@@ -63,6 +65,7 @@ impl<'a> Engine<'a> {
             faint_queue: FaintQueue::default(),
             stellar_boosted: false,
             active_move: None,
+            will_move: [false; 4],
         }
     }
 
@@ -319,6 +322,8 @@ impl<'a> Engine<'a> {
             QueuedAction::Move { slot, target } => {
                 if !self.active(side).is_fainted() {
                     let others_will_act = queue.iter().any(Option::is_some);
+                    self.will_move =
+                        queue.map(|action| matches!(action, Some(QueuedAction::Move { .. })));
                     let drag = self.run_move(side, slot, target, others_will_act);
                     // Showdown's `clearActiveMove`: a move that got as far as being used is
                     // the battle's last move.

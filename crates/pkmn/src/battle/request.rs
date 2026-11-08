@@ -245,6 +245,8 @@ pub struct Choices {
     moves: u8,
     /// Of those, the slots that need a target location.
     targeted: u8,
+    /// Of those, the slots whose target must be an ally.
+    ally_only: u8,
     /// The target locations a targeted move can name, and how many there are.
     targets: [i8; 3],
     target_count: u8,
@@ -261,9 +263,24 @@ impl Iterator for Choices {
     type Item = Choice;
 
     fn next(&mut self) -> Option<Choice> {
-        if self.moves != 0 {
+        while self.moves != 0 {
             let slot = self.moves.trailing_zeros() as usize;
             let targeted = self.targeted & (1 << slot) != 0;
+            // A move at an ally, like Helping Hand, skips the foes' locations.
+            if targeted
+                && self.ally_only & (1 << slot) != 0
+                && self
+                    .targets
+                    .get(usize::from(self.target_index))
+                    .is_some_and(|&location| location > 0)
+            {
+                self.target_index += 1;
+                if self.target_index >= self.target_count {
+                    self.target_index = 0;
+                    self.moves &= self.moves - 1;
+                }
+                continue;
+            }
             let target = targeted.then(|| self.targets[usize::from(self.target_index)]);
             let choice = match (target, self.terastallizing) {
                 (None, false) => Choice::Move(slot),
@@ -315,6 +332,7 @@ pub(crate) fn choices(dex: &Dex, state: &BattleState, position: Position) -> Cho
     let mut choices = Choices {
         moves: 0,
         targeted: 0,
+        ally_only: 0,
         targets: [0; 3],
         target_count: 0,
         tera: false,
@@ -340,6 +358,11 @@ pub(crate) fn choices(dex: &Dex, state: &BattleState, position: Position) -> Cho
             {
                 if needs_target(dex, state, active, slot) {
                     choices.targeted |= 1 << slot;
+                    if dex.move_data(chosen_move(dex, active, slot)).target
+                        == MoveTarget::AdjacentAlly
+                    {
+                        choices.ally_only |= 1 << slot;
+                    }
                 }
             }
             for (entry, location) in choices
@@ -436,7 +459,10 @@ pub(crate) fn validate(
             // Singles accepts a target and ignores it, as Showdown does.
             Some(_) if state.game_type.active_per_side() == 1 => true,
             Some(target) => {
+                let ally_only = dex.move_data(chosen_move(dex, active, slot)).target
+                    == MoveTarget::AdjacentAlly;
                 needs_target(dex, state, active, slot)
+                    && (!ally_only || target < 0)
                     && target_locations(state, position).any(|open| open == target)
             }
         };

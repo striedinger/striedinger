@@ -395,7 +395,10 @@
         "Blaze Burst": ["9L12"],
         "Dizzy Dance": ["9E"],
         "Rally Cry": ["9M"],
-        "Hunker Down": ["9M"]
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"]
       },
       "abilities": {
         "0": "Kindling Heart",
@@ -423,6 +426,9 @@
         "Glare Down": ["9M"],
         "Haymaker": ["9M"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -466,6 +472,9 @@
         "Frost Fang": ["9M"],
         "Glare Down": ["9M"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Night Bite": ["9M"],
@@ -507,6 +516,9 @@
         "Flit Strike": ["9M"],
         "Glare Down": ["9M"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -554,6 +566,9 @@
         "Glare Down": ["9M"],
         "Glimmer Beam": ["9M"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -602,6 +617,9 @@
         "Haymaker": ["9M"],
         "Howl Away": ["9T"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -648,6 +666,9 @@
         "Glare Down": ["9L48", "9M"],
         "Howl Away": ["9L60", "9T"],
         "Hunker Down": ["9L30", "9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Night Bite": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9L1", "9M"],
@@ -692,6 +713,9 @@
         "Glare Down": ["9M"],
         "Howl Away": ["9T"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Night Bite": ["9L18"],
         "Phantom Wail": ["9M"],
         "Pounce": ["9M", "9L1"],
@@ -732,6 +756,9 @@
         "Glare Down": ["9M"],
         "Glimmer Beam": ["9M"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -782,6 +809,9 @@
         "Glare Down": ["9M"],
         "Haymaker": ["9M"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Pincer Slash": ["9L1"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -826,6 +856,9 @@
         "Glare Down": ["9M"],
         "Glimmer Beam": ["9L1"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Mind Ground": ["9L30"],
         "Mind Pulse": ["9L12"],
         "Mist Ground": ["9L6"],
@@ -876,6 +909,9 @@
         "Glare Down": ["9M"],
         "Howl Away": ["9T"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -920,6 +956,9 @@
         "Haymaker": ["9L1"],
         "Howl Away": ["9T"],
         "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -1882,6 +1921,44 @@
         "failcopycat": 1
       },
       "calls": "lastMove"
+    },
+    {
+      "name": "Lure Call",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "priority": 2,
+      "target": "self",
+      "volatileStatus": "followme",
+      "flags": {
+        "failcopycat": 1
+      }
+    },
+    {
+      "name": "Cheer On",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "priority": 5,
+      "target": "adjacentAlly",
+      "volatileStatus": "helpinghand",
+      "flags": {
+        "bypasssub": 1,
+        "failcopycat": 1
+      }
+    },
+    {
+      "name": "Rampart Wall",
+      "type": "Rock",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "priority": 3,
+      "target": "allySide",
+      "sideCondition": "Rampart",
+      "guard": true
     }
   ],
   "abilities": [
@@ -2246,6 +2323,7 @@
     {
       "name": "Mirror Wall",
       "duration": 5,
+      "residualOrder": 26,
       "residualSubOrder": 1,
       "damageModifier": {
         "category": "Physical",
@@ -2256,12 +2334,18 @@
     {
       "name": "Prism Veil",
       "duration": 5,
+      "residualOrder": 26,
       "residualSubOrder": 2,
       "damageModifier": {
         "category": "Special",
         "modifier": [1, 2],
         "doublesModifier": [2732, 4096]
       }
+    },
+    {
+      "name": "Rampart",
+      "duration": 1,
+      "blocksSpreadMoves": true
     }
   ],
   "terrains": [

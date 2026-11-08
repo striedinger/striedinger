@@ -17,7 +17,7 @@
 //! | 5     | 4         | `residualHeal` (Leftovers)                |
 //! | 9     | 0         | Poison and bad poison                     |
 //! | 10    | 0         | Burn                                      |
-//! | 26    | data      | Side conditions with a duration (screens) |
+//! | data  | data      | Side conditions with a duration: screens at 26, Wide Guard with none |
 //! | 27    | 7         | Terrain                                   |
 //! | 28    | 2         | `residualBoosts` (Speed Boost)            |
 //! | none  | 2         | Volatiles with a duration                 |
@@ -48,6 +48,8 @@ enum Volatile {
     Protect,
     Stall,
     Flinch,
+    FollowMe,
+    HelpingHand,
 }
 
 /// What one residual handler does.
@@ -139,11 +141,11 @@ impl Engine<'_> {
         for team in SideId::BOTH {
             for condition in &self.state.side(team).conditions {
                 if condition.duration.is_some() {
-                    let sub_order = self.dex.side_condition(condition.id).residual_sub_order;
+                    let data = self.dex.side_condition(condition.id);
                     handlers.push(
-                        26,
+                        data.residual_order.map_or(NO_ORDER, u32::from),
                         0,
-                        sub_order,
+                        data.residual_sub_order,
                         Residual::SideCondition(team, condition.id),
                     );
                 }
@@ -186,6 +188,8 @@ impl Engine<'_> {
                 (volatiles.protect, Volatile::Protect),
                 (volatiles.stall.is_some(), Volatile::Stall),
                 (volatiles.flinch, Volatile::Flinch),
+                (volatiles.follow_me, Volatile::FollowMe),
+                (volatiles.helping_hand > 0, Volatile::HelpingHand),
             ] {
                 if present {
                     handlers.push(
@@ -388,6 +392,8 @@ impl Engine<'_> {
         match volatile {
             Volatile::Protect => volatiles.protect = false,
             Volatile::Flinch => volatiles.flinch = false,
+            Volatile::FollowMe => volatiles.follow_me = false,
+            Volatile::HelpingHand => volatiles.helping_hand = 0,
             Volatile::Stall => {
                 volatiles.stall = volatiles.stall.and_then(|stall| {
                     let duration = stall.duration.saturating_sub(1);

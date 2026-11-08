@@ -226,8 +226,16 @@ impl Engine<'_> {
                     _ => None,
                 },
             );
+        // Helping Hand (`onBasePowerPriority: 10`) comes after item and ability handlers and
+        // before terrain (6): ×1.5, or ×2.25 for two.
+        let helping_hand = match attacker.volatiles.helping_hand {
+            0 => MODIFIER_SCALE,
+            1 => MODIFIER_SCALE * 3 / 2,
+            _ => MODIFIER_SCALE * 9 / 4,
+        };
         let base_power_modifier = chain_modifiers([
             base_power_modifier,
+            helping_hand,
             self.terrain_base_power_modifier(side, target, move_data),
         ]);
         let mut base_power =

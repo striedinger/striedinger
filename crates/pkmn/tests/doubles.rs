@@ -192,3 +192,122 @@ fn a_move_at_a_fainted_foe_hits_the_other_one() {
         ])
         .expect("the choices are valid");
 }
+
+#[test]
+fn follow_me_draws_moves_aimed_at_its_ally() {
+    let mut battle = doubles(
+        &[
+            set("Brawlstag", &["Pounce"]),
+            set("Craghorn", &["Hunker Down"]),
+        ],
+        &[
+            set("Tidewhelp", &["Lure Call"]),
+            set("Zaplet", &["Hunker Down"]),
+        ],
+        11,
+    );
+    let events = battle
+        .submit_doubles([
+            [Choice::MoveAt(0, 2), Choice::Move(0)],
+            [Choice::Move(0), Choice::Move(0)],
+        ])
+        .expect("the choices are valid")
+        .to_vec();
+    assert!(!damage(&events, P2A).is_empty(), "drawn to p2a");
+    assert!(damage(&events, P2B).is_empty());
+
+    // With no ally to draw attention from, it fails.
+    let mut singles = Battle::new(
+        dex(),
+        [
+            &[set("Tidewhelp", &["Lure Call"])],
+            &[set("Zaplet", &["Pounce"])],
+        ],
+        11,
+    )
+    .expect("the teams are valid");
+    let events = singles
+        .submit([Choice::Move(0), Choice::Move(0)])
+        .expect("the choices are valid")
+        .to_vec();
+    assert!(events.contains(&Event::Fail {
+        pokemon: Position::from(SideId::P1)
+    }));
+}
+
+#[test]
+fn helping_hand_powers_up_the_allys_move() {
+    let pounce = |helper_move: &str| {
+        let mut battle = doubles(
+            &[
+                set("Galewing", &[helper_move]),
+                set("Brawlstag", &["Pounce"]),
+            ],
+            &[
+                set("Tidewhelp", &["Hunker Down"]),
+                set("Zaplet", &["Hunker Down"]),
+            ],
+            13,
+        );
+        let helper = if helper_move == "Cheer On" {
+            Choice::MoveAt(0, -2)
+        } else {
+            Choice::Move(0)
+        };
+        let events = battle
+            .submit_doubles([
+                [helper, Choice::MoveAt(0, 1)],
+                [Choice::Move(0), Choice::Move(0)],
+            ])
+            .expect("the choices are valid")
+            .to_vec();
+        damage(&events, P2A)
+    };
+    let (plain, helped) = (pounce("Hunker Down"), pounce("Cheer On"));
+    let ([plain], [helped]) = (plain.as_slice(), helped.as_slice()) else {
+        panic!("one hit each: {plain:?} {helped:?}");
+    };
+    let ratio = f64::from(*helped) / f64::from(*plain);
+    assert!((1.3..1.7).contains(&ratio), "{plain} -> {helped}");
+}
+
+#[test]
+fn wide_guard_blocks_spread_moves_at_its_side() {
+    let mut battle = doubles(
+        &[
+            set("Brawlstag", &["Rockfall"]),
+            set("Craghorn", &["Hunker Down"]),
+        ],
+        &[
+            set("Tidewhelp", &["Rampart Wall"]),
+            set("Zaplet", &["Hunker Down"]),
+        ],
+        15,
+    );
+    let events = battle
+        .submit_doubles([
+            [Choice::Move(0), Choice::Move(0)],
+            [Choice::Move(0), Choice::Move(0)],
+        ])
+        .expect("the choices are valid")
+        .to_vec();
+    assert!(damage(&events, P2A).is_empty());
+    assert!(damage(&events, P2B).is_empty());
+    let blocked = events
+        .iter()
+        .filter(|event| {
+            matches!(
+                event,
+                Event::SideActivate {
+                    side: SideId::P2,
+                    ..
+                }
+            )
+        })
+        .count();
+    assert_eq!(blocked, 2, "each foe is protected");
+    assert!(
+        battle.state().sides[1].conditions.is_empty(),
+        "it lasts one turn"
+    );
+}

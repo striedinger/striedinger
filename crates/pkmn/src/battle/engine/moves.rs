@@ -139,11 +139,18 @@ impl Engine<'_> {
                 false,
                 None,
             ),
-            MoveTarget::AllySide => (
-                self.side_condition_move(side, side.side, move_data),
-                false,
-                None,
-            ),
+            MoveTarget::AllySide => {
+                // A guard like Wide Guard fails if no one else will act.
+                if move_data.guard && !others_will_act {
+                    self.emit(Event::Fail { pokemon: side });
+                    return None;
+                }
+                (
+                    self.side_condition_move(side, side.side, move_data),
+                    false,
+                    None,
+                )
+            }
             MoveTarget::User => {
                 if move_data.stalling_move && !self.try_stall(side, others_will_act) {
                     self.emit(Event::Fail { pokemon: side });
@@ -154,31 +161,11 @@ impl Engine<'_> {
             }
             MoveTarget::Normal
             | MoveTarget::RandomNormal
+            | MoveTarget::AdjacentAlly
             | MoveTarget::AllAdjacentFoes
-            | MoveTarget::AllAdjacent => {
-                if targets.len() == 0 {
-                    self.emit(Event::Fail { pokemon: side });
-                    return None;
-                }
-                let spread = targets.len() > 1;
-                let hittable: Positions = targets
-                    .iter()
-                    .filter(|&target| self.try_hit(side, target, move_data, priority))
-                    .collect();
-                let single = hittable.first();
-                if hittable.len() == 0 {
-                    (false, false, single)
-                } else if move_data.is_damaging() {
-                    let outcome = self.hit_loop(side, hittable, move_data, spread);
-                    (outcome.worked, outcome.reached_target, single)
-                } else {
-                    let target = single.expect("there is a target");
-                    let worked = self.status_move_hit(side, target, move_data);
-                    (worked, worked, Some(target))
-                }
-            }
+            | MoveTarget::AllAdjacent => self.hit_targets(side, targets, move_data, priority)?,
         };
-        if worked && move_data.stalling_move {
+        if worked && (move_data.stalling_move || move_data.guard) {
             self.restart_stall(side);
         }
         let index = usize::from(side.index);
@@ -236,6 +223,24 @@ impl Engine<'_> {
     pub(super) fn get_random_target(&mut self, side: Position, move_data: &MoveData) -> Position {
         match move_data.target {
             MoveTarget::User | MoveTarget::AllySide => side,
+            // In doubles, a random ally that stands, with a draw; in singles there is none, and
+            // the move fails.
+            MoveTarget::AdjacentAlly => {
+                let allies: Positions = self
+                    .positions()
+                    .iter()
+                    .filter(|&ally| {
+                        ally != side && ally.side == side.side && !self.active(ally).is_fainted()
+                    })
+                    .collect();
+                match u32::try_from(allies.len()) {
+                    Ok(count) if count > 0 => {
+                        let index = usize::try_from(self.state.prng.below(count)).unwrap_or(0);
+                        allies.iter().nth(index).unwrap_or(side)
+                    }
+                    _ => side,
+                }
+            }
             _ => self.random_target(side),
         }
     }
@@ -271,6 +276,12 @@ impl Engine<'_> {
                 allies.chain(others(self, false).iter()).collect()
             }
             MoveTarget::AllAdjacentFoes => others(self, false),
+            MoveTarget::AdjacentAlly => target
+                .filter(|&ally| {
+                    ally != side && ally.side == side.side && !self.active(ally).is_fainted()
+                })
+                .into_iter()
+                .collect(),
             MoveTarget::Normal | MoveTarget::RandomNormal => {
                 let target = match target {
                     Some(target)
@@ -280,12 +291,76 @@ impl Engine<'_> {
                     }
                     _ => self.random_target(side),
                 };
+                let target = self.redirect(side, move_data, target);
                 if self.active(target).is_fainted() {
                     return Positions::new();
                 }
                 [target].into_iter().collect()
             }
         }
+    }
+
+    /// Hits a move's targets, returning whether it worked, whether it reached a target, and
+    /// the target it hit; `None` when it had none and failed.
+    fn hit_targets(
+        &mut self,
+        side: Position,
+        targets: Positions,
+        move_data: &MoveData,
+        priority: i8,
+    ) -> Option<(bool, bool, Option<Position>)> {
+        if targets.len() == 0 {
+            self.emit(Event::Fail { pokemon: side });
+            return None;
+        }
+        let spread = targets.len() > 1;
+        let hittable: Positions = targets
+            .iter()
+            .filter(|&target| self.try_hit(side, target, move_data, priority))
+            .collect();
+        let single = hittable.first();
+        Some(if hittable.len() == 0 {
+            (false, false, single)
+        } else if move_data.is_damaging() {
+            let outcome = self.hit_loop(side, hittable, move_data, spread);
+            (outcome.worked, outcome.reached_target, single)
+        } else {
+            let target = single.expect("there is a target");
+            let worked = self.status_move_hit(side, target, move_data);
+            (worked, worked, Some(target))
+        })
+    }
+
+    /// Showdown's `RedirectTarget` event in doubles: a foe using Follow Me draws a
+    /// single-target move, unless the move is only charging this turn. The fastest such foe
+    /// wins.
+    fn redirect(&mut self, side: Position, move_data: &MoveData, target: Position) -> Position {
+        if self.state.game_type.active_per_side() == 1 {
+            return target;
+        }
+        let user = self.active(side);
+        let charging = move_data.charge.as_ref().is_some_and(|charge| {
+            user.volatiles.two_turn_move == 0
+                && !self
+                    .weather_id()
+                    .is_some_and(|weather| charge.skipped_in.contains(&weather))
+        });
+        if charging {
+            return target;
+        }
+        let mut lures: Positions = self
+            .positions()
+            .iter()
+            .filter(|&foe| {
+                foe.side != side.side
+                    && !self.active(foe).is_fainted()
+                    && self.active(foe).volatiles.follow_me
+            })
+            .collect();
+        if lures.len() > 1 {
+            lures = self.speed_order(lures);
+        }
+        lures.first().unwrap_or(target)
     }
 
     /// Showdown's `getRandomTarget` for a move at the foes: in singles the foe; in doubles a
@@ -411,6 +486,17 @@ impl Engine<'_> {
             self.boost(side, boosts);
         }
         true
+    }
+
+    /// A rampage blocked on its first turn ends quietly, as Showdown's Protect-like moves do.
+    fn cancel_fresh_rampage(&mut self, side: Position) {
+        let volatiles = &mut self.active_mut(side).volatiles;
+        if volatiles
+            .locked_move
+            .is_some_and(|locked| locked.duration == LOCKED_MOVE_DURATION)
+        {
+            volatiles.locked_move = None;
+        }
     }
 
     /// Starts or refreshes a rampage, as Showdown's `lockedmove` `onStart` and `onRestart` do.
@@ -632,6 +718,42 @@ impl Engine<'_> {
         true
     }
 
+    /// Wide Guard (`onTryHitPriority: 4`), then Protect (3): each blocks moves with the
+    /// `protect` flag and ends a rampage on its first turn.
+    fn protected(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
+        let spread = matches!(
+            move_data.target,
+            MoveTarget::AllAdjacent | MoveTarget::AllAdjacentFoes
+        );
+        let guard = (spread && move_data.flags.protect)
+            .then(|| {
+                self.state
+                    .side(target.side)
+                    .conditions
+                    .iter()
+                    .find(|condition| self.dex.side_condition(condition.id).blocks_spread_moves)
+                    .map(|condition| condition.id)
+            })
+            .flatten();
+        if let Some(condition) = guard {
+            self.emit(Event::SideActivate {
+                side: target.side,
+                condition,
+            });
+            self.cancel_fresh_rampage(side);
+            return true;
+        }
+        if move_data.flags.protect && self.active(target).volatiles.protect {
+            self.emit(Event::Activate {
+                pokemon: target,
+                volatile: VolatileStatus::Protect,
+            });
+            self.cancel_fresh_rampage(side);
+            return true;
+        }
+        false
+    }
+
     /// Showdown's hit steps before damage: a target exists, `onTryHit` (absorbing abilities),
     /// type immunity, then accuracy. Returns whether the move goes on to hit.
     fn try_hit(
@@ -659,11 +781,7 @@ impl Engine<'_> {
             self.emit(Event::Fail { pokemon: side });
             return false;
         }
-        if move_data.flags.protect && self.active(target).volatiles.protect {
-            self.emit(Event::Activate {
-                pokemon: target,
-                volatile: VolatileStatus::Protect,
-            });
+        if self.protected(side, target, move_data) {
             return false;
         }
         let try_hit_handlers = self.mask(target).intersects(HandlerMask::TRY_HIT);
@@ -1164,7 +1282,35 @@ impl Engine<'_> {
                 applied = true;
             }
             Some(VolatileStatus::Substitute) => applied |= self.make_substitute(recipient),
-            Some(VolatileStatus::Confusion | VolatileStatus::LockedMove) | None => {}
+            // Showdown's Follow Me `onTry`: only with allies to draw attention from.
+            Some(VolatileStatus::FollowMe) if self.state.game_type.active_per_side() > 1 => {
+                self.active_mut(recipient).volatiles.follow_me = true;
+                self.emit(Event::Start {
+                    pokemon: recipient,
+                    volatile: VolatileStatus::FollowMe,
+                });
+                applied = true;
+            }
+            // Showdown's Helping Hand `onTryHit`: the ally must still move this turn, or have
+            // just switched in.
+            Some(VolatileStatus::HelpingHand)
+                if self.will_move[recipient.flat()] || self.active(recipient).active_turns == 0 =>
+            {
+                let volatiles = &mut self.active_mut(recipient).volatiles;
+                volatiles.helping_hand = volatiles.helping_hand.saturating_add(1);
+                self.emit(Event::Start {
+                    pokemon: recipient,
+                    volatile: VolatileStatus::HelpingHand,
+                });
+                applied = true;
+            }
+            Some(
+                VolatileStatus::Confusion
+                | VolatileStatus::LockedMove
+                | VolatileStatus::FollowMe
+                | VolatileStatus::HelpingHand,
+            )
+            | None => {}
         }
         applied
     }

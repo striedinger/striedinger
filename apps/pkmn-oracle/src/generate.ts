@@ -45,6 +45,7 @@ interface SampleMove {
   priority?: number;
   flags?: Record<string, number>;
   stallingMove?: boolean;
+  guard?: boolean;
   calls?: string;
   weather?: string;
   terrain?: string;
@@ -170,6 +171,7 @@ const SIDE_CONDITIONS: Record<string, string> = {
   Caltrops: "spikes",
   "Mirror Wall": "reflect",
   "Prism Veil": "lightscreen",
+  Rampart: "wideguard",
 };
 /**
  * Showdown's terrains name the moves they modify by ID, like Grassy Terrain's Earthquake, so
@@ -256,6 +258,17 @@ const BORROWED: Record<string, Borrowed> = {
     expect: { calls: "ownMove", sleepUsable: true },
   },
   "Echo Step": { from: "copycat", callbacks: ["onHit"], expect: { calls: "lastMove" } },
+  "Lure Call": { from: "followme", callbacks: ["onTry"], expect: { volatileStatus: "followme" } },
+  "Cheer On": {
+    from: "helpinghand",
+    callbacks: ["onTryHit"],
+    expect: { volatileStatus: "helpinghand" },
+  },
+  "Rampart Wall": {
+    from: "wideguard",
+    callbacks: ["onTry", "onHitSide"],
+    expect: { guard: true, sideCondition: "Rampart" },
+  },
   "Clear Gust": {
     from: "defog",
     callbacks: ["onHit"],
@@ -281,12 +294,19 @@ const PKMN_ONLY_FIELDS = [
   "clearTerrain",
   "substituteBlocksBoosts",
   "calls",
+  "guard",
 ];
 const CHARGING_FIELDS = ["chargeBoosts", "chargeSkippedIn", "semiInvulnerable"];
 
+/**
+ * Showdown recognizes a few moves by ID prefix: Solar Beam's (`solarb`) is not charging in sun
+ * when Follow Me's redirection is decided. Moves standing in for them keep the prefix.
+ */
+const ID_PREFIXES: Record<string, string> = { Sunlance: "Solarb " };
+
 /** Sample names can match real Showdown entries, so injected ones carry this suffix. */
 function injectedName(name: string): string {
-  return `${name} pkmn`;
+  return `${ID_PREFIXES[name] ?? ""}${name} pkmn`;
 }
 
 function lookup(table: Record<string, string>, key: string, kind: string): string {
@@ -328,7 +348,11 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
   const clearing = move.clearSideConditions !== undefined || move.clearTerrain !== undefined;
   const calling = move.calls !== undefined;
   if (
-    (charging || clearing || calling || move.stallingMove !== undefined) &&
+    (charging ||
+      clearing ||
+      calling ||
+      move.stallingMove !== undefined ||
+      move.guard !== undefined) &&
     borrowed === undefined
   ) {
     throw new Error(`${move.name} needs Showdown callbacks; add it to BORROWED`);
@@ -638,8 +662,9 @@ function chooseForSide(side: Side, random: (bound: number) => number): SideChoic
       theirs.push(`move ${moveIndex + 1}${tera}`);
       continue;
     }
-    // Every other position is adjacent in doubles: either foe, or the ally.
-    const foeCount = side.foe.active.length;
+    // Every other position is adjacent in doubles: either foe, or the ally. A move at an ally
+    // can only aim at the ally.
+    const foeCount = move.target === "adjacentAlly" ? 0 : side.foe.active.length;
     const locations = [
       ...Array.from({ length: foeCount }, (_, foe) => foe + 1),
       ...Array.from({ length: count }, (_, ally) => -(ally + 1)).filter(

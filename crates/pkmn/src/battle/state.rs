@@ -91,6 +91,12 @@ pub struct Volatiles {
     /// The target location a charging move hits next turn.
     #[serde(default)]
     pub charge_target: Option<i8>,
+    /// Whether Follow Me draws the foes' moves this turn.
+    #[serde(default)]
+    pub follow_me: bool,
+    /// Helping Hands received this turn, each ×1.5 base power.
+    #[serde(default)]
+    pub helping_hand: u8,
 }
 
 /// Showdown's `lockedmove` volatile, with its two counters.
