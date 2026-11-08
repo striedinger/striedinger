@@ -214,7 +214,8 @@ pub(crate) fn validate(
         }
         Choice::Move(0) | Choice::Terastallize(0) if active.must_struggle(dex) => Ok(()),
         Choice::Move(_) | Choice::Terastallize(_) => reject(ChoiceErrorReason::DisabledMove),
-        Choice::Switch(slot) if team.can_switch_to(slot) => Ok(()),
+        // `switches` also refuses a creature trapped by a rampage or a charged move.
+        Choice::Switch(slot) if team.switches().any(|open| open == slot) => Ok(()),
         Choice::Switch(_) => reject(ChoiceErrorReason::InvalidSwitch),
         Choice::Pass => reject(ChoiceErrorReason::WrongKind),
     }

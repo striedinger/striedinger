@@ -41,7 +41,6 @@ enum Hit {
 }
 
 impl Engine<'_> {
-    /// Showdown's `runMove`: pre-move checks, PP, then the move itself.
     /// Showdown's `runMove`: pre-move checks, PP, charging, the move itself, then what
     /// follows it. Returns the side to drag out when a `forceSwitch` move worked.
     pub(super) fn run_move(
@@ -79,7 +78,6 @@ impl Engine<'_> {
         if self.charge_turn(side, slot, move_data) {
             return None;
         }
-        self.using_slot = slot;
         let (worked, reached_target, target) = match move_data.target {
             MoveTarget::FoeSide => (
                 self.side_condition_move(side.foe(), move_data),
@@ -101,10 +99,7 @@ impl Engine<'_> {
                 {
                     (false, false, target)
                 } else if move_data.is_damaging() {
-                    let outcome = self.hit_loop(side, target, move_data);
-                    if outcome.worked && !self.active(side).is_fainted() {
-                        self.clear_conditions(side, target, move_data);
-                    }
+                    let outcome = self.hit_loop(side, slot, target, move_data);
                     (outcome.worked, outcome.reached_target, target)
                 } else {
                     let worked = self.status_move_hit(side, target, move_data);
@@ -112,7 +107,6 @@ impl Engine<'_> {
                 }
             }
         };
-        self.using_slot = None;
         if worked && move_data.stalling_move {
             self.restart_stall(side);
         }
@@ -159,8 +153,8 @@ impl Engine<'_> {
     }
 
     /// Starts or refreshes a rampage, as Showdown's `lockedmove` `onStart` and `onRestart` do.
-    fn lock_into_move(&mut self, side: SideId) {
-        let Some(slot) = self.using_slot.and_then(|slot| u8::try_from(slot).ok()) else {
+    fn lock_into_move(&mut self, side: SideId, slot: Option<usize>) {
+        let Some(slot) = slot.and_then(|slot| u8::try_from(slot).ok()) else {
             return;
         };
         match self.active(side).volatiles.locked_move {
@@ -453,9 +447,16 @@ impl Engine<'_> {
         self.state.prng.chance(accuracy, 100)
     }
 
-    /// Showdown's `hitStepMoveHitLoop`: every hit, then recoil and `onAfterMoveSecondarySelf`.
+    /// Showdown's `hitStepMoveHitLoop`: every hit with its effects and `onAfterHit`, then recoil
+    /// and `onAfterMoveSecondarySelf`.
     /// Returns whether any hit landed, on the target or its substitute.
-    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> HitOutcome {
+    fn hit_loop(
+        &mut self,
+        side: SideId,
+        slot: Option<usize>,
+        target: SideId,
+        move_data: &MoveData,
+    ) -> HitOutcome {
         let hits = self.roll_hits(move_data);
         let mut landed = 0;
         let mut total_damage = 0;
@@ -468,7 +469,7 @@ impl Engine<'_> {
             match self.hit(side, target, move_data) {
                 Hit::Target(dealt) => {
                     total_damage += dealt;
-                    self.move_effects(side, target, move_data, true);
+                    self.move_effects(side, slot, target, move_data, true);
                     if dealt > 0 {
                         self.damaging_hit(side, target, move_data);
                     }
@@ -476,8 +477,13 @@ impl Engine<'_> {
                 Hit::Substitute(absorbed) => {
                     hit_substitute = true;
                     self.substitute_recoil(side, move_data, absorbed);
-                    self.move_effects(side, target, move_data, false);
+                    self.move_effects(side, slot, target, move_data, false);
                 }
+            }
+            // Showdown's `onAfterHit` and `onAfterSubDamage`, like Rapid Spin's: per hit, before
+            // recoil and Life Orb, while the user stands.
+            if !self.active(side).is_fainted() {
+                self.clear_conditions(side, target, move_data);
             }
             self.update();
         }
@@ -545,6 +551,7 @@ impl Engine<'_> {
     fn move_effects(
         &mut self,
         side: SideId,
+        slot: Option<usize>,
         target: SideId,
         move_data: &MoveData,
         reached_target: bool,
@@ -564,7 +571,7 @@ impl Engine<'_> {
             self.boost(side, boosts);
         }
         if move_data.self_volatile == Some(VolatileStatus::LockedMove) {
-            self.lock_into_move(side);
+            self.lock_into_move(side, slot);
         }
         self.secondaries(side, target, move_data, reached_target);
     }

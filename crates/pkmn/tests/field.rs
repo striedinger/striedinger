@@ -407,3 +407,45 @@ fn terastallizing_into_an_original_type_doubles_stab_and_raises_weak_moves() {
         "{plain} -> {tera}"
     );
 }
+
+#[test]
+fn adaptability_style_stab_needs_a_current_type() {
+    let duel = |tera_type: &str| {
+        let mut galewing = set("Galewing", &["Pounce"]);
+        galewing.ability = Some("Purebred".to_owned());
+        galewing.tera_type = Some(tera_type.to_owned());
+        start(&[galewing], &[set("Brawlstag", &["Hunker Down"])], 27)
+    };
+    let hit = |tera_type: &str, choice: Choice| {
+        let mut battle = duel(tera_type);
+        damage_to(&play(&mut battle, choice, MOVE), P2, DamageSource::Move)[0]
+    };
+    let adapted = hit("Water", MOVE);
+    // A Water Tera type drops Normal from Galewing's types: ×2 → ×1.5.
+    let lost = hit("Water", Choice::Terastallize(0));
+    assert!(
+        (1.28..1.39).contains(&ratio(adapted, lost)),
+        "{adapted} -> {lost}"
+    );
+    // A Normal Tera type keeps it, and the data's `teraModifier` gives ×2.25. The weak move is
+    // also raised from 40 to 60 base power.
+    let doubled = hit("Normal", Choice::Terastallize(0));
+    assert!(
+        (1.6..1.8).contains(&ratio(doubled, adapted)),
+        "{adapted} -> {doubled}"
+    );
+}
+
+#[test]
+fn switches_happen_before_terastallization() {
+    let mut cindercub = set("Cindercub", &["Hunker Down"]);
+    cindercub.tera_type = Some("Water".to_owned());
+    let mut battle = start(
+        &[cindercub],
+        &[set("Tidewhelp", &["Riptide"]), set("Zaplet", &["Pounce"])],
+        29,
+    );
+    let events = play(&mut battle, Choice::Terastallize(0), Choice::Switch(1));
+    assert!(matches!(events[0], Event::Switch { side: P2, .. }));
+    assert!(matches!(events[1], Event::Terastallize { side: P1, .. }));
+}

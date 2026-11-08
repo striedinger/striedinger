@@ -362,14 +362,6 @@ pub struct Clears {
     pub terrain: bool,
 }
 
-impl Clears {
-    /// Whether it removes anything.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.user.is_empty() && self.target.is_empty() && !self.terrain
-    }
-}
-
 /// A compiled side condition.
 #[derive(Clone, Debug)]
 pub struct SideConditionData {
@@ -798,6 +790,16 @@ impl Dex {
                 })
                 .collect::<Result<Vec<_>, DexError>>()
         };
+        if source
+            .prevents_volatiles
+            .iter()
+            .any(|volatile| *volatile != VolatileStatus::Confusion)
+        {
+            return Err(DexError::invalid(
+                name,
+                "preventsVolatiles supports only confusion",
+            ));
+        }
         let terrain = TerrainData {
             name: source.name.clone(),
             duration: source.duration,
@@ -1279,33 +1281,7 @@ fn built_in_struggle() -> MoveSource {
 fn validate_move_shape(source: &MoveSource) -> Result<HitRange, DexError> {
     let name = source.name.as_str();
     let damaging = source.category != MoveCategory::Status;
-    let self_volatile = source
-        .self_effect
-        .as_ref()
-        .and_then(|effect| effect.volatile_status);
-    if self_volatile.is_some_and(|volatile| volatile != VolatileStatus::LockedMove)
-        || (self_volatile.is_some() && !damaging)
-    {
-        return Err(DexError::invalid(
-            name,
-            "self.volatileStatus supports only lockedmove, on damaging moves",
-        ));
-    }
-    let charge_only = source.charge_boosts.is_some()
-        || !source.charge_skipped_in.is_empty()
-        || source.semi_invulnerable;
-    if charge_only && !source.flags.charge {
-        return Err(DexError::invalid(
-            name,
-            "chargeBoosts, chargeSkippedIn, and semiInvulnerable need flags.charge",
-        ));
-    }
-    if source.flags.charge && !damaging {
-        return Err(DexError::invalid(
-            name,
-            "flags.charge needs a damaging move",
-        ));
-    }
+    validate_move_effects(source, damaging)?;
     let targets_side = matches!(source.target, MoveTarget::FoeSide | MoveTarget::AllySide);
     if targets_side != source.side_condition.is_some() || (targets_side && damaging) {
         return Err(DexError::invalid(
@@ -1362,6 +1338,56 @@ fn validate_move_shape(source: &MoveSource) -> Result<HitRange, DexError> {
         validate_fraction(fraction, name)?;
     }
     Ok(multihit)
+}
+
+/// Checks the volatile-status, terrain, and charge fields of a move.
+fn validate_move_effects(source: &MoveSource, damaging: bool) -> Result<(), DexError> {
+    let name = source.name.as_str();
+    let self_volatile = source
+        .self_effect
+        .as_ref()
+        .and_then(|effect| effect.volatile_status);
+    if self_volatile.is_some_and(|volatile| volatile != VolatileStatus::LockedMove)
+        || (self_volatile.is_some() && !damaging)
+    {
+        return Err(DexError::invalid(
+            name,
+            "self.volatileStatus supports only lockedmove, on damaging moves",
+        ));
+    }
+    let primary_or_secondary_lock = source.volatile_status == Some(VolatileStatus::LockedMove)
+        || source
+            .secondaries
+            .iter()
+            .any(|secondary| secondary.volatile_status == Some(VolatileStatus::LockedMove));
+    if primary_or_secondary_lock {
+        return Err(DexError::invalid(
+            name,
+            "lockedmove can only be a self.volatileStatus",
+        ));
+    }
+    if damaging && source.terrain.is_some() {
+        return Err(DexError::invalid(
+            name,
+            "only status moves can set a terrain",
+        ));
+    }
+    let charge_only = source.charge_boosts.is_some()
+        || !source.charge_skipped_in.is_empty()
+        || source.semi_invulnerable;
+    if charge_only && !source.flags.charge {
+        return Err(DexError::invalid(
+            name,
+            "chargeBoosts, chargeSkippedIn, and semiInvulnerable need flags.charge",
+        ));
+    }
+    if source.flags.charge && !damaging {
+        return Err(DexError::invalid(
+            name,
+            "flags.charge needs a damaging move",
+        ));
+    }
+    Ok(())
 }
 
 fn compile_secondary(secondary: &SecondarySource, owner: &str) -> Result<Secondary, DexError> {

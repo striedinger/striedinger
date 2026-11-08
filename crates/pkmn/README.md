@@ -67,10 +67,10 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 - Charging moves (`flags.charge`) spend a turn preparing unless the weather skips it, then are forced next turn without spending PP. Optional: boosts while charging, and semi-invulnerability, where every move aimed at the charger misses.
 - Rampages (`self.volatileStatus: "lockedmove"`) roll 2–3 turns and follow Showdown's two counters. The user can't switch out, and ends confused if the rampage runs its course; sleep ends it quietly.
 - `forceSwitch` moves drag out a random replacement from Showdown's `possibleSwitches` order. pkmn tracks that order, which swaps on every switch, so the random pick matches. The dragged-out creature's queued move is cancelled. With nothing to drag in, status forcing moves fail.
-- `clearSideConditions` and `clearTerrain` remove hazards, screens, and terrain after a move works, like Rapid Spin (also after hitting a substitute) and Defog.
-- Terastallization (`move N terastallize`) happens before moves (Showdown's queue order 106), once per side per battle.
+- `clearSideConditions` and `clearTerrain` remove hazards, screens, and terrain. Damaging moves clear after each hit, before recoil, like Rapid Spin (also after hitting a substitute); status moves clear as their effect, like Defog.
+- Terastallization (`move N terastallize`) happens after switches and before moves (Showdown's queue order 106), once per side per battle.
   - The Tera type becomes the creature's only type for defense.
-  - Original types keep STAB; a matching Tera type gives ×2, or ×2.25 with an Adaptability-style `modifyStab`.
+  - Original types keep STAB; a matching Tera type gives ×2. An Adaptability-style `modifyStab` applies only to the current types, and its `teraModifier` (×2.25 for Adaptability) replaces the ×2.
   - Weak non-priority, single-hit Tera-type moves are raised to 60 base power.
 - Self-switching moves like U-turn pause the turn for the user's replacement. The rest of the turn waits in `BattleState::queue`, so a battle saved mid-turn resumes exactly.
 - Residual effects in Showdown's order, with faints checked after each, so a battle can end partway through.

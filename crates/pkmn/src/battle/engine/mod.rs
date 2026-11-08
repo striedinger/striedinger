@@ -42,8 +42,6 @@ pub(crate) struct Engine<'a> {
     state: &'a mut BattleState,
     events: &'a mut Vec<Event>,
     faint_queue: FaintQueue,
-    /// The move slot being used, for effects that remember it, like a rampage.
-    using_slot: Option<usize>,
 }
 
 impl<'a> Engine<'a> {
@@ -53,7 +51,6 @@ impl<'a> Engine<'a> {
             state,
             events,
             faint_queue: FaintQueue::default(),
-            using_slot: None,
         }
     }
 
@@ -120,11 +117,25 @@ impl<'a> Engine<'a> {
     /// Runs validated choices: replacements between turns, or a full turn.
     pub fn run(&mut self, choices: [Choice; 2]) {
         if !self.state.awaiting_switch() {
-            self.terastallize(choices);
-            let queue = [
+            let mut queue = [
                 self.action_for(SideId::P1, choices[0]),
                 self.action_for(SideId::P2, choices[1]),
             ];
+            if choices
+                .iter()
+                .any(|choice| matches!(choice, Choice::Terastallize(_)))
+            {
+                // Showdown's queue order: switches (103), then Terastallization (106), then
+                // moves.
+                for side in SideId::BOTH {
+                    if matches!(queue[side.index()], Some(QueuedAction::Switch(_)))
+                        && self.act(side, &mut queue)
+                    {
+                        return;
+                    }
+                }
+                self.terastallize(choices);
+            }
             self.continue_turn(queue);
             return;
         }
@@ -161,7 +172,8 @@ impl<'a> Engine<'a> {
         }
     }
 
-    /// Showdown's `terastallize` actions (queue order 106): before any move, fastest first.
+    /// Showdown's `terastallize` actions (queue order 106): after switches and before any move,
+    /// fastest first.
     fn terastallize(&mut self, choices: [Choice; 2]) {
         let wants = choices.map(|choice| matches!(choice, Choice::Terastallize(_)));
         let order = match wants {
@@ -187,33 +199,43 @@ impl<'a> Engine<'a> {
         // The next actor is picked from the remaining actions each time, re-reading speed after
         // every action as Generation 8 onward does.
         while let Some(side) = self.next_actor(&queue) {
-            let Some(action) = queue[side.index()].take() else {
-                break;
-            };
-            match action {
-                QueuedAction::Switch(slot) => {
-                    self.switch_in(side, slot);
-                    self.run_switch_in([side]);
-                }
-                QueuedAction::Move(slot) => {
-                    if !self.active(side).is_fainted() {
-                        let foe_will_act = queue[side.foe().index()].is_some();
-                        if let Some(target) = self.run_move(side, slot, foe_will_act) {
-                            self.drag_in(target, &mut queue);
-                        }
-                    }
-                }
-            }
-            if self.faint_messages() {
-                return;
-            }
-            self.update();
-            if self.state.sides.iter().any(|team| team.switch_flag) {
-                self.state.queue = Some(queue);
+            if self.act(side, &mut queue) {
                 return;
             }
         }
         self.residual();
+    }
+
+    /// Runs `side`'s queued action and the checks after it. Returns whether the turn stops
+    /// here: the battle ended, or a side must switch mid-turn and the rest of the queue waits
+    /// in the state.
+    fn act(&mut self, side: SideId, queue: &mut [Option<QueuedAction>; 2]) -> bool {
+        let Some(action) = queue[side.index()].take() else {
+            return false;
+        };
+        match action {
+            QueuedAction::Switch(slot) => {
+                self.switch_in(side, slot);
+                self.run_switch_in([side]);
+            }
+            QueuedAction::Move(slot) => {
+                if !self.active(side).is_fainted() {
+                    let foe_will_act = queue[side.foe().index()].is_some();
+                    if let Some(target) = self.run_move(side, slot, foe_will_act) {
+                        self.drag_in(target, queue);
+                    }
+                }
+            }
+        }
+        if self.faint_messages() {
+            return true;
+        }
+        self.update();
+        if self.state.sides.iter().any(|team| team.switch_flag) {
+            self.state.queue = Some(*queue);
+            return true;
+        }
+        false
     }
 
     fn priority(&self, side: SideId, action: QueuedAction) -> i8 {

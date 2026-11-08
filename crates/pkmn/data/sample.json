@@ -1459,7 +1459,7 @@
       "name": "Purebred",
       "handlers": [
         {
-          "modifyStab": [2, 1]
+          "modifyStab": { "modifier": [2, 1], "teraModifier": [9, 4] }
         }
       ]
     },

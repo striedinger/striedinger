@@ -16,8 +16,6 @@ const ACTION_SPEED_BITS: u32 = 13;
 const TERA_MINIMUM_POWER: u32 = 60;
 /// STAB when the Tera type matches one of the user's original types: ×2.
 const TERA_STAB_MODIFIER: u32 = MODIFIER_SCALE * 2;
-/// Adaptability on top of a matching Tera type: ×2.25.
-const ADAPTED_TERA_STAB_MODIFIER: u32 = MODIFIER_SCALE * 9 / 4;
 /// Base power of a confusion self-hit.
 const CONFUSION_POWER: u16 = 40;
 
@@ -247,19 +245,24 @@ impl Engine<'_> {
             (true, true) => TERA_STAB_MODIFIER,
             _ => STAB_MODIFIER,
         };
-        if !self.mask(side).intersects(HandlerMask::ATTACK_RULES) {
+        // Like Showdown's Adaptability, the replacement needs the move to match a current type,
+        // so a Terastallized user's original-type moves keep ×1.5.
+        if !self.mask(side).intersects(HandlerMask::ATTACK_RULES) || !attacker.has_type(move_type) {
             return stab;
         }
-        let replacement = self.handlers(side).find_map(|(_, handler)| match handler {
-            Handler::ModifyStab(modifier) => Some(*modifier),
-            _ => None,
-        });
-        match replacement {
-            // Adaptability's ×2 becomes ×2.25 on top of a matching Tera type.
-            Some(_) if stab == TERA_STAB_MODIFIER => ADAPTED_TERA_STAB_MODIFIER,
-            Some(modifier) => modifier,
-            None => stab,
-        }
+        self.handlers(side)
+            .find_map(|(_, handler)| match *handler {
+                Handler::ModifyStab {
+                    modifier,
+                    tera_modifier,
+                } => Some(if stab == TERA_STAB_MODIFIER {
+                    tera_modifier
+                } else {
+                    modifier
+                }),
+                _ => None,
+            })
+            .unwrap_or(stab)
     }
 
     /// Terrain's base power modifiers: one for the attacker's move type if the attacker is

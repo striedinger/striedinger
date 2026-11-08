@@ -58,8 +58,17 @@ impl Engine<'_> {
                 }
             }
         }
-        for side in SideId::BOTH {
+        // A rampage ending rolls confusion's duration, so two rampages run in speed order.
+        let locked = SideId::BOTH.map(|side| self.active(side).volatiles.locked_move.is_some());
+        let order = if locked == [true, true] {
+            self.speed_order()
+        } else {
+            SideId::BOTH
+        };
+        for side in order {
             self.lock_residual(side);
+        }
+        for side in SideId::BOTH {
             let volatiles = &mut self.active_mut(side).volatiles;
             volatiles.flinch = false;
             volatiles.protect = false;

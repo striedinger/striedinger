@@ -47,8 +47,15 @@ pub enum HandlerSource {
         #[serde(default)]
         conditions: Vec<ConditionSource>,
     },
-    /// `onModifySTAB`: replaces the ×1.5 same-type attack bonus.
-    ModifyStab(Fraction),
+    /// `onModifySTAB`: replaces the same-type attack bonus for moves of one of the holder's
+    /// current types, like Adaptability.
+    ModifyStab {
+        /// Replaces ×1.5.
+        modifier: Fraction,
+        /// Replaces ×2 when the Tera type matches an original type; defaults to `modifier`.
+        #[serde(default, rename = "teraModifier")]
+        tera_modifier: Option<Fraction>,
+    },
     /// The holder's physical moves skip the burn penalty, like Guts.
     IgnoreBurnPenalty,
     /// `onImmunity`: moves of this type cannot hit the holder, like Levitate.
@@ -164,8 +171,13 @@ pub enum Handler {
         /// Conditions that must all hold.
         conditions: Vec<Condition>,
     },
-    /// See [`HandlerSource::ModifyStab`]; the 4096-based bonus.
-    ModifyStab(u32),
+    /// See [`HandlerSource::ModifyStab`]; 4096-based bonuses.
+    ModifyStab {
+        /// Replaces ×1.5.
+        modifier: u32,
+        /// Replaces ×2.
+        tera_modifier: u32,
+    },
     /// See [`HandlerSource::IgnoreBurnPenalty`].
     IgnoreBurnPenalty,
     /// See [`HandlerSource::Immunity`].
@@ -282,7 +294,7 @@ impl Handler {
             Self::BasePower { .. } => HandlerMask::BASE_POWER,
             Self::ModifyDamage { .. } => HandlerMask::MODIFY_DAMAGE,
             Self::SourceModifyDamage { .. } => HandlerMask::SOURCE_MODIFY_DAMAGE,
-            Self::ModifyStab(_) | Self::IgnoreBurnPenalty => HandlerMask::ATTACK_RULES,
+            Self::ModifyStab { .. } | Self::IgnoreBurnPenalty => HandlerMask::ATTACK_RULES,
             Self::Immunity(_) | Self::Absorb { .. } => HandlerMask::TRY_HIT,
             Self::StatusImmunity(_) => HandlerMask::STATUS_IMMUNITY,
             Self::StartWeather(_) | Self::StartFoeBoosts(_) | Self::StartTerrain(_) => {
@@ -410,7 +422,13 @@ impl Dex {
                 modifier: modifier(value)?,
                 conditions: self.compile_conditions(conditions, owner)?,
             },
-            HandlerSource::ModifyStab(value) => Handler::ModifyStab(modifier(value)?),
+            HandlerSource::ModifyStab {
+                modifier: value,
+                tera_modifier,
+            } => Handler::ModifyStab {
+                modifier: modifier(value)?,
+                tera_modifier: modifier(tera_modifier.as_ref().unwrap_or(value))?,
+            },
             HandlerSource::IgnoreBurnPenalty => Handler::IgnoreBurnPenalty,
             HandlerSource::Immunity(type_name) => {
                 Handler::Immunity(self.resolve_type(type_name, owner)?)

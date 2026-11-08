@@ -209,45 +209,61 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
             return invalid("unknown side condition or impossible layer count");
         }
         for pokemon in &side.team {
-            if pokemon.species.index() >= dex.species_count() {
-                return invalid("unknown species");
-            }
-            if pokemon
-                .types()
-                .any(|type_id| type_id.index() >= dex.type_count())
-            {
-                return invalid("unknown type");
-            }
-            if pokemon
-                .moves()
-                .any(|(_, move_slot)| move_slot.id.index() >= dex.move_count())
-            {
-                return invalid("unknown move");
-            }
-            if pokemon.moves().next().is_none() {
-                return invalid("a team member has no moves");
-            }
-            if pokemon
-                .ability
-                .is_some_and(|id| id.index() >= dex.ability_count())
-                || pokemon
-                    .item
-                    .is_some_and(|id| id.index() >= dex.item_count())
-            {
-                return invalid("unknown ability or item");
-            }
-            if pokemon.tera_type.index() >= dex.type_count() {
-                return invalid("unknown Tera type");
-            }
-            let locked = pokemon.locked_slot();
-            if locked.is_some_and(|slot| pokemon.move_slots.get(slot).copied().flatten().is_none())
-            {
-                return invalid("a rampage or charge names an empty move slot");
-            }
-            if pokemon.hp > pokemon.max_hp() {
-                return invalid("HP above max HP");
-            }
+            validate_pokemon(dex, pokemon).map_err(|reason| InvalidStateError { reason })?;
         }
+    }
+    Ok(())
+}
+
+/// The checks on one team member; returns the reason it is invalid.
+fn validate_pokemon(dex: &Dex, pokemon: &Pokemon) -> Result<(), &'static str> {
+    if pokemon.species.index() >= dex.species_count() {
+        return Err("unknown species");
+    }
+    if pokemon
+        .types()
+        .any(|type_id| type_id.index() >= dex.type_count())
+    {
+        return Err("unknown type");
+    }
+    if pokemon
+        .moves()
+        .any(|(_, move_slot)| move_slot.id.index() >= dex.move_count())
+    {
+        return Err("unknown move");
+    }
+    if pokemon.moves().next().is_none() {
+        return Err("a team member has no moves");
+    }
+    if pokemon
+        .ability
+        .is_some_and(|id| id.index() >= dex.ability_count())
+        || pokemon
+            .item
+            .is_some_and(|id| id.index() >= dex.item_count())
+    {
+        return Err("unknown ability or item");
+    }
+    if pokemon.tera_type.index() >= dex.type_count() {
+        return Err("unknown Tera type");
+    }
+    let names_empty_slot = |slot: Option<u8>| {
+        slot.is_some_and(|slot| {
+            pokemon
+                .move_slots
+                .get(usize::from(slot))
+                .copied()
+                .flatten()
+                .is_none()
+        })
+    };
+    if names_empty_slot(pokemon.volatiles.locked_move.map(|locked| locked.slot))
+        || names_empty_slot(pokemon.volatiles.charging)
+    {
+        return Err("a rampage or charge names an empty move slot");
+    }
+    if pokemon.hp > pokemon.max_hp() {
+        return Err("HP above max HP");
     }
     Ok(())
 }
