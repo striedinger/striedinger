@@ -162,12 +162,41 @@ jobs:
           swift sdk list
       - name: Build Murmur.app
         run: apps/murmur/scripts/build-mac.sh
-      - name: Check the bundle
+      # rcodesign's own verify doesn't handle ad-hoc signatures, so the real check happens
+      # on macOS below. This artifact is only Murmur's code and its open-source libraries.
+      - run: tar -cf /tmp/murmur-linux-cross.tar -C apps/murmur/build Murmur.app
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: murmur-linux-cross
+          path: /tmp/murmur-linux-cross.tar
+          retention-days: 7
+
+  verify-linux-cross:
+    name: Verify the Linux-built app on macOS
+    needs: linux-cross
+    runs-on: macos-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: murmur-linux-cross
+      - run: tar -xf murmur-linux-cross.tar
+      - name: Check signature, architecture and linkage
         run: |
-          app=apps/murmur/build/Murmur.app
-          test -f "$app/Contents/MacOS/Murmur"
-          rcodesign verify "$app/Contents/MacOS/Murmur"
-          "$(ls /usr/bin/llvm-otool* | head -n 1)" -L "$app/Contents/MacOS/Murmur"
+          codesign --verify --strict --deep --verbose=2 Murmur.app
+          lipo -archs Murmur.app/Contents/MacOS/Murmur | grep -qx arm64
+          ! otool -L Murmur.app/Contents/Frameworks/*.dylib Murmur.app/Contents/MacOS/Murmur \
+            | grep -E '^\s+/(root|home|__w|github|tmp)/'
+      - name: Launch it
+        # Loading every bundled library and starting the menu bar app proves the cross-built
+        # binaries actually run. Without models the engine reports a setup error in the menu,
+        # and the app keeps running, so being stopped by the 10 s alarm (SIGALRM, exit 142)
+        # means success; a crash or dyld error exits early with another code.
+        run: |
+          set +e
+          perl -e 'alarm 10; exec @ARGV' Murmur.app/Contents/MacOS/Murmur
+          code=$?
+          echo "exit code: $code"
+          test "$code" -eq 142
 
   delete-darwin-sdk:
     name: Delete the SDK artifact
