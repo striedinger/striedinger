@@ -11,7 +11,7 @@ use std::fmt;
 use std::sync::Arc;
 
 pub use damage::{DAMAGE_ROLLS, DamageInput, calculate_damage};
-pub use events::{CantMoveReason, DamageCause, Event, HealCause};
+pub use events::{CantMoveReason, DamageCause, Event, HealCause, TraitRef};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, MoveOption, Request};
 pub use state::{
     ActiveWeather, BattleState, Field, MAX_MOVES, MoveSlot, Outcome, Pokemon, Side, SideId,
@@ -108,7 +108,7 @@ impl Battle {
     /// What `side` must decide next, or `None` once the battle has ended.
     #[must_use]
     pub fn request(&self, side: SideId) -> Option<Request> {
-        request::request(&self.state, side)
+        request::request(&self.dex, &self.state, side)
     }
 
     /// Checks a choice against the current request without submitting it.
@@ -117,7 +117,7 @@ impl Battle {
     ///
     /// Returns why the choice would be rejected.
     pub fn validate(&self, side: SideId, choice: Choice) -> Result<(), ChoiceError> {
-        request::validate(&self.state, side, choice)
+        request::validate(&self.dex, &self.state, side, choice)
     }
 
     /// Submits both sides' choices, indexed by [`SideId::index`], and resolves them.
@@ -186,6 +186,15 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
             }
             if pokemon.move_slots().next().is_none() {
                 return invalid("a team member has no moves");
+            }
+            if pokemon
+                .ability
+                .is_some_and(|id| id.index() >= dex.ability_count())
+                || pokemon
+                    .item
+                    .is_some_and(|id| id.index() >= dex.item_count())
+            {
+                return invalid("unknown ability or item");
             }
             if pokemon.hp > pokemon.max_hp() {
                 return invalid("HP above max HP");

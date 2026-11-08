@@ -6,10 +6,11 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use super::traits::TraitSource;
 use super::{EffectTarget, Fraction, HitRange, MoveCategory, MoveTarget, Recoil, StatusKind};
 use crate::stats::{BoostStat, Stat, StatTable};
 
-/// A complete content pack: types, weather, species, and moves.
+/// A complete content pack: types, weather, species, moves, abilities, and items.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DexSource {
@@ -22,6 +23,12 @@ pub struct DexSource {
     pub species: Vec<SpeciesSource>,
     /// Moves species can use. A move named "Struggle" replaces the built-in one.
     pub moves: Vec<MoveSource>,
+    /// Abilities a team member can have.
+    #[serde(default)]
+    pub abilities: Vec<TraitSource>,
+    /// Items a team member can hold.
+    #[serde(default)]
+    pub items: Vec<TraitSource>,
 }
 
 /// A type and its attacking matchups. Unlisted matchups are neutral.
@@ -142,6 +149,9 @@ pub struct MoveSource {
     /// Whether a status move fails against types immune to its type.
     #[serde(default)]
     pub respects_type_immunity: bool,
+    /// Whether the move makes contact.
+    #[serde(default)]
+    pub contact: bool,
     /// Effects applied when the move hits.
     #[serde(default)]
     pub effects: Vec<MoveEffectSource>,

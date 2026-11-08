@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::dex::{MoveId, SpeciesId, StatusKind, TypeId, WeatherId};
+use crate::dex::{
+    AbilityId, Dex, ItemId, MoveCategory, MoveId, SpeciesId, StatusKind, TraitData, TraitEffect,
+    TypeId, WeatherId,
+};
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
 
@@ -92,6 +95,10 @@ pub struct Volatiles {
     pub confusion_turns: u8,
     /// Whether it flinched this turn.
     pub flinched: bool,
+    /// The move slot a choice item has locked it into.
+    pub choice_locked_slot: Option<u8>,
+    /// Whether it entered battle during the current turn.
+    pub entered_this_turn: bool,
 }
 
 /// The most moves a creature can know.
@@ -114,6 +121,10 @@ pub struct Pokemon {
     pub hp: u16,
     /// Known moves in slot order.
     pub moves: [Option<MoveSlot>; MAX_MOVES],
+    /// The ability, if any.
+    pub ability: Option<AbilityId>,
+    /// The held item, if any.
+    pub item: Option<ItemId>,
     /// The non-volatile status, if any.
     pub status: Option<StatusCondition>,
     /// Stat stages.
@@ -154,10 +165,47 @@ impl Pokemon {
             .filter_map(|(slot, move_slot)| move_slot.as_ref().map(|move_slot| (slot, move_slot)))
     }
 
-    /// Whether every known move is out of PP, which forces Struggle.
+    /// The ability and item, in that order.
+    pub fn traits<'a>(&self, dex: &'a Dex) -> impl Iterator<Item = &'a TraitData> + use<'a> {
+        let ability = self.ability.map(|id| dex.ability(id));
+        let item = self.item.map(|id| dex.item(id));
+        ability.into_iter().chain(item)
+    }
+
+    /// Whether the ability or item has an effect matching `predicate`.
+    pub fn has_trait_effect(&self, dex: &Dex, predicate: impl Fn(&TraitEffect) -> bool) -> bool {
+        self.traits(dex)
+            .any(|data| data.effects.iter().any(&predicate))
+    }
+
+    /// Whether the move in `slot` can be selected: it has PP and no choice lock or trait
+    /// forbids it.
     #[must_use]
-    pub fn must_struggle(&self) -> bool {
-        self.move_slots().all(|(_, move_slot)| move_slot.pp == 0)
+    pub fn can_select_move(&self, dex: &Dex, slot: usize) -> bool {
+        let Some(move_slot) = self.moves.get(slot).copied().flatten() else {
+            return false;
+        };
+        if move_slot.pp == 0 {
+            return false;
+        }
+        if self
+            .volatiles
+            .choice_locked_slot
+            .is_some_and(|locked| usize::from(locked) != slot)
+        {
+            return false;
+        }
+        let is_status = dex.move_data(move_slot.id).category == MoveCategory::Status;
+        !(is_status
+            && self.has_trait_effect(dex, |effect| *effect == TraitEffect::BlocksStatusMoves))
+    }
+
+    /// Whether no move can be selected, which forces Struggle.
+    #[must_use]
+    pub fn must_struggle(&self, dex: &Dex) -> bool {
+        !self
+            .move_slots()
+            .any(|(slot, _)| self.can_select_move(dex, slot))
     }
 }
 
@@ -202,6 +250,10 @@ impl Side {
         self.team.iter().all(Pokemon::is_fainted)
     }
 
+    pub(crate) fn pokemon_mut(&mut self, slot: usize) -> &mut Pokemon {
+        &mut self.team[slot]
+    }
+
     /// Whether the active creature fainted and a replacement must be chosen.
     #[must_use]
     pub fn needs_replacement(&self) -> bool {
@@ -238,7 +290,8 @@ pub enum Outcome {
 /// Everything needed to resume a battle, given the same [`Dex`](crate::dex::Dex).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BattleState {
-    /// The current turn, starting at 1.
+    /// The turn being played, starting at 1; it advances once the next turn starts, after any
+    /// replacements.
     pub turn: u32,
     /// The random number generator.
     pub prng: Prng,

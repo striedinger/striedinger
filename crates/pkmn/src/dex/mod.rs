@@ -4,6 +4,7 @@
 //! turn never looks up a string.
 
 mod source;
+mod traits;
 
 use std::collections::HashMap;
 use std::fmt;
@@ -13,6 +14,9 @@ use serde::{Deserialize, Serialize};
 pub use source::{
     DexSource, EffectSource, MoveEffectSource, MoveSource, SpeciesSource, TypeSource,
     WeatherDefenseBoostSource, WeatherSource,
+};
+pub use traits::{
+    BoostSource, Condition, ConditionSource, TraitData, TraitEffect, TraitEffectSource, TraitSource,
 };
 
 use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, StatTable};
@@ -53,6 +57,14 @@ id_type!(
 id_type!(
     /// Identifies a weather within a [`Dex`].
     WeatherId(u8)
+);
+id_type!(
+    /// Identifies an ability within a [`Dex`].
+    AbilityId(u16)
+);
+id_type!(
+    /// Identifies an item within a [`Dex`].
+    ItemId(u16)
 );
 
 /// A ratio written as `[numerator, denominator]` in data files.
@@ -320,6 +332,8 @@ pub struct MoveData {
     pub recoil: Option<Recoil>,
     /// Whether a status move fails against types immune to its type.
     pub respects_type_immunity: bool,
+    /// Whether the move makes contact, triggering contact traits such as `contact_damage`.
+    pub contact: bool,
     /// Effects applied when the move hits.
     pub effects: Vec<MoveEffect>,
 }
@@ -353,10 +367,14 @@ pub struct Dex {
     weathers: Vec<WeatherData>,
     species: Vec<SpeciesData>,
     moves: Vec<MoveData>,
+    abilities: Vec<TraitData>,
+    items: Vec<TraitData>,
     type_ids: HashMap<String, TypeId>,
     weather_ids: HashMap<String, WeatherId>,
     species_ids: HashMap<String, SpeciesId>,
     move_ids: HashMap<String, MoveId>,
+    ability_ids: HashMap<String, AbilityId>,
+    item_ids: HashMap<String, ItemId>,
     struggle: MoveId,
 }
 
@@ -392,10 +410,14 @@ impl Dex {
             weathers: Vec::with_capacity(source.weathers.len()),
             species: Vec::with_capacity(source.species.len()),
             moves: Vec::with_capacity(source.moves.len() + 1),
+            abilities: Vec::with_capacity(source.abilities.len()),
+            items: Vec::with_capacity(source.items.len()),
             type_ids: HashMap::new(),
             weather_ids: HashMap::new(),
             species_ids: HashMap::new(),
             move_ids: HashMap::new(),
+            ability_ids: HashMap::new(),
+            item_ids: HashMap::new(),
             struggle: MoveId(0),
         };
         dex.compile_types(&source.types)?;
@@ -407,6 +429,19 @@ impl Dex {
         }
         for move_source in &source.moves {
             dex.compile_move(move_source)?;
+        }
+        for ability in &source.abilities {
+            let id =
+                AbilityId::from_index(dex.abilities.len()).ok_or(DexError::TooMany("abilities"))?;
+            insert_unique(&mut dex.ability_ids, "ability", &ability.name, id)?;
+            let compiled = dex.compile_trait(ability, false)?;
+            dex.abilities.push(compiled);
+        }
+        for item in &source.items {
+            let id = ItemId::from_index(dex.items.len()).ok_or(DexError::TooMany("items"))?;
+            insert_unique(&mut dex.item_ids, "item", &item.name, id)?;
+            let compiled = dex.compile_trait(item, true)?;
+            dex.items.push(compiled);
         }
         dex.struggle = match dex.move_ids.get("struggle") {
             Some(&id) => id,
@@ -620,6 +655,7 @@ impl Dex {
             drain: source.drain,
             recoil: source.recoil,
             respects_type_immunity: source.respects_type_immunity,
+            contact: source.contact,
             effects,
         });
         Ok(id)
@@ -630,15 +666,7 @@ impl Dex {
         source: &MoveEffectSource,
         owner: &str,
     ) -> Result<MoveEffect, DexError> {
-        if source
-            .chance
-            .is_some_and(|chance| chance == 0 || chance > 100)
-        {
-            return Err(DexError::invalid(
-                owner,
-                "effect chance must be between 1 and 100",
-            ));
-        }
+        traits::validate_chance(source.chance, owner)?;
         let kind = match &source.effect {
             EffectSource::Boost { stat, stages } => {
                 if *stages == 0 {
@@ -656,13 +684,7 @@ impl Dex {
             EffectSource::Confuse => EffectKind::Confuse,
             EffectSource::Flinch => EffectKind::Flinch,
             EffectSource::Weather(weather_name) => {
-                EffectKind::Weather(*self.weather_ids.get(&to_id(weather_name)).ok_or_else(
-                    || DexError::UnknownReference {
-                        kind: "weather",
-                        name: weather_name.clone(),
-                        referenced_by: owner.to_owned(),
-                    },
-                )?)
+                EffectKind::Weather(self.resolve_weather(weather_name, owner)?)
             }
             EffectSource::Heal(fraction) => EffectKind::Heal(validate_fraction(*fraction, owner)?),
         };
@@ -682,6 +704,61 @@ impl Dex {
                 name: name.to_owned(),
                 referenced_by: referenced_by.to_owned(),
             })
+    }
+
+    fn resolve_weather(&self, name: &str, referenced_by: &str) -> Result<WeatherId, DexError> {
+        self.weather_ids
+            .get(&to_id(name))
+            .copied()
+            .ok_or_else(|| DexError::UnknownReference {
+                kind: "weather",
+                name: name.to_owned(),
+                referenced_by: referenced_by.to_owned(),
+            })
+    }
+
+    /// Returns an ability by ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn ability(&self, id: AbilityId) -> &TraitData {
+        &self.abilities[id.index()]
+    }
+
+    /// Returns an item by ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn item(&self, id: ItemId) -> &TraitData {
+        &self.items[id.index()]
+    }
+
+    /// Looks up an ability by name, ignoring case, spaces, and punctuation.
+    #[must_use]
+    pub fn ability_id(&self, name: &str) -> Option<AbilityId> {
+        self.ability_ids.get(&to_id(name)).copied()
+    }
+
+    /// Looks up an item by name, ignoring case, spaces, and punctuation.
+    #[must_use]
+    pub fn item_id(&self, name: &str) -> Option<ItemId> {
+        self.item_ids.get(&to_id(name)).copied()
+    }
+
+    /// The number of abilities.
+    #[must_use]
+    pub fn ability_count(&self) -> usize {
+        self.abilities.len()
+    }
+
+    /// The number of items.
+    #[must_use]
+    pub fn item_count(&self) -> usize {
+        self.items.len()
     }
 
     /// Returns a type by ID.
@@ -813,6 +890,7 @@ fn built_in_struggle() -> MoveSource {
         drain: None,
         recoil: Some(Recoil::MaxHp(Fraction::from((1, 4)))),
         respects_type_immunity: false,
+        contact: true,
         effects: Vec::new(),
     }
 }

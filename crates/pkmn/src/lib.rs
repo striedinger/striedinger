@@ -1,9 +1,10 @@
 //! A deterministic, data-driven battle engine that follows the main series' Generation 9
 //! singles mechanics.
 //!
-//! Content (types, weather, species, and moves) lives in an editable [`DexSource`] that is
-//! compiled into a [`Dex`] with numeric IDs. A [`Battle`] takes one [`Choice`] per side, resolves
-//! the turn, and reports what happened as [`Event`]s, leaving all presentation to the frontend.
+//! Content (types, weather, species, moves, abilities, and items) lives in an editable
+//! [`DexSource`] that is compiled into a [`Dex`] with numeric IDs. A [`Battle`] takes one
+//! [`Choice`] per side, resolves the turn, and reports what happened as [`Event`]s, leaving all
+//! presentation to the frontend.
 //!
 //! ```
 //! use std::sync::Arc;
@@ -27,6 +28,6 @@ pub mod stats;
 pub use battle::{Battle, BattleState, Choice, Event, Outcome, PokemonSet, Request, SideId};
 pub use dex::{Dex, DexSource};
 
-/// A small original content pack with the full type chart, four weathers, and sample species
-/// and moves, for tests, examples, and as a template for new packs.
+/// A small original content pack with the full type chart, four weathers, and sample species,
+/// moves, abilities, and items, for tests, examples, and as a template for new packs.
 pub const SAMPLE_DEX_JSON: &str = include_str!("../data/sample.json");

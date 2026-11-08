@@ -1,72 +1,17 @@
 //! Behavior of full battles driven through the public API.
 
+mod common;
+
 use std::sync::Arc;
 
+use common::{P1, P2, damage_to, dex, edit, max_hp, movers, play, set, start};
 use pkmn::battle::{
     CantMoveReason, ChoiceErrorReason, DamageCause, HealCause, StatusCondition, TeamErrorReason,
 };
 use pkmn::dex::StatusKind;
 use pkmn::prng::Prng;
 use pkmn::stats::BoostStat;
-use pkmn::{Battle, BattleState, Choice, Dex, Event, Outcome, PokemonSet, Request, SideId};
-
-const P1: SideId = SideId::P1;
-const P2: SideId = SideId::P2;
-
-fn dex() -> Arc<Dex> {
-    Arc::new(Dex::from_json(pkmn::SAMPLE_DEX_JSON).expect("the sample dex compiles"))
-}
-
-fn set(species: &str, moves: &[&str]) -> PokemonSet {
-    PokemonSet::new(species, moves)
-}
-
-fn start(p1: &[PokemonSet], p2: &[PokemonSet], seed: u64) -> Battle {
-    Battle::new(dex(), [p1, p2], seed).expect("the teams are valid")
-}
-
-fn edit(battle: Battle, change: impl FnOnce(&mut BattleState)) -> Battle {
-    let dex = Arc::new(battle.dex().clone());
-    let mut state = battle.into_state();
-    change(&mut state);
-    Battle::from_state(dex, state).expect("the edited state is valid")
-}
-
-fn play(battle: &mut Battle, p1: Choice, p2: Choice) -> Vec<Event> {
-    battle
-        .submit([p1, p2])
-        .expect("the choices are valid")
-        .to_vec()
-}
-
-fn movers(events: &[Event]) -> Vec<SideId> {
-    events
-        .iter()
-        .filter_map(|event| match event {
-            Event::MoveUsed { side, .. } => Some(*side),
-            _ => None,
-        })
-        .collect()
-}
-
-fn damage_to(events: &[Event], target: SideId, wanted: DamageCause) -> Vec<u16> {
-    events
-        .iter()
-        .filter_map(|event| match *event {
-            Event::Damaged {
-                side,
-                amount,
-                cause,
-                ..
-            } if side == target && cause == wanted => Some(amount),
-            _ => None,
-        })
-        .collect()
-}
-
-fn max_hp(battle: &Battle, side: SideId) -> u16 {
-    battle.state().active(side).max_hp()
-}
+use pkmn::{Battle, BattleState, Choice, Event, Outcome, PokemonSet, Request, SideId};
 
 #[test]
 fn faster_creatures_move_first_unless_outprioritized() {
@@ -589,20 +534,22 @@ fn random_choice(battle: &Battle, side: SideId, prng: &mut Prng) -> Choice {
 #[test]
 fn random_battles_always_finish_with_consistent_state() {
     let dex = dex();
-    let species: Vec<String> = (0..dex.species_count())
-        .map(|index| {
-            dex.species(pkmn::dex::SpeciesId(u16::try_from(index).unwrap()))
-                .name
-                .clone()
-        })
+    let index = |prng: &mut Prng, len: usize| {
+        usize::try_from(prng.below(u32::try_from(len).unwrap())).unwrap()
+    };
+    let id = |index: usize| u16::try_from(index).unwrap();
+    let species: Vec<&str> = (0..dex.species_count())
+        .map(|i| dex.species(pkmn::dex::SpeciesId(id(i))).name.as_str())
         .collect();
-    let moves: Vec<String> = (0..dex.move_count())
-        .map(|index| {
-            dex.move_data(pkmn::dex::MoveId(u16::try_from(index).unwrap()))
-                .name
-                .clone()
-        })
-        .filter(|name| name != "Struggle")
+    let moves: Vec<&str> = (0..dex.move_count())
+        .map(|i| dex.move_data(pkmn::dex::MoveId(id(i))).name.as_str())
+        .filter(|&name| name != "Struggle")
+        .collect();
+    let abilities: Vec<&str> = (0..dex.ability_count())
+        .map(|i| dex.ability(pkmn::dex::AbilityId(id(i))).name.as_str())
+        .collect();
+    let items: Vec<&str> = (0..dex.item_count())
+        .map(|i| dex.item(pkmn::dex::ItemId(id(i))).name.as_str())
         .collect();
     for seed in 0..300 {
         let mut prng = Prng::new(seed);
@@ -611,19 +558,14 @@ fn random_battles_always_finish_with_consistent_state() {
                 .map(|_| {
                     let mut chosen: Vec<&str> = Vec::new();
                     while chosen.len() < 4 {
-                        let name = &moves[usize::try_from(
-                            prng.below(u32::try_from(moves.len()).unwrap()),
-                        )
-                        .unwrap()];
-                        if !chosen.contains(&name.as_str()) {
+                        let name = moves[index(&mut prng, moves.len())];
+                        if !chosen.contains(&name) {
                             chosen.push(name);
                         }
                     }
-                    let name = &species[usize::try_from(
-                        prng.below(u32::try_from(species.len()).unwrap()),
-                    )
-                    .unwrap()];
-                    set(name, &chosen)
+                    set(species[index(&mut prng, species.len())], &chosen)
+                        .with_ability(abilities[index(&mut prng, abilities.len())])
+                        .with_item(items[index(&mut prng, items.len())])
                 })
                 .collect()
         };

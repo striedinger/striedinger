@@ -23,16 +23,38 @@ pub struct DamageInput {
     pub critical: bool,
     /// The random roll from 0 (100% damage) to 15 (85% damage).
     pub roll: u32,
-    /// Whether the attacker shares the move's type.
-    pub same_type_attack_bonus: bool,
+    /// The 4096-based same-type attack bonus: 6144 (×1.5) normally, 4096 without STAB.
+    pub stab_modifier: u32,
     /// Type effectiveness as a power of two.
     pub type_modifier: i8,
     /// Whether a burn halves this hit.
     pub burned: bool,
+    /// The 4096-based chain of final damage modifiers from abilities and items.
+    pub final_modifier: u32,
 }
 
-/// The modifier for a same-type attack bonus: ×1.5.
-const STAB_MODIFIER: u32 = MODIFIER_SCALE * 3 / 2;
+impl DamageInput {
+    /// A neutral hit: no weather, crit, STAB, effectiveness, burn, or final modifiers.
+    #[must_use]
+    pub fn neutral(level: u8, power: u16, attack: u32, defense: u32) -> Self {
+        Self {
+            level,
+            power,
+            attack,
+            defense,
+            weather_modifier: None,
+            critical: false,
+            roll: 0,
+            stab_modifier: MODIFIER_SCALE,
+            type_modifier: 0,
+            burned: false,
+            final_modifier: MODIFIER_SCALE,
+        }
+    }
+}
+
+/// The usual same-type attack bonus: ×1.5.
+pub const STAB_MODIFIER: u32 = MODIFIER_SCALE * 3 / 2;
 /// The modifier for a burned physical attacker: ×0.5.
 const BURN_MODIFIER: u32 = MODIFIER_SCALE / 2;
 
@@ -50,9 +72,7 @@ pub fn calculate_damage(input: &DamageInput) -> u32 {
         damage = damage * 3 / 2;
     }
     damage = damage * (100 - input.roll.min(DAMAGE_ROLLS - 1)) / 100;
-    if input.same_type_attack_bonus {
-        damage = apply_modifier(damage, STAB_MODIFIER);
-    }
+    damage = apply_modifier(damage, input.stab_modifier);
     let magnitude = u32::from(input.type_modifier.unsigned_abs());
     damage = if input.type_modifier >= 0 {
         damage.checked_shl(magnitude).unwrap_or(u32::MAX)
@@ -62,26 +82,15 @@ pub fn calculate_damage(input: &DamageInput) -> u32 {
     if input.burned {
         damage = apply_modifier(damage, BURN_MODIFIER);
     }
-    damage.max(1)
+    apply_modifier(damage, input.final_modifier).max(1)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{DamageInput, calculate_damage};
+    use super::{DamageInput, STAB_MODIFIER, calculate_damage};
 
     fn neutral_hit() -> DamageInput {
-        DamageInput {
-            level: 50,
-            power: 80,
-            attack: 100,
-            defense: 100,
-            weather_modifier: None,
-            critical: false,
-            roll: 0,
-            same_type_attack_bonus: false,
-            type_modifier: 0,
-            burned: false,
-        }
+        DamageInput::neutral(50, 80, 100, 100)
     }
 
     #[test]
@@ -99,7 +108,7 @@ mod tests {
     #[test]
     fn applies_stab_before_type_effectiveness() {
         let input = DamageInput {
-            same_type_attack_bonus: true,
+            stab_modifier: STAB_MODIFIER,
             type_modifier: 1,
             ..neutral_hit()
         };
@@ -133,6 +142,15 @@ mod tests {
             }),
             9
         );
+    }
+
+    #[test]
+    fn final_modifiers_apply_after_everything_else() {
+        let input = DamageInput {
+            final_modifier: 5324,
+            ..neutral_hit()
+        };
+        assert_eq!(calculate_damage(&input), 48);
     }
 
     #[test]

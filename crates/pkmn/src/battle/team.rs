@@ -31,6 +31,12 @@ pub struct PokemonSet {
     /// The nature; omitted means neutral.
     #[serde(default)]
     pub nature: Option<Nature>,
+    /// The ability name, if any.
+    #[serde(default)]
+    pub ability: Option<String>,
+    /// The held item name, if any.
+    #[serde(default)]
+    pub item: Option<String>,
 }
 
 impl PokemonSet {
@@ -44,7 +50,32 @@ impl PokemonSet {
             evs: StatTable::default(),
             ivs: max_ivs(),
             nature: None,
+            ability: None,
+            item: None,
         }
+    }
+
+    /// Returns the set with an ability.
+    #[must_use]
+    pub fn with_ability(mut self, ability: &str) -> Self {
+        self.ability = Some(ability.to_owned());
+        self
+    }
+
+    /// Returns the set holding an item.
+    #[must_use]
+    pub fn with_item(mut self, item: &str) -> Self {
+        self.item = Some(item.to_owned());
+        self
+    }
+
+    /// Builds the creature this set describes, as it enters battle.
+    ///
+    /// # Errors
+    ///
+    /// Returns why the set is invalid for `dex`.
+    pub fn build(&self, dex: &Dex) -> Result<Pokemon, TeamErrorReason> {
+        build_pokemon(dex, self)
     }
 }
 
@@ -107,6 +138,10 @@ pub enum TeamErrorReason {
     UnknownSpecies(String),
     /// A move does not exist.
     UnknownMove(String),
+    /// The ability does not exist.
+    UnknownAbility(String),
+    /// The item does not exist.
+    UnknownItem(String),
     /// The set has no moves or more than four.
     MoveCount(usize),
     /// The set lists a move twice.
@@ -139,6 +174,10 @@ impl fmt::Display for TeamError {
                 write!(formatter, ": unknown species {name:?}")
             }
             TeamErrorReason::UnknownMove(name) => write!(formatter, ": unknown move {name:?}"),
+            TeamErrorReason::UnknownAbility(name) => {
+                write!(formatter, ": unknown ability {name:?}")
+            }
+            TeamErrorReason::UnknownItem(name) => write!(formatter, ": unknown item {name:?}"),
             TeamErrorReason::MoveCount(count) => {
                 write!(formatter, " has {count} moves; it needs 1 to {MAX_MOVES}")
             }
@@ -218,6 +257,22 @@ fn build_pokemon(dex: &Dex, set: &PokemonSet) -> Result<Pokemon, TeamErrorReason
             max_pp,
         });
     }
+    let ability = set
+        .ability
+        .as_deref()
+        .map(|name| {
+            dex.ability_id(name)
+                .ok_or_else(|| TeamErrorReason::UnknownAbility(name.to_owned()))
+        })
+        .transpose()?;
+    let item = set
+        .item
+        .as_deref()
+        .map(|name| {
+            dex.item_id(name)
+                .ok_or_else(|| TeamErrorReason::UnknownItem(name.to_owned()))
+        })
+        .transpose()?;
     let species = dex.species(species_id);
     let stats = calculate_stats(
         &species.base_stats,
@@ -234,6 +289,8 @@ fn build_pokemon(dex: &Dex, set: &PokemonSet) -> Result<Pokemon, TeamErrorReason
         stats,
         hp: stats.hp,
         moves,
+        ability,
+        item,
         status: None,
         boosts: Boosts::default(),
         volatiles: Volatiles::default(),

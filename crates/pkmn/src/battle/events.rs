@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::state::{Outcome, SideId};
-use crate::dex::{MoveId, SpeciesId, StatusKind, WeatherId};
+use crate::dex::{AbilityId, ItemId, MoveId, SpeciesId, StatusKind, WeatherId};
 use crate::stats::BoostStat;
 
 /// Something that happened in battle, in the order it happened.
@@ -148,6 +148,20 @@ pub enum Event {
         /// The weather.
         weather: WeatherId,
     },
+    /// An ability or item took effect; the events it caused follow.
+    TraitActivated {
+        /// The holder's side.
+        side: SideId,
+        /// The ability or item.
+        source: TraitRef,
+    },
+    /// A held item was used up.
+    ItemConsumed {
+        /// The holder's side.
+        side: SideId,
+        /// The item.
+        item: ItemId,
+    },
     /// A creature fainted.
     Fainted {
         /// The creature's side.
@@ -158,6 +172,16 @@ pub enum Event {
         /// The result.
         outcome: Outcome,
     },
+}
+
+/// An ability or an item.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TraitRef {
+    /// An ability.
+    Ability(AbilityId),
+    /// A held item.
+    Item(ItemId),
 }
 
 /// Why a creature could not act.
@@ -190,6 +214,8 @@ pub enum DamageCause {
     Status,
     /// The weather.
     Weather,
+    /// An ability or item.
+    Trait(TraitRef),
 }
 
 /// What caused HP recovery.
@@ -200,4 +226,6 @@ pub enum HealCause {
     Drain,
     /// A healing move.
     Move,
+    /// An ability or item.
+    Trait(TraitRef),
 }

@@ -3,7 +3,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::state::{BattleState, SideId};
-use crate::dex::MoveId;
+use crate::dex::{Dex, MoveId};
 
 /// What a side is being asked to decide.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,7 +74,7 @@ pub enum ChoiceErrorReason {
     BattleOver,
     /// The choice is not allowed by the current request.
     WrongKind,
-    /// The move slot is empty or out of PP.
+    /// The move slot is empty, out of PP, or locked out by a choice item or trait.
     UnavailableMove,
     /// Every move is out of PP, so Struggle must be chosen.
     MustStruggle,
@@ -87,7 +87,7 @@ impl fmt::Display for ChoiceError {
         let reason = match self.reason {
             ChoiceErrorReason::BattleOver => "the battle has ended",
             ChoiceErrorReason::WrongKind => "that kind of choice is not requested",
-            ChoiceErrorReason::UnavailableMove => "that move slot is empty or out of PP",
+            ChoiceErrorReason::UnavailableMove => "that move cannot be selected right now",
             ChoiceErrorReason::MustStruggle => "every move is out of PP, so it must struggle",
             ChoiceErrorReason::UnavailableSwitch => "that team member cannot switch in",
         };
@@ -101,7 +101,7 @@ impl fmt::Display for ChoiceError {
 
 impl std::error::Error for ChoiceError {}
 
-pub(crate) fn request(state: &BattleState, side: SideId) -> Option<Request> {
+pub(crate) fn request(dex: &Dex, state: &BattleState, side: SideId) -> Option<Request> {
     if state.outcome.is_some() {
         return None;
     }
@@ -116,7 +116,7 @@ pub(crate) fn request(state: &BattleState, side: SideId) -> Option<Request> {
         });
     }
     let active = team.active();
-    let must_struggle = active.must_struggle();
+    let must_struggle = active.must_struggle(dex);
     Some(Request::Turn {
         moves: active
             .move_slots()
@@ -125,7 +125,7 @@ pub(crate) fn request(state: &BattleState, side: SideId) -> Option<Request> {
                 move_id: move_slot.id,
                 pp: move_slot.pp,
                 max_pp: move_slot.max_pp,
-                disabled: move_slot.pp == 0,
+                disabled: !active.can_select_move(dex, slot),
             })
             .collect(),
         switches: team.switch_options().collect(),
@@ -134,6 +134,7 @@ pub(crate) fn request(state: &BattleState, side: SideId) -> Option<Request> {
 }
 
 pub(crate) fn validate(
+    dex: &Dex,
     state: &BattleState,
     side: SideId,
     choice: Choice,
@@ -159,21 +160,15 @@ pub(crate) fn validate(
     }
     let active = team.active();
     match choice {
-        Choice::Move(_) if active.must_struggle() => reject(ChoiceErrorReason::MustStruggle),
+        Choice::Move(_) if active.must_struggle(dex) => reject(ChoiceErrorReason::MustStruggle),
         Choice::Move(slot) => {
-            let usable = active
-                .moves
-                .get(slot)
-                .copied()
-                .flatten()
-                .is_some_and(|move_slot| move_slot.pp > 0);
-            if usable {
+            if active.can_select_move(dex, slot) {
                 Ok(())
             } else {
                 reject(ChoiceErrorReason::UnavailableMove)
             }
         }
-        Choice::Struggle if active.must_struggle() => Ok(()),
+        Choice::Struggle if active.must_struggle(dex) => Ok(()),
         Choice::Switch(slot) if team.can_switch_to(slot) => Ok(()),
         Choice::Switch(_) => reject(ChoiceErrorReason::UnavailableSwitch),
         Choice::Struggle | Choice::Pass => reject(ChoiceErrorReason::WrongKind),

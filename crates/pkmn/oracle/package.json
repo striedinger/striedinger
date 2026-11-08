@@ -1,0 +1,16 @@
+{
+  "name": "@workspace/pkmn-oracle",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Records reference battles from Pokémon Showdown for pkmn's differential tests.",
+  "type": "module",
+  "scripts": {
+    "generate": "node src/generate.ts",
+    "typecheck": "tsrs --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "pokemon-showdown": "0.11.11",
+    "typescript": "7.0.2"
+  }
+}

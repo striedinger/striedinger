@@ -8,8 +8,8 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use pkmn::battle::{DamageCause, HealCause};
-use pkmn::dex::{MoveId, SpeciesId};
+use pkmn::battle::{DamageCause, HealCause, TraitRef};
+use pkmn::dex::{AbilityId, ItemId, MoveId, SpeciesId};
 use pkmn::prng::Prng;
 use pkmn::{Battle, Choice, Dex, Event, Outcome, PokemonSet, Request, SideId};
 
@@ -75,9 +75,33 @@ fn random_team(dex: &Dex, prng: &mut Prng) -> Vec<PokemonSet> {
                     moves.push(name);
                 }
             }
-            PokemonSet::new(&dex.species(SpeciesId(pick(&species, prng))).name, &moves)
+            let mut set =
+                PokemonSet::new(&dex.species(SpeciesId(pick(&species, prng))).name, &moves);
+            if let Some(ability) = random_name(prng, dex.ability_count(), |id| {
+                &dex.ability(AbilityId(id)).name
+            }) {
+                set = set.with_ability(ability);
+            }
+            if let Some(item) = random_name(prng, dex.item_count(), |id| &dex.item(ItemId(id)).name)
+            {
+                set = set.with_item(item);
+            }
+            set
         })
         .collect()
+}
+
+/// Picks a random name from a table of `count` entries, or none a third of the time.
+fn random_name<'a>(
+    prng: &mut Prng,
+    count: usize,
+    name: impl Fn(u16) -> &'a str,
+) -> Option<&'a str> {
+    let count = u32::try_from(count).ok().filter(|&count| count > 0)?;
+    if prng.chance(1, 3) {
+        return None;
+    }
+    u16::try_from(prng.below(count)).ok().map(name)
 }
 
 fn random_choice(battle: &Battle, side: SideId, prng: &mut Prng) -> Choice {
@@ -113,6 +137,10 @@ fn print_events(dex: &Dex, events: &[Event]) {
 }
 
 fn describe(dex: &Dex, event: &Event) -> String {
+    let trait_name = |source: &TraitRef| match source {
+        TraitRef::Ability(id) => dex.ability(*id).name.as_str(),
+        TraitRef::Item(id) => dex.item(*id).name.as_str(),
+    };
     let side = |side: &SideId| match side {
         SideId::P1 => "P1",
         SideId::P2 => "P2",
@@ -148,6 +176,7 @@ fn describe(dex: &Dex, event: &Event) -> String {
         } => {
             let source = match cause {
                 DamageCause::Move => String::new(),
+                DamageCause::Trait(source) => format!(" from {}", trait_name(source)),
                 other => format!(" from {other:?}"),
             };
             format!("{} lost {amount} HP{source} ({hp} left)", side(who))
@@ -159,8 +188,9 @@ fn describe(dex: &Dex, event: &Event) -> String {
             cause,
         } => {
             let source = match cause {
-                HealCause::Drain => " by draining",
-                HealCause::Move => "",
+                HealCause::Drain => " by draining".to_owned(),
+                HealCause::Move => String::new(),
+                HealCause::Trait(source) => format!(" from {}", trait_name(source)),
             };
             format!("{} restored {amount} HP{source} ({hp} now)", side(who))
         }
@@ -179,6 +209,12 @@ fn describe(dex: &Dex, event: &Event) -> String {
         } => format!("{}'s {stat:?} changed by {stages:+}", side(who)),
         Event::WeatherStarted { weather } => format!("{} began.", dex.weather(*weather).name),
         Event::WeatherEnded { weather } => format!("{} ended.", dex.weather(*weather).name),
+        Event::TraitActivated { side: who, source } => {
+            format!("[{}'s {}]", side(who), trait_name(source))
+        }
+        Event::ItemConsumed { side: who, item } => {
+            format!("{} used up its {}", side(who), dex.item(*item).name)
+        }
         Event::Fainted { side: who } => format!("{} fainted!", side(who)),
         Event::BattleEnded { outcome } => format!("\nBattle over: {outcome:?}"),
     }
