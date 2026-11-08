@@ -75,5 +75,67 @@ fn offline_preview_confirmation_and_backup_roundtrip() {
     run(&["remove", &found[0].id.to_string(), "--yes"], "");
     let copies: Vec<OwnedCopy> = serde_json::from_slice(&run(&["export"], "")).unwrap();
     assert_eq!(copies.len(), 1);
+    let mut other_card = copies[0].card.clone();
+    other_card.id = "swsh4-99".into();
+    other_card.set_id = "swsh4".into();
+    other_card.number = "99".into();
+    let other = OwnedCopy::new(
+        other_card,
+        "normal".into(),
+        "unknown".into(),
+        None,
+        String::new(),
+    )
+    .unwrap();
+    std::fs::write(&backup, serde_json::to_vec(&vec![other]).unwrap()).unwrap();
+    run(&["import", backup.to_str().unwrap()], "");
+    let candidates: Vec<serde_json::Value> =
+        serde_json::from_slice(&run(&["find", "--name", "fUrReT"], "")).unwrap();
+    assert_eq!(candidates.len(), 2);
+    let by_number: Vec<serde_json::Value> = serde_json::from_slice(&run(
+        &["find", "--set", "swsh3", "--number", "0136/189"],
+        "",
+    ))
+    .unwrap();
+    assert_eq!(by_number.len(), 1);
+    assert_eq!(by_number[0]["id"], "swsh3-136");
+    let before_cancel = run(&["export"], "");
+    run(&["add", "--name", "Furret"], "\n");
+    assert_eq!(run(&["export"], ""), before_cancel);
+    let ambiguous = Command::new(env!("CARGO_BIN_EXE_pkmn-tcg-dex"))
+        .arg("--db")
+        .arg(&db)
+        .args(["--offline", "add", "--name", "Furret", "--yes"])
+        .output()
+        .unwrap();
+    assert!(!ambiguous.status.success());
+    assert_eq!(run(&["export"], ""), before_cancel);
+    // Choose the first printing, then its normal variant, then confirm.
+    run(&["add", "--name", "Furret"], "1\n1\ny\n");
+    let grouped: Vec<serde_json::Value> = serde_json::from_slice(&run(
+        &[
+            "list",
+            "--group",
+            "--variant",
+            "normal",
+            "--condition",
+            "unknown",
+        ],
+        "",
+    ))
+    .unwrap();
+    assert_eq!(grouped.len(), 2);
+    assert_eq!(
+        grouped
+            .iter()
+            .map(|g| g["quantity"].as_u64().unwrap())
+            .sum::<u64>(),
+        3
+    );
+    let table = String::from_utf8(run(&["list", "--group", "--table"], "")).unwrap();
+    assert!(table.contains("QTY") && table.contains("Furret"));
+    let reverse_only: Vec<serde_json::Value> =
+        serde_json::from_slice(&run(&["list", "--variant", "reverse"], "")).unwrap();
+    assert!(reverse_only.is_empty());
     std::fs::remove_dir_all(dir).unwrap();
 }

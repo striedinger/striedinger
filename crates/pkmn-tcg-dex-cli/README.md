@@ -9,11 +9,15 @@ references so owned cards remain searchable offline.
 Install stable Rust, then run from the monorepo root:
 
 ```sh
+cargo run -p pkmn-tcg-dex -- find --name Furret
+cargo run -p pkmn-tcg-dex -- find --set swsh3 --number 0136/189
+cargo run -p pkmn-tcg-dex -- add --name Furret --folder Favorites
 cargo run -p pkmn-tcg-dex -- lookup swsh3-136
 cargo run -p pkmn-tcg-dex -- lookup swsh3-136 --refresh
 cargo run -p pkmn-tcg-dex -- add swsh3-136 --variant normal --folder Favorites
 cargo run -p pkmn-tcg-dex -- list "tail smash" --folder Favorites
 cargo run -p pkmn-tcg-dex -- list --set swsh3 --descending
+cargo run -p pkmn-tcg-dex -- list --group --table --variant normal --condition unknown
 cargo run -p pkmn-tcg-dex -- export > collection.json
 cargo run -p pkmn-tcg-dex -- --db restored.sqlite import collection.json
 cargo run -p pkmn-tcg-dex -- move COPY_UUID --folder Binder
@@ -23,11 +27,27 @@ cargo install --path crates/pkmn-tcg-dex-cli
 
 `add` displays a preview and asks for confirmation. Declining or EOF adds no copy.
 `--yes` confirms explicitly for scripts. Repeated additions create separate copies.
-Conditions are free text; variants must match the catalog. Omitting `--folder`
+When adding by name or set/number, choose a candidate and its variant before
+confirmation. Blank input or EOF cancels selection. `--yes` rejects ambiguous
+searches; use an exact ID to script a specific printing. An exact ID keeps the
+existing default `normal` variant when available; cards without it require variant
+selection or an explicit `--variant` for scripts. Conditions are free text; variants must match the catalog. Omitting `--folder`
 from `move` unfiles the copy. `remove` also requires confirmation or `--yes`.
 
 Global options: `--db PATH` (default `pkmn-tcg-dex.sqlite` in the current directory),
-`--language en`, and `--offline`. `list --card-language en` filters owned cards.
+`--language en`, and `--offline`. `find` and search-based `add` support `--name`,
+`--set`, `--number`, and one-based `--page` (20 candidates per page). Numbers alone
+are ambiguous and require a set ID. Ordinary numeric collector numbers accept
+leading zeros and `/total`; promo prefixes are preserved. Offline identification
+searches full records already cached by lookup, preview, or import, rather than
+querying the entire external catalog. Candidate search itself does not cache full
+records; preview fetches the selected record only.
+
+`list --card-language en` filters owned cards. `--variant` and `--condition` add
+exact-match filters. `--table` renders a readable table; JSON remains the default.
+`--group` counts copies sharing provider/card/language, variant, condition, and
+folder. Grouped JSON retains physical copy IDs; use ordinary `list` for each copy's
+notes. Groups retain the first matching copy's metadata snapshot.
 Search matches names, descriptions, moves/effects, and notes, ignoring case.
 Sorting is by name, set ID, collector number as text, then copy ID; `--descending`
 reverses it. `lookup` requires a full TCGdex ID: number `136` alone is ambiguous.
@@ -35,9 +55,11 @@ reverses it. `lookup` requires a full TCGdex ID: number `136` alone is ambiguous
 ## Architecture
 
 - `crates/pkmn-tcg-dex-core`: normalized cards, owned-copy validation, catalog/storage traits,
-  cache-first preview, search, and the TCGdex adapter.
+  cache-first preview, identification, search, and quantity grouping; no HTTP dependency.
 - `crates/pkmn-tcg-dex-sqlite`: bundled SQLite, versioned schema, persistence, atomic import.
-- `crates/pkmn-tcg-dex-cli`: commands, preview rendering, explicit confirmation, JSON output.
+- `crates/pkmn-tcg-dex-tcgdex`: blocking HTTP lookup and paginated candidate search.
+- `crates/pkmn-tcg-dex-cli`: commands, candidate/variant selection, preview confirmation,
+  JSON and table output.
 
 A desktop app can call the libraries directly; a web app can use an HTTP wrapper.
 Operations currently block: use worker threads for a desktop or async server.
@@ -68,9 +90,9 @@ indexed queries can replace this for larger collections.
 ## Validate
 
 ```sh
-cargo fmt -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -- --check
-cargo test -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite
-cargo clippy -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --all-targets -- -D warnings
+cargo fmt -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -p pkmn-tcg-dex-tcgdex -- --check
+cargo test -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -p pkmn-tcg-dex-tcgdex
+cargo clippy -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -p pkmn-tcg-dex-tcgdex --all-targets -- -D warnings
 ```
 
 Tests use a captured public TCGdex record and cover normalization, move search,
@@ -78,10 +100,10 @@ invalid variants, independent duplicate copies, persistence, import rollback,
 cache preservation and refresh, provider isolation, offline misses, input limits,
 sorting, locked/deleted moves, cancelled additions, and the CLI backup workflow.
 
-Validation targets the three Pokémon crates explicitly; Murmur shares the Cargo
+Validation targets the four collection crates explicitly; Murmur shares the Cargo
 workspace and has separate native audio and ML build requirements.
 
 CI selects affected Pokémon crates and their transitive dependents from the Cargo
-manifests. Shared Cargo/toolchain configuration and CI changes check all three.
+manifests. Shared Cargo/toolchain configuration and CI changes check all four.
 Unrelated changes and crate documentation changes skip Rust setup and compilation;
 the named Rust check still succeeds, so required branch checks do not remain pending.

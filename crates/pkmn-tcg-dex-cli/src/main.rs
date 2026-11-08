@@ -1,9 +1,13 @@
 mod backup;
+mod browse;
+mod selection;
 
 use anyhow::{Context, Result, ensure};
-use clap::{Parser, Subcommand};
-use pkmn_tcg_dex_core::{CollectionStore, OwnedCopy, Query, Tcgdex, preview, refresh, search};
+use clap::{Args, Parser, Subcommand};
+use pkmn_tcg_dex_core::identification::{Identification, identify};
+use pkmn_tcg_dex_core::{CollectionStore, OwnedCopy, Query, preview, refresh, search};
 use pkmn_tcg_dex_sqlite::SqliteStore;
+use pkmn_tcg_dex_tcgdex::Tcgdex;
 use std::{
     io::{self, Write},
     path::PathBuf,
@@ -31,11 +35,18 @@ enum Command {
         #[arg(long)]
         refresh: bool,
     },
+    /// Find candidate printings by name or by set and collector number.
+    Find {
+        #[command(flatten)]
+        query: FindArgs,
+    },
     /// Preview a card, then confirm adding one physical copy.
     Add {
-        id: String,
-        #[arg(long, default_value = "normal")]
-        variant: String,
+        id: Option<String>,
+        #[command(flatten)]
+        query: FindArgs,
+        #[arg(long)]
+        variant: Option<String>,
         #[arg(long, default_value = "unknown")]
         condition: String,
         #[arg(long)]
@@ -56,6 +67,16 @@ enum Command {
         folder: Option<String>,
         #[arg(long = "card-language")]
         language: Option<String>,
+        #[arg(long)]
+        variant: Option<String>,
+        #[arg(long)]
+        condition: Option<String>,
+        /// Group identical printings by condition and folder, with quantities.
+        #[arg(long)]
+        group: bool,
+        /// Render a readable table instead of JSON.
+        #[arg(long)]
+        table: bool,
         /// Reverse alphabetical order (default: name, set, collector number).
         #[arg(long)]
         descending: bool,
@@ -77,12 +98,52 @@ enum Command {
     Import { file: PathBuf },
 }
 
+#[derive(Args, Default)]
+struct FindArgs {
+    #[arg(long)]
+    name: Option<String>,
+    #[arg(long)]
+    set: Option<String>,
+    #[arg(long)]
+    number: Option<String>,
+    #[arg(long, default_value_t = 1)]
+    page: u32,
+}
+
+impl From<&FindArgs> for Identification {
+    fn from(args: &FindArgs) -> Self {
+        Self {
+            name: args.name.clone(),
+            set: args.set.clone(),
+            number: args.number.clone(),
+            page: args.page,
+        }
+    }
+}
+
 impl Cli {
     fn validate(&self) -> Result<()> {
         ensure!(
             !(self.offline && matches!(self.command, Command::Lookup { refresh: true, .. })),
             "--refresh cannot be combined with --offline"
         );
+        match &self.command {
+            Command::Find { query } => Identification::from(query).validate()?,
+            Command::Add { id, query, .. } => {
+                if id.is_some() {
+                    ensure!(
+                        query.name.is_none()
+                            && query.set.is_none()
+                            && query.number.is_none()
+                            && query.page == 1,
+                        "Use a card ID or search fields, not both"
+                    );
+                } else {
+                    Identification::from(query).validate()?;
+                }
+            }
+            _ => {}
+        }
         Ok(())
     }
 }
@@ -116,17 +177,113 @@ fn main() -> Result<()> {
             };
             println!("{}", serde_json::to_string_pretty(&card)?);
         }
+        Command::Find { query } => {
+            let candidates = identify(
+                &Tcgdex::new()?,
+                &store,
+                &cli.language,
+                &Identification::from(&query),
+                cli.offline,
+            )?;
+            println!("{}", serde_json::to_string_pretty(&candidates)?);
+            if candidates.len() == Identification::PAGE_SIZE {
+                eprintln!(
+                    "More matches may be available; use --page {}.",
+                    query.page + 1
+                );
+            }
+            if cli.offline {
+                eprintln!("Searching cached card records only.");
+            }
+        }
         Command::Add {
             id,
+            query,
             variant,
             condition,
             folder,
             notes,
             yes,
         } => {
-            let card = preview(&Tcgdex::new()?, &mut store, &cli.language, &id, cli.offline)?;
+            let catalog = Tcgdex::new()?;
+            let exact_id = id.is_some();
+            let id = if let Some(id) = id {
+                id
+            } else {
+                let candidates = identify(
+                    &catalog,
+                    &store,
+                    &cli.language,
+                    &Identification::from(&query),
+                    cli.offline,
+                )?;
+                ensure!(
+                    !candidates.is_empty(),
+                    "No matching cards{}",
+                    if cli.offline {
+                        " in the local cache"
+                    } else {
+                        ""
+                    }
+                );
+                if candidates.len() == Identification::PAGE_SIZE {
+                    eprintln!(
+                        "More matches may be available; use --page {}.",
+                        query.page + 1
+                    );
+                }
+                let index = if candidates.len() == 1 {
+                    0
+                } else {
+                    ensure!(
+                        !yes,
+                        "Multiple cards match; use find and pass an exact card ID for --yes"
+                    );
+                    let labels = candidates
+                        .iter()
+                        .map(|c| format!("{} | {} | #{} | {}", c.name, c.set_id, c.number, c.id))
+                        .collect::<Vec<_>>();
+                    let Some(index) =
+                        selection::choose(&labels, &mut io::stdin().lock(), &mut io::stderr())?
+                    else {
+                        eprintln!("Cancelled; no copy added.");
+                        return Ok(());
+                    };
+                    index
+                };
+                candidates[index].id.clone()
+            };
+            let card = preview(&catalog, &mut store, &cli.language, &id, cli.offline)?;
+            eprintln!("{}", serde_json::to_string_pretty(&card)?);
+            let variant = if let Some(variant) = variant {
+                variant
+            } else if (exact_id || yes) && card.variants.iter().any(|v| v == "normal") {
+                "normal".into()
+            } else {
+                ensure!(
+                    !yes,
+                    "Supply --variant for a card without a normal printing"
+                );
+                ensure!(
+                    !card.variants.is_empty(),
+                    "Catalog has no variant information; this card cannot be added yet"
+                );
+                eprintln!("Select the printing variant:");
+                let Some(index) =
+                    selection::choose(&card.variants, &mut io::stdin().lock(), &mut io::stderr())?
+                else {
+                    eprintln!("Cancelled; no copy added.");
+                    return Ok(());
+                };
+                card.variants[index].clone()
+            };
             let copy = OwnedCopy::new(card, variant, condition, folder, notes)?;
-            eprintln!("{}", serde_json::to_string_pretty(&copy)?);
+            eprintln!(
+                "Variant: {} | Condition: {} | Folder: {}",
+                copy.variant,
+                copy.condition,
+                copy.folder.as_deref().unwrap_or("unfiled")
+            );
             if yes || confirm("Add this copy to your collection?")? {
                 store.add(&copy)?;
                 println!("{}", copy.id);
@@ -139,6 +296,10 @@ fn main() -> Result<()> {
             set,
             folder,
             language,
+            variant,
+            condition,
+            group,
+            table,
             descending,
         } => {
             let copies = search(
@@ -148,10 +309,23 @@ fn main() -> Result<()> {
                     set,
                     folder,
                     language,
+                    variant,
+                    condition,
                     descending,
                 },
             );
-            println!("{}", serde_json::to_string_pretty(&copies)?);
+            if group {
+                let groups = pkmn_tcg_dex_core::grouping::group_copies(copies);
+                if table {
+                    browse::groups(&groups, &mut io::stdout().lock())?;
+                } else {
+                    println!("{}", serde_json::to_string_pretty(&groups)?);
+                }
+            } else if table {
+                browse::copies(&copies, &mut io::stdout().lock())?;
+            } else {
+                println!("{}", serde_json::to_string_pretty(&copies)?);
+            }
         }
         Command::Move { copy_id, folder } => store.move_copy(&copy_id, folder.as_deref())?,
         Command::Remove { copy_id, yes } => {
@@ -200,5 +374,30 @@ mod tests {
         ] {
             assert!(Cli::try_parse_from(args).unwrap().validate().is_err());
         }
+    }
+
+    #[test]
+    fn identification_rejects_missing_or_mixed_inputs() {
+        for args in [
+            vec!["pkmn-tcg-dex", "add"],
+            vec!["pkmn-tcg-dex", "find", "--number", "136"],
+            vec!["pkmn-tcg-dex", "find", "--name", "Furret", "--page", "0"],
+            vec!["pkmn-tcg-dex", "add", "swsh3-136", "--name", "Furret"],
+        ] {
+            assert!(Cli::try_parse_from(args).unwrap().validate().is_err());
+        }
+        assert!(
+            Cli::try_parse_from([
+                "pkmn-tcg-dex",
+                "add",
+                "--set",
+                "swsh3",
+                "--number",
+                "136/189"
+            ])
+            .unwrap()
+            .validate()
+            .is_ok()
+        );
     }
 }

@@ -1,4 +1,7 @@
 //! Portable collection rules. UI confirmation, cameras, and storage live outside this crate.
+pub mod grouping;
+pub mod identification;
+
 use anyhow::{Context, Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -90,11 +93,19 @@ impl OwnedCopy {
 pub trait Catalog {
     fn provider(&self) -> &str;
     fn lookup(&self, language: &str, id: &str) -> Result<Card>;
+    fn find(
+        &self,
+        _language: &str,
+        _query: &identification::Identification,
+    ) -> Result<Vec<identification::Candidate>> {
+        bail!("This catalog does not support identification")
+    }
 }
 
 pub trait CollectionStore {
     fn cache(&mut self, card: &Card) -> Result<()>;
     fn cached(&self, provider: &str, language: &str, id: &str) -> Result<Option<Card>>;
+    fn cached_cards(&self, provider: &str, language: &str) -> Result<Vec<Card>>;
     fn add(&mut self, copy: &OwnedCopy) -> Result<()>;
     fn copies(&self) -> Result<Vec<OwnedCopy>>;
     fn move_copy(&mut self, id: &str, folder: Option<&str>) -> Result<()>;
@@ -138,6 +149,8 @@ pub struct Query {
     pub set: Option<String>,
     pub folder: Option<String>,
     pub language: Option<String>,
+    pub variant: Option<String>,
+    pub condition: Option<String>,
     pub descending: bool,
 }
 
@@ -153,6 +166,11 @@ pub fn search(mut copies: Vec<OwnedCopy>, query: &Query) -> Vec<OwnedCopy> {
                 .language
                 .as_ref()
                 .is_none_or(|l| l == &c.card.language)
+            && query.variant.as_ref().is_none_or(|v| v == &c.variant)
+            && query
+                .condition
+                .as_ref()
+                .is_none_or(|condition| condition == &c.condition)
             && (needle.is_empty()
                 || format!(
                     "{} {} {} {}",
@@ -176,45 +194,6 @@ pub fn search(mut copies: Vec<OwnedCopy>, query: &Query) -> Vec<OwnedCopy> {
         copies.reverse();
     }
     copies
-}
-
-pub struct Tcgdex {
-    client: reqwest::blocking::Client,
-}
-
-impl Tcgdex {
-    pub fn new() -> Result<Self> {
-        Ok(Self {
-            client: reqwest::blocking::Client::builder()
-                .timeout(std::time::Duration::from_secs(20))
-                .user_agent("pkmn-tcg-dex/0.1")
-                .build()?,
-        })
-    }
-}
-
-impl Catalog for Tcgdex {
-    fn provider(&self) -> &str {
-        "tcgdex"
-    }
-    fn lookup(&self, language: &str, id: &str) -> Result<Card> {
-        for part in [language, id] {
-            ensure!(
-                !part.is_empty() && part.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'),
-                "Use a language and full card ID, e.g. en / swsh3-136"
-            );
-        }
-        let response = self
-            .client
-            .get(format!("https://api.tcgdex.net/v2/{language}/cards/{id}"))
-            .send()
-            .context("Catalog request failed")?;
-        if response.status() == reqwest::StatusCode::NOT_FOUND {
-            bail!("Card not found: {language}/{id}");
-        }
-        let raw: serde_json::Value = response.error_for_status()?.json()?;
-        normalize_tcgdex(language, &raw)
-    }
 }
 
 pub fn normalize_tcgdex(language: &str, raw: &serde_json::Value) -> Result<Card> {

@@ -11,6 +11,7 @@ CRATES = {
     "pkmn-tcg-dex-core": "crates/pkmn-tcg-dex-core",
     "pkmn-tcg-dex-sqlite": "crates/pkmn-tcg-dex-sqlite",
     "pkmn-tcg-dex": "crates/pkmn-tcg-dex-cli",
+    "pkmn-tcg-dex-tcgdex": "crates/pkmn-tcg-dex-tcgdex",
 }
 
 
@@ -18,7 +19,7 @@ def affected_packages(paths, dependencies):
     affected = set()
     for path in paths:
         if (
-            path in {"Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml"}
+            path in {"Cargo.toml", "Cargo.lock", "rust-toolchain", "rust-toolchain.toml", "rustfmt.toml", "clippy.toml", ".clippy.toml"}
             or path.startswith((".cargo/", ".github/workflows/", ".github/scripts/"))
         ):
             return sorted(CRATES)

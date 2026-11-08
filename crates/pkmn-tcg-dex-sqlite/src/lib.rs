@@ -77,6 +77,13 @@ impl CollectionStore for SqliteStore {
             .optional()?;
         data.map(|s| Ok(serde_json::from_str(&s)?)).transpose()
     }
+    fn cached_cards(&self, provider: &str, language: &str) -> Result<Vec<Card>> {
+        let mut stmt = self
+            .connection
+            .prepare("SELECT data FROM cards WHERE provider=?1 AND language=?2 ORDER BY id")?;
+        let rows = stmt.query_map(params![provider, language], |r| r.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
     fn add(&mut self, copy: &OwnedCopy) -> Result<()> {
         copy.validate()?;
         self.connection.execute(
@@ -126,6 +133,7 @@ impl CollectionStore for SqliteStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pkmn_tcg_dex_core::identification::{Identification, identify};
     use pkmn_tcg_dex_core::{Catalog, preview, refresh};
 
     struct FakeCatalog {
@@ -298,6 +306,35 @@ mod tests {
         drop(other);
         drop(store);
         std::fs::remove_file(path)?;
+        Ok(())
+    }
+
+    #[test]
+    fn offline_identification_pages_cached_records_without_fetching() -> Result<()> {
+        let mut store = SqliteStore::open(":memory:")?;
+        let original = copy().card;
+        for index in 0..25 {
+            let mut card = original.clone();
+            card.id = format!("test-{index:02}");
+            card.number = index.to_string();
+            store.cache(&card)?;
+        }
+        let catalog = FakeCatalog {
+            card: original,
+            calls: 0.into(),
+        };
+        let mut query = Identification {
+            name: Some("test".into()),
+            ..Default::default()
+        };
+        let first = identify(&catalog, &store, "en", &query, true)?;
+        assert_eq!(first.len(), 20);
+        query.page = 2;
+        let second = identify(&catalog, &store, "en", &query, true)?;
+        assert_eq!(second.len(), 5);
+        assert!(!first.iter().any(|a| second.iter().any(|b| a.id == b.id)));
+        assert_eq!(catalog.calls.get(), 0);
+        assert!(identify(&catalog, &store, "ja", &query, true)?.is_empty());
         Ok(())
     }
 }

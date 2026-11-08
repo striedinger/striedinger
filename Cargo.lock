@@ -1549,6 +1549,7 @@ dependencies = [
  "clap",
  "pkmn-tcg-dex-core",
  "pkmn-tcg-dex-sqlite",
+ "pkmn-tcg-dex-tcgdex",
  "serde",
  "serde_json",
 ]
@@ -1558,7 +1559,6 @@ name = "pkmn-tcg-dex-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "reqwest",
  "serde",
  "serde_json",
  "uuid",
@@ -1571,6 +1571,16 @@ dependencies = [
  "anyhow",
  "pkmn-tcg-dex-core",
  "rusqlite",
+ "serde_json",
+]
+
+[[package]]
+name = "pkmn-tcg-dex-tcgdex"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "pkmn-tcg-dex-core",
+ "reqwest",
  "serde_json",
 ]
 

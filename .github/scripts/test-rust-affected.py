@@ -14,7 +14,8 @@ class AffectedTests(unittest.TestCase):
     dependencies = {
         "pkmn-tcg-dex-core": set(),
         "pkmn-tcg-dex-sqlite": {"pkmn-tcg-dex-core"},
-        "pkmn-tcg-dex": {"pkmn-tcg-dex-core", "pkmn-tcg-dex-sqlite"},
+        "pkmn-tcg-dex-tcgdex": {"pkmn-tcg-dex-core"},
+        "pkmn-tcg-dex": {"pkmn-tcg-dex-core", "pkmn-tcg-dex-sqlite", "pkmn-tcg-dex-tcgdex"},
     }
 
     def select(self, *paths):
@@ -26,11 +27,14 @@ class AffectedTests(unittest.TestCase):
     def test_sqlite_includes_cli(self):
         self.assertEqual(self.select("crates/pkmn-tcg-dex-sqlite/src/lib.rs"), ["pkmn-tcg-dex", "pkmn-tcg-dex-sqlite"])
 
+    def test_adapter_includes_cli(self):
+        self.assertEqual(self.select("crates/pkmn-tcg-dex-tcgdex/src/lib.rs"), ["pkmn-tcg-dex", "pkmn-tcg-dex-tcgdex"])
+
     def test_core_includes_transitive_dependents(self):
         self.assertEqual(self.select("crates/pkmn-tcg-dex-core/tests/fixtures/furret.json"), sorted(module.CRATES))
 
     def test_shared_configuration_runs_all(self):
-        for path in ("Cargo.toml", "Cargo.lock", ".cargo/config.toml", "rust-toolchain.toml", ".github/workflows/ci.yml", ".github/scripts/rust-affected.py"):
+        for path in ("Cargo.toml", "Cargo.lock", ".cargo/config.toml", "rust-toolchain.toml", "rustfmt.toml", "clippy.toml", ".github/workflows/ci.yml", ".github/scripts/rust-affected.py"):
             with self.subTest(path=path):
                 self.assertEqual(self.select(path), sorted(module.CRATES))
 
