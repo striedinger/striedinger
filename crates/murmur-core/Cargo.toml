@@ -1,5 +1,5 @@
 [package]
-name = "murmur_core"
+name = "murmur-core"
 version = "0.1.0"
 edition = "2021"
 description = "Shared core for Murmur: audio capture, local speech-to-text, local LLM cleanup."

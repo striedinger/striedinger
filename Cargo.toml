@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["core"]
+# Every Rust crate lives in crates/.
+members = ["crates/*"]
 
 [profile.release]
 opt-level = 3

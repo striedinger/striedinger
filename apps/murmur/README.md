@@ -19,7 +19,7 @@ You can add your own modes in `config.toml`.
 ## Architecture
 
 ```
-core/            Rust, shared by every platform
+crates/murmur-core/   Rust, shared by every platform (top-level crates/ in the monorepo)
   audio.rs       cpal mic capture → 16 kHz mono, silence trim
   stt.rs         Parakeet TDT 0.6B v3 via sherpa-onnx
   llm.rs         embedded llama.cpp (Metal on Mac), cleanup prompts + guardrails
@@ -47,7 +47,8 @@ mac/resources/*.lproj        translations: en, es, de, it, fr, pt, zh-Hans, ja
 - History writes use SQLite WAL, and the menu reads history only when it opens.
 
 This app isn't a pnpm workspace package (it has no `package.json`), so `pnpm`/`turbo`
-tasks skip it. Build it with the scripts below, run from `apps/murmur`.
+tasks skip it. The Rust core is a member of the Cargo workspace at the repo root. Build
+with the scripts below, which you can run from anywhere.
 
 To add Windows or Linux later, write a new shell against the same `Engine` API.
 UniFFI can generate C# bindings through `uniffi-bindgen-cs`, or you can call it straight from Rust.

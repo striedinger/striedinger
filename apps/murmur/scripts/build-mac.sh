@@ -9,22 +9,23 @@
 # signature, so with ad-hoc signing you'll have to re-grant it after every rebuild.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # apps/murmur
+REPO="$(cd "$ROOT/../.." && pwd)"          # monorepo root: Cargo workspace, crates/
+cd "$REPO"
 
 ARCH="$(uname -m)"                         # arm64 or x86_64
 SIGN_IDENTITY="${SIGN_IDENTITY:--}"
-TARGET_DIR="$ROOT/target/release"
+TARGET_DIR="$REPO/target/release"
 GEN="$ROOT/mac/generated"
 APP="$ROOT/build/Murmur.app"
 FRAMEWORKS="$APP/Contents/Frameworks"
 
 echo "==> Building Rust core"
-cargo build --release -p murmur_core
+cargo build --release -p murmur-core
 
 echo "==> Generating Swift bindings"
 rm -rf "$GEN" && mkdir -p "$GEN"
-cargo run --release -q --bin uniffi-bindgen -- generate \
+cargo run --release -q -p murmur-core --bin uniffi-bindgen -- generate \
   --library "$TARGET_DIR/libmurmur_core.dylib" \
   --language swift \
   --out-dir "$GEN"

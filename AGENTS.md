@@ -8,6 +8,7 @@ These guidelines apply to the entire monorepo. Update this file as the projectâ€
 - Use pnpm exclusively. Keep the root `packageManager` field and `pnpm-lock.yaml` authoritative; do not introduce npm or Yarn lockfiles.
 - Target the latest Node.js LTS release and keep `.node-version`, `.nvmrc`, and the `engines.node` ranges in the root and `apps/web` manifests aligned. Vercel builds from `apps/web` and takes its Node.js version from that manifest.
 - Keep reusable code in focused workspace packages and applications under `apps/`.
+- Put every Rust crate under the top-level `crates/` directory, as a member of the root Cargo workspace (`Cargo.toml`). Name crate directories and packages in kebab-case. Applications under `apps/` consume crates; they do not contain Rust code themselves.
 - Use Tailwind CSS utilities for application styling; do not introduce CSS Modules for ordinary component styling.
 - Run the relevant package typechecks after changes and run a production build when changes affect Next.js compilation, routing, server actions, metadata, or shared styles.
 - Use Oxlint for repository-wide linting and Oxfmt for formatting, import ordering, Tailwind class ordering, and package manifest ordering. Do not introduce parallel ESLint or Prettier configurations.

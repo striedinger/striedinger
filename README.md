@@ -3,7 +3,8 @@
 This pnpm/Turborepo workspace contains:
 
 - `apps/web`: a minimal Next.js app.
-- `apps/murmur`: a local voice dictation app for macOS (Rust core + native Swift shell; built with Cargo, outside pnpm/Turborepo).
+- `apps/murmur`: a local voice dictation app for macOS (native Swift shell over `crates/murmur-core`; built with Cargo, outside pnpm/Turborepo).
+- `crates/murmur-core`: Murmur's Rust core: audio, local speech-to-text and LLM cleanup.
 - `packages/i18n`: framework-independent locale detection, catalog composition, and translation helpers.
 - `packages/ui`: shared shadcn components, Tailwind CSS 4 theme tokens, and tweakcn-compatible theme presets.
 
