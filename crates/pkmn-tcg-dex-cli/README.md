@@ -68,12 +68,15 @@ indexed queries can replace this for larger collections.
 ## Validate
 
 ```sh
-cargo fmt --all -- --check
-cargo test --workspace
-cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -- --check
+cargo test -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite
+cargo clippy -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --all-targets -- -D warnings
 ```
 
 Tests use a captured public TCGdex record and cover normalization, move search,
 invalid variants, independent duplicate copies, persistence, import rollback,
 cache preservation and refresh, provider isolation, offline misses, input limits,
 sorting, locked/deleted moves, cancelled additions, and the CLI backup workflow.
+
+Validation targets the three Pokémon crates explicitly; Murmur shares the Cargo
+workspace and has separate native audio and ML build requirements.

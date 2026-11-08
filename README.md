@@ -64,7 +64,7 @@ The root Cargo workspace runs independently of the pnpm/Turborepo web workspace.
 
 ```sh
 cargo run -p pkmn-tcg-dex -- lookup swsh3-136
-cargo test --workspace --locked
-cargo clippy --workspace --all-targets --locked -- -D warnings
-cargo fmt --all -- --check
+cargo test -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --locked
+cargo clippy -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite --all-targets --locked -- -D warnings
+cargo fmt -p pkmn-tcg-dex -p pkmn-tcg-dex-core -p pkmn-tcg-dex-sqlite -- --check
 ```
