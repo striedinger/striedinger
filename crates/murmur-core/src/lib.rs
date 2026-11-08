@@ -76,8 +76,16 @@ impl Engine {
         // startup time is the slower of the two instead of their sum.
         let (stt, llm) = std::thread::scope(|scope| {
             let llm_loader = scope.spawn(|| load_llm(&dir, &config));
-            let stt = stt::Stt::load(&Config::resolve(&dir, &config.stt.model_dir), config.stt.threads);
-            (stt, llm_loader.join().unwrap_or_else(|_| Err(anyhow::anyhow!("LLM loader panicked"))))
+            let stt = stt::Stt::load(
+                &Config::resolve(&dir, &config.stt.model_dir),
+                config.stt.threads,
+            );
+            (
+                stt,
+                llm_loader
+                    .join()
+                    .unwrap_or_else(|_| Err(anyhow::anyhow!("LLM loader panicked"))),
+            )
         });
         let stt = stt.map_err(MurmurError::setup)?;
         let llm = llm.map_err(MurmurError::setup)?;
@@ -119,7 +127,13 @@ impl Engine {
 
         let mode_id = mode_id.unwrap_or_else(|| self.config.read().unwrap().default_mode.clone());
         if speech.len() < (audio::TARGET_RATE as usize / 5) {
-            return Ok(DictationResult { raw: String::new(), output: String::new(), mode: mode_id, stt_ms: 0, llm_ms: 0 });
+            return Ok(DictationResult {
+                raw: String::new(),
+                output: String::new(),
+                mode: mode_id,
+                stt_ms: 0,
+                llm_ms: 0,
+            });
         }
 
         let t = Instant::now();
@@ -135,25 +149,45 @@ impl Engine {
                 eprintln!("[murmur] history write failed: {e}");
             }
         }
-        Ok(DictationResult { raw, output, mode: mode_id, stt_ms, llm_ms })
+        Ok(DictationResult {
+            raw,
+            output,
+            mode: mode_id,
+            stt_ms,
+            llm_ms,
+        })
     }
 
     /// Runs a mode over existing text (e.g. the user's selection).
-    pub fn rewrite(&self, text: String, mode_id: String, app: Option<String>) -> Result<String, MurmurError> {
+    pub fn rewrite(
+        &self,
+        text: String,
+        mode_id: String,
+        app: Option<String>,
+    ) -> Result<String, MurmurError> {
         self.apply_mode(&text, &mode_id, app.as_deref())
     }
 
     /// Spoken command over selected text: "make this shorter", "translate to Spanish".
     pub fn command(&self, selection: String, app: Option<String>) -> Result<String, MurmurError> {
         let samples = self.recorder.stop();
-        let spoken = self.stt.lock().unwrap().transcribe(audio::trim_silence(&samples));
+        let spoken = self
+            .stt
+            .lock()
+            .unwrap()
+            .transcribe(audio::trim_silence(&samples));
         if spoken.is_empty() {
             return Ok(selection);
         }
-        let Some(llm) = &self.llm else { return Ok(selection) };
+        let Some(llm) = &self.llm else {
+            return Ok(selection);
+        };
         let (tone, vocabulary) = {
             let cfg = self.config.read().unwrap();
-            (cfg.tone_for(app.as_deref()).map(str::to_string), cfg.vocabulary.clone())
+            (
+                cfg.tone_for(app.as_deref()).map(str::to_string),
+                cfg.vocabulary.clone(),
+            )
         };
         let instruction = format!(
             "The transcript is the user's selected text. Apply this edit request to it and return \
@@ -169,7 +203,11 @@ impl Engine {
             .unwrap()
             .modes
             .iter()
-            .map(|m| ModeInfo { id: m.id.clone(), name: m.name.clone(), uses_llm: m.use_llm })
+            .map(|m| ModeInfo {
+                id: m.id.clone(),
+                name: m.name.clone(),
+                uses_llm: m.use_llm,
+            })
             .collect()
     }
 
@@ -210,7 +248,10 @@ fn load_llm(dir: &std::path::Path, config: &Config) -> anyhow::Result<Option<llm
         config.llm.context_size,
         config.llm.max_tokens,
     )?;
-    if let Some(mode) = config.mode(&config.default_mode).filter(|mode| mode.use_llm) {
+    if let Some(mode) = config
+        .mode(&config.default_mode)
+        .filter(|mode| mode.use_llm)
+    {
         llm.process("Hello there.", &mode.instruction, None, &config.vocabulary)?;
     }
     Ok(Some(llm))
@@ -225,7 +266,12 @@ struct ModeRequest {
 }
 
 impl Engine {
-    fn apply_mode(&self, text: &str, mode_id: &str, app: Option<&str>) -> Result<String, MurmurError> {
+    fn apply_mode(
+        &self,
+        text: &str,
+        mode_id: &str,
+        app: Option<&str>,
+    ) -> Result<String, MurmurError> {
         let (llm, request) = {
             let cfg = self.config.read().unwrap();
             let mode = cfg
@@ -246,8 +292,13 @@ impl Engine {
             };
             (llm, request)
         };
-        llm.process(text, &request.instruction, request.tone.as_deref(), &request.vocabulary)
-            .map_err(MurmurError::processing)
+        llm.process(
+            text,
+            &request.instruction,
+            request.tone.as_deref(),
+            &request.vocabulary,
+        )
+        .map_err(MurmurError::processing)
     }
 }
 
@@ -263,4 +314,23 @@ fn basic_cleanup(text: &str) -> String {
         s.push('.');
     }
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::basic_cleanup;
+
+    #[test]
+    fn basic_cleanup_capitalizes_and_punctuates_sentences() {
+        assert_eq!(
+            basic_cleanup("send the report by friday"),
+            "Send the report by friday."
+        );
+    }
+
+    #[test]
+    fn basic_cleanup_leaves_short_replies_unpunctuated() {
+        assert_eq!(basic_cleanup("sounds good"), "Sounds good");
+        assert_eq!(basic_cleanup("   "), "");
+    }
 }

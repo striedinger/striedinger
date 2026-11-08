@@ -78,7 +78,8 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
     let src_rate = config.sample_rate().0;
     let channels = config.channels() as usize;
 
-    let buffer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::with_capacity(src_rate as usize * 60)));
+    let buffer: Arc<Mutex<Vec<f32>>> =
+        Arc::new(Mutex::new(Vec::with_capacity(src_rate as usize * 60)));
     let recording = Arc::new(AtomicBool::new(false));
 
     let buf_cb = buffer.clone();
@@ -106,7 +107,11 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
         cpal::SampleFormat::F32 => device.build_input_stream(
             &stream_config,
             move |data: &[f32], _| {
-                on_frames(&mut data.chunks(channels).map(|f| f.iter().sum::<f32>() / channels as f32))
+                on_frames(
+                    &mut data
+                        .chunks(channels)
+                        .map(|f| f.iter().sum::<f32>() / channels as f32),
+                )
             },
             err_fn,
             None,
@@ -203,5 +208,39 @@ pub fn trim_silence(samples: &[f32]) -> &[f32] {
             &samples[start..end]
         }
         _ => &[],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resampling_48k_to_16k_keeps_duration() {
+        let one_second = [0.25f32; 48_000];
+        let out = resample(&one_second, 48_000, TARGET_RATE);
+        assert_eq!(out.len(), 16_000);
+        assert!(out.iter().all(|s| (s - 0.25).abs() < 1e-6));
+    }
+
+    #[test]
+    fn trimming_keeps_speech_with_padding_and_drops_dead_air() {
+        // 1 s silence, 0.5 s "speech", 1 s silence at 16 kHz.
+        let mut samples = vec![0.0f32; 16_000];
+        samples.extend(std::iter::repeat_n(0.3f32, 8_000));
+        samples.extend(std::iter::repeat_n(0.0f32, 16_000));
+
+        let trimmed = trim_silence(&samples);
+        assert!(trimmed.len() >= 8_000, "speech was cut: {}", trimmed.len());
+        assert!(
+            trimmed.len() < 8_000 + 2 * 4_000,
+            "too much silence kept: {}",
+            trimmed.len()
+        );
+    }
+
+    #[test]
+    fn trimming_pure_silence_returns_nothing() {
+        assert!(trim_silence(&[0.001f32; 16_000]).is_empty());
     }
 }
