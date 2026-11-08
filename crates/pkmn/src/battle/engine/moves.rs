@@ -4,18 +4,34 @@ use std::cmp::Ordering;
 
 use super::Engine;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
-use crate::battle::state::SideId;
-use crate::dex::{Handler, HandlerMask, MoveData, MoveEffect, MoveTarget, Status, VolatileStatus};
+use crate::battle::state::{SideConditionState, SideId, Stall};
+use crate::dex::{
+    Handler, HandlerMask, MoveData, MoveEffect, MoveTarget, Recoil, Status, VolatileStatus,
+};
 use crate::stats::apply_accuracy_stage;
 
 /// Gen 5+ odds for moves that hit two to five times: 35%, 35%, 15%, 15%.
 const TWO_TO_FIVE_HITS: [u8; 20] = [2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5];
 /// Gen 7+ critical-hit odds by `critRatio`: one in each denominator.
 const CRIT_DENOMINATORS: [u32; 5] = [0, 24, 8, 2, 1];
+/// The `stall` counter after a first success.
+const STALL_COUNTER_START: u16 = 3;
+/// The `stall` counter stops growing here.
+const STALL_COUNTER_MAX: u16 = 729;
+/// End-of-turn checks a `stall` counter survives.
+const STALL_DURATION: u8 = 2;
+
+/// Where a hit's damage went.
+enum Hit {
+    /// The target took this much.
+    Target(u32),
+    /// The target's substitute absorbed this much.
+    Substitute(u32),
+}
 
 impl Engine<'_> {
     /// Showdown's `runMove`: pre-move checks, PP, then the move itself.
-    pub(super) fn run_move(&mut self, side: SideId, slot: Option<usize>) {
+    pub(super) fn run_move(&mut self, side: SideId, slot: Option<usize>, foe_will_act: bool) {
         if !self.before_move(side) {
             return;
         }
@@ -38,18 +54,101 @@ impl Engine<'_> {
         };
         self.emit(Event::Move { side, move_id });
         let move_data = dex.move_data(move_id);
-        let target = match move_data.target {
-            MoveTarget::User => side,
-            MoveTarget::Normal => side.foe(),
+        let worked = match move_data.target {
+            MoveTarget::FoeSide => self.side_condition_move(side.foe(), move_data),
+            MoveTarget::AllySide => self.side_condition_move(side, move_data),
+            MoveTarget::User | MoveTarget::Normal => {
+                if move_data.stalling_move && !self.try_stall(side, foe_will_act) {
+                    self.emit(Event::Fail { side });
+                    return;
+                }
+                let target = if move_data.target == MoveTarget::User {
+                    side
+                } else {
+                    side.foe()
+                };
+                if move_data.target == MoveTarget::Normal && !self.try_hit(side, target, move_data)
+                {
+                    return;
+                }
+                if move_data.is_damaging() {
+                    self.hit_loop(side, target, move_data)
+                } else {
+                    self.status_move_hit(side, target, move_data)
+                }
+            }
         };
-        if move_data.target == MoveTarget::Normal && !self.try_hit(side, target, move_data) {
-            return;
+        if worked && move_data.stalling_move {
+            self.restart_stall(side);
         }
-        if move_data.is_damaging() {
-            self.hit_loop(side, target, move_data);
-        } else {
-            self.status_move_hit(side, target, move_data);
+        if worked
+            && move_data.self_switch
+            && self.state.outcome.is_none()
+            && !self.active(side).is_fainted()
+            && self.state.side(side).switches().next().is_some()
+        {
+            self.state.sides[side.index()].switch_flag = true;
         }
+    }
+
+    /// Showdown's `onPrepareHit` for stalling moves: they fail if the foe has already acted
+    /// this turn, and after a recent success they succeed with chance `1 / counter`.
+    fn try_stall(&mut self, side: SideId, foe_will_act: bool) -> bool {
+        if !foe_will_act {
+            return false;
+        }
+        let Some(stall) = self.active(side).volatiles.stall else {
+            return true;
+        };
+        if self.state.prng.chance(1, u32::from(stall.counter)) {
+            return true;
+        }
+        self.active_mut(side).volatiles.stall = None;
+        false
+    }
+
+    /// Showdown's `stall` volatile: starts at 3, triples on each consecutive success up to
+    /// 729, and lasts through the next turn.
+    fn restart_stall(&mut self, side: SideId) {
+        let volatiles = &mut self.active_mut(side).volatiles;
+        let counter = volatiles.stall.map_or(STALL_COUNTER_START, |stall| {
+            if stall.counter < STALL_COUNTER_MAX {
+                stall.counter * 3
+            } else {
+                stall.counter
+            }
+        });
+        volatiles.stall = Some(Stall {
+            counter,
+            duration: STALL_DURATION,
+        });
+    }
+
+    /// Sets a side condition, or adds a layer to a stacking hazard. Fails if it is already at
+    /// its limit.
+    fn side_condition_move(&mut self, side: SideId, move_data: &MoveData) -> bool {
+        let Some(id) = move_data.side_condition else {
+            return false;
+        };
+        let data = self.dex.side_condition(id);
+        let conditions = &mut self.state.sides[side.index()].conditions;
+        match conditions.iter_mut().find(|condition| condition.id == id) {
+            Some(condition) if condition.layers < data.max_layers() => condition.layers += 1,
+            Some(_) => {
+                self.emit(Event::Fail { side: side.foe() });
+                return false;
+            }
+            None => conditions.push(SideConditionState {
+                id,
+                layers: 1,
+                duration: data.duration,
+            }),
+        }
+        self.emit(Event::SideStart {
+            side,
+            condition: id,
+        });
+        true
     }
 
     /// Showdown's `onBeforeMove` handlers in priority order: sleep and freeze, flinch,
@@ -125,6 +224,13 @@ impl Engine<'_> {
             self.emit(Event::Fail { side });
             return false;
         }
+        if move_data.flags.protect && self.active(target).volatiles.protect {
+            self.emit(Event::Activate {
+                side: target,
+                volatile: VolatileStatus::Protect,
+            });
+            return false;
+        }
         let try_hit_handlers = self.mask(target).intersects(HandlerMask::TRY_HIT);
         if let Some(move_type) = move_data.move_type.filter(|_| try_hit_handlers) {
             let absorb = self
@@ -194,42 +300,70 @@ impl Engine<'_> {
     }
 
     /// Showdown's `hitStepMoveHitLoop`: every hit, then recoil and `onAfterMoveSecondarySelf`.
-    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) {
+    /// Returns whether any hit landed, on the target or its substitute.
+    fn hit_loop(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
         let hits = self.roll_hits(move_data);
         let mut landed = 0;
         let mut total_damage = 0;
+        let mut hit_substitute = false;
         for _ in 0..hits {
             if self.active(target).is_fainted() || self.active(side).is_fainted() {
                 break;
             }
             landed += 1;
-            let dealt = self.hit(side, target, move_data);
-            total_damage += dealt;
-            self.move_effects(side, target, move_data);
-            if dealt > 0 {
-                self.damaging_hit(side, target, move_data);
+            match self.hit(side, target, move_data) {
+                Hit::Target(dealt) => {
+                    total_damage += dealt;
+                    self.move_effects(side, target, move_data, true);
+                    if dealt > 0 {
+                        self.damaging_hit(side, target, move_data);
+                    }
+                }
+                Hit::Substitute(absorbed) => {
+                    hit_substitute = true;
+                    self.substitute_recoil(side, move_data, absorbed);
+                    self.move_effects(side, target, move_data, false);
+                }
             }
             self.update();
         }
         if move_data.multihit.max > 1 {
             self.emit(Event::HitCount { hits: landed });
         }
-        if total_damage == 0 {
-            return;
+        if total_damage == 0 && !hit_substitute {
+            return false;
         }
-        let max_hp = u32::from(self.active(side).max_hp());
-        let recoil = if move_data.struggle_recoil {
-            Some((max_hp + 2) / 4)
-        } else {
-            move_data
-                .recoil
-                .map(|fraction| fraction.of_rounded(total_damage))
-        };
-        if let Some(recoil) = recoil {
-            self.damage(side, recoil.max(1), DamageSource::Recoil);
+        if total_damage > 0 {
+            self.recoil(side, move_data, total_damage);
         }
         // Showdown runs an `Update` after recoil, before `onAfterMoveSecondarySelf`.
         self.update();
+        self.after_move_recoil(side);
+        true
+    }
+
+    /// Recoil from damage dealt to a substitute, applied per hit as Showdown's substitute
+    /// handler does.
+    fn substitute_recoil(&mut self, side: SideId, move_data: &MoveData, absorbed: u32) {
+        if absorbed > 0 {
+            self.recoil(side, move_data, absorbed);
+        }
+    }
+
+    fn recoil(&mut self, side: SideId, move_data: &MoveData, damage: u32) {
+        let max_hp = u32::from(self.active(side).max_hp());
+        let recoil = move_data.recoil.map(|recoil| match recoil {
+            Recoil::Struggle => (max_hp + 2) / 4,
+            Recoil::DamageDealt(fraction) => fraction.of_rounded(damage),
+        });
+        if let Some(recoil) = recoil {
+            self.damage(side, recoil.max(1), DamageSource::Recoil);
+        }
+    }
+
+    /// Showdown's `onAfterMoveSecondarySelf`, like Life Orb.
+    fn after_move_recoil(&mut self, side: SideId) {
+        let max_hp = u32::from(self.active(side).max_hp());
         if !self.mask(side).intersects(HandlerMask::AFTER_MOVE) {
             return;
         }
@@ -245,24 +379,39 @@ impl Engine<'_> {
     }
 
     /// Per hit, after damage: primary effects (including `heal` and `weather`), then `self`
-    /// (one roll), then each secondary (one roll each), in Showdown's order.
-    fn move_effects(&mut self, side: SideId, target: SideId, move_data: &MoveData) {
-        self.apply_effect(target, move_data.primary);
-        if let Some(fraction) = move_data.heal {
-            let max_hp = u32::from(self.active(target).max_hp());
-            self.heal(target, fraction.of_rounded(max_hp), HealSource::Move);
-        }
-        if let Some(weather) = move_data.weather {
-            self.set_weather(weather);
+    /// (one roll), then each secondary (one roll each), in Showdown's order. A hit on a
+    /// substitute skips the target's effects but still rolls and applies the user's.
+    fn move_effects(
+        &mut self,
+        side: SideId,
+        target: SideId,
+        move_data: &MoveData,
+        reached_target: bool,
+    ) {
+        if reached_target {
+            self.apply_effect(target, move_data.primary);
+            if let Some(fraction) = move_data.heal {
+                let max_hp = u32::from(self.active(target).max_hp());
+                self.heal(target, fraction.of_rounded(max_hp), HealSource::Move);
+            }
+            if let Some(weather) = move_data.weather {
+                self.set_weather(weather);
+            }
         }
         if let Some(boosts) = move_data.self_boosts {
             self.state.prng.below(100);
             self.boost(side, boosts);
         }
-        self.secondaries(side, target, move_data);
+        self.secondaries(side, target, move_data, reached_target);
     }
 
-    fn secondaries(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+    fn secondaries(
+        &mut self,
+        side: SideId,
+        target: SideId,
+        move_data: &MoveData,
+        reached_target: bool,
+    ) -> bool {
         let mut applied = false;
         for secondary in &move_data.secondaries {
             let roll = self.state.prng.below(100);
@@ -270,7 +419,9 @@ impl Engine<'_> {
                 .chance
                 .is_none_or(|chance| roll < u32::from(chance))
             {
-                applied |= self.apply_effect(target, secondary.effect);
+                if reached_target {
+                    applied |= self.apply_effect(target, secondary.effect);
+                }
                 if let Some(boosts) = secondary.self_boosts {
                     applied |= self.boost(side, boosts);
                 }
@@ -330,7 +481,7 @@ impl Engine<'_> {
     }
 
     /// Lands one hit and returns the damage dealt.
-    fn hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> u32 {
+    fn hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> Hit {
         let crit_ratio = usize::from(move_data.crit_ratio).min(CRIT_DENOMINATORS.len() - 1);
         let critical = crit_ratio > 0 && self.state.prng.chance(1, CRIT_DENOMINATORS[crit_ratio]);
         let type_modifier = self.type_modifier(move_data, target).unwrap_or(0);
@@ -343,18 +494,46 @@ impl Engine<'_> {
         if critical {
             self.emit(Event::Crit { side: target });
         }
+        if let Some(substitute) = self.active(target).volatiles.substitute {
+            let absorbed = damage.min(u32::from(substitute));
+            let remaining = substitute.saturating_sub(u16::try_from(absorbed).unwrap_or(u16::MAX));
+            self.active_mut(target).volatiles.substitute = (remaining > 0).then_some(remaining);
+            self.emit(Event::Activate {
+                side: target,
+                volatile: VolatileStatus::Substitute,
+            });
+            if remaining == 0 {
+                self.emit(Event::End {
+                    side: target,
+                    volatile: VolatileStatus::Substitute,
+                });
+            }
+            // Showdown's substitute handler rounds drain up.
+            if let Some(drain) = move_data.drain
+                && absorbed > 0
+            {
+                let restored =
+                    (absorbed * u32::from(drain.numerator)).div_ceil(u32::from(drain.denominator));
+                self.heal(side, restored, HealSource::Drain);
+            }
+            return Hit::Substitute(absorbed);
+        }
         let dealt = self.damage(target, damage, DamageSource::Move);
         if let Some(drain) = move_data.drain
             && dealt > 0
         {
             self.heal(side, drain.of_rounded(dealt), HealSource::Drain);
         }
-        dealt
+        Hit::Target(dealt)
     }
 
     /// A status move's effects: primary on the target, weather, healing, `self`, then
-    /// secondaries. Fails if nothing changed.
-    fn status_move_hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) {
+    /// secondaries. Fails if nothing changed, or if a substitute stands in the way.
+    fn status_move_hit(&mut self, side: SideId, target: SideId, move_data: &MoveData) -> bool {
+        if target != side && self.active(target).volatiles.substitute.is_some() {
+            self.emit(Event::Fail { side });
+            return false;
+        }
         let mut applied = self.apply_effect(target, move_data.primary);
         if let Some(fraction) = move_data.heal {
             let max_hp = u32::from(self.active(target).max_hp());
@@ -367,10 +546,11 @@ impl Engine<'_> {
             self.state.prng.below(100);
             applied |= self.boost(side, boosts);
         }
-        applied |= self.secondaries(side, target, move_data);
+        applied |= self.secondaries(side, target, move_data, true);
         if !applied {
             self.emit(Event::Fail { side });
         }
+        applied
     }
 
     /// Applies boosts, a status, and a volatile status to `recipient`. Returns whether anything
@@ -401,9 +581,39 @@ impl Engine<'_> {
                 self.active_mut(recipient).volatiles.flinch = true;
                 applied = true;
             }
-            _ => {}
+            Some(VolatileStatus::Protect) => {
+                self.active_mut(recipient).volatiles.protect = true;
+                self.emit(Event::Start {
+                    side: recipient,
+                    volatile: VolatileStatus::Protect,
+                });
+                applied = true;
+            }
+            Some(VolatileStatus::Substitute) => applied |= self.make_substitute(recipient),
+            Some(VolatileStatus::Confusion) | None => {}
         }
         applied
+    }
+
+    /// Showdown's Substitute: fails with a substitute already up, at 1/4 HP or less, or at 1
+    /// max HP; otherwise pays 1/4 of max HP for a decoy with that much HP.
+    fn make_substitute(&mut self, side: SideId) -> bool {
+        let pokemon = self.active(side);
+        let max_hp = pokemon.max_hp();
+        if pokemon.volatiles.substitute.is_some()
+            || u32::from(pokemon.hp) * 4 <= u32::from(max_hp)
+            || max_hp == 1
+        {
+            return false;
+        }
+        let cost = (max_hp / 4).max(1);
+        self.damage(side, u32::from(cost), DamageSource::Substitute);
+        self.active_mut(side).volatiles.substitute = Some(cost);
+        self.emit(Event::Start {
+            side,
+            volatile: VolatileStatus::Substitute,
+        });
+        true
     }
 
     fn can_set_status(&self, side: SideId, status: Status) -> bool {

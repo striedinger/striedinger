@@ -210,7 +210,7 @@ impl Engine<'_> {
             burned: move_data.category == MoveCategory::Physical
                 && attacker.status == Some(Status::Burn)
                 && !ignores_burn,
-            final_modifier: self.final_damage_modifier(side, target, context),
+            final_modifier: self.final_damage_modifier(side, target, context, critical),
         }
     }
 
@@ -234,9 +234,16 @@ impl Engine<'_> {
             .unwrap_or(STAB_MODIFIER)
     }
 
-    /// Showdown's `ModifyDamage` chain: the attacker's `modifyDamage` handlers, then the
-    /// defender's `sourceModifyDamage` handlers.
-    fn final_damage_modifier(&self, side: SideId, target: SideId, context: Context<'_>) -> u32 {
+    /// Showdown's `ModifyDamage` chain: the attacker's `modifyDamage` handlers, the
+    /// defender's `sourceModifyDamage` handlers, then screens on the defender's side, which
+    /// critical hits ignore.
+    fn final_damage_modifier(
+        &self,
+        side: SideId,
+        target: SideId,
+        context: Context<'_>,
+        critical: bool,
+    ) -> u32 {
         let dealt = self.chained(
             side,
             HandlerMask::MODIFY_DAMAGE,
@@ -261,7 +268,16 @@ impl Engine<'_> {
                 _ => None,
             },
         );
-        chain_modifiers([dealt, taken])
+        let category = context.move_data.map(|data| data.category);
+        let screens = self
+            .state
+            .side(target)
+            .conditions
+            .iter()
+            .filter_map(|condition| self.dex.side_condition(condition.id).screen)
+            .filter(|screen| !critical && Some(screen.category) == category)
+            .map(|screen| screen.modifier);
+        chain_modifiers([dealt, taken].into_iter().chain(screens))
     }
 
     /// Showdown's `getConfusionDamage`: a 40-power typeless hit that ignores every modifier

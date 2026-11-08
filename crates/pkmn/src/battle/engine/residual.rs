@@ -7,7 +7,7 @@
 //! handlers (28).
 
 use super::Engine;
-use crate::battle::events::{DamageSource, HealSource};
+use crate::battle::events::{DamageSource, Event, HealSource};
 use crate::battle::state::SideId;
 use crate::dex::{Handler, HandlerMask, Status};
 
@@ -26,9 +26,14 @@ impl Engine<'_> {
     pub(super) fn residual(&mut self) {
         let has_work = SideId::BOTH.map(|side| self.has_residual_work(side));
         let weather = self.state.field.weather.is_some();
-        if weather || has_work.iter().any(|&work| work) {
-            // Speed only decides anything when more than one creature has a handler.
-            let order = if weather || has_work == [true, true] {
+        let timed_conditions = self.state.sides.iter().any(|team| {
+            team.conditions
+                .iter()
+                .any(|condition| condition.duration.is_some())
+        });
+        if weather || timed_conditions || has_work.iter().any(|&work| work) {
+            // Speed only decides anything when more than one side has a handler.
+            let order = if weather || timed_conditions || has_work == [true, true] {
                 self.speed_order()
             } else {
                 SideId::BOTH
@@ -36,19 +41,56 @@ impl Engine<'_> {
             if self.weather_residual(order) {
                 return;
             }
-            for phase in [Phase::Heal, Phase::Poison, Phase::Burn, Phase::Boosts] {
+            for phase in [Phase::Heal, Phase::Poison, Phase::Burn] {
                 for side in order {
                     if has_work[side.index()] && self.residual_phase(side, phase) {
                         return;
                     }
                 }
             }
+            for side in order {
+                self.side_condition_residual(side);
+            }
+            for side in order {
+                if has_work[side.index()] && self.residual_phase(side, Phase::Boosts) {
+                    return;
+                }
+            }
         }
         for side in SideId::BOTH {
-            self.active_mut(side).volatiles.flinch = false;
+            let volatiles = &mut self.active_mut(side).volatiles;
+            volatiles.flinch = false;
+            volatiles.protect = false;
+            volatiles.stall = volatiles.stall.and_then(|stall| {
+                let duration = stall.duration.saturating_sub(1);
+                (duration > 0).then_some(crate::battle::state::Stall { duration, ..stall })
+            });
         }
         self.update();
         self.next_turn();
+    }
+
+    /// Counts down a side's timed conditions, such as screens (Showdown's
+    /// `onSideResidualOrder: 26`), and ends those that run out.
+    fn side_condition_residual(&mut self, side: SideId) {
+        let mut index = 0;
+        while index < self.state.side(side).conditions.len() {
+            let condition = &mut self.state.sides[side.index()].conditions[index];
+            let Some(duration) = condition.duration.as_mut() else {
+                index += 1;
+                continue;
+            };
+            *duration = duration.saturating_sub(1);
+            if *duration > 0 {
+                index += 1;
+                continue;
+            }
+            let ended = self.state.sides[side.index()].conditions.remove(index);
+            self.emit(Event::SideEnd {
+                side,
+                condition: ended.id,
+            });
+        }
     }
 
     /// Whether the creature has a residual handler: damaging status or a residual ability or
@@ -71,7 +113,7 @@ impl Engine<'_> {
         weather.duration = weather.duration.saturating_sub(1);
         if weather.duration == 0 {
             self.state.field.weather = None;
-            self.emit(crate::battle::events::Event::Weather { weather: None });
+            self.emit(Event::Weather { weather: None });
             return false;
         }
         self.state.field.weather = Some(weather);

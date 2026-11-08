@@ -532,7 +532,8 @@
       "accuracy": 100,
       "pp": 35,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -544,7 +545,8 @@
       "pp": 30,
       "priority": 1,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -556,7 +558,8 @@
       "pp": 15,
       "recoil": [33, 100],
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -568,7 +571,8 @@
       "pp": 20,
       "multihit": [2, 5],
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -620,7 +624,10 @@
       "category": "Status",
       "accuracy": 100,
       "pp": 10,
-      "volatileStatus": "confusion"
+      "volatileStatus": "confusion",
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Glare Down",
@@ -630,6 +637,9 @@
       "pp": 30,
       "boosts": {
         "atk": -1
+      },
+      "flags": {
+        "protect": 1
       }
     },
     {
@@ -640,7 +650,8 @@
       "accuracy": 100,
       "pp": 15,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       },
       "secondaries": [
         {
@@ -661,7 +672,10 @@
           "chance": 10,
           "status": "brn"
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Scorch Veil",
@@ -669,7 +683,10 @@
       "category": "Status",
       "accuracy": 85,
       "pp": 15,
-      "status": "brn"
+      "status": "brn",
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Sunny Call",
@@ -686,7 +703,10 @@
       "category": "Special",
       "basePower": 90,
       "accuracy": 100,
-      "pp": 15
+      "pp": 15,
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Aqua Lunge",
@@ -696,7 +716,8 @@
       "accuracy": 100,
       "pp": 10,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -715,7 +736,10 @@
       "basePower": 25,
       "accuracy": 100,
       "pp": 20,
-      "multihit": [2, 5]
+      "multihit": [2, 5],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Sap Siphon",
@@ -724,7 +748,10 @@
       "basePower": 75,
       "accuracy": 100,
       "pp": 10,
-      "drain": [1, 2]
+      "drain": [1, 2],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Spore Cloud",
@@ -732,7 +759,10 @@
       "category": "Status",
       "accuracy": 75,
       "pp": 15,
-      "status": "slp"
+      "status": "slp",
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Static Jolt",
@@ -746,7 +776,10 @@
           "chance": 10,
           "status": "par"
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Volt Snare",
@@ -755,7 +788,10 @@
       "accuracy": 90,
       "pp": 20,
       "ignoreImmunity": false,
-      "status": "par"
+      "status": "par",
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Frost Fang",
@@ -765,7 +801,8 @@
       "accuracy": 95,
       "pp": 15,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       },
       "secondaries": [
         {
@@ -790,7 +827,10 @@
           "chance": 10,
           "status": "frz"
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Snow Call",
@@ -809,7 +849,8 @@
       "accuracy": 100,
       "pp": 5,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       },
       "self": {
         "boosts": {
@@ -824,7 +865,10 @@
       "category": "Status",
       "accuracy": 90,
       "pp": 10,
-      "status": "tox"
+      "status": "tox",
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Sludge Spit",
@@ -838,7 +882,10 @@
           "chance": 30,
           "status": "psn"
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Tremor",
@@ -846,7 +893,10 @@
       "category": "Physical",
       "basePower": 100,
       "accuracy": 100,
-      "pp": 10
+      "pp": 10,
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Sand Call",
@@ -866,7 +916,8 @@
       "pp": 15,
       "recoil": [33, 100],
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -876,7 +927,10 @@
       "basePower": 75,
       "accuracy": 95,
       "pp": 15,
-      "critRatio": 2
+      "critRatio": 2,
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Mind Pulse",
@@ -892,7 +946,10 @@
             "spd": -1
           }
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Pincer Slash",
@@ -903,7 +960,8 @@
       "pp": 15,
       "critRatio": 2,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -918,7 +976,10 @@
           "chance": 30,
           "volatileStatus": "flinch"
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Shade Claw",
@@ -929,7 +990,8 @@
       "pp": 15,
       "critRatio": 2,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       }
     },
     {
@@ -946,7 +1008,10 @@
             "spd": -1
           }
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
     },
     {
       "name": "Wyrm Fang",
@@ -956,7 +1021,8 @@
       "accuracy": 100,
       "pp": 15,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       },
       "secondaries": [
         {
@@ -973,7 +1039,8 @@
       "accuracy": 100,
       "pp": 15,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       },
       "secondaries": [
         {
@@ -990,7 +1057,8 @@
       "accuracy": 90,
       "pp": 25,
       "flags": {
-        "contact": 1
+        "contact": 1,
+        "protect": 1
       },
       "secondaries": [
         {
@@ -1017,7 +1085,79 @@
             "spa": -1
           }
         }
-      ]
+      ],
+      "flags": {
+        "protect": 1
+      }
+    },
+    {
+      "name": "Brace Wall",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "priority": 4,
+      "target": "self",
+      "stallingMove": true,
+      "volatileStatus": "protect"
+    },
+    {
+      "name": "Stand-In",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "volatileStatus": "substitute"
+    },
+    {
+      "name": "Scatter Stones",
+      "type": "Rock",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Jagged Stones"
+    },
+    {
+      "name": "Sow Caltrops",
+      "type": "Ground",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Caltrops"
+    },
+    {
+      "name": "Raise Mirror Wall",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "allySide",
+      "sideCondition": "Mirror Wall"
+    },
+    {
+      "name": "Raise Prism Veil",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 30,
+      "target": "allySide",
+      "sideCondition": "Prism Veil"
+    },
+    {
+      "name": "Flit Strike",
+      "type": "Bug",
+      "category": "Physical",
+      "basePower": 70,
+      "accuracy": 100,
+      "pp": 20,
+      "flags": {
+        "contact": 1,
+        "protect": 1
+      },
+      "selfSwitch": true
     }
   ],
   "abilities": [
@@ -1347,6 +1487,42 @@
           "contactDamage": [1, 6]
         }
       ]
+    }
+  ],
+  "sideConditions": [
+    {
+      "name": "Jagged Stones",
+      "switchInDamage": {
+        "layers": [[1, 8]],
+        "type": "Rock"
+      }
+    },
+    {
+      "name": "Caltrops",
+      "switchInDamage": {
+        "layers": [
+          [1, 8],
+          [1, 6],
+          [1, 4]
+        ],
+        "groundedType": "Ground"
+      }
+    },
+    {
+      "name": "Mirror Wall",
+      "duration": 5,
+      "damageModifier": {
+        "category": "Physical",
+        "modifier": [1, 2]
+      }
+    },
+    {
+      "name": "Prism Veil",
+      "duration": 5,
+      "damageModifier": {
+        "category": "Special",
+        "modifier": [1, 2]
+      }
     }
   ]
 }

@@ -18,8 +18,8 @@ pub use handlers::{
 };
 pub use source::{
     AbilitySource, Accuracy, DexSource, ItemSource, MoveFlags, MoveSource, Multihit, NatureSource,
-    SecondarySource, SelfEffectSource, SpeciesSource, TypeSource, WeatherDefenseBoostSource,
-    WeatherSource,
+    ScreenSource, SecondarySource, SelfEffectSource, SideConditionSource, SpeciesSource,
+    SwitchInDamageSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
@@ -72,6 +72,10 @@ id_type!(
 id_type!(
     /// Identifies an item within a [`Dex`].
     ItemId(u16)
+);
+id_type!(
+    /// Identifies a side condition within a [`Dex`].
+    SideConditionId(u8)
 );
 
 /// A ratio written as `[numerator, denominator]` in data files.
@@ -187,6 +191,11 @@ pub enum VolatileStatus {
     Confusion,
     /// Flinch: cannot move for the rest of the turn.
     Flinch,
+    /// Protect: moves with the `protect` flag fail against it for the rest of the turn.
+    Protect,
+    /// Substitute: the user pays 1/4 of its max HP for a decoy with that much HP that takes
+    /// hits in its place.
+    Substitute,
 }
 
 /// A move's category.
@@ -210,6 +219,12 @@ pub enum MoveTarget {
     /// `self`: the user. Never misses.
     #[serde(rename = "self")]
     User,
+    /// `foeSide`: the opposing side, for entry hazards.
+    #[serde(rename = "foeSide")]
+    FoeSide,
+    /// `allySide`: the user's side, for screens.
+    #[serde(rename = "allySide")]
+    AllySide,
 }
 
 /// How many times a move strikes.
@@ -219,6 +234,15 @@ pub struct HitRange {
     pub min: u8,
     /// The most hits.
     pub max: u8,
+}
+
+/// Damage a move's user takes after hitting.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Recoil {
+    /// A fraction of the damage dealt, rounded (Showdown's `recoil`).
+    DamageDealt(Fraction),
+    /// A quarter of the user's max HP, rounded (Showdown's `struggleRecoil`).
+    Struggle,
 }
 
 /// Effects applied to a move's target: its primary effects, or a secondary's.
@@ -284,6 +308,49 @@ pub struct WeatherDefenseBoost {
     pub modifier: u32,
 }
 
+/// A compiled side condition.
+#[derive(Clone, Debug)]
+pub struct SideConditionData {
+    /// Display name.
+    pub name: String,
+    /// Turns it lasts; `None` lasts until the battle ends.
+    pub duration: Option<u8>,
+    /// Damage to creatures switching in.
+    pub switch_in_damage: Option<SwitchInDamage>,
+    /// Damage reduction for one category.
+    pub screen: Option<Screen>,
+}
+
+impl SideConditionData {
+    /// How many times it can be set, stacking a layer each time.
+    #[must_use]
+    pub fn max_layers(&self) -> u8 {
+        self.switch_in_damage.as_ref().map_or(1, |damage| {
+            u8::try_from(damage.layers.len()).unwrap_or(u8::MAX)
+        })
+    }
+}
+
+/// A compiled hazard's switch-in damage.
+#[derive(Clone, Debug)]
+pub struct SwitchInDamage {
+    /// Fraction of max HP by layer count, starting at one layer.
+    pub layers: Vec<Fraction>,
+    /// The type whose effectiveness scales the damage.
+    pub type_id: Option<TypeId>,
+    /// Only creatures not immune to this type take damage.
+    pub grounded_type: Option<TypeId>,
+}
+
+/// A compiled screen.
+#[derive(Clone, Copy, Debug)]
+pub struct Screen {
+    /// The category it weakens.
+    pub category: MoveCategory,
+    /// The 4096-based modifier for non-critical hits.
+    pub modifier: u32,
+}
+
 /// A compiled nature.
 #[derive(Clone, Debug)]
 pub struct NatureData {
@@ -331,10 +398,8 @@ pub struct MoveData {
     pub multihit: HitRange,
     /// Fraction of damage dealt restored to the user.
     pub drain: Option<Fraction>,
-    /// Fraction of damage dealt taken as recoil.
-    pub recoil: Option<Fraction>,
-    /// Whether the user loses 1/4 of its max HP after hitting.
-    pub struggle_recoil: bool,
+    /// Damage the user takes after hitting.
+    pub recoil: Option<Recoil>,
     /// Move flags.
     pub flags: MoveFlags,
     /// Whether type immunities are ignored.
@@ -349,6 +414,12 @@ pub struct MoveData {
     pub self_boosts: Option<Boosts>,
     /// Chance-based effects.
     pub secondaries: Vec<Secondary>,
+    /// The side condition it sets.
+    pub side_condition: Option<SideConditionId>,
+    /// Whether it is a Protect-like stalling move.
+    pub stalling_move: bool,
+    /// Whether the user switches out after it works.
+    pub self_switch: bool,
 }
 
 impl MoveData {
@@ -382,6 +453,7 @@ pub struct Dex {
     moves: Vec<MoveData>,
     abilities: Vec<AbilityData>,
     items: Vec<ItemData>,
+    side_conditions: Vec<SideConditionData>,
     type_ids: NameMap<TypeId>,
     weather_ids: NameMap<WeatherId>,
     nature_ids: NameMap<NatureId>,
@@ -389,6 +461,7 @@ pub struct Dex {
     move_ids: NameMap<MoveId>,
     ability_ids: NameMap<AbilityId>,
     item_ids: NameMap<ItemId>,
+    side_condition_ids: NameMap<SideConditionId>,
     struggle: MoveId,
 }
 
@@ -471,6 +544,7 @@ impl Dex {
             moves: Vec::new(),
             abilities: Vec::new(),
             items: Vec::new(),
+            side_conditions: Vec::new(),
             type_ids: NameMap::default(),
             weather_ids: NameMap::default(),
             nature_ids: NameMap::default(),
@@ -478,6 +552,7 @@ impl Dex {
             move_ids: NameMap::default(),
             ability_ids: NameMap::default(),
             item_ids: NameMap::default(),
+            side_condition_ids: NameMap::default(),
             struggle: MoveId(0),
         };
         for type_source in &source.types {
@@ -493,6 +568,9 @@ impl Dex {
         }
         for species in &source.species {
             dex.compile_species(species)?;
+        }
+        for condition in &source.side_conditions {
+            dex.compile_side_condition(condition)?;
         }
         for move_source in &source.moves {
             dex.compile_move(move_source)?;
@@ -623,6 +701,59 @@ impl Dex {
         Ok(())
     }
 
+    fn compile_side_condition(&mut self, source: &SideConditionSource) -> Result<(), DexError> {
+        let id = SideConditionId::from_index(self.side_conditions.len())
+            .ok_or(DexError::TooMany("side conditions"))?;
+        insert_unique(
+            &mut self.side_condition_ids,
+            "side condition",
+            &source.name,
+            id,
+        )?;
+        let name = source.name.as_str();
+        if source.duration == Some(0) {
+            return Err(DexError::invalid(name, "must last at least one turn"));
+        }
+        let switch_in_damage = match &source.switch_in_damage {
+            None => None,
+            Some(damage) => {
+                if damage.layers.is_empty() {
+                    return Err(DexError::invalid(
+                        name,
+                        "switchInDamage needs at least one layer",
+                    ));
+                }
+                for &fraction in &damage.layers {
+                    validate_fraction(fraction, name)?;
+                }
+                let resolve = |type_name: Option<&str>| {
+                    type_name
+                        .map(|type_name| self.resolve_type(type_name, name))
+                        .transpose()
+                };
+                Some(SwitchInDamage {
+                    layers: damage.layers.clone(),
+                    type_id: resolve(damage.type_name.as_deref())?,
+                    grounded_type: resolve(damage.grounded_type.as_deref())?,
+                })
+            }
+        };
+        let screen = match &source.damage_modifier {
+            None => None,
+            Some(screen) => Some(Screen {
+                category: screen.category,
+                modifier: validate_fraction(screen.modifier, name)?.to_modifier(),
+            }),
+        };
+        self.side_conditions.push(SideConditionData {
+            name: source.name.clone(),
+            duration: source.duration,
+            switch_in_damage,
+            screen,
+        });
+        Ok(())
+    }
+
     fn compile_nature(&mut self, source: &NatureSource) -> Result<(), DexError> {
         let id = NatureId::from_index(self.natures.len()).ok_or(DexError::TooMany("natures"))?;
         insert_unique(&mut self.nature_ids, "nature", &source.name, id)?;
@@ -720,8 +851,11 @@ impl Dex {
             crit_ratio: source.crit_ratio,
             multihit,
             drain: source.drain,
-            recoil: source.recoil,
-            struggle_recoil: source.struggle_recoil,
+            recoil: if source.struggle_recoil {
+                Some(Recoil::Struggle)
+            } else {
+                source.recoil.map(Recoil::DamageDealt)
+            },
             flags: source.flags,
             ignore_immunity: source.ignore_immunity.unwrap_or(!damaging),
             primary,
@@ -729,6 +863,15 @@ impl Dex {
             heal: source.heal,
             self_boosts,
             secondaries,
+            side_condition: source
+                .side_condition
+                .as_deref()
+                .map(|condition| {
+                    resolve(&self.side_condition_ids, "side condition", condition, name)
+                })
+                .transpose()?,
+            stalling_move: source.stalling_move,
+            self_switch: source.self_switch,
         });
         Ok(id)
     }
@@ -769,6 +912,24 @@ impl Dex {
     #[must_use]
     pub fn move_data(&self, id: MoveId) -> &MoveData {
         &self.moves[id.index()]
+    }
+
+    /// Returns a side condition. Panics if the ID is not from this dex.
+    #[must_use]
+    pub fn side_condition(&self, id: SideConditionId) -> &SideConditionData {
+        &self.side_conditions[id.index()]
+    }
+
+    /// Looks up a side condition by name.
+    #[must_use]
+    pub fn side_condition_id(&self, name: &str) -> Option<SideConditionId> {
+        lookup(&self.side_condition_ids, name)
+    }
+
+    /// The number of side conditions.
+    #[must_use]
+    pub fn side_condition_count(&self) -> usize {
+        self.side_conditions.len()
     }
 
     /// Returns an ability. Panics if the ID is not from this dex.
@@ -908,7 +1069,10 @@ fn built_in_struggle() -> MoveSource {
         drain: None,
         recoil: None,
         struggle_recoil: true,
-        flags: MoveFlags { contact: true },
+        flags: MoveFlags {
+            contact: true,
+            protect: true,
+        },
         ignore_immunity: None,
         boosts: None,
         status: None,
@@ -917,6 +1081,9 @@ fn built_in_struggle() -> MoveSource {
         heal: None,
         self_effect: None,
         secondaries: Vec::new(),
+        side_condition: None,
+        stalling_move: false,
+        self_switch: false,
     }
 }
 
@@ -924,6 +1091,13 @@ fn built_in_struggle() -> MoveSource {
 fn validate_move_shape(source: &MoveSource) -> Result<HitRange, DexError> {
     let name = source.name.as_str();
     let damaging = source.category != MoveCategory::Status;
+    let targets_side = matches!(source.target, MoveTarget::FoeSide | MoveTarget::AllySide);
+    if targets_side != source.side_condition.is_some() || (targets_side && damaging) {
+        return Err(DexError::invalid(
+            name,
+            "a sideCondition needs a foeSide or allySide status move, and those need one",
+        ));
+    }
     if damaging && source.base_power == 0 {
         return Err(DexError::invalid(name, "damaging moves need basePower"));
     }

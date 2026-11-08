@@ -14,16 +14,9 @@ use std::cmp::Ordering;
 
 use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
-use super::state::{BattleState, Outcome, Pokemon, SideId, Volatiles, WeatherState};
+use super::state::{BattleState, Outcome, Pokemon, QueuedAction, SideId, Volatiles, WeatherState};
 use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
 use crate::stats::{BoostStat, Boosts, saturate_u16};
-
-#[derive(Clone, Copy, Debug)]
-enum Action {
-    Switch(usize),
-    /// A move slot, or `None` for Struggle.
-    Move(Option<usize>),
-}
 
 /// Creatures whose HP reached zero, in order, until the next faint check. At most both
 /// actives can be queued between checks.
@@ -124,7 +117,11 @@ impl<'a> Engine<'a> {
     /// Runs validated choices: replacements between turns, or a full turn.
     pub fn run(&mut self, choices: [Choice; 2]) {
         if !self.state.awaiting_switch() {
-            self.run_turn(choices);
+            let queue = [
+                self.action_for(SideId::P1, choices[0]),
+                self.action_for(SideId::P2, choices[1]),
+            ];
+            self.continue_turn(queue);
             return;
         }
         let mut switched = [None; 2];
@@ -139,26 +136,28 @@ impl<'a> Engine<'a> {
             return;
         }
         self.update();
-        self.next_turn();
+        // A mid-turn switch (after a move like U-turn) resumes the paused turn.
+        match self.state.queue.take() {
+            Some(queue) => self.continue_turn(queue),
+            None => self.next_turn(),
+        }
     }
 
-    fn action_for(&self, side: SideId, choice: Choice) -> Option<Action> {
+    fn action_for(&self, side: SideId, choice: Choice) -> Option<QueuedAction> {
         match choice {
-            Choice::Switch(slot) => Some(Action::Switch(slot)),
+            Choice::Switch(slot) => Some(QueuedAction::Switch(slot)),
             // A validated move choice that is not selectable can only be Struggle's slot 0.
             Choice::Move(slot) if self.active(side).can_select_move(self.dex, slot) => {
-                Some(Action::Move(Some(slot)))
+                Some(QueuedAction::Move(Some(slot)))
             }
-            Choice::Move(_) => Some(Action::Move(None)),
+            Choice::Move(_) => Some(QueuedAction::Move(None)),
             Choice::Pass => None,
         }
     }
 
-    fn run_turn(&mut self, choices: [Choice; 2]) {
-        let mut queue = [
-            self.action_for(SideId::P1, choices[0]),
-            self.action_for(SideId::P2, choices[1]),
-        ];
+    /// Runs queued actions until the turn ends, the battle ends, or a side must switch
+    /// mid-turn, in which case the rest of the queue waits in the state.
+    fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; 2]) {
         // The next actor is picked from the remaining actions each time, re-reading speed after
         // every action as Generation 8 onward does.
         while let Some(side) = self.next_actor(&queue) {
@@ -166,13 +165,14 @@ impl<'a> Engine<'a> {
                 break;
             };
             match action {
-                Action::Switch(slot) => {
+                QueuedAction::Switch(slot) => {
                     self.switch_in(side, slot);
                     self.run_switch_in([side]);
                 }
-                Action::Move(slot) => {
+                QueuedAction::Move(slot) => {
                     if !self.active(side).is_fainted() {
-                        self.run_move(side, slot);
+                        let foe_will_act = queue[side.foe().index()].is_some();
+                        self.run_move(side, slot, foe_will_act);
                     }
                 }
             }
@@ -180,23 +180,27 @@ impl<'a> Engine<'a> {
                 return;
             }
             self.update();
+            if self.state.sides.iter().any(|team| team.switch_flag) {
+                self.state.queue = Some(queue);
+                return;
+            }
         }
         self.residual();
     }
 
-    fn priority(&self, side: SideId, action: Action) -> i8 {
+    fn priority(&self, side: SideId, action: QueuedAction) -> i8 {
         let move_id = match action {
-            Action::Move(Some(slot)) => match self.active(side).move_slots[slot] {
+            QueuedAction::Move(Some(slot)) => match self.active(side).move_slots[slot] {
                 Some(move_slot) => move_slot.id,
                 None => return 0,
             },
-            Action::Move(None) => self.dex.struggle(),
-            Action::Switch(_) => return 0,
+            QueuedAction::Move(None) => self.dex.struggle(),
+            QueuedAction::Switch(_) => return 0,
         };
         self.dex.move_data(move_id).priority
     }
 
-    fn next_actor(&mut self, queue: &[Option<Action>; 2]) -> Option<SideId> {
+    fn next_actor(&mut self, queue: &[Option<QueuedAction>; 2]) -> Option<SideId> {
         match (queue[0], queue[1]) {
             (None, None) => None,
             (Some(_), None) => Some(SideId::P1),
@@ -204,7 +208,7 @@ impl<'a> Engine<'a> {
             (Some(first), Some(second)) => {
                 let key = |engine: &Self, side, action| {
                     (
-                        matches!(action, Action::Switch(_)),
+                        matches!(action, QueuedAction::Switch(_)),
                         engine.priority(side, action),
                     )
                 };
@@ -267,6 +271,7 @@ impl<'a> Engine<'a> {
         outgoing.volatiles = Volatiles::default();
         let team = &mut self.state.sides[side.index()];
         team.active = slot;
+        team.switch_flag = false;
         let incoming = team.active_mut();
         incoming.active_turns = 0;
         incoming.status_state.stage = 0;
@@ -283,6 +288,12 @@ impl<'a> Engine<'a> {
             [true, true] => self.speed_order(),
             _ => SideId::BOTH,
         };
+        // Entry hazards land before abilities, so a creature they knock out never starts.
+        for side in order {
+            if entering[side.index()] {
+                self.entry_hazards(side);
+            }
+        }
         for side in order {
             if !entering[side.index()]
                 || self.active(side).is_fainted()
@@ -300,7 +311,8 @@ impl<'a> Engine<'a> {
                     }
                     Handler::StartFoeBoosts(boosts) => {
                         let foe = side.foe();
-                        if !self.active(foe).is_fainted() {
+                        let foe_pokemon = self.active(foe);
+                        if !foe_pokemon.is_fainted() && foe_pokemon.volatiles.substitute.is_none() {
                             self.announce(side, effect);
                             self.boost(foe, *boosts);
                         }
@@ -308,6 +320,51 @@ impl<'a> Engine<'a> {
                     _ => {}
                 }
             }
+        }
+    }
+
+    /// Damage from the side's entry hazards to a creature that just switched in.
+    fn entry_hazards(&mut self, side: SideId) {
+        let dex = self.dex;
+        for index in 0..self.state.side(side).conditions.len() {
+            let condition = self.state.side(side).conditions[index];
+            let Some(hazard) = &dex.side_condition(condition.id).switch_in_damage else {
+                continue;
+            };
+            let pokemon = self.active(side);
+            if pokemon.is_fainted() {
+                return;
+            }
+            if let Some(grounded_type) = hazard.grounded_type {
+                let immune_by_handler = self.mask(side).intersects(HandlerMask::TRY_HIT)
+                    && self
+                        .handlers(side)
+                        .any(|(_, handler)| *handler == Handler::Immunity(grounded_type));
+                if immune_by_handler || dex.type_modifier(grounded_type, pokemon.types()).is_none()
+                {
+                    continue;
+                }
+            }
+            let layer = usize::from(condition.layers.max(1)) - 1;
+            let fraction = hazard.layers[layer.min(hazard.layers.len() - 1)];
+            // Showdown ignores immunities here: `runEffectiveness`, clamped to ±6.
+            let effectiveness = hazard.type_id.map_or(0, |type_id| {
+                pokemon
+                    .types()
+                    .map(|defender| dex.type_modifier(type_id, [defender]).unwrap_or(0))
+                    .sum::<i8>()
+                    .clamp(-6, 6)
+            });
+            let scaled = u64::from(pokemon.max_hp()) * u64::from(fraction.numerator);
+            let divisor = u64::from(fraction.denominator);
+            let shift = u32::from(effectiveness.unsigned_abs());
+            let amount = if effectiveness >= 0 {
+                (scaled << shift) / divisor
+            } else {
+                scaled / (divisor << shift)
+            };
+            let amount = u32::try_from(amount).unwrap_or(u32::MAX).max(1);
+            self.damage(side, amount, DamageSource::Hazard(condition.id));
         }
     }
 

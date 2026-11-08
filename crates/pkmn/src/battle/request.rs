@@ -105,7 +105,7 @@ pub(crate) fn request(dex: &Dex, state: &BattleState, side: SideId) -> Option<Re
     }
     let team = state.side(side);
     if state.awaiting_switch() {
-        return Some(if team.must_switch() {
+        return Some(if state.must_switch(side) {
             Request::ForceSwitch {
                 switches: team.switches().collect(),
             }
@@ -150,7 +150,7 @@ pub(crate) fn choices<'a>(
     let team = state.side(side);
     let over = state.outcome.is_some();
     let switching = !over && state.awaiting_switch();
-    let must_switch = switching && team.must_switch();
+    let must_switch = switching && state.must_switch(side);
     let choosing_moves = !over && !switching;
     let selectable = if choosing_moves {
         team.active().choosable_moves(dex)
@@ -186,7 +186,7 @@ pub(crate) fn validate(
     }
     let team = state.side(side);
     if state.awaiting_switch() {
-        return match (team.must_switch(), choice) {
+        return match (state.must_switch(side), choice) {
             (true, Choice::Switch(slot)) if team.can_switch_to(slot) => Ok(()),
             (true, Choice::Switch(_)) => reject(ChoiceErrorReason::InvalidSwitch),
             (false, Choice::Pass) => Ok(()),

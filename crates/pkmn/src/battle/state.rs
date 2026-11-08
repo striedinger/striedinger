@@ -4,7 +4,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::dex::{
-    AbilityId, Dex, HandlerMask, ItemId, MoveCategory, MoveId, SpeciesId, Status, TypeId, WeatherId,
+    AbilityId, Dex, HandlerMask, ItemId, MoveCategory, MoveId, SideConditionId, SpeciesId, Status,
+    TypeId, WeatherId,
 };
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
@@ -59,6 +60,45 @@ pub struct Volatiles {
     pub flinch: bool,
     /// The move slot a choice item has locked it into (Showdown's `choicelock`).
     pub choice_lock: Option<u8>,
+    /// Whether Protect is up for the rest of the turn.
+    pub protect: bool,
+    /// The consecutive-Protect counter (Showdown's `stall`).
+    pub stall: Option<Stall>,
+    /// The substitute's remaining HP.
+    pub substitute: Option<u16>,
+}
+
+/// Showdown's `stall` volatile: a Protect-like move made in the last two turns succeeds only
+/// with chance `1 / counter`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Stall {
+    /// 3 after the first success, tripling with each consecutive one up to 729.
+    pub counter: u16,
+    /// End-of-turn checks left before it expires.
+    pub duration: u8,
+}
+
+/// A condition on one side of the field and its state, like Showdown's `sideConditions`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SideConditionState {
+    /// The condition.
+    pub id: SideConditionId,
+    /// Layers set, for hazards that stack.
+    pub layers: u8,
+    /// End-of-turn checks left, for conditions that expire.
+    pub duration: Option<u8>,
+}
+
+/// An action still to run this turn, kept while the turn waits for a mid-turn switch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum QueuedAction {
+    /// Switch to the creature in this team slot.
+    Switch(usize),
+    /// Use the move in this slot, or Struggle.
+    Move(Option<usize>),
 }
 
 /// A known move and its remaining PP, like Showdown's `moveSlots`.
@@ -214,6 +254,13 @@ pub struct Side {
     pub team: Vec<Pokemon>,
     /// The index of the active creature in `team`.
     pub active: usize,
+    /// Conditions on this side, such as entry hazards and screens.
+    #[serde(default)]
+    pub conditions: Vec<SideConditionState>,
+    /// Whether the active creature must switch out mid-turn after a move like U-turn
+    /// (Showdown's `switchFlag`).
+    #[serde(default)]
+    pub switch_flag: bool,
 }
 
 impl Side {
@@ -250,8 +297,14 @@ impl Side {
 
     /// Whether the active creature fainted and a replacement must switch in.
     #[must_use]
-    pub fn must_switch(&self) -> bool {
+    pub fn must_replace(&self) -> bool {
         self.active().is_fainted() && self.switches().next().is_some()
+    }
+
+    /// The state of a condition on this side, if it is present.
+    #[must_use]
+    pub fn condition(&self, id: SideConditionId) -> Option<&SideConditionState> {
+        self.conditions.iter().find(|condition| condition.id == id)
     }
 }
 
@@ -298,6 +351,9 @@ pub struct BattleState {
     pub field: Field,
     /// The result, once the battle has ended.
     pub outcome: Option<Outcome>,
+    /// The rest of a turn paused for a mid-turn switch, by side.
+    #[serde(default)]
+    pub queue: Option<[Option<QueuedAction>; 2]>,
 }
 
 impl BattleState {
@@ -313,10 +369,21 @@ impl BattleState {
         self.side(side).active()
     }
 
-    /// Whether either side must switch in a replacement before the next turn, which is when
-    /// Showdown sends a `forceSwitch` request.
+    /// Whether `side` must switch now, which is when Showdown sends it a `forceSwitch`
+    /// request. A mid-turn switch flag takes precedence: replacements for fainted creatures
+    /// wait for the end of the turn.
+    #[must_use]
+    pub fn must_switch(&self, side: SideId) -> bool {
+        if self.sides.iter().any(|team| team.switch_flag) {
+            self.side(side).switch_flag
+        } else {
+            self.side(side).must_replace()
+        }
+    }
+
+    /// Whether either side must switch before the battle can go on.
     #[must_use]
     pub fn awaiting_switch(&self) -> bool {
-        self.sides.iter().any(Side::must_switch)
+        SideId::BOTH.into_iter().any(|side| self.must_switch(side))
     }
 }

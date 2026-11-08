@@ -140,11 +140,33 @@ fn print_events(dex: &Dex, events: &[Event]) {
     }
 }
 
+fn effect_name(dex: &Dex, effect: Effect) -> &str {
+    match effect {
+        Effect::Ability(id) => &dex.ability(id).name,
+        Effect::Item(id) => &dex.item(id).name,
+    }
+}
+
+fn damage_source(dex: &Dex, from: DamageSource) -> String {
+    match from {
+        DamageSource::Move => String::new(),
+        DamageSource::Status(status) => format!(" from {}", status.id()),
+        DamageSource::Weather(weather) => format!(" from {}", dex.weather(weather).name),
+        DamageSource::Effect(effect) => format!(" from {}", effect_name(dex, effect)),
+        DamageSource::Hazard(condition) => format!(" from {}", dex.side_condition(condition).name),
+        other => format!(" from {other:?}"),
+    }
+}
+
+fn heal_source(dex: &Dex, from: HealSource) -> String {
+    match from {
+        HealSource::Drain => " by draining".to_owned(),
+        HealSource::Move => String::new(),
+        HealSource::Effect(effect) => format!(" from {}", effect_name(dex, effect)),
+    }
+}
+
 fn describe(dex: &Dex, event: &Event) -> String {
-    let effect_name = |effect: &Effect| match effect {
-        Effect::Ability(id) => dex.ability(*id).name.as_str(),
-        Effect::Item(id) => dex.item(*id).name.as_str(),
-    };
     let side = |side: &SideId| match side {
         SideId::P1 => "P1",
         SideId::P2 => "P2",
@@ -177,29 +199,21 @@ fn describe(dex: &Dex, event: &Event) -> String {
             amount,
             hp,
             from,
-        } => {
-            let source = match from {
-                DamageSource::Move => String::new(),
-                DamageSource::Status(status) => format!(" from {}", status.id()),
-                DamageSource::Weather(weather) => format!(" from {}", dex.weather(*weather).name),
-                DamageSource::Effect(effect) => format!(" from {}", effect_name(effect)),
-                other => format!(" from {other:?}"),
-            };
-            format!("{} lost {amount} HP{source} ({hp} left)", side(who))
-        }
+        } => format!(
+            "{} lost {amount} HP{} ({hp} left)",
+            side(who),
+            damage_source(dex, *from)
+        ),
         Event::Heal {
             side: who,
             amount,
             hp,
             from,
-        } => {
-            let source = match from {
-                HealSource::Drain => " by draining".to_owned(),
-                HealSource::Move => String::new(),
-                HealSource::Effect(effect) => format!(" from {}", effect_name(effect)),
-            };
-            format!("{} restored {amount} HP{source} ({hp} now)", side(who))
-        }
+        } => format!(
+            "{} restored {amount} HP{} ({hp} now)",
+            side(who),
+            heal_source(dex, *from)
+        ),
         Event::HitCount { hits } => format!("Hit {hits} time(s)!"),
         Event::Status { side: who, status } => format!("{} got {}!", side(who), status.id()),
         Event::CureStatus { side: who, status } => {
@@ -233,6 +247,22 @@ fn describe(dex: &Dex, event: &Event) -> String {
         Event::EndItem { side: who, item } => {
             format!("{} used up its {}", side(who), dex.item(*item).name)
         }
+        Event::SideStart {
+            side: who,
+            condition,
+        } => format!(
+            "{} now covers {}'s side.",
+            dex.side_condition(*condition).name,
+            side(who)
+        ),
+        Event::SideEnd {
+            side: who,
+            condition,
+        } => format!(
+            "{} wore off on {}'s side.",
+            dex.side_condition(*condition).name,
+            side(who)
+        ),
         Event::Faint { side: who } => format!("{} fainted!", side(who)),
         Event::Win { side: who } => format!("\n{} wins!", side(who)),
         Event::Tie => "\nIt's a tie!".to_owned(),

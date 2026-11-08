@@ -31,6 +31,52 @@ pub struct DexSource {
     /// Items.
     #[serde(default)]
     pub items: Vec<ItemSource>,
+    /// Side conditions: entry hazards and screens.
+    #[serde(default)]
+    pub side_conditions: Vec<SideConditionSource>,
+}
+
+/// A condition on one side of the field, like Showdown's `sideConditions`.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SideConditionSource {
+    /// Display name, also used to reference the condition.
+    pub name: String,
+    /// Turns it lasts; omitted lasts until the battle ends.
+    #[serde(default)]
+    pub duration: Option<u8>,
+    /// Damage to each creature that switches in on this side, like Stealth Rock or Spikes.
+    #[serde(default)]
+    pub switch_in_damage: Option<SwitchInDamageSource>,
+    /// Halves (or otherwise scales) damage of one category against this side, like Reflect.
+    #[serde(default)]
+    pub damage_modifier: Option<ScreenSource>,
+}
+
+/// Damage a hazard deals to a creature switching in.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SwitchInDamageSource {
+    /// Fraction of max HP by layer count: setting the hazard again adds a layer, up to this
+    /// list's length.
+    pub layers: Vec<Fraction>,
+    /// Scales the damage by this type's effectiveness against the creature, like Stealth Rock.
+    #[serde(default, rename = "type")]
+    pub type_name: Option<String>,
+    /// Only grounded creatures take damage: those not immune to this type (by the type chart
+    /// or an `immunity` handler), as Showdown's `isGrounded` does for Ground.
+    #[serde(default)]
+    pub grounded_type: Option<String>,
+}
+
+/// A screen's damage reduction.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ScreenSource {
+    /// The category of moves it weakens.
+    pub category: MoveCategory,
+    /// The multiplier for non-critical hits.
+    pub modifier: Fraction,
 }
 
 /// A type, described like Showdown's `TypeChart` entries: how much damage it takes.
@@ -186,6 +232,16 @@ pub struct MoveSource {
     /// Chance-based effects, each rolled separately.
     #[serde(default)]
     pub secondaries: Vec<SecondarySource>,
+    /// A side condition, by name, set on the side the move targets (`foeSide` or `allySide`).
+    #[serde(default)]
+    pub side_condition: Option<String>,
+    /// A Protect-like move: fails if the user moves last, and succeeds with falling odds when
+    /// used on consecutive turns.
+    #[serde(default)]
+    pub stalling_move: bool,
+    /// After the move works, the user switches out, like U-turn.
+    #[serde(default)]
+    pub self_switch: bool,
 }
 
 fn default_crit_ratio() -> u8 {
@@ -209,6 +265,9 @@ pub struct MoveFlags {
     /// The move makes contact.
     #[serde(default, deserialize_with = "deserialize_flag")]
     pub contact: bool,
+    /// Protect blocks the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub protect: bool,
 }
 
 /// Effects on the move's user.

@@ -295,5 +295,10 @@ pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result
                 .map_err(|reason| team_error(Some(slot), reason))
         })
         .collect::<Result<_, _>>()?;
-    Ok(Side { team, active: 0 })
+    Ok(Side {
+        team,
+        active: 0,
+        conditions: Vec::new(),
+        switch_flag: false,
+    })
 }

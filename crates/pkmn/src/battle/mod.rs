@@ -14,8 +14,8 @@ pub use damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
 pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, MoveOption, Request};
 pub use state::{
-    BattleState, Field, MAX_MOVES, MoveSlot, Outcome, Pokemon, Side, SideId, StatusState,
-    Volatiles, WeatherState,
+    BattleState, Field, MAX_MOVES, MoveSlot, Outcome, Pokemon, QueuedAction, Side,
+    SideConditionState, SideId, Stall, StatusState, Volatiles, WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -54,6 +54,7 @@ impl Battle {
                 sides,
                 field: Field::default(),
                 outcome: None,
+                queue: None,
             },
             events: Vec::with_capacity(64),
         };
@@ -166,12 +167,32 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
     {
         return invalid("unknown weather");
     }
+    let queued_slot_is_valid = |side: &Side, action: &QueuedAction| match *action {
+        QueuedAction::Switch(slot) => slot < side.team.len(),
+        QueuedAction::Move(slot) => slot.is_none_or(|slot| slot < MAX_MOVES),
+    };
+    if let Some(queue) = &state.queue
+        && queue.iter().zip(&state.sides).any(|(action, side)| {
+            action
+                .as_ref()
+                .is_some_and(|action| !queued_slot_is_valid(side, action))
+        })
+    {
+        return invalid("a queued action names a slot that does not exist");
+    }
     for side in &state.sides {
         if side.team.is_empty() || side.team.len() > MAX_TEAM_SIZE {
             return invalid("a team must have one to six members");
         }
         if side.active >= side.team.len() {
             return invalid("the active slot is outside the team");
+        }
+        if side.conditions.iter().any(|condition| {
+            condition.id.index() >= dex.side_condition_count()
+                || condition.layers == 0
+                || condition.layers > dex.side_condition(condition.id).max_layers()
+        }) {
+            return invalid("unknown side condition or impossible layer count");
         }
         for pokemon in &side.team {
             if pokemon.species.index() >= dex.species_count() {

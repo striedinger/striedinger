@@ -4,7 +4,9 @@
 use serde::{Deserialize, Serialize};
 
 use super::state::SideId;
-use crate::dex::{AbilityId, ItemId, MoveId, SpeciesId, Status, VolatileStatus, WeatherId};
+use crate::dex::{
+    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, VolatileStatus, WeatherId,
+};
 use crate::stats::BoostStat;
 
 /// Something that happened in battle, in order. Frontends render these; the engine never
@@ -154,6 +156,20 @@ pub enum Event {
         /// The new weather.
         weather: Option<WeatherId>,
     },
+    /// `-sidestart`: a side condition began, or gained a layer.
+    SideStart {
+        /// The side it is on.
+        side: SideId,
+        /// The condition.
+        condition: SideConditionId,
+    },
+    /// `-sideend`: a side condition ended.
+    SideEnd {
+        /// The side it was on.
+        side: SideId,
+        /// The condition.
+        condition: SideConditionId,
+    },
     /// `-ability`: an ability took effect; the events it caused follow.
     Ability {
         /// The holder's side.
@@ -227,6 +243,10 @@ pub enum DamageSource {
     Status(Status),
     /// `[from] <weather>`.
     Weather(WeatherId),
+    /// An entry hazard on switching in.
+    Hazard(SideConditionId),
+    /// The HP paid to put up a substitute.
+    Substitute,
     /// `[from] ability: ...` or `[from] item: ...`.
     Effect(Effect),
 }
