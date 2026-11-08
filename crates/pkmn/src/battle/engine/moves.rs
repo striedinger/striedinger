@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use super::Engine;
 use super::Positions;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{LockedMove, Position, SideConditionState, SideId, Stall};
+use crate::battle::state::{GameType, LockedMove, Position, SideConditionState, SideId, Stall};
 use crate::battle::state::{MAX_MOVES, MAX_POSITIONS};
 use crate::dex::{
     CallsMove, Handler, HandlerMask, MoveData, MoveEffect, MoveId, MoveTarget, Recoil, Status,
@@ -138,11 +138,7 @@ impl Engine<'_> {
             };
         }
         let (worked, reached_target, target) = match move_data.target {
-            MoveTarget::FoeSide => (
-                self.side_condition_move(side, side.side.foe(), move_data),
-                false,
-                None,
-            ),
+            MoveTarget::FoeSide => (self.foe_side_move(side, move_data), false, None),
             MoveTarget::AllySide => {
                 // A guard like Wide Guard fails if no one else will act.
                 if move_data.guard && !others_will_act {
@@ -212,21 +208,26 @@ impl Engine<'_> {
         move_data: &MoveData,
         location: Option<i8>,
     ) -> Option<Position> {
+        let game_type = self.state.game_type;
         if move_data.target.needs_choice()
-            && location.and_then(|location| side.from_target_location(location)) == Some(side)
+            && location.and_then(|location| side.from_target_location(location, game_type))
+                == Some(side)
             && self.active(side).volatiles.two_turn_move == 0
         {
             return None;
         }
         if move_data.target.needs_choice()
             && let Some(chosen) = location
-                .and_then(|location| side.from_target_location(location))
+                .and_then(|location| side.from_target_location(location, game_type))
                 .filter(|&chosen| {
                     chosen != side
                         && self.adjacent(side, chosen)
                         && self.positions().iter().any(|open| open == chosen)
                 })
-            && (!self.active(chosen).is_fainted() || chosen.side == side.side)
+            // In free-for-all a fainted foe stays the target too, and the move fails.
+            && (!self.active(chosen).is_fainted()
+                || chosen.side == side.side
+                || game_type == GameType::FreeForAll)
         {
             return Some(chosen);
         }
@@ -265,7 +266,8 @@ impl Engine<'_> {
     }
 
     /// Showdown's `getMoveTargets`: who the move hits. A target that is missing or a fainted
-    /// foe is replaced by a random foe; a spread move hits every other creature it can.
+    /// foe is replaced by a random foe, except in free-for-all; a spread move hits every other
+    /// creature it can.
     fn move_targets(
         &mut self,
         side: Position,
@@ -273,6 +275,7 @@ impl Engine<'_> {
         target: Option<Position>,
     ) -> Positions {
         let positions = self.positions();
+        let free_for_all = self.state.game_type == GameType::FreeForAll;
         let others = |engine: &Self, allies: bool| -> Positions {
             positions
                 .iter()
@@ -296,16 +299,21 @@ impl Engine<'_> {
                 allies.chain(others(self, false).iter()).collect()
             }
             MoveTarget::AllAdjacentFoes => others(self, false),
+            // In free-for-all, a move at an ally can aim at anyone else.
             MoveTarget::AdjacentAlly => target
                 .filter(|&ally| {
-                    ally != side && ally.side == side.side && !self.active(ally).is_fainted()
+                    ally != side
+                        && (ally.side == side.side || free_for_all)
+                        && !self.active(ally).is_fainted()
                 })
                 .into_iter()
                 .collect(),
             MoveTarget::Normal | MoveTarget::RandomNormal => {
                 let target = match target {
                     Some(target)
-                        if !self.active(target).is_fainted() || target.side == side.side =>
+                        if !self.active(target).is_fainted()
+                            || target.side == side.side
+                            || free_for_all =>
                     {
                         target
                     }
@@ -355,7 +363,7 @@ impl Engine<'_> {
     /// single-target move, unless the move is only charging this turn. The fastest such foe
     /// wins.
     fn redirect(&mut self, side: Position, move_data: &MoveData, target: Position) -> Position {
-        if self.state.game_type.active_per_side() == 1 {
+        if self.state.game_type.active_per_half() == 1 {
             return target;
         }
         let user = self.active(side);
@@ -389,7 +397,7 @@ impl Engine<'_> {
     /// random foe that has not fainted, which draws even when only one is left. In triples a
     /// single-target move picks among the adjacent foes, and with none aims across.
     fn random_target(&mut self, side: Position, target: MoveTarget) -> Position {
-        let per_side = self.state.game_type.active_per_side();
+        let per_side = self.state.game_type.active_per_half();
         let first = Position::new(side.side.foe(), 0);
         if per_side == 1 {
             return first;
@@ -640,6 +648,19 @@ impl Engine<'_> {
 
     /// Sets a side condition, or adds a layer to a stacking hazard. Fails if it is already at
     /// its limit.
+    /// A move at the foe's side, like Stealth Rock. In free-for-all it reaches every foe's
+    /// side, fainted or not, as Showdown's `isFFAHazard` does.
+    fn foe_side_move(&mut self, user: Position, move_data: &MoveData) -> bool {
+        if self.state.game_type != GameType::FreeForAll {
+            return self.side_condition_move(user, user.side.foe(), move_data);
+        }
+        let mut worked = false;
+        for side in self.state.side_ids().filter(|&side| side != user.side) {
+            worked |= self.side_condition_move(user, side, move_data);
+        }
+        worked
+    }
+
     fn side_condition_move(&mut self, user: Position, side: SideId, move_data: &MoveData) -> bool {
         let Some(id) = move_data.side_condition else {
             return false;
@@ -1317,7 +1338,7 @@ impl Engine<'_> {
             }
             Some(VolatileStatus::Substitute) => applied |= self.make_substitute(recipient),
             // Showdown's Follow Me `onTry`: only with allies to draw attention from.
-            Some(VolatileStatus::FollowMe) if self.state.game_type.active_per_side() > 1 => {
+            Some(VolatileStatus::FollowMe) if self.state.game_type.active_per_half() > 1 => {
                 self.active_mut(recipient).volatiles.follow_me = true;
                 self.emit(Event::Start {
                     pokemon: recipient,

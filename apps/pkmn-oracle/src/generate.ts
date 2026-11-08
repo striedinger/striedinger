@@ -13,7 +13,8 @@
  * Showdown draws extra random numbers whenever the two active creatures are speed-tied, a
  * documented difference, so a battle's recording stops at its first speed tie.
  *
- * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles] [--doubles | --triples]
+ * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles]
+ *   [--doubles | --triples | --free-for-all]
  */
 
 import type { Battle as ShowdownBattle, Pokemon, Side } from "pokemon-showdown";
@@ -36,7 +37,7 @@ type Choice =
   | { switch: number }
   | "shift"
   | "pass";
-type GameType = "singles" | "doubles" | "triples";
+type GameType = "singles" | "doubles" | "triples" | "freeforall";
 
 interface SampleMove {
   name: string;
@@ -119,7 +120,7 @@ interface Snapshot {
   turn: number;
   weather: Timed | null;
   terrain: Timed | null;
-  winner: "p1" | "p2" | "tie" | null;
+  winner: string | null;
   sides: SideSnapshot[];
 }
 
@@ -133,12 +134,16 @@ interface RecordedBattle {
   stopped: "finished" | "speed_tie" | "step_limit" | "called_rampage";
 }
 
-const TEAM_SIZE: Record<GameType, number> = { singles: 3, doubles: 4, triples: 5 };
-/** Showdown has no Gen 9 triples custom game, so triples plays the doubles one's rules. */
+const TEAM_SIZE: Record<GameType, number> = { singles: 3, doubles: 4, triples: 5, freeforall: 3 };
+/**
+ * Showdown has no Gen 9 triples or free-for-all custom game, so triples plays the doubles
+ * one's rules and free-for-all the singles one's.
+ */
 const FORMATS: Record<GameType, string> = {
   singles: "gen9customgame",
   doubles: "gen9doublescustomgame",
   triples: "gen9doublescustomgame",
+  freeforall: "gen9customgame",
 };
 /** Showdown's `targetTypeChoices`: target types a doubles choice must aim. */
 const AIMED_TARGETS = new Set([
@@ -578,7 +583,8 @@ function snapshotSide(side: Side): SideSnapshot {
 function snapshot(battle: ShowdownBattle): Snapshot {
   const { field } = battle;
   let winner: Snapshot["winner"] = null;
-  if (battle.ended) winner = battle.winner === "p1" ? "p1" : battle.winner === "p2" ? "p2" : "tie";
+  const name = battle.winner ?? "";
+  if (battle.ended) winner = name === "" ? "tie" : name;
   return {
     turn: battle.turn,
     weather: timed(OUR_WEATHERS, field.weather, field.weatherState.duration),
@@ -664,22 +670,26 @@ function chooseForSide(side: Side, random: (bound: number) => number): SideChoic
       !terastallizing && active.canTerastallize !== undefined && random(6) === 0;
     terastallizing ||= terastallize;
     const slot = slotOfMove(move.id);
-    const aimed = count > 1 && AIMED_TARGETS.has(move.target ?? "");
+    // In free-for-all, an aimed move may also leave its target to chance.
+    const perHalf = side.battle.activePerHalf;
+    const aimed =
+      perHalf > 1 && AIMED_TARGETS.has(move.target ?? "") && (count > 1 || random(4) !== 0);
     const tera = terastallize ? " terastallize" : "";
     if (!aimed) {
       ours.push(terastallize ? { terastallize: slot } : { move: slot });
       theirs.push(`move ${moveIndex + 1}${tera}`);
       continue;
     }
-    // Any filled location the move can reach: in doubles every other position, in triples
-    // the adjacent ones, and only allies for a move at an ally.
+    // Any filled location the move can reach: in doubles and free-for-all every other
+    // position, in triples the adjacent ones, and only allies for a move at an ally, except
+    // in free-for-all.
     const locations = [
-      ...Array.from({ length: side.foe.active.length }, (_, foe) => foe + 1),
-      ...Array.from({ length: count }, (_, ally) => -(ally + 1)),
+      ...Array.from({ length: perHalf }, (_, foe) => foe + 1),
+      ...Array.from({ length: perHalf }, (_, ally) => -(ally + 1)),
     ].filter(
       (location) =>
         side.battle.validTargetLoc(location, user, move.target ?? "normal") &&
-        (location > 0 ? side.foe.active[location - 1] : side.active[-location - 1]) !== undefined,
+        (user.getAtLoc(location) as Pokemon | undefined) !== undefined,
     );
     const location = pick(random, locations);
     ours.push(terastallize ? { terastallizeAt: [slot, location] } : { moveAt: [slot, location] });
@@ -754,10 +764,11 @@ function calledRampage(battle: ShowdownBattle): boolean {
   );
 }
 
-/** A copy of a format with another game type, keeping its rules. */
+/** A copy of a format with another game type and its player count, keeping its rules. */
 function withGameType<T extends object>(format: T, gameType: GameType): T {
   return Object.assign(Object.create(Object.getPrototypeOf(format) as object) as T, format, {
     gameType,
+    playerCount: gameType === "freeforall" ? 4 : 2,
   });
 }
 
@@ -765,21 +776,27 @@ function withGameType<T extends object>(format: T, gameType: GameType): T {
 function recordBattle(index: number, sample: SampleDex, gameType: GameType): RecordedBattle | null {
   const random = createRandom(index);
   const teamSize = TEAM_SIZE[gameType];
-  const teams = [0, 1].map(() =>
+  const players = gameType === "freeforall" ? 4 : 2;
+  const teams = Array.from({ length: players }, () =>
     Array.from({ length: teamSize }, (_, slot) => randomSet(random, sample, slot)),
   );
   const seed = hexSeed(index);
   const format = Dex.formats.get(FORMATS[gameType], true);
   const battle = new Battle({
     formatid: format.id,
-    format: gameType === "triples" ? withGameType(format, "triples") : format,
+    format:
+      gameType === "triples" || gameType === "freeforall" ? withGameType(format, gameType) : format,
     seed: `gen5,${seed}`,
   });
   const speedTieSeen = watchSpeedTies(battle);
-  battle.setPlayer("p1", { name: "p1", team: (teams[0] ?? []).map(toShowdownSet) });
-  battle.setPlayer("p2", { name: "p2", team: (teams[1] ?? []).map(toShowdownSet) });
+  for (const [player, team] of teams.entries()) {
+    battle.setPlayer(`p${player + 1}` as "p1", {
+      name: `p${player + 1}`,
+      team: team.map(toShowdownSet),
+    });
+  }
   const order = `team ${Array.from({ length: teamSize }, (_, slot) => slot + 1).join("")}`;
-  battle.makeChoices(order, order);
+  battle.makeChoices(...teams.map(() => order));
   const stats = battle.sides.map((side) =>
     bySlot(side).map(({ storedStats, maxhp }) => ({
       hp: maxhp,
@@ -805,7 +822,7 @@ function recordBattle(index: number, sample: SampleDex, gameType: GameType): Rec
     if (calledRampage(battle)) return { ...recorded, stopped: "called_rampage" };
     const choices = battle.sides.map((side) => chooseForSide(side, random));
     for (const [sideIndex, choice] of choices.entries()) {
-      if (choice.theirs !== null) battle.choose(sideIndex === 0 ? "p1" : "p2", choice.theirs);
+      if (choice.theirs !== null) battle.choose(`p${sideIndex + 1}` as "p1", choice.theirs);
     }
     if (speedTieSeen()) return { ...recorded, stopped: "speed_tie" };
     recorded.steps.push({ choices: choices.map(({ ours }) => ours), after: snapshot(battle) });
@@ -815,11 +832,13 @@ function recordBattle(index: number, sample: SampleDex, gameType: GameType): Rec
 
 function main(): void {
   const options = process.argv.slice(2);
-  const gameType: GameType = options.includes("--triples")
-    ? "triples"
-    : options.includes("--doubles")
-      ? "doubles"
-      : "singles";
+  const gameType: GameType = options.includes("--free-for-all")
+    ? "freeforall"
+    : options.includes("--triples")
+      ? "triples"
+      : options.includes("--doubles")
+        ? "doubles"
+        : "singles";
   const battles = Number(options.find((option) => !option.startsWith("--")) ?? 2000);
   const sample = JSON.parse(readFileSync(SAMPLE, "utf8")) as SampleDex;
   injectSample(sample);
@@ -828,7 +847,12 @@ function main(): void {
   ).filter((battle) => battle !== null);
   mkdirSync(FIXTURES, { recursive: true });
   writeFileSync(
-    new URL(gameType === "singles" ? "showdown.json" : `showdown-${gameType}.json`, FIXTURES),
+    new URL(
+      gameType === "singles"
+        ? "showdown.json"
+        : `showdown-${gameType === "freeforall" ? "free-for-all" : gameType}.json`,
+      FIXTURES,
+    ),
     `${JSON.stringify({ generator: "pokemon-showdown@0.11.11", battles: recorded })}\n`,
   );
   const steps = recorded.reduce((total, battle) => total + battle.steps.length, 0);

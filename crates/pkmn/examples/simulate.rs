@@ -8,6 +8,7 @@
 //! cargo run -p pkmn --example simulate -- 1 --log
 //! cargo run --release -p pkmn --example simulate -- 20000 --doubles
 //! cargo run --release -p pkmn --example simulate -- 20000 --triples
+//! cargo run --release -p pkmn --example simulate -- 20000 --free-for-all
 //! ```
 
 use std::sync::Arc;
@@ -23,6 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let battles: u64 = arguments.next().map_or(Ok(1_000), |count| count.parse())?;
     let flags: Vec<String> = arguments.collect();
     let log = flags.iter().any(|flag| flag == "--log");
+    let free_for_all = flags.iter().any(|flag| flag == "--free-for-all");
     let per_side: u8 = if flags.iter().any(|flag| flag == "--triples") {
         3
     } else if flags.iter().any(|flag| flag == "--doubles") {
@@ -32,37 +34,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let dex = Arc::new(Dex::from_json(pkmn::SAMPLE_DEX_JSON)?);
     let names = Names::new(&dex);
-    let setups: Vec<[Vec<PokemonSet>; 2]> = (0..battles)
+    let setups: Vec<[Vec<PokemonSet>; 4]> = (0..battles)
         .map(|seed| {
             let mut prng = Prng::new(seed ^ 0x9E37_79B9_7F4A_7C15);
-            [names.random_team(&mut prng), names.random_team(&mut prng)]
+            [(); 4].map(|()| names.random_team(&mut prng))
         })
         .collect();
 
     let started = Instant::now();
     let mut steps = 0_u64;
-    let mut wins = [0_u64; 2];
+    let mut wins = [0_u64; 4];
     let mut options = Vec::with_capacity(16);
     for (seed, teams) in (0..battles).zip(&setups) {
         let mut prng = Prng::new(seed);
-        let teams = [teams[0].as_slice(), teams[1].as_slice()];
+        let all = teams.each_ref().map(Vec::as_slice);
+        let teams = [all[0], all[1]];
         let mut battle = match per_side {
+            _ if free_for_all => Battle::free_for_all(Arc::clone(&dex), all, seed)?,
             3 => Battle::triples(Arc::clone(&dex), teams, seed)?,
             2 => Battle::doubles(Arc::clone(&dex), teams, seed)?,
             _ => Battle::new(Arc::clone(&dex), teams, seed)?,
         };
+        let sides = battle.state().sides.len();
         if log {
             print_events(&dex, battle.events());
         }
         while battle.outcome().is_none() {
-            let events = if per_side > 1 {
+            let events = if per_side > 1 || free_for_all {
                 // Positions can conflict, by switching to the same creature or Terastallizing
                 // together, so a side picks again until its choices fit together.
                 loop {
-                    let choices = SideId::BOTH.map(|side| {
+                    let choices = SideId::ALL.map(|side| {
                         [0, 1, 2].map(|index| {
                             options.clear();
-                            if index < per_side {
+                            if index < per_side && side.index() < sides {
                                 options.extend(battle.choices(Position::new(side, index)));
                             }
                             if options.is_empty() {
@@ -72,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         })
                     });
-                    if battle.submit_all(choices).is_ok() {
+                    if battle.submit_all(&choices).is_ok() {
                         break battle.events();
                     }
                 }
@@ -96,11 +101,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let elapsed = started.elapsed().as_secs_f64();
     let per_second = |count: u64| f64::from(u32::try_from(count).unwrap_or(u32::MAX)) / elapsed;
     println!(
-        "{battles} battles, {steps} steps in {elapsed:.3}s: {:.0} battles/s, {:.0} steps/s (P1 {} / P2 {})",
+        "{battles} battles, {steps} steps in {elapsed:.3}s: {:.0} battles/s, {:.0} steps/s (wins {:?})",
         per_second(battles),
         per_second(steps),
-        wins[0],
-        wins[1],
+        &wins[..if free_for_all { 4 } else { 2 }],
     );
     Ok(())
 }
@@ -209,6 +213,8 @@ fn side_name(side: SideId) -> &'static str {
     match side {
         SideId::P1 => "P1",
         SideId::P2 => "P2",
+        SideId::P3 => "P3",
+        SideId::P4 => "P4",
     }
 }
 

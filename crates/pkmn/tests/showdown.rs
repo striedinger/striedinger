@@ -7,9 +7,9 @@
 //! stat stages, Substitute, confusion, Terastallization, weather, terrain, side conditions and
 //! their durations, the turn, and the winner.
 //!
-//! The recordings, singles, doubles and triples, are generated, not committed. Create them
-//! with `pnpm --filter @workspace/pkmn-oracle generate`, adding `-- --doubles` or
-//! `-- --triples`; without it this test is skipped, unless
+//! The recordings, singles, doubles, triples and free-for-all, are generated, not committed.
+//! Create them with `pnpm --filter @workspace/pkmn-oracle generate`, adding `-- --doubles`,
+//! `-- --triples` or `-- --free-for-all`; without it this test is skipped, unless
 //! `PKMN_REQUIRE_SHOWDOWN` is set, as CI does. To debug a divergence, set `PKMN_ONLY` to a
 //! battle's seed to replay only that battle, and `PKMN_TRACE_EVENTS` to print each step's
 //! events.
@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use pkmn::dex::Status;
 use pkmn::stats::{BoostStat, StatTable};
-use pkmn::{Battle, Choice, Dex, GameType, Outcome, PokemonSet, SideId};
+use pkmn::{Battle, Choice, Dex, GameType, Outcome, PokemonSet};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -45,15 +45,15 @@ struct Recording {
 struct RecordedBattle {
     game_type: GameType,
     seed: String,
-    teams: [Vec<PokemonSet>; 2],
-    stats: [Vec<StatTable>; 2],
+    teams: Vec<Vec<PokemonSet>>,
+    stats: Vec<Vec<StatTable>>,
     start: Snapshot,
     steps: Vec<Step>,
 }
 
 #[derive(Deserialize)]
 struct Step {
-    choices: [Vec<Choice>; 2],
+    choices: Vec<Vec<Choice>>,
     after: Snapshot,
 }
 
@@ -119,8 +119,7 @@ fn snapshot(battle: &Battle) -> Snapshot {
         }),
         winner: battle.outcome().map(|outcome| {
             match outcome {
-                Outcome::Win(SideId::P1) => "p1",
-                Outcome::Win(SideId::P2) => "p2",
+                Outcome::Win(side) => side.id(),
                 Outcome::Tie => "tie",
             }
             .to_owned()
@@ -206,11 +205,15 @@ fn difference(showdown: &Snapshot, pkmn: &Snapshot) -> String {
 fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
     let seed = u64::from_str_radix(&recorded.seed, 16).expect("seeds are 16 hex digits");
     let context = format!("battle {index} (seed {})", recorded.seed);
-    let teams = [recorded.teams[0].as_slice(), recorded.teams[1].as_slice()];
+    let all: Vec<&[PokemonSet]> = recorded.teams.iter().map(Vec::as_slice).collect();
+    let teams = [all[0], all[1]];
     let mut battle = match recorded.game_type {
         GameType::Singles => Battle::new(Arc::clone(dex), teams, seed),
         GameType::Doubles => Battle::doubles(Arc::clone(dex), teams, seed),
         GameType::Triples => Battle::triples(Arc::clone(dex), teams, seed),
+        GameType::FreeForAll => {
+            Battle::free_for_all(Arc::clone(dex), [all[0], all[1], all[2], all[3]], seed)
+        }
     }
     .unwrap_or_else(|error| panic!("{context}: {error}"));
     for (side, expected) in battle.state().sides.iter().zip(&recorded.stats) {
@@ -224,12 +227,13 @@ fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
         difference(&recorded.start, &start)
     );
     for (number, step) in recorded.steps.iter().enumerate() {
-        let choices = step
+        let choices: Vec<[Choice; 3]> = step
             .choices
-            .each_ref()
-            .map(|side| [0, 1, 2].map(|index| side.get(index).copied().unwrap_or(Choice::Pass)));
+            .iter()
+            .map(|side| [0, 1, 2].map(|index| side.get(index).copied().unwrap_or(Choice::Pass)))
+            .collect();
         let events = battle
-            .submit_all(choices)
+            .submit_all(&choices)
             .unwrap_or_else(|error| panic!("{context}, step {number}: {error}"))
             .to_vec();
         if std::env::var_os("PKMN_TRACE_EVENTS").is_some() {
@@ -292,5 +296,13 @@ fn replays_showdown_triples_battles_identically() {
     replay_recording(
         "showdown-triples.json",
         "pnpm --filter @workspace/pkmn-oracle generate -- --triples",
+    );
+}
+
+#[test]
+fn replays_showdown_free_for_all_battles_identically() {
+    replay_recording(
+        "showdown-free-for-all.json",
+        "pnpm --filter @workspace/pkmn-oracle generate -- --free-for-all",
     );
 }

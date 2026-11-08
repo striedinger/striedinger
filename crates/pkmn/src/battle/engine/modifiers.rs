@@ -3,8 +3,11 @@
 //! without a relevant handler skip the work entirely.
 
 use super::Engine;
-use crate::battle::damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
-use crate::battle::state::{Pokemon, Position, TeraType};
+use crate::battle::damage::{
+    DAMAGE_ROLLS, DamageInput, FREE_FOR_ALL_SPREAD_MODIFIER, SPREAD_MODIFIER, STAB_MODIFIER,
+    calculate_damage,
+};
+use crate::battle::state::{GameType, Pokemon, Position, TeraType};
 use crate::dex::{
     Condition, Grounded, Handler, HandlerMask, MoveCategory, MoveData, Status, TerrainData,
 };
@@ -149,7 +152,11 @@ impl Engine<'_> {
         spread: bool,
     ) -> u32 {
         let input = DamageInput {
-            spread,
+            spread: spread.then_some(if self.state.game_type == GameType::FreeForAll {
+                FREE_FOR_ALL_SPREAD_MODIFIER
+            } else {
+                SPREAD_MODIFIER
+            }),
             ..self.damage_input(side, target, move_data, critical, type_modifier)
         };
         let roll = self.state.prng.below(DAMAGE_ROLLS);
@@ -266,7 +273,7 @@ impl Engine<'_> {
             power: u16::try_from(base_power).unwrap_or(u16::MAX),
             attack: self.modified_stat(side, attack_stat, attack_stage, context),
             defense: self.modified_stat(target, defense_stat, defense_stage, context),
-            spread: false,
+            spread: None,
             weather_modifier: self.weather().and_then(|weather| {
                 weather
                     .damage_modifiers
@@ -423,7 +430,7 @@ impl Engine<'_> {
             .filter_map(|condition| self.dex.side_condition(condition.id).screen)
             .filter(|screen| !critical && Some(screen.category) == category)
             .map(|screen| {
-                if self.state.game_type.active_per_side() > 1 {
+                if self.state.game_type.active_per_half() > 1 {
                     screen.doubles_modifier
                 } else {
                     screen.modifier

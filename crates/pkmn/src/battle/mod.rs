@@ -10,13 +10,16 @@ mod team;
 use std::fmt;
 use std::sync::Arc;
 
-pub use damage::{DAMAGE_ROLLS, DamageInput, STAB_MODIFIER, calculate_damage};
+pub use damage::{
+    DAMAGE_ROLLS, DamageInput, FREE_FOR_ALL_SPREAD_MODIFIER, SPREAD_MODIFIER, STAB_MODIFIER,
+    calculate_damage,
+};
 pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, Choices, MoveOption, Request};
 pub use state::{
-    BattleState, Field, GameType, LockedMove, MAX_ACTIVE, MAX_MOVES, MAX_POSITIONS, MoveSlot,
-    Outcome, Pokemon, Position, QueuedAction, Side, SideConditionState, SideId, Stall, StatusState,
-    TeraType, TerrainState, Volatiles, WeatherState,
+    BattleState, Field, GameType, LockedMove, MAX_ACTIVE, MAX_MOVES, MAX_POSITIONS, MAX_SIDES,
+    MoveSlot, Outcome, Pokemon, Position, QueuedAction, Side, SideConditionState, SideId, Stall,
+    StatusState, TeraType, TerrainState, Volatiles, WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -24,7 +27,7 @@ use crate::dex::Dex;
 use crate::prng::Prng;
 use engine::Engine;
 
-/// A singles, doubles or triples battle between two sides.
+/// A singles, doubles or triples battle between two sides, or a free-for-all among four.
 ///
 /// Each step asks both sides for a [`Choice`] matching their [`Request`], resolves it, and
 /// records what happened as [`Event`]s. The battle is deterministic for a given seed, and its
@@ -43,7 +46,7 @@ impl Battle {
     ///
     /// Returns an error if either team is invalid for `dex`.
     pub fn new(dex: Arc<Dex>, teams: [&[PokemonSet]; 2], seed: u64) -> Result<Self, TeamError> {
-        Self::start(dex, teams, seed, GameType::Singles)
+        Self::start(dex, &teams, seed, GameType::Singles)
     }
 
     /// Starts a doubles battle, sending out the first two members of each team.
@@ -52,7 +55,7 @@ impl Battle {
     ///
     /// Returns an error if either team is invalid for `dex`.
     pub fn doubles(dex: Arc<Dex>, teams: [&[PokemonSet]; 2], seed: u64) -> Result<Self, TeamError> {
-        Self::start(dex, teams, seed, GameType::Doubles)
+        Self::start(dex, &teams, seed, GameType::Doubles)
     }
 
     /// Starts a triples battle, sending out the first three members of each team.
@@ -61,19 +64,33 @@ impl Battle {
     ///
     /// Returns an error if either team is invalid for `dex`.
     pub fn triples(dex: Arc<Dex>, teams: [&[PokemonSet]; 2], seed: u64) -> Result<Self, TeamError> {
-        Self::start(dex, teams, seed, GameType::Triples)
+        Self::start(dex, &teams, seed, GameType::Triples)
+    }
+
+    /// Starts a free-for-all among four sides, sending out the first member of each team.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any team is invalid for `dex`.
+    pub fn free_for_all(
+        dex: Arc<Dex>,
+        teams: [&[PokemonSet]; MAX_SIDES],
+        seed: u64,
+    ) -> Result<Self, TeamError> {
+        Self::start(dex, &teams, seed, GameType::FreeForAll)
     }
 
     fn start(
         dex: Arc<Dex>,
-        teams: [&[PokemonSet]; 2],
+        teams: &[&[PokemonSet]],
         seed: u64,
         game_type: GameType,
     ) -> Result<Self, TeamError> {
-        let sides = [
-            team::build_side(&dex, SideId::P1, teams[0], game_type)?,
-            team::build_side(&dex, SideId::P2, teams[1], game_type)?,
-        ];
+        let sides = SideId::ALL
+            .into_iter()
+            .zip(teams)
+            .map(|(side, team)| team::build_side(&dex, side, team, game_type))
+            .collect::<Result<_, _>>()?;
         let mut battle = Self {
             dex,
             state: BattleState {
@@ -172,8 +189,8 @@ impl Battle {
     ///
     /// Returns the first invalid choice.
     pub fn submit(&mut self, choices: [Choice; 2]) -> Result<&[Event], ChoiceError> {
-        if self.state.game_type.active_per_side() > 1 {
-            return self.submit_all(choices.map(|choice| [choice, Choice::Pass, Choice::Pass]));
+        if self.state.game_type != GameType::Singles {
+            return self.submit_all(&choices.map(|choice| [choice, Choice::Pass, Choice::Pass]));
         }
         for side in SideId::BOTH {
             self.validate(side, choices[side.index()])?;
@@ -193,11 +210,24 @@ impl Battle {
     ///
     /// Returns the first invalid choice.
     pub fn submit_doubles(&mut self, choices: [[Choice; 2]; 2]) -> Result<&[Event], ChoiceError> {
-        self.submit_all(choices.map(|[first, second]| [first, second, Choice::Pass]))
+        self.submit_all(&choices.map(|[first, second]| [first, second, Choice::Pass]))
     }
 
-    /// Submits every position's choice, by side and then position, and resolves them, in any
-    /// game type. Choices for positions past the battle's must be [`Choice::Pass`].
+    /// Submits the four sides' choices in a free-for-all, as [`Battle::submit_all`] does.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first invalid choice.
+    pub fn submit_free_for_all(
+        &mut self,
+        choices: [Choice; MAX_SIDES],
+    ) -> Result<&[Event], ChoiceError> {
+        self.submit_all(&choices.map(|choice| [choice, Choice::Pass, Choice::Pass]))
+    }
+
+    /// Submits every position's choice, one row per side and one entry per position, and
+    /// resolves them, in any game type. A missing row passes; choices for positions past the
+    /// battle's must be [`Choice::Pass`].
     ///
     /// Nothing changes if any choice is invalid.
     ///
@@ -206,35 +236,43 @@ impl Battle {
     /// Returns the first invalid choice.
     pub fn submit_all(
         &mut self,
-        choices: [[Choice; MAX_ACTIVE]; 2],
+        choices: &[[Choice; MAX_ACTIVE]],
     ) -> Result<&[Event], ChoiceError> {
-        let by_position = Position::ALL.map(|position| {
-            (
-                position,
-                choices[position.side.index()][usize::from(position.index)],
-            )
-        });
         let in_battle = self.state.positions();
-        for &(position, choice) in &by_position {
-            if in_battle.iter().any(|open| open == position) {
-                self.validate(position, choice)?;
-            } else if choice != Choice::Pass {
-                return Err(ChoiceError {
-                    position,
-                    choice,
-                    reason: ChoiceErrorReason::WrongKind,
-                });
+        let mut by_position = Vec::with_capacity(MAX_POSITIONS);
+        for (side, row) in SideId::ALL.into_iter().zip(choices) {
+            for (index, &choice) in (0_u8..).zip(row) {
+                let position = Position::new(side, index);
+                if in_battle.iter().any(|open| open == position) {
+                    by_position.push((position, choice));
+                } else if choice != Choice::Pass {
+                    return Err(ChoiceError {
+                        position,
+                        choice,
+                        reason: ChoiceErrorReason::WrongKind,
+                    });
+                }
             }
+        }
+        for position in in_battle.iter() {
+            let choice = by_position
+                .iter()
+                .find(|(open, _)| *open == position)
+                .map_or(Choice::Pass, |&(_, choice)| choice);
+            self.validate(position, choice)?;
         }
         // Positions on one side can only conflict with more than one a side.
         if self.state.game_type.active_per_side() > 1 {
-            for side in SideId::BOTH {
+            for side in self.state.side_ids() {
                 request::validate_side(&self.state, side, &by_position)?;
             }
         }
+        let mut flat = [Choice::Pass; MAX_POSITIONS];
+        for &(position, choice) in &by_position {
+            flat[position.flat()] = choice;
+        }
         self.events.clear();
-        Engine::new(&self.dex, &mut self.state, &mut self.events)
-            .run(by_position.map(|(_, choice)| choice));
+        Engine::new(&self.dex, &mut self.state, &mut self.events).run(flat);
         Ok(&self.events)
     }
 }
@@ -283,12 +321,18 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
     {
         return invalid("unknown terrain");
     }
+    if state.sides.len() != state.game_type.side_count() {
+        return invalid("the number of sides does not match the game type");
+    }
     if let Some(queue) = &state.queue
         && queue.iter().enumerate().any(|(flat, action)| {
-            let side = &state.sides[flat / MAX_ACTIVE];
-            action
-                .as_ref()
-                .is_some_and(|action| !queued_slot_is_valid(side, action))
+            action.as_ref().is_some_and(|action| {
+                state
+                    .positions()
+                    .iter()
+                    .find(|position| position.flat() == flat)
+                    .is_none_or(|position| !queued_slot_is_valid(state.side(position.side), action))
+            })
         })
     {
         return invalid("a queued action names a slot that does not exist");

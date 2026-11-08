@@ -14,8 +14,10 @@ use crate::stats::{Boosts, StatTable};
 pub const MAX_ACTIVE: usize = 3;
 /// The most positions on the field: both sides' in triples.
 pub const MAX_POSITIONS: usize = 2 * MAX_ACTIVE;
+/// The most sides in a battle: four in free-for-all.
+pub const MAX_SIDES: usize = 4;
 
-/// One of the two players.
+/// One of the players: two, or four in free-for-all.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SideId {
@@ -23,34 +25,50 @@ pub enum SideId {
     P1,
     /// The second player.
     P2,
+    /// The third player, in free-for-all.
+    P3,
+    /// The fourth player, in free-for-all.
+    P4,
 }
 
 impl SideId {
-    /// Both sides, in order.
+    /// The two sides of a two-player battle, in order.
     pub const BOTH: [Self; 2] = [Self::P1, Self::P2];
+    /// All four sides, in order.
+    pub const ALL: [Self; MAX_SIDES] = [Self::P1, Self::P2, Self::P3, Self::P4];
 
-    /// Returns `0` for [`SideId::P1`] and `1` for [`SideId::P2`].
+    /// Returns `0` for [`SideId::P1`], `1` for [`SideId::P2`], and so on.
     #[must_use]
     pub const fn index(self) -> usize {
         self as usize
     }
 
-    /// Showdown's ID for the side: `p1` or `p2`.
+    /// Showdown's ID for the side: `p1` to `p4`.
     #[must_use]
     pub const fn id(self) -> &'static str {
         match self {
             Self::P1 => "p1",
             Self::P2 => "p2",
+            Self::P3 => "p3",
+            Self::P4 => "p4",
         }
     }
 
-    /// Returns the other side, the "foe".
+    /// Showdown's `side.foe`: the other side of a two-player battle. In free-for-all, where
+    /// every other side is a foe, it pairs `p1` with `p2` and `p3` with `p4`.
     #[must_use]
     pub fn foe(self) -> Self {
         match self {
             Self::P1 => Self::P2,
             Self::P2 => Self::P1,
+            Self::P3 => Self::P4,
+            Self::P4 => Self::P3,
         }
+    }
+
+    /// Showdown's half of the field: `p1` and `p3` on one, `p2` and `p4` on the other.
+    const fn half(self) -> usize {
+        self.index() % 2
     }
 }
 
@@ -161,7 +179,7 @@ pub enum QueuedAction {
     },
 }
 
-/// Singles, doubles or triples (Showdown's `gameType`).
+/// Singles, doubles, triples or free-for-all (Showdown's `gameType`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum GameType {
@@ -172,16 +190,38 @@ pub enum GameType {
     Doubles,
     /// Three active creatures per side.
     Triples,
+    /// Four sides of one active creature each, every one a foe of the others.
+    #[serde(rename = "freeforall")]
+    FreeForAll,
 }
 
 impl GameType {
-    /// How many creatures each side has in battle at once (Showdown's `activePerHalf`).
+    /// How many creatures each side has in battle at once.
     #[must_use]
     pub const fn active_per_side(self) -> usize {
         match self {
-            Self::Singles => 1,
+            Self::Singles | Self::FreeForAll => 1,
             Self::Doubles => 2,
             Self::Triples => 3,
+        }
+    }
+
+    /// How many creatures each half of the field holds (Showdown's `activePerHalf`): in
+    /// free-for-all, two sides of one share each half, so it plays like doubles.
+    #[must_use]
+    pub const fn active_per_half(self) -> usize {
+        match self {
+            Self::FreeForAll => 2,
+            other => other.active_per_side(),
+        }
+    }
+
+    /// How many sides the battle has.
+    #[must_use]
+    pub const fn side_count(self) -> usize {
+        match self {
+            Self::FreeForAll => MAX_SIDES,
+            _ => 2,
         }
     }
 }
@@ -198,7 +238,8 @@ pub struct Position {
 }
 
 impl Position {
-    /// Every position in a triples battle, in Showdown's order.
+    /// Every position in a triples battle, in Showdown's order. Free-for-all's are
+    /// [`SideId::ALL`]'s first positions.
     pub const ALL: [Self; MAX_POSITIONS] = [
         Self::new(SideId::P1, 0),
         Self::new(SideId::P1, 1),
@@ -214,19 +255,22 @@ impl Position {
         Self { side, index }
     }
 
-    /// An index below [`MAX_POSITIONS`] for arrays over all positions.
+    /// An index below [`MAX_POSITIONS`] for arrays over all positions. Free-for-all's
+    /// `p3` and `p4` take the places of `p1b` and `p2b`, on their halves of the field.
     #[must_use]
     pub const fn flat(self) -> usize {
-        self.side.index() * MAX_ACTIVE + self.index as usize
+        self.side.half() * MAX_ACTIVE + self.side.index() / 2 + self.index as usize
     }
 
     /// The target location that names `target` from this position, as in Showdown's
-    /// `move N T` choices: 1, 2 and 3 for the foes' positions, -1, -2 and -3 for the user's
-    /// side.
+    /// `move N T` choices and `getLocOf`: 1, 2 and 3 for the other half's positions, -1, -2
+    /// and -3 for the user's half. In free-for-all, `p1` and `p3` share a half, as do `p2`
+    /// and `p4`.
     #[must_use]
     pub fn target_location(self, target: Self) -> i8 {
-        let place = i8::try_from(target.index).unwrap_or(0) + 1;
-        if target.side == self.side {
+        let place =
+            i8::try_from(target.side.index() / 2 + usize::from(target.index)).unwrap_or(0) + 1;
+        if target.side.half() == self.side.half() {
             -place
         } else {
             place
@@ -246,16 +290,21 @@ impl Position {
         }
     }
 
-    /// The position a target location names from this position.
+    /// The position a target location names from this position (Showdown's `getAtLoc`).
     #[must_use]
-    pub fn from_target_location(self, location: i8) -> Option<Self> {
-        let index = location.unsigned_abs().checked_sub(1)?;
-        let side = if location > 0 {
-            self.side.foe()
+    pub fn from_target_location(self, location: i8, game_type: GameType) -> Option<Self> {
+        let place = location.unsigned_abs().checked_sub(1)?;
+        let half = if location > 0 {
+            1 - self.side.half()
         } else {
-            self.side
+            self.side.half()
         };
-        Some(Self::new(side, index))
+        if game_type == GameType::FreeForAll {
+            let side = *SideId::ALL.get(half + 2 * usize::from(place))?;
+            Some(Self::new(side, 0))
+        } else {
+            Some(Self::new(SideId::BOTH[half], place))
+        }
     }
 }
 
@@ -741,8 +790,8 @@ pub struct BattleState {
     pub turn: u32,
     /// The random number generator.
     pub prng: Prng,
-    /// Both sides, indexed by [`SideId::index`].
-    pub sides: [Side; 2],
+    /// Every side, indexed by [`SideId::index`]: two, or four in free-for-all.
+    pub sides: Vec<Side>,
     /// Battle-wide conditions.
     pub field: Field,
     /// The result, once the battle has ended.
@@ -759,6 +808,11 @@ pub struct BattleState {
 }
 
 impl BattleState {
+    /// The battle's sides, in order.
+    pub fn side_ids(&self) -> impl Iterator<Item = SideId> + use<> {
+        SideId::ALL.into_iter().take(self.sides.len())
+    }
+
     /// Returns a side.
     #[must_use]
     pub fn side(&self, side: SideId) -> &Side {
@@ -783,8 +837,8 @@ impl BattleState {
     #[must_use]
     pub fn positions(&self) -> Positions {
         let mut positions = Positions::new();
-        for side in SideId::BOTH {
-            for (index, slot) in (0_u8..).zip(self.sides[side.index()].active) {
+        for (side, team) in SideId::ALL.into_iter().zip(&self.sides) {
+            for (index, slot) in (0_u8..).zip(team.active) {
                 if slot.is_some() {
                     positions.push(Position::new(side, index));
                 }

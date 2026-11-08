@@ -5,7 +5,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::state::{BattleState, MAX_POSITIONS, Pokemon, Position, SideId};
+use super::state::{BattleState, GameType, MAX_POSITIONS, Pokemon, Position, SideId};
 use crate::dex::{Dex, MoveId, MoveTarget};
 
 /// What a side is being asked to decide.
@@ -217,10 +217,10 @@ fn chosen_move(dex: &Dex, active: &Pokemon, slot: usize) -> MoveId {
         .unwrap_or_else(|| dex.struggle())
 }
 
-/// Whether a doubles choice of this move must name a target: a `normal` move the creature
-/// chose, rather than one it is forced to use.
-fn needs_target(dex: &Dex, state: &BattleState, active: &Pokemon, slot: usize) -> bool {
-    state.game_type.active_per_side() > 1
+/// Whether a choice of this move may name a target: a `normal` move the creature chose,
+/// rather than one it is forced to use, with more than one creature on each half of the field.
+fn takes_target(dex: &Dex, state: &BattleState, active: &Pokemon, slot: usize) -> bool {
+    state.game_type.active_per_half() > 1
         && active.forced_move().is_none()
         && dex
             .move_data(chosen_move(dex, active, slot))
@@ -228,10 +228,22 @@ fn needs_target(dex: &Dex, state: &BattleState, active: &Pokemon, slot: usize) -
             .needs_choice()
 }
 
+/// Whether a choice of this move must name a target: one that takes a target, with more than
+/// one creature on the side. In free-for-all the target may be left out, for a random foe.
+fn needs_target(dex: &Dex, state: &BattleState, active: &Pokemon, slot: usize) -> bool {
+    state.game_type.active_per_side() > 1 && takes_target(dex, state, active, slot)
+}
+
+/// Whether a move at an ally may only name an ally; in free-for-all it may name anyone.
+fn ally_only(dex: &Dex, state: &BattleState, active: &Pokemon, slot: usize) -> bool {
+    state.game_type != GameType::FreeForAll
+        && dex.move_data(chosen_move(dex, active, slot)).target == MoveTarget::AdjacentAlly
+}
+
 /// The target locations a `normal` move may name from `position`: any other adjacent
-/// position in battle, ally or foe. In doubles every position is adjacent.
+/// position in battle, ally or foe. In doubles and free-for-all every position is adjacent.
 fn target_locations(state: &BattleState, position: Position) -> impl Iterator<Item = i8> + use<> {
-    let per_side = state.game_type.active_per_side();
+    let per_side = state.game_type.active_per_half();
     state
         .positions()
         .into_iter()
@@ -362,15 +374,13 @@ pub(crate) fn choices(dex: &Dex, state: &BattleState, position: Position) -> Cho
     if let Some(active) = active.filter(|_| choosing_moves) {
         choices.moves = active.choosable_moves(dex);
         choices.tera = can_terastallize(state, position);
-        if state.game_type.active_per_side() > 1 {
+        if state.game_type.active_per_half() > 1 {
             for slot in
                 (0..super::state::MAX_MOVES).filter(|&slot| choices.moves & (1 << slot) != 0)
             {
-                if needs_target(dex, state, active, slot) {
+                if takes_target(dex, state, active, slot) {
                     choices.targeted |= 1 << slot;
-                    if dex.move_data(chosen_move(dex, active, slot)).target
-                        == MoveTarget::AdjacentAlly
-                    {
+                    if ally_only(dex, state, active, slot) {
                         choices.ally_only |= 1 << slot;
                     }
                 }
@@ -468,12 +478,10 @@ pub(crate) fn validate(
         let valid_target = match choice.target() {
             None => !needs_target(dex, state, active, slot),
             // Singles accepts a target and ignores it, as Showdown does.
-            Some(_) if state.game_type.active_per_side() == 1 => true,
+            Some(_) if state.game_type.active_per_half() == 1 => true,
             Some(target) => {
-                let ally_only = dex.move_data(chosen_move(dex, active, slot)).target
-                    == MoveTarget::AdjacentAlly;
-                needs_target(dex, state, active, slot)
-                    && (!ally_only || target < 0)
+                takes_target(dex, state, active, slot)
+                    && (!ally_only(dex, state, active, slot) || target < 0)
                     && target_locations(state, position).any(|open| open == target)
             }
         };
@@ -549,7 +557,7 @@ pub(crate) fn validate_side(
 
 /// Whether a position may shift: in triples, from either edge (Showdown's `chooseShift`).
 fn can_shift(state: &BattleState, position: Position) -> bool {
-    state.game_type == super::state::GameType::Triples && position.index != 1
+    state.game_type == GameType::Triples && position.index != 1
 }
 
 /// Whether the creature at a position may Terastallize: once per side per battle.

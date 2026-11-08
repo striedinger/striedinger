@@ -138,7 +138,7 @@ impl Engine<'_> {
         if self.state.field.terrain.is_some() {
             handlers.push(27, 0, 7, Residual::Terrain);
         }
-        for team in SideId::BOTH {
+        for team in self.state.side_ids() {
             for condition in &self.state.side(team).conditions {
                 if condition.duration.is_some() {
                     let data = self.dex.side_condition(condition.id);

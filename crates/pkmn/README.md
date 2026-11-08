@@ -1,16 +1,18 @@
 # pkmn
 
-A deterministic, data-driven battle engine that follows the main series' Generation 9 singles, doubles and triples mechanics, with Pokémon Showdown as its reference. It has no I/O and no UI. You give it choices, it returns events, and any frontend (web through WASM, desktop, terminal, bots, AI search) can render them.
+A deterministic, data-driven battle engine that follows the main series' Generation 9 singles, doubles, triples and free-for-all mechanics, with Pokémon Showdown as its reference. It has no I/O and no UI. You give it choices, it returns events, and any frontend (web through WASM, desktop, terminal, bots, AI search) can render them.
 
 ```sh
 cargo test -p pkmn
 pnpm --filter @workspace/pkmn-oracle generate             # record Showdown battles for tests/showdown.rs
 pnpm --filter @workspace/pkmn-oracle generate -- --doubles # and doubles battles
 pnpm --filter @workspace/pkmn-oracle generate -- --triples # and triples battles
+pnpm --filter @workspace/pkmn-oracle generate -- --free-for-all # and free-for-all battles
 cargo run --release -p pkmn --example simulate -- 20000   # throughput
 cargo run -p pkmn --example simulate -- 1 --log           # one narrated battle
 cargo run --release -p pkmn --example simulate -- 20000 --doubles
 cargo run --release -p pkmn --example simulate -- 20000 --triples
+cargo run --release -p pkmn --example simulate -- 20000 --free-for-all
 ```
 
 ## Terminology
@@ -31,7 +33,7 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 | Terrain              | `terrains`: `groundedType`, `basePowerModifiers`, `targetBasePowerModifiers`, `residualHeal`, `preventsStatuses`, `preventsVolatiles`, `blocksPriority`, `moveBasePowerModifiers`, `duration`                                                                                                                                                                                                                                                                                                                                                                                        | `TerrainData`, `TerrainState`               |
 | Sets                 | `PokemonSet`: `species`, `item`, `ability`, `moves`, `nature`, `evs`, `ivs`, `level`, `teraType` (a type or `Stellar`)                                                                                                                                                                                                                                                                                                                                                                                                                                                               | `PokemonSet`                                |
 | Learnsets            | a species' `learnset`: move name to sources such as `"9L15"` (level-up), `"9M"`, `"9T"`, `"9E"`, `"9S0"`; `abilities` by slot (`0`, `1`, `H`, `S`); `prevo` and `evoLevel`                                                                                                                                                                                                                                                                                                                                                                                                           | `LearnSource`, `PokemonSet::validate`       |
-| Positions            | `p1a` to `p1c`, `p2a` to `p2c`; `gameType` `singles`, `doubles` or `triples`; target locations 1 to 3 for the foes, -1 to -3 for the user's side                                                                                                                                                                                                                                                                                                                                                                                                                                     | `Position`, `GameType`                      |
+| Positions            | `p1a` to `p1c`, `p2a` to `p2c`, and `p3a` and `p4a` in free-for-all; `gameType` `singles`, `doubles`, `triples` or `freeforall`; target locations 1 to 3 for the other half of the field, -1 to -3 for the user's half                                                                                                                                                                                                                                                                                                                                                               | `Position`, `GameType`                      |
 | Requests and choices | per position: move request (moves with their `target`, `canTerastallize`), `forceSwitch` (for a fainted creature or a mid-turn `switchFlag`), `wait`; `move N`, `move N T`, `move N terastallize`, `switch N`, `shift` (triples), `pass`                                                                                                                                                                                                                                                                                                                                             | `Request`, `Choice`                         |
 | Events               | protocol messages, each creature named by its position: `switch`, `move`, `cant`, `-damage`, `-heal`, `-status`, `-boost`, `-weather`, `-ability`, `-item`, `-enditem`, `faint`, `win`, ...                                                                                                                                                                                                                                                                                                                                                                                          | `Event`                                     |
 | End of turn          | residual handlers, then `Update`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `residual`, `update`                        |
@@ -43,10 +45,10 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 - **Abilities and items are handlers.** Most new ones are a list of handlers rather than code. Each ability and item compiles to a bitmask of its handler kinds, so a creature without a relevant handler adds no cost to a check.
 - **Battles are deterministic values.** `BattleState` holds the whole battle, including the seeded RNG (the Generation 5+ 64-bit LCG, also used by Showdown's `gen5` seeds). Clone it, serialize it with serde, and restore it with `Battle::from_state` to replay, save, sync over a network, or run a tree search.
 - **Choices in, events out.**
-  - `Battle::new` starts a singles battle, `Battle::doubles` a doubles battle and `Battle::triples` a triples battle.
+  - `Battle::new` starts a singles battle, `Battle::doubles` a doubles battle, `Battle::triples` a triples battle and `Battle::free_for_all` a free-for-all among four sides.
   - `Battle::request` describes a position's decision as Showdown would; a side stands for its first position.
   - `Battle::choices` lists a position's legal choices without allocating.
-  - `Battle::submit` (singles), `Battle::submit_doubles` and `Battle::submit_all` (any game type) validate every choice and resolve them, changing nothing if any is invalid.
+  - `Battle::submit` (singles), `Battle::submit_doubles`, `Battle::submit_free_for_all` and `Battle::submit_all` (any game type) validate every choice and resolve them, changing nothing if any is invalid.
 - **Legality is separate from simulation.** As with Showdown's `TeamValidator` and simulator, `Battle::new` checks only that a set can exist, and `PokemonSet::validate` also checks the species' ability, evolution level, and learnset. A species learns what its pre-evolutions learn. A level-up move needs the set to be at least that level, unless the line learns it another way. A species without a learnset may use any move, and one without abilities any ability.
 
 ## Mechanics covered
@@ -109,19 +111,24 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
   - An edge creature can `shift` to the center, at a move's priority 0 and its speed. It trades places, and its queued action, with the center. A move aimed at its own new location then has no target and fails.
   - Showdown re-sorts the queue after an action only when a move comes next in the old order, so a shift can run before speeds are read again; pkmn follows that order and its target redraws.
   - When each side has one creature left and they cannot reach each other, both move to the center at the start of the next turn.
+- Free-for-all, as Showdown plays it (the oracle runs the singles custom game's rules with four players):
+  - Four sides of one creature each, all foes of one another. Showdown lays them out as doubles, with `p1` and `p3` on one half of the field and `p2` and `p4` on the other, so a target location names a position as in doubles and every position is adjacent.
+  - An aimed move may name a target or leave it out for a random foe. A target that faints stays the target, and the move fails. A move at an ally, like Helping Hand, may name anyone, and finds no one at random.
+  - Spread moves deal ×0.5 to each target. A move at the foe's side, like a hazard, reaches every other side.
+  - A side whose creatures are all out stays on the field, and the last side standing wins.
 
-One deliberate difference: Showdown re-sorts the active creatures at every `Update`, every switch-in, and every speed-ordered event, so it rolls to break each speed tie between two creatures. pkmn rolls only where the order changes an outcome, which keeps those checkpoints cheap. The same goes for a fainted creature's ability and item, which Showdown keeps in the residual sort at its last speed. Battles without speed ties consume the same random numbers as Showdown. Speed-tied battles diverge from Showdown's from the first tie on. Doubles and triples have more ties, with more creatures on the field.
+One deliberate difference: Showdown re-sorts the active creatures at every `Update`, every switch-in, and every speed-ordered event, so it rolls to break each speed tie between two creatures. pkmn rolls only where the order changes an outcome, which keeps those checkpoints cheap. The same goes for a fainted creature's ability and item, which Showdown keeps in the residual sort at its last speed. Battles without speed ties consume the same random numbers as Showdown. Speed-tied battles diverge from Showdown's from the first tie on. Doubles, triples and free-for-all have more ties, with more creatures on the field.
 
 A second difference follows the games rather than Showdown. A rampage started by a calling move, like Outrage from Metronome, carries on in pkmn. Showdown aims its later turns at the caller's target, the user, so they fail.
 
 ## Differential testing
 
-`apps/pkmn-oracle` plays seeded random singles, doubles and triples battles in Pokémon Showdown with the sample pack injected. pkmn's data format follows Showdown's, so species and moves go in almost unchanged. Names that Showdown implements in code are mapped to the Showdown effect they reproduce: abilities, items, weathers, terrains, side conditions, and the callbacks of moves like Protect or Rapid Spin.
+`apps/pkmn-oracle` plays seeded random singles, doubles, triples and free-for-all battles in Pokémon Showdown with the sample pack injected. pkmn's data format follows Showdown's, so species and moves go in almost unchanged. Names that Showdown implements in code are mapped to the Showdown effect they reproduce: abilities, items, weathers, terrains, side conditions, and the callbacks of moves like Protect or Rapid Spin.
 
-The oracle writes every step's choices and the resulting state to `tests/fixtures/showdown.json` (and `showdown-doubles.json` or `showdown-triples.json` with `--doubles` or `--triples`). The state covers HP, status, items, PP, each position's stat stages, Substitute, confusion and Tera, weather, terrain, side conditions and their durations, and the winner. `tests/showdown.rs` replays each battle through pkmn from the same seed and requires the same state after every step.
+The oracle writes every step's choices and the resulting state to `tests/fixtures/showdown.json` (and `showdown-doubles.json`, `showdown-triples.json` or `showdown-free-for-all.json` with `--doubles`, `--triples` or `--free-for-all`). The state covers HP, status, items, PP, each position's stat stages, Substitute, confusion and Tera, weather, terrain, side conditions and their durations, and the winner. `tests/showdown.rs` replays each battle through pkmn from the same seed and requires the same state after every step.
 
 A recording stops at either documented difference above: a speed tie, or a rampage started by a calling move. The fixtures are generated, not committed, so CI records 2,000 battles of each on every run. Without the fixture, the test is skipped unless `PKMN_REQUIRE_SHOWDOWN` is set.
 
 ## Not yet
 
-Free-for-all.
+Multi battles, with two players on each side, and rotation battles.

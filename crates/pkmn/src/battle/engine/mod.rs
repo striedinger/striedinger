@@ -101,14 +101,14 @@ impl<'a> Engine<'a> {
 
     /// Whether two positions are adjacent in this battle; see [`Position::is_adjacent`].
     pub(super) fn adjacent(&self, position: Position, other: Position) -> bool {
-        position.is_adjacent(other, self.state.game_type.active_per_side())
+        position.is_adjacent(other, self.state.game_type.active_per_half())
     }
 
     /// The foes of `position` that have not fainted and are adjacent to it (Showdown's
     /// `adjacentFoes`); in singles and doubles, every foe. In triples a fainted creature has no
     /// adjacent foes, since Showdown's `isAdjacent` rules out fainted creatures.
     pub(super) fn adjacent_foes(&self, position: Position) -> Positions {
-        if self.state.game_type.active_per_side() > 2 && self.active(position).is_fainted() {
+        if self.state.game_type.active_per_half() > 2 && self.active(position).is_fainted() {
             return Positions::new();
         }
         self.foes_of(position)
@@ -182,7 +182,7 @@ impl<'a> Engine<'a> {
             for position in positions.iter() {
                 queue[position.flat()] = self.action_for(position, choices[position.flat()]);
             }
-            if self.state.game_type.active_per_side() > 1 {
+            if self.state.game_type.active_per_half() > 1 {
                 self.resolve_targets(&mut queue);
             }
             if choices.iter().any(|choice| choice.terastallizes()) {
@@ -291,7 +291,7 @@ impl<'a> Engine<'a> {
                 let head_is_move = head.map_or(is_move, |head| {
                     matches!(queue[head.flat()], Some(QueuedAction::Move { .. }))
                 });
-                if ran && head_is_move && self.state.game_type.active_per_side() > 1 {
+                if ran && head_is_move && self.state.game_type.active_per_half() > 1 {
                     self.redraw_targets(&queue);
                 }
                 old_order = queue
@@ -349,7 +349,7 @@ impl<'a> Engine<'a> {
     /// location gets a random one, and `getActionSpeed` then resolves the target, either of
     /// which can draw in doubles.
     fn resolve_targets(&mut self, queue: &mut [Option<QueuedAction>; MAX_POSITIONS]) {
-        for position in Position::ALL {
+        for position in self.positions() {
             let Some(QueuedAction::Move {
                 slot,
                 target,
@@ -376,7 +376,7 @@ impl<'a> Engine<'a> {
     /// resolves each queued move's target again, drawing for those that fall back to a random
     /// foe (Showdown's `getActionSpeed` in `runAction`).
     fn redraw_targets(&mut self, queue: &[Option<QueuedAction>; MAX_POSITIONS]) {
-        for position in Position::ALL {
+        for position in self.positions() {
             if let Some(QueuedAction::Move {
                 target, move_id, ..
             }) = queue[position.flat()]
@@ -452,7 +452,7 @@ impl<'a> Engine<'a> {
         switches_only: bool,
     ) -> Option<Position> {
         let mut waiting = Positions::new();
-        for position in Position::ALL {
+        for position in self.positions() {
             if queue[position.flat()]
                 .is_some_and(|action| !switches_only || matches!(action, QueuedAction::Switch(_)))
             {
@@ -1061,12 +1061,16 @@ impl<'a> Engine<'a> {
         if last_fainted.is_none() {
             return false;
         }
-        let defeated = SideId::BOTH.map(|side| self.state.side(side).is_defeated());
-        let outcome = match defeated {
-            [true, true] => last_fainted.map_or(Outcome::Tie, Outcome::Win),
-            [true, false] => Outcome::Win(SideId::P2),
-            [false, true] => Outcome::Win(SideId::P1),
-            [false, false] => return false,
+        // Showdown's `checkWin`: a side wins once every other side is out, and when all are
+        // out at once, the side of the creature that fainted last wins.
+        let mut standing = self
+            .state
+            .side_ids()
+            .filter(|&side| !self.state.side(side).is_defeated());
+        let outcome = match (standing.next(), standing.next()) {
+            (None, _) => last_fainted.map_or(Outcome::Tie, Outcome::Win),
+            (Some(winner), None) => Outcome::Win(winner),
+            (Some(_), Some(_)) => return false,
         };
         self.state.outcome = Some(outcome);
         self.emit(match outcome {

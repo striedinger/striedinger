@@ -86,7 +86,7 @@ fn an_edge_can_only_aim_at_adjacent_positions() {
 fn spread_moves_from_an_edge_hit_only_adjacent_foes() {
     let mut battle = triples(&trio(&["Rockfall"]), &trio(&["Hunker Down"]), 3);
     let events = battle
-        .submit_all([HUNKER, HUNKER])
+        .submit_all(&[HUNKER, HUNKER])
         .expect("the choices are valid")
         .to_vec();
     let hit = damaged(&events);
@@ -105,7 +105,7 @@ fn an_edge_can_shift_to_the_center() {
     );
     let before = battle.state().sides[0].active;
     let events = battle
-        .submit_all([[Choice::Shift, Choice::Move(0), Choice::Move(0)], HUNKER])
+        .submit_all(&[[Choice::Shift, Choice::Move(0), Choice::Move(0)], HUNKER])
         .expect("the choices are valid")
         .to_vec();
     assert!(events.contains(&Event::Swap {
@@ -135,7 +135,7 @@ fn the_last_two_creatures_move_to_the_center_when_out_of_reach() {
     }
     let mut battle = Battle::from_state(dex(), state).expect("the edited state is valid");
     let events = battle
-        .submit_all([
+        .submit_all(&[
             [Choice::Move(0), Choice::Pass, Choice::Pass],
             [Choice::Move(0), Choice::Pass, Choice::Pass],
         ])

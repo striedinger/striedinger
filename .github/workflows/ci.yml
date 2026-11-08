@@ -103,6 +103,7 @@ jobs:
       - run: pnpm --filter @workspace/pkmn-oracle generate
       - run: pnpm --filter @workspace/pkmn-oracle generate -- --doubles
       - run: pnpm --filter @workspace/pkmn-oracle generate -- --triples
+      - run: pnpm --filter @workspace/pkmn-oracle generate -- --free-for-all
       - run: cargo test -p pkmn --locked
         env:
           PKMN_REQUIRE_SHOWDOWN: 1
