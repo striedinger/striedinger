@@ -5,8 +5,8 @@ use std::cmp::Ordering;
 use super::Engine;
 use super::Positions;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
-use crate::battle::state::MAX_MOVES;
 use crate::battle::state::{LockedMove, Position, SideConditionState, SideId, Stall};
+use crate::battle::state::{MAX_MOVES, MAX_POSITIONS};
 use crate::dex::{
     CallsMove, Handler, HandlerMask, MoveData, MoveEffect, MoveId, MoveTarget, Recoil, Status,
     VolatileStatus,
@@ -66,7 +66,7 @@ impl Engine<'_> {
             .or_else(|| slot.and_then(|slot| user.move_slots[slot].map(|move_slot| move_slot.id)))
             .unwrap_or_else(|| dex.struggle());
         // Showdown's `runMove` resolves the target first, which in doubles may draw.
-        let resolved = Some(self.get_target(side, dex.move_data(move_id), target));
+        let resolved = self.get_target(side, dex.move_data(move_id), target);
         if !self.before_move(side, move_id) {
             // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
             let volatiles = &mut self.active_mut(side).volatiles;
@@ -118,6 +118,10 @@ impl Engine<'_> {
         // are then resolved, drawing for any random one, before `onTryMove`.
         let target = if called {
             Some(self.get_random_target(side, move_data))
+        } else if target.is_none() {
+            // Aimed at its own position, after a shift: no target (`[notarget]`).
+            self.emit(Event::Fail { pokemon: side });
+            return None;
         } else {
             target
         };
@@ -198,25 +202,35 @@ impl Engine<'_> {
         drags.then_some(target)
     }
 
-    /// Showdown's `getTarget`: the creature at the chosen location, if the move is aimed and
-    /// that creature stands, or is a fainted ally; otherwise [`Engine::get_random_target`].
+    /// Showdown's `getTarget`: the creature at the chosen location, if the move is aimed, the
+    /// location is adjacent, and that creature stands or is a fainted ally; otherwise
+    /// [`Engine::get_random_target`]. An aimed move at the user's own location, which a shift
+    /// in triples can cause, has no target, unless it is a charged move's second turn.
     pub(super) fn get_target(
         &mut self,
         side: Position,
         move_data: &MoveData,
         location: Option<i8>,
-    ) -> Position {
+    ) -> Option<Position> {
+        if move_data.target.needs_choice()
+            && location.and_then(|location| side.from_target_location(location)) == Some(side)
+            && self.active(side).volatiles.two_turn_move == 0
+        {
+            return None;
+        }
         if move_data.target.needs_choice()
             && let Some(chosen) = location
                 .and_then(|location| side.from_target_location(location))
                 .filter(|&chosen| {
-                    chosen != side && self.positions().iter().any(|open| open == chosen)
+                    chosen != side
+                        && self.adjacent(side, chosen)
+                        && self.positions().iter().any(|open| open == chosen)
                 })
             && (!self.active(chosen).is_fainted() || chosen.side == side.side)
         {
-            return chosen;
+            return Some(chosen);
         }
-        self.get_random_target(side, move_data)
+        Some(self.get_random_target(side, move_data))
     }
 
     /// Showdown's `getRandomTarget`: the user for a move at itself or its side, otherwise a
@@ -224,14 +238,18 @@ impl Engine<'_> {
     pub(super) fn get_random_target(&mut self, side: Position, move_data: &MoveData) -> Position {
         match move_data.target {
             MoveTarget::User | MoveTarget::AllySide => side,
-            // In doubles, a random ally that stands, with a draw; in singles there is none, and
+            // A random adjacent ally that stands, with a draw; in singles there is none, and
             // the move fails.
             MoveTarget::AdjacentAlly => {
                 let allies: Positions = self
                     .positions()
                     .iter()
                     .filter(|&ally| {
-                        ally != side && ally.side == side.side && !self.active(ally).is_fainted()
+                        ally != side
+                            && ally.side == side.side
+                            && self.adjacent(side, ally)
+                            && !self.active(ally).is_fainted()
+                            && !self.active(side).is_fainted()
                     })
                     .collect();
                 match u32::try_from(allies.len()) {
@@ -242,7 +260,7 @@ impl Engine<'_> {
                     _ => side,
                 }
             }
-            _ => self.random_target(side),
+            target => self.random_target(side, target),
         }
     }
 
@@ -261,6 +279,7 @@ impl Engine<'_> {
                 .filter(|&other| {
                     other != side
                         && (allies || other.side != side.side)
+                        && engine.adjacent(side, other)
                         && !engine.active(other).is_fainted()
                 })
                 .collect()
@@ -290,7 +309,7 @@ impl Engine<'_> {
                     {
                         target
                     }
-                    _ => self.random_target(side),
+                    _ => self.random_target(side, move_data.target),
                 };
                 let target = self.redirect(side, move_data, target);
                 if self.active(target).is_fainted() {
@@ -349,11 +368,13 @@ impl Engine<'_> {
         if charging {
             return target;
         }
+        // Showdown's `validTarget`: the lure must be in the move's range.
         let mut lures: Positions = self
             .positions()
             .iter()
             .filter(|&foe| {
                 foe.side != side.side
+                    && self.adjacent(side, foe)
                     && !self.active(foe).is_fainted()
                     && self.active(foe).volatiles.follow_me
             })
@@ -364,14 +385,26 @@ impl Engine<'_> {
         lures.first().unwrap_or(target)
     }
 
-    /// Showdown's `getRandomTarget` for a move at the foes: in singles the foe; in doubles a
-    /// random foe that has not fainted, which draws even when only one is left.
-    fn random_target(&mut self, side: Position) -> Position {
+    /// Showdown's `getRandomTarget` for a move at the foes: in singles the foe; otherwise a
+    /// random foe that has not fainted, which draws even when only one is left. In triples a
+    /// single-target move picks among the adjacent foes, and with none aims across.
+    fn random_target(&mut self, side: Position, target: MoveTarget) -> Position {
+        let per_side = self.state.game_type.active_per_side();
         let first = Position::new(side.side.foe(), 0);
-        if self.state.game_type.active_per_side() == 1 {
+        if per_side == 1 {
             return first;
         }
-        let foes = self.foes_of(side);
+        let single = matches!(target, MoveTarget::Normal | MoveTarget::RandomNormal);
+        let foes = if per_side > 2 && single {
+            let adjacent = self.adjacent_foes(side);
+            if adjacent.len() == 0 {
+                let across = u8::try_from(per_side - 1).unwrap_or(0) - side.index;
+                return Position::new(side.side.foe(), across);
+            }
+            adjacent
+        } else {
+            self.foes_of(side)
+        };
         let Ok(count) = u32::try_from(foes.len()) else {
             return first;
         };
@@ -958,12 +991,12 @@ impl Engine<'_> {
             .collect();
         // Substitutes take their hits first, in Showdown's `TryPrimaryHit`, then the rest
         // are hit in order.
-        let mut behind_substitute = [false; 4];
+        let mut behind_substitute = [false; MAX_POSITIONS];
         for (index, target) in live.iter().enumerate() {
             behind_substitute[index] =
                 self.active(target).volatiles.substitute.is_some() && !move_data.flags.bypasssub;
         }
-        let mut results = [None; 4];
+        let mut results = [None; MAX_POSITIONS];
         for pass_substitutes in [true, false] {
             for (index, target) in live.iter().enumerate() {
                 if behind_substitute[index] != pass_substitutes {

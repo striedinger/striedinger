@@ -15,8 +15,8 @@ use std::cmp::Ordering;
 use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
 use super::state::{
-    BattleState, Outcome, Pokemon, Position, Positions, QueuedAction, SideId, Volatiles,
-    WeatherState,
+    BattleState, GameType, MAX_POSITIONS, Outcome, Pokemon, Position, Positions, QueuedAction,
+    SideId, Volatiles, WeatherState,
 };
 use crate::dex::MoveId;
 use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
@@ -26,7 +26,7 @@ use crate::stats::{BoostStat, Boosts, saturate_u16};
 /// position can be queued between checks.
 #[derive(Clone, Copy, Debug, Default)]
 struct FaintQueue {
-    positions: [Option<Position>; 4],
+    positions: [Option<Position>; MAX_POSITIONS],
 }
 
 impl FaintQueue {
@@ -53,7 +53,7 @@ pub(crate) struct Engine<'a> {
     /// (Showdown's `activeMove`).
     active_move: Option<MoveId>,
     /// Which positions still have a move queued this turn (Showdown's `queue.willMove`).
-    will_move: [bool; 4],
+    will_move: [bool; MAX_POSITIONS],
 }
 
 impl<'a> Engine<'a> {
@@ -65,7 +65,7 @@ impl<'a> Engine<'a> {
             faint_queue: FaintQueue::default(),
             stellar_boosted: false,
             active_move: None,
-            will_move: [false; 4],
+            will_move: [false; MAX_POSITIONS],
         }
     }
 
@@ -90,12 +90,30 @@ impl<'a> Engine<'a> {
         self.state.positions()
     }
 
-    /// The other creatures on the field that a move could hit from `position`, foes or allies,
-    /// that have not fainted, in position order.
+    /// The foes of `position` that have not fainted, in position order (Showdown's
+    /// `side.foes()`).
     pub(super) fn foes_of(&self, position: Position) -> Positions {
         self.positions()
             .iter()
             .filter(|other| other.side != position.side && !self.active(*other).is_fainted())
+            .collect()
+    }
+
+    /// Whether two positions are adjacent in this battle; see [`Position::is_adjacent`].
+    pub(super) fn adjacent(&self, position: Position, other: Position) -> bool {
+        position.is_adjacent(other, self.state.game_type.active_per_side())
+    }
+
+    /// The foes of `position` that have not fainted and are adjacent to it (Showdown's
+    /// `adjacentFoes`); in singles and doubles, every foe. In triples a fainted creature has no
+    /// adjacent foes, since Showdown's `isAdjacent` rules out fainted creatures.
+    pub(super) fn adjacent_foes(&self, position: Position) -> Positions {
+        if self.state.game_type.active_per_side() > 2 && self.active(position).is_fainted() {
+            return Positions::new();
+        }
+        self.foes_of(position)
+            .iter()
+            .filter(|&foe| self.adjacent(position, foe))
             .collect()
     }
 
@@ -157,10 +175,10 @@ impl<'a> Engine<'a> {
 
     /// Runs validated choices, by [`Position::flat`]: replacements between turns, or a full
     /// turn.
-    pub fn run(&mut self, choices: [Choice; 4]) {
+    pub fn run(&mut self, choices: [Choice; MAX_POSITIONS]) {
         let positions = self.positions();
         if !self.state.awaiting_switch() {
-            let mut queue = [None; 4];
+            let mut queue = [None; MAX_POSITIONS];
             for position in positions.iter() {
                 queue[position.flat()] = self.action_for(position, choices[position.flat()]);
             }
@@ -202,6 +220,7 @@ impl<'a> Engine<'a> {
     fn action_for(&self, side: Position, choice: Choice) -> Option<QueuedAction> {
         match choice {
             Choice::Switch(slot) => Some(QueuedAction::Switch(slot)),
+            Choice::Shift => Some(QueuedAction::Shift),
             Choice::Pass => None,
             _ => {
                 let slot = choice.move_slot()?;
@@ -228,7 +247,7 @@ impl<'a> Engine<'a> {
 
     /// Showdown's `terastallize` actions (queue order 106): after switches and before any move,
     /// fastest first.
-    fn terastallize(&mut self, choices: [Choice; 4]) {
+    fn terastallize(&mut self, choices: [Choice; MAX_POSITIONS]) {
         let wanting = self
             .positions()
             .iter()
@@ -249,20 +268,45 @@ impl<'a> Engine<'a> {
 
     /// Runs queued actions until the turn ends, the battle ends, or a creature must switch
     /// mid-turn, in which case the rest of the queue waits in the state.
-    fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; 4]) {
+    fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; MAX_POSITIONS]) {
         // The next actor is picked from the remaining actions each time, re-reading speed after
-        // every action as Generation 8 onward does.
-        // Showdown re-reads the queue after each action that ran, when a move comes next; a
-        // fainted creature's move is skipped without one.
+        // every action as Generation 8 onward does. Showdown re-sorts the queue after an
+        // action that ran only when the head of the old order is a move, resolving every
+        // queued move's target again; a fainted creature's skipped move or shift re-sorts
+        // nothing. Only a shift, in triples, can make the old head and the next actor differ.
         let mut ran = true;
-        while let Some(side) = self.next_actor(&queue, false) {
-            let is_move = matches!(queue[side.flat()], Some(QueuedAction::Move { .. }));
-            if ran && is_move && self.state.game_type.active_per_side() > 1 {
+        // The head of the old order, once an action has run, when the queue holds a shift.
+        let mut old_head: Option<Position> = None;
+        loop {
+            let stale = old_head.filter(|head| queue[head.flat()] == Some(QueuedAction::Shift));
+            let Some(side) = stale.or_else(|| self.next_actor(&queue, false)) else {
+                break;
+            };
+            let action = queue[side.flat()];
+            let is_move = matches!(action, Some(QueuedAction::Move { .. }));
+            let head_is_move = old_head.map_or(is_move, |head| {
+                matches!(queue[head.flat()], Some(QueuedAction::Move { .. }))
+            });
+            if ran && stale.is_none() && head_is_move && self.state.game_type.active_per_side() > 1
+            {
                 self.redraw_targets(&queue);
             }
-            ran = !(is_move && self.active(side).is_fainted());
+            old_head = None;
+            if queue.contains(&Some(QueuedAction::Shift)) {
+                let mut rest = queue;
+                rest[side.flat()] = None;
+                old_head = self.next_actor(&rest, false);
+            }
+            let skippable = is_move || action == Some(QueuedAction::Shift);
+            ran = !(skippable && self.active(side).is_fainted());
+            // A shift trades places, and queued actions, with the center.
+            let center = Position::new(side.side, 1);
+            let shifts = action == Some(QueuedAction::Shift) && !self.active(side).is_fainted();
             if self.act(side, &mut queue) {
                 return;
+            }
+            if shifts && old_head == Some(center) {
+                old_head = Some(side);
             }
         }
         self.residual();
@@ -282,7 +326,7 @@ impl<'a> Engine<'a> {
     /// Showdown's `resolveAction` for each move choice, in choice order: a move with no target
     /// location gets a random one, and `getActionSpeed` then resolves the target, either of
     /// which can draw in doubles.
-    fn resolve_targets(&mut self, queue: &mut [Option<QueuedAction>; 4]) {
+    fn resolve_targets(&mut self, queue: &mut [Option<QueuedAction>; MAX_POSITIONS]) {
         for position in Position::ALL {
             let Some(QueuedAction::Move {
                 slot,
@@ -309,7 +353,7 @@ impl<'a> Engine<'a> {
     /// Before each move in doubles, Showdown re-reads every queued action's speed, and so
     /// resolves each queued move's target again, drawing for those that fall back to a random
     /// foe (Showdown's `getActionSpeed` in `runAction`).
-    fn redraw_targets(&mut self, queue: &[Option<QueuedAction>; 4]) {
+    fn redraw_targets(&mut self, queue: &[Option<QueuedAction>; MAX_POSITIONS]) {
         for position in Position::ALL {
             if let Some(QueuedAction::Move {
                 target, move_id, ..
@@ -324,7 +368,7 @@ impl<'a> Engine<'a> {
     /// Runs a position's queued action and the checks after it. Returns whether the turn
     /// stops here: the battle ended, or a creature must switch mid-turn and the rest of the
     /// queue waits in the state.
-    fn act(&mut self, side: Position, queue: &mut [Option<QueuedAction>; 4]) -> bool {
+    fn act(&mut self, side: Position, queue: &mut [Option<QueuedAction>; MAX_POSITIONS]) -> bool {
         let Some(action) = queue[side.flat()].take() else {
             return false;
         };
@@ -332,6 +376,11 @@ impl<'a> Engine<'a> {
             QueuedAction::Switch(slot) => {
                 self.switch_in(side, slot);
                 self.run_switch_in([side].into_iter().collect());
+            }
+            QueuedAction::Shift => {
+                if !self.active(side).is_fainted() {
+                    self.swap_position(side, 1, queue);
+                }
             }
             QueuedAction::Move { slot, target, .. } => {
                 if !self.active(side).is_fainted() {
@@ -368,7 +417,7 @@ impl<'a> Engine<'a> {
 
     fn priority(&self, action: QueuedAction) -> i8 {
         match action {
-            QueuedAction::Switch(_) => 0,
+            QueuedAction::Switch(_) | QueuedAction::Shift => 0,
             QueuedAction::Move { move_id, .. } => self.dex.move_data(move_id).priority,
         }
     }
@@ -377,7 +426,7 @@ impl<'a> Engine<'a> {
     /// speed, as Showdown sorts its queue. With `switches_only`, only switches are considered.
     fn next_actor(
         &mut self,
-        queue: &[Option<QueuedAction>; 4],
+        queue: &[Option<QueuedAction>; MAX_POSITIONS],
         switches_only: bool,
     ) -> Option<Position> {
         let mut waiting = Positions::new();
@@ -453,7 +502,7 @@ impl<'a> Engine<'a> {
                 }
             }
             _ => {
-                let mut keyed = [(0, Position::from(SideId::P1)); 4];
+                let mut keyed = [(0, Position::from(SideId::P1)); MAX_POSITIONS];
                 for (entry, &position) in keyed.iter_mut().zip(positions.iter()) {
                     *entry = (self.action_speed(position), position);
                 }
@@ -527,6 +576,53 @@ impl<'a> Engine<'a> {
         self.emit(event);
     }
 
+    /// Showdown's `swapPosition`: the creature at `side` trades places with the one at `to`
+    /// on its side, along with its queued action and its place in `switch_order`.
+    fn swap_position(
+        &mut self,
+        side: Position,
+        to: u8,
+        queue: &mut [Option<QueuedAction>; MAX_POSITIONS],
+    ) {
+        let to = Position::new(side.side, to);
+        self.emit(Event::Swap { pokemon: side, to });
+        let (from, into) = (usize::from(side.index), usize::from(to.index));
+        let team = &mut self.state.sides[side.side.index()];
+        team.active.swap(from, into);
+        team.switch_flag.swap(from, into);
+        team.switch_order.swap(from, into);
+        queue.swap(side.flat(), to.flat());
+    }
+
+    /// In triples, when each side has one creature left and they are not adjacent, both move
+    /// to the center (Showdown's `nextTurn`).
+    fn center_last_creatures(&mut self) {
+        if self.state.game_type != GameType::Triples
+            || self.state.sides.iter().any(|side| {
+                side.team
+                    .iter()
+                    .filter(|pokemon| !pokemon.is_fainted())
+                    .count()
+                    != 1
+            })
+        {
+            return;
+        }
+        let standing: Positions = self
+            .positions()
+            .iter()
+            .filter(|&position| !self.active(position).is_fainted())
+            .collect();
+        if let [first, second] = *standing.as_slice()
+            && !self.adjacent(first, second)
+        {
+            let mut queue = [None; MAX_POSITIONS];
+            self.swap_position(first, 1, &mut queue);
+            self.swap_position(second, 1, &mut queue);
+            self.emit(Event::Center);
+        }
+    }
+
     fn switch_in(&mut self, side: Position, slot: usize) {
         let outgoing = self.active_mut(side);
         outgoing.boosts = Boosts::default();
@@ -547,7 +643,7 @@ impl<'a> Engine<'a> {
 
     /// Showdown's `dragIn`: a forced switch picks a random replacement from
     /// `possibleSwitches`, cancels the dragged-out creature's action, and runs the switch-in.
-    fn drag_in(&mut self, side: Position, queue: &mut [Option<QueuedAction>; 4]) {
+    fn drag_in(&mut self, side: Position, queue: &mut [Option<QueuedAction>; MAX_POSITIONS]) {
         let candidates: Vec<usize> = self.state.side(side.side).drag_candidates().collect();
         let Ok(count) = u32::try_from(candidates.len()) else {
             return;
@@ -655,9 +751,10 @@ impl<'a> Engine<'a> {
                             self.set_terrain(*terrain);
                         }
                     }
-                    // Like Intimidate: every foe, announced once, and blocked by a substitute.
+                    // Like Intimidate: every adjacent foe, announced once, and blocked by a
+                    // substitute.
                     Handler::StartFoeBoosts(boosts) => {
-                        let foes = self.foes_of(side);
+                        let foes = self.adjacent_foes(side);
                         if foes.len() > 0 {
                             self.announce(side, effect);
                         }
@@ -967,6 +1064,7 @@ impl<'a> Engine<'a> {
             let active = self.active_mut(side);
             active.active_turns = active.active_turns.saturating_add(1);
         }
+        self.center_last_creatures();
         self.state.turn = self.state.turn.saturating_add(1);
         let turn = self.state.turn;
         self.emit(Event::Turn { turn });

@@ -5,7 +5,8 @@ use std::fmt;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::state::{
-    GameType, MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, TeraType, Volatiles,
+    GameType, MAX_ACTIVE, MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, TeraType,
+    Volatiles,
 };
 use crate::dex::{Dex, HandlerMask, LearnMethod};
 use crate::stats::{Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, StatTable, calculate_stats};
@@ -404,13 +405,13 @@ pub(crate) fn build_side(
         .collect::<Result<_, _>>()?;
     let switch_order = (0..sets.len()).collect();
     // The first team members lead, one per position.
-    let active =
-        [0, 1].map(|index| (index < sets.len().min(game_type.active_per_side())).then_some(index));
+    let active = [0, 1, 2]
+        .map(|index| (index < sets.len().min(game_type.active_per_side())).then_some(index));
     Ok(Side {
         team,
         active,
         conditions: Vec::new(),
-        switch_flag: [false; 2],
+        switch_flag: [false; MAX_ACTIVE],
         can_terastallize: true,
         switch_order,
     })

@@ -37,6 +37,15 @@ pub enum Event {
         /// Its max HP.
         max_hp: u16,
     },
+    /// `swap`: in triples, a creature traded places with the one at `to`.
+    Swap {
+        /// The creature, by the position it left.
+        pokemon: Position,
+        /// The position it moved to, whose creature took its old place.
+        to: Position,
+    },
+    /// `-center`: in triples, the last two creatures were moved to the center.
+    Center,
     /// `move`: a creature used a move.
     Move {
         /// The creature, by position.

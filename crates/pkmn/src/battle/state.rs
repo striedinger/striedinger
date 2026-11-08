@@ -10,6 +10,11 @@ use crate::dex::{
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
 
+/// The most creatures a side has in battle at once, in triples.
+pub const MAX_ACTIVE: usize = 3;
+/// The most positions on the field: both sides' in triples.
+pub const MAX_POSITIONS: usize = 2 * MAX_ACTIVE;
+
 /// One of the two players.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -141,6 +146,8 @@ pub struct SideConditionState {
 pub enum QueuedAction {
     /// Switch to the creature in this team slot.
     Switch(usize),
+    /// Shift from an edge to the center, in triples.
+    Shift,
     /// Use the move in this slot, or Struggle.
     Move {
         /// The move slot; `None` for Struggle.
@@ -154,7 +161,7 @@ pub enum QueuedAction {
     },
 }
 
-/// Singles or doubles (Showdown's `gameType`).
+/// Singles, doubles or triples (Showdown's `gameType`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum GameType {
@@ -163,6 +170,8 @@ pub enum GameType {
     Singles,
     /// Two active creatures per side.
     Doubles,
+    /// Three active creatures per side.
+    Triples,
 }
 
 impl GameType {
@@ -172,28 +181,31 @@ impl GameType {
         match self {
             Self::Singles => 1,
             Self::Doubles => 2,
+            Self::Triples => 3,
         }
     }
 }
 
 /// A place on the field: a side and an index among its active creatures, like Showdown's
-/// `p1a` and `p1b`.
+/// `p1a`, `p1b` and `p1c`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Position {
     /// The side.
     pub side: SideId,
-    /// 0 for the first active creature (`a`), 1 for the second (`b`).
+    /// 0 for the first active creature (`a`), 1 for the second (`b`), 2 for the third (`c`).
     pub index: u8,
 }
 
 impl Position {
-    /// Every position in a doubles battle, in Showdown's order.
-    pub const ALL: [Self; 4] = [
+    /// Every position in a triples battle, in Showdown's order.
+    pub const ALL: [Self; MAX_POSITIONS] = [
         Self::new(SideId::P1, 0),
         Self::new(SideId::P1, 1),
+        Self::new(SideId::P1, 2),
         Self::new(SideId::P2, 0),
         Self::new(SideId::P2, 1),
+        Self::new(SideId::P2, 2),
     ];
 
     /// A position.
@@ -202,15 +214,15 @@ impl Position {
         Self { side, index }
     }
 
-    /// An index from 0 to 3 for arrays over all positions.
+    /// An index below [`MAX_POSITIONS`] for arrays over all positions.
     #[must_use]
     pub const fn flat(self) -> usize {
-        self.side.index() * 2 + self.index as usize
+        self.side.index() * MAX_ACTIVE + self.index as usize
     }
 
     /// The target location that names `target` from this position, as in Showdown's
-    /// `move N T` choices: 1 and 2 for the foes' first and second positions, -1 and -2 for
-    /// the user's side.
+    /// `move N T` choices: 1, 2 and 3 for the foes' positions, -1, -2 and -3 for the user's
+    /// side.
     #[must_use]
     pub fn target_location(self, target: Self) -> i8 {
         let place = i8::try_from(target.index).unwrap_or(0) + 1;
@@ -218,6 +230,19 @@ impl Position {
             -place
         } else {
             place
+        }
+    }
+
+    /// Whether two positions are adjacent when each side has `per_side` of them, as
+    /// Showdown's `validTargetLoc` places them: neighbours on the same side, and foes across or
+    /// diagonally across. In singles and doubles every other position is adjacent.
+    #[must_use]
+    pub const fn is_adjacent(self, other: Self, per_side: usize) -> bool {
+        let (mine, theirs) = (self.index as usize, other.index as usize);
+        if self.side.index() == other.side.index() {
+            mine.abs_diff(theirs) == 1
+        } else {
+            (mine + theirs + 1).abs_diff(per_side) <= 1
         }
     }
 
@@ -237,7 +262,7 @@ impl Position {
 /// A short list of positions, so ordering them does not allocate.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Positions {
-    items: [Position; 4],
+    items: [Position; MAX_POSITIONS],
     len: usize,
 }
 
@@ -246,7 +271,7 @@ impl Positions {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            items: [Position::from(SideId::P1); 4],
+            items: [Position::from(SideId::P1); MAX_POSITIONS],
             len: 0,
         }
     }
@@ -306,7 +331,7 @@ impl Default for Positions {
 
 impl IntoIterator for Positions {
     type Item = Position;
-    type IntoIter = std::iter::Take<std::array::IntoIter<Position, 4>>;
+    type IntoIter = std::iter::Take<std::array::IntoIter<Position, MAX_POSITIONS>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.items.into_iter().take(self.len)
@@ -322,7 +347,7 @@ impl From<SideId> for Position {
 
 impl std::fmt::Display for Position {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let letter = if self.index == 0 { 'a' } else { 'b' };
+        let letter = char::from(b'a' + self.index);
         write!(formatter, "{}{letter}", self.side.id())
     }
 }
@@ -568,14 +593,14 @@ pub struct Side {
     pub team: Vec<Pokemon>,
     /// The team slot of each position's creature; `None` past the side's positions. A position
     /// whose creature fainted with no replacement keeps it.
-    pub active: [Option<usize>; 2],
+    pub active: [Option<usize>; MAX_ACTIVE],
     /// Conditions on this side, such as entry hazards and screens.
     #[serde(default)]
     pub conditions: Vec<SideConditionState>,
     /// Whether each position's creature must switch out mid-turn after a move like U-turn
     /// (Showdown's `switchFlag`).
     #[serde(default)]
-    pub switch_flag: [bool; 2],
+    pub switch_flag: [bool; MAX_ACTIVE],
     /// Whether a team member may still Terastallize this battle.
     #[serde(default = "can_terastallize")]
     pub can_terastallize: bool,
@@ -727,8 +752,8 @@ pub struct BattleState {
     pub last_move: Option<MoveId>,
     /// The rest of a turn paused for a mid-turn switch, by [`Position::flat`].
     #[serde(default)]
-    pub queue: Option<[Option<QueuedAction>; 4]>,
-    /// Singles or doubles.
+    pub queue: Option<[Option<QueuedAction>; MAX_POSITIONS]>,
+    /// Singles, doubles or triples.
     #[serde(default)]
     pub game_type: GameType,
 }
@@ -794,7 +819,7 @@ impl BattleState {
     #[must_use]
     pub fn awaiting_switch(&self) -> bool {
         for side in &self.sides {
-            if side.switch_flag[0] || side.switch_flag[1] {
+            if side.switch_flag.contains(&true) {
                 return true;
             }
             for (index, slot) in (0_u8..).zip(side.active) {

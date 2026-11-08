@@ -7,8 +7,9 @@
 //! stat stages, Substitute, confusion, Terastallization, weather, terrain, side conditions and
 //! their durations, the turn, and the winner.
 //!
-//! The recordings, singles and doubles, are generated, not committed. Create it with
-//! `pnpm --filter @workspace/pkmn-oracle generate`; without it this test is skipped, unless
+//! The recordings, singles, doubles and triples, are generated, not committed. Create them
+//! with `pnpm --filter @workspace/pkmn-oracle generate`, adding `-- --doubles` or
+//! `-- --triples`; without it this test is skipped, unless
 //! `PKMN_REQUIRE_SHOWDOWN` is set, as CI does. To debug a divergence, set `PKMN_ONLY` to a
 //! battle's seed to replay only that battle, and `PKMN_TRACE_EVENTS` to print each step's
 //! events.
@@ -129,7 +130,7 @@ fn snapshot(battle: &Battle) -> Snapshot {
             .iter()
             .map(|side| {
                 let actives: Vec<&pkmn::battle::Pokemon> =
-                    (0..2).filter_map(|index| side.active_at(index)).collect();
+                    (0..3).filter_map(|index| side.active_at(index)).collect();
                 let mut conditions: Vec<ConditionSnapshot> = side
                     .conditions
                     .iter()
@@ -209,6 +210,7 @@ fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
     let mut battle = match recorded.game_type {
         GameType::Singles => Battle::new(Arc::clone(dex), teams, seed),
         GameType::Doubles => Battle::doubles(Arc::clone(dex), teams, seed),
+        GameType::Triples => Battle::triples(Arc::clone(dex), teams, seed),
     }
     .unwrap_or_else(|error| panic!("{context}: {error}"));
     for (side, expected) in battle.state().sides.iter().zip(&recorded.stats) {
@@ -225,9 +227,9 @@ fn replay(dex: &Arc<Dex>, index: usize, recorded: &RecordedBattle) {
         let choices = step
             .choices
             .each_ref()
-            .map(|side| [0, 1].map(|index| side.get(index).copied().unwrap_or(Choice::Pass)));
+            .map(|side| [0, 1, 2].map(|index| side.get(index).copied().unwrap_or(Choice::Pass)));
         let events = battle
-            .submit_doubles(choices)
+            .submit_all(choices)
             .unwrap_or_else(|error| panic!("{context}, step {number}: {error}"))
             .to_vec();
         if std::env::var_os("PKMN_TRACE_EVENTS").is_some() {
@@ -282,5 +284,13 @@ fn replays_showdown_doubles_battles_identically() {
     replay_recording(
         "showdown-doubles.json",
         "pnpm --filter @workspace/pkmn-oracle generate -- --doubles",
+    );
+}
+
+#[test]
+fn replays_showdown_triples_battles_identically() {
+    replay_recording(
+        "showdown-triples.json",
+        "pnpm --filter @workspace/pkmn-oracle generate -- --triples",
     );
 }

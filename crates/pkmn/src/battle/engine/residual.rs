@@ -34,9 +34,9 @@ const MAX_TOXIC_STAGE: u8 = 15;
 const NO_ORDER: u32 = u32::MAX;
 /// Showdown's default sub-order for conditions on a creature (`effectTypeOrder.Condition`).
 const VOLATILE_SUB_ORDER: u8 = 2;
-/// At most: weather and terrain, then per side four conditions, a status, an ability and an
-/// item handler, terrain healing, and six volatiles.
-const MAX_HANDLERS: usize = 32;
+/// At most: weather and terrain, then per side five conditions and, for each of its three
+/// positions, a status, an ability and an item handler, terrain healing, and eight volatiles.
+const MAX_HANDLERS: usize = 2 + 2 * (5 + 3 * 12);
 
 /// A volatile that only counts down at the end of the turn.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

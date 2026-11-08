@@ -5,7 +5,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::state::{BattleState, Pokemon, Position, SideId};
+use super::state::{BattleState, MAX_POSITIONS, Pokemon, Position, SideId};
 use crate::dex::{Dex, MoveId, MoveTarget};
 
 /// What a side is being asked to decide.
@@ -64,6 +64,8 @@ pub enum Choice {
     TerastallizeAt(usize, i8),
     /// `switch N`: switch to the creature in this team slot.
     Switch(usize),
+    /// `shift`: in triples, trade places with the center position, from either edge.
+    Shift,
     /// `pass`: do nothing, while another position switches or with no creature here.
     Pass,
 }
@@ -77,7 +79,7 @@ impl Choice {
             | Self::Terastallize(slot)
             | Self::MoveAt(slot, _)
             | Self::TerastallizeAt(slot, _) => Some(slot),
-            Self::Switch(_) | Self::Pass => None,
+            Self::Switch(_) | Self::Shift | Self::Pass => None,
         }
     }
 
@@ -226,19 +228,20 @@ fn needs_target(dex: &Dex, state: &BattleState, active: &Pokemon, slot: usize) -
             .needs_choice()
 }
 
-/// The target locations a `normal` move may name from `position`: any other position in
-/// battle, ally or foe, as in Showdown's doubles, where every position is adjacent.
+/// The target locations a `normal` move may name from `position`: any other adjacent
+/// position in battle, ally or foe. In doubles every position is adjacent.
 fn target_locations(state: &BattleState, position: Position) -> impl Iterator<Item = i8> + use<> {
+    let per_side = state.game_type.active_per_side();
     state
         .positions()
         .into_iter()
-        .filter(move |&other| other != position)
+        .filter(move |&other| other != position && position.is_adjacent(other, per_side))
         .map(move |other| position.target_location(other))
 }
 
 /// Every legal choice for a position, generated lazily without allocating: each selectable
-/// move (at each target location, in doubles, when it needs one), then with Terastallization,
-/// then the switches, then a pass.
+/// move (at each target location, in doubles and triples, when it needs one), then with
+/// Terastallization, then the switches, then a shift from a triples edge, then a pass.
 #[derive(Clone, Debug)]
 pub struct Choices {
     /// Move slots still to offer, as a bitset.
@@ -248,7 +251,7 @@ pub struct Choices {
     /// Of those, the slots whose target must be an ally.
     ally_only: u8,
     /// The target locations a targeted move can name, and how many there are.
-    targets: [i8; 3],
+    targets: [i8; MAX_POSITIONS - 1],
     target_count: u8,
     tera: bool,
     /// Where the current move slot has got to: target index, then Terastallization.
@@ -256,6 +259,7 @@ pub struct Choices {
     terastallizing: bool,
     /// Team slots still to offer as switches, as a bitset.
     switches: u8,
+    shift: bool,
     pass: bool,
 }
 
@@ -307,6 +311,10 @@ impl Iterator for Choices {
             self.switches &= self.switches - 1;
             return Some(Choice::Switch(slot));
         }
+        if self.shift {
+            self.shift = false;
+            return Some(Choice::Shift);
+        }
         if self.pass {
             self.pass = false;
             return Some(Choice::Pass);
@@ -321,6 +329,7 @@ impl Iterator for Choices {
         let remaining = untargeted.count_ones() as usize * per_target
             + targeted.count_ones() as usize * per_target * usize::from(self.target_count)
             + self.switches.count_ones() as usize
+            + usize::from(self.shift)
             + usize::from(self.pass);
         // The current slot may be partly used up, so this is only an upper bound.
         (0, Some(remaining))
@@ -333,12 +342,13 @@ pub(crate) fn choices(dex: &Dex, state: &BattleState, position: Position) -> Cho
         moves: 0,
         targeted: 0,
         ally_only: 0,
-        targets: [0; 3],
+        targets: [0; MAX_POSITIONS - 1],
         target_count: 0,
         tera: false,
         target_index: 0,
         terastallizing: false,
         switches: 0,
+        shift: false,
         pass: false,
     };
     let team = state.side(position.side);
@@ -378,6 +388,7 @@ pub(crate) fn choices(dex: &Dex, state: &BattleState, position: Position) -> Cho
             }
         }
     }
+    choices.shift = choosing_moves && can_shift(state, position);
     if choosing_moves || must_switch {
         for slot in team.switches_at(position.index) {
             if let Ok(slot) = u8::try_from(slot)
@@ -473,6 +484,7 @@ pub(crate) fn validate(
         };
     }
     match choice {
+        Choice::Shift if can_shift(state, position) => Ok(()),
         // `switches_at` also refuses a creature trapped by a rampage or a charged move.
         Choice::Switch(slot) if team.switches_at(position.index).any(|open| open == slot) => Ok(()),
         Choice::Switch(_) => reject(ChoiceErrorReason::InvalidSwitch),
@@ -533,6 +545,11 @@ pub(crate) fn validate_side(
         }
     }
     Ok(())
+}
+
+/// Whether a position may shift: in triples, from either edge (Showdown's `chooseShift`).
+fn can_shift(state: &BattleState, position: Position) -> bool {
+    state.game_type == super::state::GameType::Triples && position.index != 1
 }
 
 /// Whether the creature at a position may Terastallize: once per side per battle.

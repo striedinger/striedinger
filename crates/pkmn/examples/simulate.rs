@@ -7,6 +7,7 @@
 //! cargo run --release -p pkmn --example simulate -- 20000
 //! cargo run -p pkmn --example simulate -- 1 --log
 //! cargo run --release -p pkmn --example simulate -- 20000 --doubles
+//! cargo run --release -p pkmn --example simulate -- 20000 --triples
 //! ```
 
 use std::sync::Arc;
@@ -22,7 +23,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let battles: u64 = arguments.next().map_or(Ok(1_000), |count| count.parse())?;
     let flags: Vec<String> = arguments.collect();
     let log = flags.iter().any(|flag| flag == "--log");
-    let doubles = flags.iter().any(|flag| flag == "--doubles");
+    let per_side: u8 = if flags.iter().any(|flag| flag == "--triples") {
+        3
+    } else if flags.iter().any(|flag| flag == "--doubles") {
+        2
+    } else {
+        1
+    };
     let dex = Arc::new(Dex::from_json(pkmn::SAMPLE_DEX_JSON)?);
     let names = Names::new(&dex);
     let setups: Vec<[Vec<PokemonSet>; 2]> = (0..battles)
@@ -39,23 +46,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (seed, teams) in (0..battles).zip(&setups) {
         let mut prng = Prng::new(seed);
         let teams = [teams[0].as_slice(), teams[1].as_slice()];
-        let mut battle = if doubles {
-            Battle::doubles(Arc::clone(&dex), teams, seed)?
-        } else {
-            Battle::new(Arc::clone(&dex), teams, seed)?
+        let mut battle = match per_side {
+            3 => Battle::triples(Arc::clone(&dex), teams, seed)?,
+            2 => Battle::doubles(Arc::clone(&dex), teams, seed)?,
+            _ => Battle::new(Arc::clone(&dex), teams, seed)?,
         };
         if log {
             print_events(&dex, battle.events());
         }
         while battle.outcome().is_none() {
-            let events = if doubles {
-                // Two positions can conflict, by switching to the same creature or both
-                // Terastallizing, so a side picks again until its choices fit together.
+            let events = if per_side > 1 {
+                // Positions can conflict, by switching to the same creature or Terastallizing
+                // together, so a side picks again until its choices fit together.
                 loop {
                     let choices = SideId::BOTH.map(|side| {
-                        [0, 1].map(|index| {
+                        [0, 1, 2].map(|index| {
                             options.clear();
-                            options.extend(battle.choices(Position::new(side, index)));
+                            if index < per_side {
+                                options.extend(battle.choices(Position::new(side, index)));
+                            }
                             if options.is_empty() {
                                 Choice::Pass
                             } else {
@@ -63,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         })
                     });
-                    if battle.submit_doubles(choices).is_ok() {
+                    if battle.submit_all(choices).is_ok() {
                         break battle.events();
                     }
                 }

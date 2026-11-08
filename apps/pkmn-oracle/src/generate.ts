@@ -13,7 +13,7 @@
  * Showdown draws extra random numbers whenever the two active creatures are speed-tied, a
  * documented difference, so a battle's recording stops at its first speed tie.
  *
- * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles] [--doubles]
+ * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles] [--doubles | --triples]
  */
 
 import type { Battle as ShowdownBattle, Pokemon, Side } from "pokemon-showdown";
@@ -34,8 +34,9 @@ type Choice =
   | { moveAt: [number, number] }
   | { terastallizeAt: [number, number] }
   | { switch: number }
+  | "shift"
   | "pass";
-type GameType = "singles" | "doubles";
+type GameType = "singles" | "doubles" | "triples";
 
 interface SampleMove {
   name: string;
@@ -132,10 +133,12 @@ interface RecordedBattle {
   stopped: "finished" | "speed_tie" | "step_limit" | "called_rampage";
 }
 
-const TEAM_SIZE: Record<GameType, number> = { singles: 3, doubles: 4 };
+const TEAM_SIZE: Record<GameType, number> = { singles: 3, doubles: 4, triples: 5 };
+/** Showdown has no Gen 9 triples custom game, so triples plays the doubles one's rules. */
 const FORMATS: Record<GameType, string> = {
   singles: "gen9customgame",
   doubles: "gen9doublescustomgame",
+  triples: "gen9doublescustomgame",
 };
 /** Showdown's `targetTypeChoices`: target types a doubles choice must aim. */
 const AIMED_TARGETS = new Set([
@@ -592,8 +595,9 @@ interface SideChoices {
 
 /**
  * Picks legal choices for each of a side's positions from Showdown's request, in pkmn's team
- * and move slots: at most one Terastallization, no two switches to the same creature, and a
- * target location for each aimed move in doubles.
+ * and move slots: at most one Terastallization, no two switches to the same creature, a
+ * target location for each aimed move in doubles and triples, and now and then a shift from a
+ * triples edge.
  */
 function chooseForSide(side: Side, random: (bound: number) => number): SideChoices {
   const request = side.activeRequest;
@@ -650,6 +654,11 @@ function chooseForSide(side: Side, random: (bound: number) => number): SideChoic
       switchTo(pick(random, switches));
       continue;
     }
+    if (side.battle.gameType === "triples" && index !== 1 && random(12) === 0) {
+      ours.push("shift");
+      theirs.push("shift");
+      continue;
+    }
     const { move, moveIndex } = pick(random, moves);
     const terastallize: boolean =
       !terastallizing && active.canTerastallize !== undefined && random(6) === 0;
@@ -662,15 +671,16 @@ function chooseForSide(side: Side, random: (bound: number) => number): SideChoic
       theirs.push(`move ${moveIndex + 1}${tera}`);
       continue;
     }
-    // Every other position is adjacent in doubles: either foe, or the ally. A move at an ally
-    // can only aim at the ally.
-    const foeCount = move.target === "adjacentAlly" ? 0 : side.foe.active.length;
+    // Any filled location the move can reach: in doubles every other position, in triples
+    // the adjacent ones, and only allies for a move at an ally.
     const locations = [
-      ...Array.from({ length: foeCount }, (_, foe) => foe + 1),
-      ...Array.from({ length: count }, (_, ally) => -(ally + 1)).filter(
-        (location) => location !== -(index + 1),
-      ),
-    ];
+      ...Array.from({ length: side.foe.active.length }, (_, foe) => foe + 1),
+      ...Array.from({ length: count }, (_, ally) => -(ally + 1)),
+    ].filter(
+      (location) =>
+        side.battle.validTargetLoc(location, user, move.target ?? "normal") &&
+        (location > 0 ? side.foe.active[location - 1] : side.active[-location - 1]) !== undefined,
+    );
     const location = pick(random, locations);
     ours.push(terastallize ? { terastallizeAt: [slot, location] } : { moveAt: [slot, location] });
     theirs.push(`move ${moveIndex + 1} ${location}${tera}`);
@@ -744,6 +754,13 @@ function calledRampage(battle: ShowdownBattle): boolean {
   );
 }
 
+/** A copy of a format with another game type, keeping its rules. */
+function withGameType<T extends object>(format: T, gameType: GameType): T {
+  return Object.assign(Object.create(Object.getPrototypeOf(format) as object) as T, format, {
+    gameType,
+  });
+}
+
 /** Records one battle, or returns `null` if it hits a speed tie before the first choice. */
 function recordBattle(index: number, sample: SampleDex, gameType: GameType): RecordedBattle | null {
   const random = createRandom(index);
@@ -752,7 +769,12 @@ function recordBattle(index: number, sample: SampleDex, gameType: GameType): Rec
     Array.from({ length: teamSize }, (_, slot) => randomSet(random, sample, slot)),
   );
   const seed = hexSeed(index);
-  const battle = new Battle({ formatid: toID(FORMATS[gameType]), seed: `gen5,${seed}` });
+  const format = Dex.formats.get(FORMATS[gameType], true);
+  const battle = new Battle({
+    formatid: format.id,
+    format: gameType === "triples" ? withGameType(format, "triples") : format,
+    seed: `gen5,${seed}`,
+  });
   const speedTieSeen = watchSpeedTies(battle);
   battle.setPlayer("p1", { name: "p1", team: (teams[0] ?? []).map(toShowdownSet) });
   battle.setPlayer("p2", { name: "p2", team: (teams[1] ?? []).map(toShowdownSet) });
@@ -793,7 +815,11 @@ function recordBattle(index: number, sample: SampleDex, gameType: GameType): Rec
 
 function main(): void {
   const options = process.argv.slice(2);
-  const gameType: GameType = options.includes("--doubles") ? "doubles" : "singles";
+  const gameType: GameType = options.includes("--triples")
+    ? "triples"
+    : options.includes("--doubles")
+      ? "doubles"
+      : "singles";
   const battles = Number(options.find((option) => !option.startsWith("--")) ?? 2000);
   const sample = JSON.parse(readFileSync(SAMPLE, "utf8")) as SampleDex;
   injectSample(sample);
@@ -802,7 +828,7 @@ function main(): void {
   ).filter((battle) => battle !== null);
   mkdirSync(FIXTURES, { recursive: true });
   writeFileSync(
-    new URL(gameType === "doubles" ? "showdown-doubles.json" : "showdown.json", FIXTURES),
+    new URL(gameType === "singles" ? "showdown.json" : `showdown-${gameType}.json`, FIXTURES),
     `${JSON.stringify({ generator: "pokemon-showdown@0.11.11", battles: recorded })}\n`,
   );
   const steps = recorded.reduce((total, battle) => total + battle.steps.length, 0);
