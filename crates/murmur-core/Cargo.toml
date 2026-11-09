@@ -11,7 +11,7 @@ crate-type = ["cdylib", "lib"]
 name = "murmur_core"
 
 [dependencies]
-uniffi = "0.28"
+uniffi = "0.32"
 thiserror = "1"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
