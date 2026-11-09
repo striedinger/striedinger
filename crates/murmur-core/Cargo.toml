@@ -6,16 +6,12 @@ description = "Shared core for Murmur: audio capture, local speech-to-text, loca
 
 [lib]
 # cdylib  -> linked by the native shells (Mac now, Windows/Linux later)
-# lib     -> lets the uniffi-bindgen binary and tests use the crate
+# lib     -> lets tests use the crate
 crate-type = ["cdylib", "lib"]
 name = "murmur_core"
 
-[[bin]]
-name = "uniffi-bindgen"
-path = "src/bin/uniffi-bindgen.rs"
-
 [dependencies]
-uniffi = { version = "0.28", features = ["cli"] }
+uniffi = "0.28"
 thiserror = "1"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }

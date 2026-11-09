@@ -88,7 +88,7 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
     let err_fn = |e| eprintln!("[murmur] audio stream error: {e}");
 
     // Push mono frames into the buffer while recording.
-    let mut on_frames = move |mono: &mut dyn Iterator<Item = f32>| {
+    let on_frames = move |mono: &mut dyn Iterator<Item = f32>| {
         if !rec_cb.load(Ordering::Relaxed) {
             return;
         }

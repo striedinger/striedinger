@@ -1,0 +1,19 @@
+[package]
+name = "murmur-bindgen"
+version = "0.1.0"
+description = "UniFFI binding generator for murmur-core. Reads the compiled library, so it never builds the core for the host."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/main.rs"
+
+[dependencies]
+# Must match murmur-core's uniffi version: the generator reads the metadata that version embeds.
+uniffi = { version = "0.28", features = ["cli"] }
+
+[lints]
+workspace = true
