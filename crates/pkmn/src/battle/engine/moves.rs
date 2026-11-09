@@ -161,10 +161,15 @@ impl Engine<'_> {
             return None;
         }
         if let Some(calls) = move_data.calls {
+            // Copycat with nothing to copy does nothing, but its hit still counts.
+            if calls == CallsMove::LastMove && self.state.last_move.is_none() {
+                self.status_move_updates(side, true);
+                return None;
+            }
             let called = self.called_move(side, calls)?;
             let used = self.use_move(side, called, priority, None, true, others_will_act);
-            // The calling move hits its user, so its own hit loop runs `Update` twice after.
-            self.status_move_updates(true);
+            // The calling move hits its user, so its own hit loop runs after the called move.
+            self.status_move_updates(side, true);
             return used;
         }
         let (worked, reached_target, target) = match move_data.target {
@@ -187,7 +192,6 @@ impl Engine<'_> {
                     return None;
                 }
                 let worked = self.status_move_hit(side, side, move_data);
-                self.status_move_updates(worked);
                 (worked, worked, Some(side))
             }
             MoveTarget::Normal
@@ -398,7 +402,6 @@ impl Engine<'_> {
         } else {
             let target = single.expect("there is a target");
             let worked = self.status_move_hit(side, target, move_data);
-            self.status_move_updates(worked);
             (worked, worked, Some(target))
         })
     }
@@ -431,9 +434,12 @@ impl Engine<'_> {
                     && self.active(foe).volatiles.follow_me
             })
             .collect();
-        if lures.len() > 1 {
-            lures = self.speed_order(lures);
-        }
+        // Showdown's `priorityEvent` sorts the handlers without a shuffle: by cached speed,
+        // then the one that switched in first.
+        lures.as_mut_slice().sort_by_key(|&lure| {
+            let pokemon = self.active(lure);
+            (std::cmp::Reverse(pokemon.speed), pokemon.switched_in)
+        });
         lures.first().unwrap_or(target)
     }
 
@@ -508,7 +514,6 @@ impl Engine<'_> {
                 pick(self, count).and_then(|index| pool[index])
             }
             CallsMove::LastMove => match self.state.last_move {
-                // With nothing to copy, Copycat does nothing, without failing.
                 None => return None,
                 Some(last) if dex.move_data(last).flags.failcopycat => None,
                 Some(last) => Some(last),
@@ -657,12 +662,15 @@ impl Engine<'_> {
                         side: holder.side,
                         condition,
                     });
-                    removed = true;
+                    // Like Showdown's Defog, clearing the target's screens is no success;
+                    // only what it clears from both sides, the hazards, is.
+                    removed |= holder == side || clears.user.contains(&condition);
                 }
             }
         }
+        // Nor is clearing the terrain.
         if clears.terrain {
-            removed |= self.clear_terrain();
+            self.clear_terrain();
         }
         removed
     }
@@ -1362,7 +1370,8 @@ impl Engine<'_> {
     }
 
     /// A status move's effects: primary on the target, weather, healing, `self`, then
-    /// secondaries. Fails if nothing changed, or if a substitute stands in the way.
+    /// secondaries, and the hit loop's two `Update`s. Fails if nothing changed, or if a
+    /// substitute stands in the way.
     fn status_move_hit(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
         // Disable's `onTryHit`, which Showdown runs after accuracy, in `spreadMoveHit`: the
         // target must have used a move other than Struggle.
@@ -1381,6 +1390,9 @@ impl Engine<'_> {
             && !move_data.flags.bypasssub
         {
             self.emit(Event::Fail { pokemon: side });
+            // Showdown's substitute fails the move quietly (`null`), so the hit counts and
+            // the `Update`s run.
+            self.status_move_updates(side, true);
             return false;
         }
         let mut primary = move_data.primary;
@@ -1440,6 +1452,7 @@ impl Engine<'_> {
         if !applied {
             self.emit(Event::Fail { pokemon: side });
         }
+        self.status_move_updates(side, applied);
         applied
     }
 
@@ -1626,11 +1639,13 @@ impl Engine<'_> {
         true
     }
 
-    /// Showdown's hit loop runs an `Update` after a status move's one hit and another after the
-    /// loop, unless the move did nothing.
-    fn status_move_updates(&mut self, worked: bool) {
+    /// The rest of Showdown's hit loop for a status move that hit: an `Update`, the faint
+    /// check (a win only if the user fainted), and another `Update`.
+    fn status_move_updates(&mut self, side: Position, worked: bool) {
         if worked {
             self.update();
+            let user_fainted = self.active(side).is_fainted();
+            self.announce_faints(user_fainted);
             self.update();
         }
     }

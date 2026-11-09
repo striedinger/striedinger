@@ -758,20 +758,19 @@ function chooseForSide(side: Side, random: (bound: number) => number): SideChoic
 }
 
 interface SortedHandler {
-  effectHolder?: { fainted?: boolean; sideConditions?: unknown };
+  effectHolder?: { sideConditions?: unknown };
 }
 
 /**
- * Watches for shuffles pkmn does not reproduce. pkmn sorts residual handlers exactly as
- * Showdown does, draws for the tie among screens in the `ModifyDamage` event, for the tie
- * among one creature's move-restricting volatiles in `DisableMove`, and for ties among the
- * active creatures in `eachEvent` (`Update`, `BeforeTurn`, `Weather`, and weather and terrain
- * changes), so those shuffles are expected. Any other shuffle breaks a speed tie, where pkmn draws differently (a
- * documented difference), as does a residual tie that includes a fainted creature's handler.
+ * Watches for shuffles pkmn does not reproduce. pkmn draws as Showdown does for speed ties in
+ * the residual sort, among screens in the `ModifyDamage` event, among one creature's
+ * move-restricting volatiles in `DisableMove`, among the active creatures in `eachEvent`
+ * (`Update`, `BeforeTurn`, `Weather`, and weather and terrain changes) and `runSwitch`, and
+ * in the action queue's sorts. Any other shuffle stops the recording.
  */
 function watchSpeedTies(battle: ShowdownBattle): () => boolean {
   let seen = false;
-  type Sorting = "residual" | "modifyDamage" | "disableMove" | "eachEvent";
+  type Sorting = "residual" | "modifyDamage" | "disableMove" | "eachEvent" | "runSwitch" | "queue";
   let next: Sorting | null = null;
   let sorting: Sorting | null = null;
   const fieldEvent = battle.fieldEvent.bind(battle);
@@ -783,6 +782,16 @@ function watchSpeedTies(battle: ShowdownBattle): () => boolean {
   battle.eachEvent = (...args: Parameters<typeof eachEvent>) => {
     next = "eachEvent";
     eachEvent(...args);
+  };
+  const sortQueue = battle.queue.sort.bind(battle.queue);
+  battle.queue.sort = () => {
+    next = "queue";
+    return sortQueue();
+  };
+  const runSwitch = battle.actions.runSwitch.bind(battle.actions);
+  battle.actions.runSwitch = (pokemon) => {
+    next = "runSwitch";
+    return runSwitch(pokemon);
   };
   const runEvent = battle.runEvent.bind(battle);
   battle.runEvent = function watchedRunEvent(...args: Parameters<typeof runEvent>): unknown {
@@ -804,12 +813,13 @@ function watchSpeedTies(battle: ShowdownBattle): () => boolean {
     const group = (items as SortedHandler[]).slice(start, end);
     const holders = group.map((handler) => handler.effectHolder);
     const expected =
-      (sorting === "residual" &&
-        !(holders.some((holder) => holder?.fainted === true) && new Set(holders).size > 1)) ||
+      sorting === "residual" ||
       (sorting === "modifyDamage" &&
         holders.every((holder) => holder?.sideConditions !== undefined)) ||
       (sorting === "disableMove" && new Set(holders).size === 1) ||
-      sorting === "eachEvent";
+      sorting === "eachEvent" ||
+      sorting === "runSwitch" ||
+      sorting === "queue";
     if (!expected) seen = true;
     shuffle(items, start, end);
   };

@@ -58,7 +58,7 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 - The Generation 5+ damage formula, in Showdown's order with its rounding.
   - `BasePower`, `ModifyAtk`/`ModifyDef`, and `ModifyDamage` chains in 4096 fixed point.
   - Then weather, crits (Generation 7+ odds by `critRatio`), 85–100% rolls, STAB, dual-type effectiveness, and burn.
-- Action order: switches, then priority, then speed (with modifiers and paralysis, capped at 10000 and compared in 13 bits). Ties are random, and speed is re-read after every action.
+- Action order follows Showdown's queue: switches, then Terastallization, then moves and shifts by priority and speed (with modifiers and paralysis, capped at 10000 and compared in 13 bits). The queue is sorted when the choices are committed and again before each move, as from Generation 8 on.
 - Statuses, with Showdown's durations and immunities from `damageTaken`.
   - Sleep lasts 1–3 turns, and freeze has a 20% thaw chance each turn (Fire moves thaw the target).
   - Confusion lasts 2–5 turns with a 33% self-hit; flinch.
@@ -108,7 +108,7 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 
 - Self-switching moves like U-turn pause the turn for the user's replacement. The rest of the turn waits in `BattleState::queue`, so a battle saved mid-turn resumes exactly.
 - Residual effects are sorted exactly as Showdown sorts them. That covers order, speed and sub-order, and effects that only count down a duration, like Protect or a screen. Tied handlers are shuffled with the same random draws, and faints are checked after each handler, so a battle can end partway through.
-- Switch-ins run each creature's entry hazards, ability and item in speed order, with a faint check after each.
+- Switch-ins sort every active creature by speed, as Showdown's `runSwitch` does, then run each new creature's entry hazards, ability and item in that order, with a faint check after each.
 - Stat changes fail once every foe is out of creatures, as Showdown's `boost` checks `foePokemonLeft`.
 - Fainting clears stat stages, volatiles and Terastallization, as Showdown's `faintMessages` does.
 - The Generation 5+ rule that in a double KO, the side whose creature fainted last wins.
@@ -132,9 +132,9 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
   - Spread moves deal ×0.5 to each target. A move at the foe's side, like a hazard, reaches every other side.
   - A side whose creatures are all out stays on the field, and the last side standing wins.
 
-One deliberate difference: Showdown re-sorts the active creatures at every `Update`, every switch-in, and every speed-ordered event, so it rolls to break each speed tie between two creatures. pkmn rolls only where the order changes an outcome, which keeps those checkpoints cheap. The same goes for a fainted creature's ability and item, which Showdown keeps in the residual sort at its last speed. Battles without speed ties consume the same random numbers as Showdown. Speed-tied battles diverge from Showdown's from the first tie on. Doubles, triples and free-for-all have more ties, with more creatures on the field.
+Speed ties take Showdown's random draws wherever Showdown sorts, even where the order changes nothing: the team-preview order at the start, the turn's queue and its re-sorts, `runSwitch` and its insertion into the queue, every `eachEvent` (`Update`, `BeforeTurn`, weather and terrain changes), and the residual sort, which keeps a creature that fainted that turn. Each creature caches its speed when Showdown runs `updateSpeed`, and these sorts read the cached speed. Follow Me users that tie are ordered by who switched in first, without a draw.
 
-A second difference follows the games rather than Showdown. A rampage started by a calling move, like Outrage from Metronome, carries on in pkmn. Showdown aims its later turns at the caller's target, the user, so they fail.
+One deliberate difference follows the games rather than Showdown. A rampage started by a calling move, like Outrage from Metronome, carries on in pkmn. Showdown aims its later turns at the caller's target, the user, so they fail.
 
 ## Differential testing
 
@@ -142,7 +142,7 @@ A second difference follows the games rather than Showdown. A rampage started by
 
 The oracle writes every step's choices and the resulting state to `tests/fixtures/showdown.json` (and `showdown-doubles.json`, `showdown-triples.json` or `showdown-free-for-all.json` with `--doubles`, `--triples` or `--free-for-all`). The state covers HP, status, items, PP, each position's stat stages, Substitute, confusion and Tera, weather, terrain, side conditions and their durations, and the winner. `tests/showdown.rs` replays each battle through pkmn from the same seed and requires the same state after every step.
 
-A recording stops at either documented difference above: a speed tie, or a rampage started by a calling move. The fixtures are generated, not committed, so CI records 2,000 battles of each on every run. Without the fixture, the test is skipped unless `PKMN_REQUIRE_SHOWDOWN` is set.
+A recording stops at the documented difference above, a rampage started by a calling move, or at a speed tie in a sort pkmn does not reproduce, which no recording currently reaches. The fixtures are generated, not committed, so CI records 2,000 battles of each on every run. Without the fixture, the test is skipped unless `PKMN_REQUIRE_SHOWDOWN` is set.
 
 ## Not yet
 

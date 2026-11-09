@@ -187,7 +187,18 @@ pub struct SideConditionState {
     pub duration: Option<u8>,
 }
 
-/// An action still to run this turn, kept while the turn waits for a mid-turn switch.
+/// A creature's action still to run this turn, kept while the turn waits for a mid-turn
+/// switch.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PausedAction {
+    /// Where the creature stands.
+    pub position: Position,
+    /// What it does.
+    pub action: QueuedAction,
+}
+
+/// An action still to run this turn.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum QueuedAction {
@@ -477,6 +488,10 @@ pub struct Pokemon {
     pub volatiles: Volatiles,
     /// Turns started while active; zero during the turn it switched in.
     pub active_turns: u16,
+    /// When it last switched in, counting every switch-in of the battle (Showdown's
+    /// `abilityState.effectOrder`), which breaks speed ties among Follow Me users.
+    #[serde(default)]
+    pub switched_in: u32,
     /// Showdown's cached `pokemon.speed`: its action speed when Showdown last updated it,
     /// which orders `eachEvent` and switch-ins. It starts as the Speed stat.
     #[serde(default)]
@@ -860,9 +875,9 @@ pub struct BattleState {
     /// The last move used, by either side, for Copycat (Showdown's `battle.lastMove`).
     #[serde(default)]
     pub last_move: Option<MoveId>,
-    /// The rest of a turn paused for a mid-turn switch, by [`Position::flat`].
+    /// The rest of a turn paused for a mid-turn switch, in the order it runs.
     #[serde(default)]
-    pub queue: Option<[Option<QueuedAction>; MAX_POSITIONS]>,
+    pub queue: Option<[Option<PausedAction>; MAX_POSITIONS]>,
     /// Singles, doubles or triples.
     #[serde(default)]
     pub game_type: GameType,

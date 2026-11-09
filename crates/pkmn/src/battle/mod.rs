@@ -18,9 +18,9 @@ pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, Choices, MoveOption, Request};
 pub use state::{
     BattleState, Field, GameType, LockedMove, MAX_ACTIVE, MAX_MOVES, MAX_POSITIONS, MAX_SIDES,
-    MoveRestriction, MoveSlot, Outcome, Pokemon, Position, PseudoWeatherState, QueuedAction, Side,
-    SideConditionState, SideId, Stall, StatusState, TeraType, TerrainState, Volatiles,
-    WeatherState,
+    MoveRestriction, MoveSlot, Outcome, PausedAction, Pokemon, Position, PseudoWeatherState,
+    QueuedAction, Side, SideConditionState, SideId, Stall, StatusState, TeraType, TerrainState,
+    Volatiles, WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -331,14 +331,9 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
         return invalid("the number of sides does not match the game type");
     }
     if let Some(queue) = &state.queue
-        && queue.iter().enumerate().any(|(flat, action)| {
-            action.as_ref().is_some_and(|action| {
-                state
-                    .positions()
-                    .iter()
-                    .find(|position| position.flat() == flat)
-                    .is_none_or(|position| !queued_slot_is_valid(state.side(position.side), action))
-            })
+        && queue.iter().flatten().any(|paused| {
+            !state.positions().as_slice().contains(&paused.position)
+                || !queued_slot_is_valid(state.side(paused.position.side), &paused.action)
         })
     {
         return invalid("a queued action names a slot that does not exist");

@@ -17,7 +17,7 @@ use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, apply_modifier, apply_stage,
 /// Speed is capped here before ordering.
 const MAX_SPEED: u32 = 10_000;
 /// Action order compares speed in 13 bits, as Showdown's `getActionSpeed` does.
-const ACTION_SPEED_BITS: u32 = 13;
+pub(super) const ACTION_SPEED_BITS: u32 = 13;
 /// A Terastallized user's weak Tera-type moves are raised to this base power.
 const TERA_MINIMUM_POWER: u32 = 60;
 /// STAB when the Tera type matches one of the user's original types: ×2.

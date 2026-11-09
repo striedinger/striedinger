@@ -2024,14 +2024,7 @@
       },
       "clearSideConditions": {
         "user": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"],
-        "target": [
-          "Jagged Stones",
-          "Caltrops",
-          "Barbs",
-          "Silk Snare",
-          "Mirror Wall",
-          "Prism Veil"
-        ]
+        "target": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare", "Mirror Wall", "Prism Veil"]
       },
       "clearTerrain": true,
       "substituteBlocksBoosts": true

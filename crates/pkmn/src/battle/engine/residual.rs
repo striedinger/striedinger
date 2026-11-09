@@ -158,6 +158,14 @@ impl Engine<'_> {
                 return;
             }
         }
+        // Showdown's `checkFainted` once the turn's actions are done: a fainted creature still
+        // standing takes the `fnt` status, so its old status gathers no handlers from now on.
+        for position in self.positions() {
+            let pokemon = self.active_mut(position);
+            if pokemon.is_fainted() {
+                pokemon.status = None;
+            }
+        }
         self.update();
         self.next_turn();
     }
@@ -207,13 +215,9 @@ impl Engine<'_> {
     /// terrain healing.
     fn gather_creature_residuals(&self, side: Position, handlers: &mut Handlers) {
         {
+            // A fainted creature still standing keeps its handlers in Showdown's sort, at the
+            // speed it was reset to on fainting, though they never run (see `run_residual`).
             let pokemon = self.active(side);
-            // Deliberate difference: Showdown keeps a fainted creature's ability and item
-            // handlers in the sort, at its last speed, though they never run. They can only tie
-            // with another creature's at that exact speed, a speed tie.
-            if pokemon.is_fainted() {
-                return;
-            }
             // Showdown's handlers take the speed cached when `residual` started.
             let speed = pokemon.speed;
             match pokemon.status {
