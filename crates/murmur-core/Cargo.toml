@@ -12,7 +12,7 @@ name = "murmur_core"
 
 [dependencies]
 uniffi = "0.28"
-thiserror = "1"
+thiserror = "2"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
