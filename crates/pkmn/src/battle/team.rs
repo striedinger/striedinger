@@ -224,6 +224,7 @@ impl PokemonSet {
             boosts: Boosts::default(),
             volatiles: Volatiles::default(),
             active_turns: 0,
+            speed: u32::from(stats.speed),
             tera_type,
             terastallized: false,
             stellar_boosted_types: 0,

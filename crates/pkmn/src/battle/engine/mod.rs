@@ -36,6 +36,14 @@ impl FaintQueue {
         }
     }
 
+    fn is_empty(&self) -> bool {
+        self.positions[0].is_none()
+    }
+
+    fn contains(&self, position: Position) -> bool {
+        self.positions.contains(&Some(position))
+    }
+
     fn take(&mut self) -> impl Iterator<Item = Position> + use<> {
         std::mem::take(&mut self.positions).into_iter().flatten()
     }
@@ -46,6 +54,11 @@ pub(crate) struct Engine<'a> {
     state: &'a mut BattleState,
     events: &'a mut Vec<Event>,
     faint_queue: FaintQueue,
+    /// The side of the last creature announced fainted without a win check after it.
+    unchecked_faint: Option<SideId>,
+    /// The `eachEvent` order while it has no tie, until a cached speed, an active creature, or
+    /// a faint changes.
+    each_event_order: Option<Positions>,
     /// Whether the move being used has had a Stellar boost, which lasts for all its hits
     /// (Showdown's `move.stellarBoosted`).
     stellar_boosted: bool,
@@ -66,6 +79,8 @@ impl<'a> Engine<'a> {
             state,
             events,
             faint_queue: FaintQueue::default(),
+            unchecked_faint: None,
+            each_event_order: None,
             stellar_boosted: false,
             prankster_boosted: false,
             active_move: None,
@@ -170,6 +185,7 @@ impl<'a> Engine<'a> {
         let positions = self.positions();
         for position in positions.iter() {
             self.emit_switch(position);
+            self.update_speed(position);
         }
         self.run_switch_in(positions);
         self.update();
@@ -181,6 +197,8 @@ impl<'a> Engine<'a> {
     /// turn.
     pub fn run(&mut self, choices: [Choice; MAX_POSITIONS]) {
         let positions = self.positions();
+        // Showdown's `commitChoices` starts by updating every cached speed.
+        self.update_speeds();
         if !self.state.awaiting_switch() {
             let mut queue = [None; MAX_POSITIONS];
             for position in positions.iter() {
@@ -194,6 +212,9 @@ impl<'a> Engine<'a> {
             let old_order = queue
                 .contains(&Some(QueuedAction::Shift))
                 .then(|| self.queue_order(queue, None));
+            // Showdown's `beforeTurn` action: an `eachEvent('BeforeTurn')`, then `Update`.
+            self.each_event();
+            self.update();
             if choices.iter().any(|choice| choice.terastallizes()) {
                 // Showdown's queue order: switches (103), then Terastallization (106), then
                 // moves.
@@ -214,14 +235,21 @@ impl<'a> Engine<'a> {
             self.continue_turn(queue, old_order);
             return;
         }
-        let mut switched = Positions::new();
-        for position in positions.iter() {
+        // Replacements switch in by the speed of the creatures they replace, each Showdown's
+        // `switch` action with its own `Update`; then one `runSwitch` takes them all.
+        let mut switching: Positions = positions
+            .iter()
+            .filter(|position| matches!(choices[position.flat()], Choice::Switch(_)))
+            .collect();
+        self.sort_by_speed(switching.as_mut_slice());
+        for position in switching.iter() {
             if let Choice::Switch(slot) = choices[position.flat()] {
                 self.switch_in(position, slot);
-                switched.push(position);
+                self.update_speed(position);
+                self.update();
             }
         }
-        self.run_switch_in(switched);
+        self.run_switch_in(switching);
         if self.faint_messages() {
             return;
         }
@@ -279,6 +307,7 @@ impl<'a> Engine<'a> {
                 pokemon: side,
                 tera_type,
             });
+            self.update();
         }
     }
 
@@ -313,8 +342,11 @@ impl<'a> Engine<'a> {
                 let head_is_move = head.map_or(is_move, |head| {
                     matches!(queue[head.flat()], Some(QueuedAction::Move { .. }))
                 });
-                if ran && head_is_move && self.state.game_type.active_per_half() > 1 {
-                    self.redraw_targets(&queue);
+                if ran && head_is_move {
+                    self.update_speeds();
+                    if self.state.game_type.active_per_half() > 1 {
+                        self.redraw_targets(&queue);
+                    }
                 }
                 old_order = queue
                     .contains(&Some(QueuedAction::Shift))
@@ -420,8 +452,19 @@ impl<'a> Engine<'a> {
         };
         match action {
             QueuedAction::Switch(slot) => {
+                // `BeforeSwitchOut` runs an `Update` for a creature switching out on its own.
+                if !self.active(side).is_fainted() {
+                    self.update();
+                }
                 self.switch_in(side, slot);
+                self.update_speed(side);
+                // The `switch` action's own `Update`, before its `runSwitch`.
+                self.update();
                 self.run_switch_in([side].into_iter().collect());
+            }
+            // A fainted creature's shift or move is skipped without even an `Update`.
+            QueuedAction::Shift | QueuedAction::Move { .. } if self.active(side).is_fainted() => {
+                return false;
             }
             QueuedAction::Shift => {
                 if !self.active(side).is_fainted() {
@@ -640,6 +683,7 @@ impl<'a> Engine<'a> {
         let to = Position::new(side.side, to);
         self.emit(Event::Swap { pokemon: side, to });
         let (from, into) = (usize::from(side.index), usize::from(to.index));
+        self.each_event_order = None;
         let team = &mut self.state.sides[side.side.index()];
         team.active.swap(from, into);
         team.switch_flag.swap(from, into);
@@ -696,6 +740,10 @@ impl<'a> Engine<'a> {
         ));
         outgoing.boosts = Boosts::default();
         outgoing.volatiles = Volatiles::default();
+        // Showdown's `clearVolatile` resets the cached speed to the Speed stat; a creature
+        // dragged in keeps that until the next `updateSpeed`.
+        outgoing.speed = u32::from(outgoing.stats.speed);
+        self.each_event_order = None;
         let team = &mut self.state.sides[side.side.index()];
         team.baton_pass[index] = false;
         team.active[index] = Some(slot);
@@ -786,6 +834,8 @@ impl<'a> Engine<'a> {
             duration: self.dex.terrain(id).duration,
         });
         self.emit(Event::Terrain { terrain: Some(id) });
+        // `eachEvent('TerrainChange')`.
+        self.each_event();
         true
     }
 
@@ -823,6 +873,7 @@ impl<'a> Engine<'a> {
             return false;
         }
         self.emit(Event::Terrain { terrain: None });
+        self.each_event();
         true
     }
 
@@ -995,23 +1046,71 @@ impl<'a> Engine<'a> {
         false
     }
 
-    /// Showdown's `Update` event: items that react to HP or status get a chance to trigger,
-    /// fastest creature first.
-    fn update(&mut self) {
-        let mut reacting = Positions::new();
-        for side in self.positions() {
-            if self.mask(side).intersects(HandlerMask::UPDATE) && !self.active(side).is_fainted() {
-                reacting.push(side);
+    /// Showdown's `updateSpeed`: every active creature that has not fainted caches its
+    /// action speed.
+    pub(super) fn update_speeds(&mut self) {
+        let sides = self.state.sides.len();
+        for side in SideId::ALL.into_iter().take(sides) {
+            for (index, slot) in (0_u8..).zip(0..self.state.game_type.active_per_side()) {
+                let position = Position::new(side, index);
+                let team = self.state.side(side);
+                if team.active[slot].is_some_and(|slot| !team.team[slot].is_fainted()) {
+                    self.update_speed(position);
+                }
             }
         }
-        if reacting.len() == 0 {
-            return;
+    }
+
+    /// Showdown's `pokemon.updateSpeed`, which `insertChoice` runs for a creature switching in.
+    fn update_speed(&mut self, side: Position) {
+        let speed = self.action_speed(side);
+        let cached = &mut self.active_mut(side).speed;
+        if *cached != speed {
+            *cached = speed;
+            self.each_event_order = None;
         }
-        if reacting.len() > 1 {
-            reacting = self.speed_order(reacting);
+    }
+
+    /// Showdown's `eachEvent` order: the active creatures that have not fainted, by cached
+    /// speed, each tie shuffled with Showdown's draws even where the order changes nothing.
+    pub(super) fn each_event(&mut self) -> Positions {
+        if let Some(order) = self.each_event_order {
+            return order;
         }
-        for side in reacting {
-            if self.active(side).is_fainted() {
+        let mut keyed = [(0, Position::from(SideId::P1)); MAX_POSITIONS];
+        let mut count = 0;
+        for (side, team) in SideId::ALL.into_iter().zip(&self.state.sides) {
+            for (index, slot) in (0_u8..).zip(team.active) {
+                let Some(slot) = slot else { continue };
+                let pokemon = &team.team[slot];
+                let position = Position::new(side, index);
+                // A creature at 0 HP still counts until `faintMessages` marks it fainted.
+                if !pokemon.is_fainted() || self.faint_queue.contains(position) {
+                    keyed[count] = (pokemon.speed, position);
+                    count += 1;
+                }
+            }
+        }
+        let keyed = &mut keyed[..count];
+        let tied =
+            (1..count).any(|index| keyed[..index].iter().any(|entry| entry.0 == keyed[index].0));
+        if tied {
+            self.speed_sort(keyed, |left, right| right.0.cmp(&left.0));
+            return keyed.iter().map(|&(_, side)| side).collect();
+        }
+        // Without a tie, the selection sort's order is the plain sorted order, and it stays
+        // the same until something it depends on changes.
+        keyed.sort_unstable_by_key(|&(speed, _)| std::cmp::Reverse(speed));
+        let order: Positions = keyed.iter().map(|&(_, side)| side).collect();
+        self.each_event_order = Some(order);
+        order
+    }
+
+    /// Showdown's `Update` event, in `eachEvent` order: items that react to HP or status get a
+    /// chance to trigger.
+    fn update(&mut self) {
+        for side in self.each_event() {
+            if !self.mask(side).intersects(HandlerMask::UPDATE) || self.active(side).is_fainted() {
                 continue;
             }
             for (effect, handler) in self.handlers(side) {
@@ -1090,6 +1189,8 @@ impl<'a> Engine<'a> {
             duration: self.dex.weather(id).duration,
         });
         self.emit(Event::Weather { weather: Some(id) });
+        // `eachEvent('WeatherChange')`.
+        self.each_event();
         true
     }
 
@@ -1179,6 +1280,7 @@ impl<'a> Engine<'a> {
         });
         if hp == 0 {
             self.faint_queue.push(side);
+            self.each_event_order = None;
         }
         u32::from(dealt)
     }
@@ -1210,10 +1312,20 @@ impl<'a> Engine<'a> {
     /// When both sides run out at once, the side whose creature fainted last wins, as in
     /// Generation 5 onward (for example, an attacker knocked out by its own recoil).
     fn faint_messages(&mut self) -> bool {
+        self.announce_faints(true)
+    }
+
+    /// `faintMessages`, checking for a win only when `check_win` is set; otherwise the next
+    /// call checks. Showdown's hit loop checks only if the attacker fainted, and `runMove`
+    /// checks afterwards either way.
+    pub(super) fn announce_faints(&mut self, check_win: bool) -> bool {
         if self.state.outcome.is_some() {
             return true;
         }
-        let mut last_fainted = None;
+        if self.faint_queue.is_empty() && self.unchecked_faint.is_none() {
+            return false;
+        }
+        let mut last_fainted = self.unchecked_faint.take();
         for side in self.faint_queue.take() {
             self.emit(Event::Faint { pokemon: side });
             // Showdown's `faintMessages`: stat stages, volatiles, and Terastallization go.
@@ -1221,9 +1333,15 @@ impl<'a> Engine<'a> {
             fainted.boosts = Boosts::default();
             fainted.volatiles = Volatiles::default();
             fainted.terastallized = false;
+            fainted.speed = u32::from(fainted.stats.speed);
+            self.each_event_order = None;
             last_fainted = Some(side.side);
         }
         if last_fainted.is_none() {
+            return false;
+        }
+        if !check_win {
+            self.unchecked_faint = last_fainted;
             return false;
         }
         // Showdown's `checkWin`: a side wins once every other side is out, and when all are

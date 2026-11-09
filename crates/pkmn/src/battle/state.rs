@@ -477,6 +477,10 @@ pub struct Pokemon {
     pub volatiles: Volatiles,
     /// Turns started while active; zero during the turn it switched in.
     pub active_turns: u16,
+    /// Showdown's cached `pokemon.speed`: its action speed when Showdown last updated it,
+    /// which orders `eachEvent` and switch-ins. It starts as the Speed stat.
+    #[serde(default)]
+    pub speed: u32,
     /// What it becomes when it Terastallizes.
     pub tera_type: TeraType,
     /// Whether it has Terastallized.

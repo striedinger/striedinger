@@ -25,7 +25,7 @@
 
 use super::Engine;
 use crate::battle::events::{DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{MoveRestriction, Position, Positions, SideId, Stall};
+use crate::battle::state::{MoveRestriction, Position, SideId, Stall};
 use crate::dex::{Fraction, Handler, HandlerMask, Status, VolatileStatus};
 use crate::stats::Boosts;
 
@@ -138,6 +138,8 @@ impl Handlers {
 
 impl Engine<'_> {
     pub(super) fn residual(&mut self) {
+        // The `residual` action starts by updating every cached speed.
+        self.update_speeds();
         let mut handlers = Handlers {
             entries: [Entry {
                 order: NO_ORDER,
@@ -212,7 +214,8 @@ impl Engine<'_> {
             if pokemon.is_fainted() {
                 return;
             }
-            let speed = self.action_speed(side);
+            // Showdown's handlers take the speed cached when `residual` started.
+            let speed = pokemon.speed;
             match pokemon.status {
                 Some(Status::Poison | Status::Toxic) => {
                     handlers.push(9, speed, 0, Residual::Status(side));
@@ -348,18 +351,17 @@ impl Engine<'_> {
         if weather.duration == 0 {
             self.state.field.weather = None;
             self.emit(Event::Weather { weather: None });
+            // `clearWeather`'s `eachEvent('WeatherChange')`.
+            self.each_event();
             return false;
         }
         self.state.field.weather = Some(weather);
         let data = self.dex.weather(weather.id);
+        // Showdown's `eachEvent('Weather')` sorts the creatures that have not fainted, whether
+        // or not the weather hurts them.
+        let order = self.each_event();
         if let Some(fraction) = data.residual_damage {
-            // Showdown's `eachEvent('Weather')` sorts the creatures that have not fainted.
-            let standing: Positions = self
-                .positions()
-                .iter()
-                .filter(|&side| !self.active(side).is_fainted())
-                .collect();
-            for side in self.speed_order(standing).iter() {
+            for side in order.iter() {
                 let pokemon = self.active(side);
                 if pokemon.is_fainted() {
                     continue;
@@ -390,6 +392,7 @@ impl Engine<'_> {
         if terrain.duration == 0 {
             self.state.field.terrain = None;
             self.emit(Event::Terrain { terrain: None });
+            self.each_event();
         } else {
             self.state.field.terrain = Some(terrain);
         }

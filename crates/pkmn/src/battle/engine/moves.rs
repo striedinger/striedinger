@@ -161,10 +161,11 @@ impl Engine<'_> {
             return None;
         }
         if let Some(calls) = move_data.calls {
-            return match self.called_move(side, calls) {
-                Some(called) => self.use_move(side, called, priority, None, true, others_will_act),
-                None => None,
-            };
+            let called = self.called_move(side, calls)?;
+            let used = self.use_move(side, called, priority, None, true, others_will_act);
+            // The calling move hits its user, so its own hit loop runs `Update` twice after.
+            self.status_move_updates(true);
+            return used;
         }
         let (worked, reached_target, target) = match move_data.target {
             MoveTarget::FoeSide => (self.foe_side_move(side, move_data), false, None),
@@ -186,6 +187,7 @@ impl Engine<'_> {
                     return None;
                 }
                 let worked = self.status_move_hit(side, side, move_data);
+                self.status_move_updates(worked);
                 (worked, worked, Some(side))
             }
             MoveTarget::Normal
@@ -396,6 +398,7 @@ impl Engine<'_> {
         } else {
             let target = single.expect("there is a target");
             let worked = self.status_move_hit(side, target, move_data);
+            self.status_move_updates(worked);
             (worked, worked, Some(target))
         })
     }
@@ -1042,6 +1045,11 @@ impl Engine<'_> {
             hit_substitute |= substitute;
             self.update();
         }
+        if landed > 0 {
+            // A creature knocked out is marked fainted before the next `Update`.
+            let attacker_fainted = self.active(side).is_fainted();
+            self.announce_faints(attacker_fainted);
+        }
         if move_data.multihit.max > 1 {
             self.emit(Event::HitCount { hits: landed });
         }
@@ -1616,6 +1624,15 @@ impl Engine<'_> {
             }
         }
         true
+    }
+
+    /// Showdown's hit loop runs an `Update` after a status move's one hit and another after the
+    /// loop, unless the move did nothing.
+    fn status_move_updates(&mut self, worked: bool) {
+        if worked {
+            self.update();
+            self.update();
+        }
     }
 
     /// Seeds `target` to drain into the user's position, unless it is seeded already.

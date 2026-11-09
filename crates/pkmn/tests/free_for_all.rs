@@ -63,7 +63,7 @@ fn four_sides_send_out_one_creature_each() {
 
 #[test]
 fn spread_moves_hit_every_foe() {
-    let mut battle = free_for_all(&["Rockfall"], 3);
+    let mut battle = free_for_all(&["Rockfall"], 1);
     let events = battle
         .submit_free_for_all([Choice::Move(0), HUNKER, HUNKER, HUNKER])
         .expect("the choices are valid")

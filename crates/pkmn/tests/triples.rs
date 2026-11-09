@@ -84,7 +84,7 @@ fn an_edge_can_only_aim_at_adjacent_positions() {
 
 #[test]
 fn spread_moves_from_an_edge_hit_only_adjacent_foes() {
-    let mut battle = triples(&trio(&["Rockfall"]), &trio(&["Hunker Down"]), 3);
+    let mut battle = triples(&trio(&["Rockfall"]), &trio(&["Hunker Down"]), 1);
     let events = battle
         .submit_all(&[HUNKER, HUNKER])
         .expect("the choices are valid")

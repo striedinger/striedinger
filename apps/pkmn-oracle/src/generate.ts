@@ -763,20 +763,26 @@ interface SortedHandler {
 
 /**
  * Watches for shuffles pkmn does not reproduce. pkmn sorts residual handlers exactly as
- * Showdown does, draws for the tie among screens in the `ModifyDamage` event, and for the tie
- * among one creature's move-restricting volatiles in `DisableMove`, so those shuffles are
- * expected. Any other shuffle breaks a speed tie, where pkmn draws differently (a
+ * Showdown does, draws for the tie among screens in the `ModifyDamage` event, for the tie
+ * among one creature's move-restricting volatiles in `DisableMove`, and for ties among the
+ * active creatures in `eachEvent` (`Update`, `BeforeTurn`, `Weather`, and weather and terrain
+ * changes), so those shuffles are expected. Any other shuffle breaks a speed tie, where pkmn draws differently (a
  * documented difference), as does a residual tie that includes a fainted creature's handler.
  */
 function watchSpeedTies(battle: ShowdownBattle): () => boolean {
   let seen = false;
-  type Sorting = "residual" | "modifyDamage" | "disableMove";
+  type Sorting = "residual" | "modifyDamage" | "disableMove" | "eachEvent";
   let next: Sorting | null = null;
   let sorting: Sorting | null = null;
   const fieldEvent = battle.fieldEvent.bind(battle);
   battle.fieldEvent = (eventid, targets) => {
     if (eventid === "Residual") next = "residual";
     fieldEvent(eventid, targets);
+  };
+  const eachEvent = battle.eachEvent.bind(battle);
+  battle.eachEvent = (...args: Parameters<typeof eachEvent>) => {
+    next = "eachEvent";
+    eachEvent(...args);
   };
   const runEvent = battle.runEvent.bind(battle);
   battle.runEvent = function watchedRunEvent(...args: Parameters<typeof runEvent>): unknown {
@@ -802,7 +808,8 @@ function watchSpeedTies(battle: ShowdownBattle): () => boolean {
         !(holders.some((holder) => holder?.fainted === true) && new Set(holders).size > 1)) ||
       (sorting === "modifyDamage" &&
         holders.every((holder) => holder?.sideConditions !== undefined)) ||
-      (sorting === "disableMove" && new Set(holders).size === 1);
+      (sorting === "disableMove" && new Set(holders).size === 1) ||
+      sorting === "eachEvent";
     if (!expected) seen = true;
     shuffle(items, start, end);
   };
