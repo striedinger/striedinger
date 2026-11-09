@@ -19,8 +19,9 @@ pub use handlers::{
 pub use source::{
     AbilitySource, Accuracy, CallsMove, ClearSideConditionsSource, DexSource, Grounded, ItemSource,
     MoveFlags, MoveSource, Multihit, NatureSource, PseudoWeatherSource, ScreenSource,
-    SecondarySource, SelfEffectSource, SideConditionSource, SpeciesSource, SwitchInDamageSource,
-    TerrainMoveModifierSource, TerrainSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
+    SecondarySource, SelfEffectSource, SideConditionSource, SpeciesSource, SwitchInBoostsSource,
+    SwitchInDamageSource, SwitchInStatusSource, TerrainMoveModifierSource, TerrainSource,
+    TypeSource, WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
@@ -220,6 +221,10 @@ pub enum VolatileStatus {
     /// Fails if the ally will not move.
     #[serde(rename = "helpinghand")]
     HelpingHand,
+    /// Leech Seed: at the end of each turn the creature loses 1/8 of its max HP to whoever
+    /// stands where the seeder stood.
+    #[serde(rename = "leechseed")]
+    LeechSeed,
 }
 
 /// A move's category.
@@ -426,6 +431,8 @@ pub struct Clears {
     pub target: Vec<SideConditionId>,
     /// Whether the terrain ends.
     pub terrain: bool,
+    /// Volatile statuses removed from the user.
+    pub user_volatiles: Vec<VolatileStatus>,
 }
 
 /// A compiled side condition.
@@ -437,6 +444,10 @@ pub struct SideConditionData {
     pub duration: Option<u8>,
     /// Damage to creatures switching in.
     pub switch_in_damage: Option<SwitchInDamage>,
+    /// A status for creatures switching in.
+    pub switch_in_status: Option<SwitchInStatus>,
+    /// Stat stages for creatures switching in.
+    pub switch_in_boosts: Option<SwitchInBoosts>,
     /// Damage reduction for one category.
     pub screen: Option<Screen>,
     /// See [`SideConditionSource::residual_sub_order`].
@@ -451,10 +462,38 @@ impl SideConditionData {
     /// How many times it can be set, stacking a layer each time.
     #[must_use]
     pub fn max_layers(&self) -> u8 {
-        self.switch_in_damage.as_ref().map_or(1, |damage| {
-            u8::try_from(damage.layers.len()).unwrap_or(u8::MAX)
-        })
+        let damage = self
+            .switch_in_damage
+            .as_ref()
+            .map_or(1, |damage| damage.layers.len());
+        let status = self
+            .switch_in_status
+            .as_ref()
+            .map_or(1, |status| status.layers.len());
+        u8::try_from(damage.max(status)).unwrap_or(u8::MAX)
     }
+}
+
+/// A compiled hazard's switch-in status; see [`SwitchInStatusSource`].
+#[derive(Clone, Debug)]
+pub struct SwitchInStatus {
+    /// The status by layer count, starting at one layer.
+    pub layers: Vec<Status>,
+    /// Only creatures not immune to this type are affected.
+    pub grounded_type: Option<TypeId>,
+    /// A grounded creature of this type removes the hazard.
+    pub absorbed_by: Option<TypeId>,
+    /// Creatures of these types are skipped.
+    pub ignored_by: Vec<TypeId>,
+}
+
+/// A compiled hazard's switch-in stat stages; see [`SwitchInBoostsSource`].
+#[derive(Clone, Debug)]
+pub struct SwitchInBoosts {
+    /// The stages.
+    pub boosts: Boosts,
+    /// Only creatures not immune to this type are affected.
+    pub grounded_type: Option<TypeId>,
 }
 
 /// A compiled hazard's switch-in damage.
@@ -653,6 +692,8 @@ pub struct MoveData {
     pub pseudo_weather: Option<PseudoWeatherId>,
     /// See [`MoveSource::fails_unless_target_attacks`].
     pub fails_unless_target_attacks: bool,
+    /// See [`MoveSource::fails_against_type`].
+    pub fails_against_type: Option<TypeId>,
 }
 
 impl MoveData {
@@ -1133,6 +1174,45 @@ impl Dex {
                 })
             }
         };
+        let resolve_type = |type_name: Option<&str>| {
+            type_name
+                .map(|type_name| self.resolve_type(type_name, name))
+                .transpose()
+        };
+        let switch_in_status = match &source.switch_in_status {
+            None => None,
+            Some(status) => {
+                if status.layers.is_empty() {
+                    return Err(DexError::invalid(
+                        name,
+                        "switchInStatus needs at least one layer",
+                    ));
+                }
+                Some(SwitchInStatus {
+                    layers: status.layers.clone(),
+                    grounded_type: resolve_type(status.grounded_type.as_deref())?,
+                    absorbed_by: resolve_type(status.absorbed_by.as_deref())?,
+                    ignored_by: status
+                        .ignored_by
+                        .iter()
+                        .map(|type_name| self.resolve_type(type_name, name))
+                        .collect::<Result<_, _>>()?,
+                })
+            }
+        };
+        let switch_in_boosts = match &source.switch_in_boosts {
+            None => None,
+            Some(boosts) if boosts.boosts.is_empty() => {
+                return Err(DexError::invalid(
+                    name,
+                    "switchInBoosts needs at least one non-zero stage",
+                ));
+            }
+            Some(boosts) => Some(SwitchInBoosts {
+                boosts: boosts.boosts,
+                grounded_type: resolve_type(boosts.grounded_type.as_deref())?,
+            }),
+        };
         let screen = match &source.damage_modifier {
             None => None,
             Some(screen) => Some(Screen {
@@ -1149,6 +1229,8 @@ impl Dex {
             name: source.name.clone(),
             duration: source.duration,
             switch_in_damage,
+            switch_in_status,
+            switch_in_boosts,
             screen,
             residual_sub_order: source.residual_sub_order,
             residual_order: source.residual_order,
@@ -1335,42 +1417,35 @@ impl Dex {
             heal: source.heal,
             self_boosts,
             secondaries,
-            side_condition: source
-                .side_condition
-                .as_deref()
-                .map(|condition| {
-                    resolve(&self.side_condition_ids, "side condition", condition, name)
-                })
-                .transpose()?,
+            side_condition: resolve_optional(
+                &self.side_condition_ids,
+                "side condition",
+                source.side_condition.as_deref(),
+                name,
+            )?,
             stalling_move: source.stalling_move,
             self_switch: source.self_switch,
             force_switch: source.force_switch,
-            terrain: source
-                .terrain
-                .as_deref()
-                .map(|terrain| resolve(&self.terrain_ids, "terrain", terrain, name))
-                .transpose()?,
-            pseudo_weather: source
-                .pseudo_weather
-                .as_deref()
-                .map(|condition| {
-                    resolve(&self.pseudo_weather_ids, "pseudo-weather", condition, name)
-                })
-                .transpose()?,
+            terrain: resolve_optional(
+                &self.terrain_ids,
+                "terrain",
+                source.terrain.as_deref(),
+                name,
+            )?,
+            pseudo_weather: resolve_optional(
+                &self.pseudo_weather_ids,
+                "pseudo-weather",
+                source.pseudo_weather.as_deref(),
+                name,
+            )?,
             fails_unless_target_attacks: source.fails_unless_target_attacks,
-            charge: if source.flags.charge {
-                Some(Charge {
-                    boosts: validate_boosts(source.charge_boosts, name)?,
-                    skipped_in: source
-                        .charge_skipped_in
-                        .iter()
-                        .map(|weather| self.resolve_weather(weather, name))
-                        .collect::<Result<_, _>>()?,
-                    semi_invulnerable: source.semi_invulnerable,
-                })
-            } else {
-                None
-            },
+            fails_against_type: resolve_optional(
+                &self.type_ids,
+                "type",
+                source.fails_against_type.as_deref(),
+                name,
+            )?,
+            charge: self.compile_charge(source)?,
             clears: self.compile_clears(source)?,
             self_volatile: source
                 .self_effect
@@ -1382,6 +1457,21 @@ impl Dex {
             guard: source.guard,
         });
         Ok(id)
+    }
+
+    fn compile_charge(&self, source: &MoveSource) -> Result<Option<Charge>, DexError> {
+        if !source.flags.charge {
+            return Ok(None);
+        }
+        Ok(Some(Charge {
+            boosts: validate_boosts(source.charge_boosts, &source.name)?,
+            skipped_in: source
+                .charge_skipped_in
+                .iter()
+                .map(|weather| self.resolve_weather(weather, &source.name))
+                .collect::<Result<_, _>>()?,
+            semi_invulnerable: source.semi_invulnerable,
+        }))
     }
 
     fn compile_clears(&self, source: &MoveSource) -> Result<Clears, DexError> {
@@ -1403,6 +1493,7 @@ impl Dex {
             user: names(&lists.user)?,
             target: names(&lists.target)?,
             terrain: source.clear_terrain,
+            user_volatiles: source.clear_user_volatiles.clone(),
         })
     }
 
@@ -1673,6 +1764,8 @@ fn built_in_struggle() -> MoveSource {
         guard: false,
         pseudo_weather: None,
         fails_unless_target_attacks: false,
+        fails_against_type: None,
+        clear_user_volatiles: Vec::new(),
     }
 }
 
@@ -1769,6 +1862,16 @@ fn validate_move_effects(source: &MoveSource, damaging: bool) -> Result<(), DexE
             "followme needs a status move at the user, helpinghand one at an adjacentAlly",
         ));
     }
+    let seeds_elsewhere = source
+        .secondaries
+        .iter()
+        .any(|secondary| secondary.volatile_status == Some(VolatileStatus::LeechSeed));
+    if seeds_elsewhere || (source.volatile_status == Some(VolatileStatus::LeechSeed) && damaging) {
+        return Err(DexError::invalid(
+            name,
+            "leechseed is only a status move's primary volatileStatus",
+        ));
+    }
     if source.guard && (damaging || source.side_condition.is_none()) {
         return Err(DexError::invalid(
             name,
@@ -1854,6 +1957,17 @@ fn validate_fraction(fraction: Fraction, owner: &str) -> Result<Fraction, DexErr
         ));
     }
     Ok(fraction)
+}
+
+/// [`resolve`] for an optional reference.
+fn resolve_optional<Id: Copy>(
+    ids: &NameMap<Id>,
+    kind: &'static str,
+    name: Option<&str>,
+    referenced_by: &str,
+) -> Result<Option<Id>, DexError> {
+    name.map(|name| resolve(ids, kind, name, referenced_by))
+        .transpose()
 }
 
 fn resolve<Id: Copy>(

@@ -120,6 +120,9 @@ pub struct Volatiles {
     /// Helping Hands received this turn, each ×1.5 base power.
     #[serde(default)]
     pub helping_hand: u8,
+    /// The position whose creature Leech Seed drains into (Showdown's `sourceSlot`).
+    #[serde(default)]
+    pub leech_seed: Option<Position>,
 }
 
 /// Showdown's `lockedmove` volatile, with its two counters.

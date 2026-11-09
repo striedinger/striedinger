@@ -605,6 +605,16 @@ impl Engine<'_> {
     fn clear_conditions(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
         let clears = &move_data.clears;
         let mut removed = false;
+        // Rapid Spin frees the user from Leech Seed before clearing hazards.
+        if clears.user_volatiles.contains(&VolatileStatus::LeechSeed)
+            && self.active_mut(side).volatiles.leech_seed.take().is_some()
+        {
+            self.emit(Event::End {
+                pokemon: side,
+                volatile: VolatileStatus::LeechSeed,
+            });
+            removed = true;
+        }
         for (holder, conditions) in [(side, &clears.user), (target, &clears.target)] {
             for &condition in conditions {
                 let list = &mut self.state.sides[holder.side.index()].conditions;
@@ -901,8 +911,16 @@ impl Engine<'_> {
                 return false;
             }
         }
-        // Showdown's `hitStepTryImmunity`: a move Prankster boosted fails against a foe whose
-        // type is immune to it, like Dark.
+        // Showdown's `hitStepTryImmunity`: the move's own immunity, like Leech Seed's against
+        // Grass, then a move Prankster boosted fails against a foe whose type is immune to it,
+        // like Dark.
+        if move_data
+            .fails_against_type
+            .is_some_and(|immune| self.active(target).types().any(|type_id| type_id == immune))
+        {
+            self.emit(Event::Immune { pokemon: target });
+            return false;
+        }
         if self.prankster_boosted
             && target.side != side.side
             && self
@@ -1285,7 +1303,15 @@ impl Engine<'_> {
         {
             primary.boosts = None;
         }
+        // Leech Seed remembers the seeder's position, so it is planted here.
+        let seeds = primary.volatile_status == Some(VolatileStatus::LeechSeed);
+        if seeds {
+            primary.volatile_status = None;
+        }
         let mut applied = self.apply_effect(target, primary);
+        if seeds {
+            applied |= self.plant_leech_seed(side, target);
+        }
         if let Some(fraction) = move_data.heal {
             let max_hp = u32::from(self.active(target).max_hp());
             applied |= self.heal(target, fraction.of_rounded(max_hp), HealSource::Move) > 0;
@@ -1390,11 +1416,26 @@ impl Engine<'_> {
                 VolatileStatus::Confusion
                 | VolatileStatus::LockedMove
                 | VolatileStatus::FollowMe
-                | VolatileStatus::HelpingHand,
+                | VolatileStatus::HelpingHand
+                | VolatileStatus::LeechSeed,
             )
             | None => {}
         }
         applied
+    }
+
+    /// Seeds `target` to drain into the user's position, unless it is seeded already.
+    fn plant_leech_seed(&mut self, user: Position, target: Position) -> bool {
+        let seeded = self.active_mut(target);
+        if seeded.is_fainted() || seeded.volatiles.leech_seed.is_some() {
+            return false;
+        }
+        seeded.volatiles.leech_seed = Some(user);
+        self.emit(Event::Start {
+            pokemon: target,
+            volatile: VolatileStatus::LeechSeed,
+        });
+        true
     }
 
     /// Showdown's Substitute: fails with a substitute already up, at 1/4 HP or less, or at 1

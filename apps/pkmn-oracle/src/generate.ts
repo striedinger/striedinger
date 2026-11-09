@@ -49,6 +49,8 @@ interface SampleMove {
   stallingMove?: boolean;
   guard?: boolean;
   failsUnlessTargetAttacks?: boolean;
+  failsAgainstType?: string;
+  clearUserVolatiles?: string[];
   calls?: string;
   weather?: string;
   terrain?: string;
@@ -186,6 +188,8 @@ const SIDE_CONDITIONS: Record<string, string> = {
   Caltrops: "spikes",
   "Mirror Wall": "reflect",
   "Prism Veil": "lightscreen",
+  Barbs: "toxicspikes",
+  "Silk Snare": "stickyweb",
   Rampart: "wideguard",
 };
 /**
@@ -265,7 +269,10 @@ const BORROWED: Record<string, Borrowed> = {
   "Spin Clear": {
     from: "rapidspin",
     callbacks: ["onAfterHit", "onAfterSubDamage"],
-    expect: { clearSideConditions: { user: ["Jagged Stones", "Caltrops"] } },
+    expect: {
+      clearSideConditions: { user: ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"] },
+      clearUserVolatiles: ["leechseed"],
+    },
   },
   "Chime Roulette": { from: "metronome", callbacks: ["onHit"], expect: { calls: "random" } },
   "Dream Chatter": {
@@ -274,6 +281,11 @@ const BORROWED: Record<string, Borrowed> = {
     expect: { calls: "ownMove", sleepUsable: true },
   },
   "Echo Step": { from: "copycat", callbacks: ["onHit"], expect: { calls: "lastMove" } },
+  "Drain Seed": {
+    from: "leechseed",
+    callbacks: ["onTryImmunity"],
+    expect: { failsAgainstType: "Grass", volatileStatus: "leechseed" },
+  },
   "Ambush Strike": {
     from: "suckerpunch",
     callbacks: ["onTry"],
@@ -296,8 +308,8 @@ const BORROWED: Record<string, Borrowed> = {
     expect: {
       boosts: { evasion: -1 },
       clearSideConditions: {
-        user: ["Jagged Stones", "Caltrops"],
-        target: ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"],
+        user: ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"],
+        target: ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare", "Mirror Wall", "Prism Veil"],
       },
       clearTerrain: true,
       substituteBlocksBoosts: true,
@@ -317,6 +329,8 @@ const PKMN_ONLY_FIELDS = [
   "calls",
   "guard",
   "failsUnlessTargetAttacks",
+  "failsAgainstType",
+  "clearUserVolatiles",
 ];
 const CHARGING_FIELDS = ["chargeBoosts", "chargeSkippedIn", "semiInvulnerable"];
 
@@ -376,7 +390,9 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
       calling ||
       move.stallingMove !== undefined ||
       move.guard !== undefined ||
-      move.failsUnlessTargetAttacks !== undefined) &&
+      move.failsUnlessTargetAttacks !== undefined ||
+      move.failsAgainstType !== undefined ||
+      move.clearUserVolatiles !== undefined) &&
     borrowed === undefined
   ) {
     throw new Error(`${move.name} needs Showdown callbacks; add it to BORROWED`);

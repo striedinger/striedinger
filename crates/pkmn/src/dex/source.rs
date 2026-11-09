@@ -160,6 +160,12 @@ pub struct SideConditionSource {
     /// Damage to each creature that switches in on this side, like Stealth Rock or Spikes.
     #[serde(default)]
     pub switch_in_damage: Option<SwitchInDamageSource>,
+    /// A status for each creature that switches in on this side, like Toxic Spikes.
+    #[serde(default)]
+    pub switch_in_status: Option<SwitchInStatusSource>,
+    /// Stat stages for each creature that switches in on this side, like Sticky Web.
+    #[serde(default)]
+    pub switch_in_boosts: Option<SwitchInBoostsSource>,
     /// Halves (or otherwise scales) damage of one category against this side, like Reflect.
     #[serde(default)]
     pub damage_modifier: Option<ScreenSource>,
@@ -193,6 +199,35 @@ pub struct SwitchInDamageSource {
     pub type_name: Option<String>,
     /// Only grounded creatures take damage: those not immune to this type (by the type chart
     /// or an `immunity` handler), as Showdown's `isGrounded` does for Ground.
+    #[serde(default)]
+    pub grounded_type: Option<String>,
+}
+
+/// A status a hazard inflicts on a creature switching in, like Toxic Spikes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SwitchInStatusSource {
+    /// The status by layer count: setting the hazard again adds a layer, up to this list's
+    /// length.
+    pub layers: Vec<Status>,
+    /// Only grounded creatures are affected; see [`SwitchInDamageSource::grounded_type`].
+    #[serde(default)]
+    pub grounded_type: Option<String>,
+    /// A grounded creature of this type removes the hazard instead, like a Poison type.
+    #[serde(default)]
+    pub absorbed_by: Option<String>,
+    /// Creatures of these types are skipped, like Steel.
+    #[serde(default)]
+    pub ignored_by: Vec<String>,
+}
+
+/// Stat stages a hazard gives a creature switching in, like Sticky Web.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SwitchInBoostsSource {
+    /// The stages.
+    pub boosts: Boosts,
+    /// Only grounded creatures are affected; see [`SwitchInDamageSource::grounded_type`].
     #[serde(default)]
     pub grounded_type: Option<String>,
 }
@@ -404,6 +439,14 @@ pub struct MoveSource {
     /// (code in Showdown's `onTry`).
     #[serde(default)]
     pub fails_unless_target_attacks: bool,
+    /// Targets of this type are immune, like Grass against Leech Seed (code in Showdown's
+    /// `onTryImmunity`).
+    #[serde(default)]
+    pub fails_against_type: Option<String>,
+    /// Volatile statuses removed from the user after the move works, like Rapid Spin's Leech
+    /// Seed (code in Showdown's `onAfterHit`).
+    #[serde(default)]
+    pub clear_user_volatiles: Vec<VolatileStatus>,
     /// Stat stages the user gains on a `charge` move's first turn, like Skull Bash.
     #[serde(default)]
     pub charge_boosts: Option<Boosts>,

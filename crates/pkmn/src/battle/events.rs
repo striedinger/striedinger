@@ -295,6 +295,8 @@ pub enum DamageSource {
     Substitute,
     /// `[from] ability: ...` or `[from] item: ...`.
     Effect(Effect),
+    /// `[from] Leech Seed`: drained at the end of the turn.
+    LeechSeed,
 }
 
 /// What caused HP recovery.
@@ -309,4 +311,6 @@ pub enum HealSource {
     Terrain(TerrainId),
     /// `[from] ability: ...` or `[from] item: ...`.
     Effect(Effect),
+    /// HP drained by Leech Seed from the seeded creature.
+    LeechSeed,
 }

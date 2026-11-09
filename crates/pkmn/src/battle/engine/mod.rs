@@ -16,10 +16,10 @@ use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
 use super::state::{
     BattleState, GameType, MAX_POSITIONS, Outcome, Pokemon, Position, Positions,
-    PseudoWeatherState, QueuedAction, SideId, Volatiles, WeatherState,
+    PseudoWeatherState, QueuedAction, SideConditionState, SideId, Volatiles, WeatherState,
 };
 use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
-use crate::dex::{MoveId, PseudoWeatherId};
+use crate::dex::{MoveId, PseudoWeatherId, SwitchInDamage, SwitchInStatus, TypeId};
 use crate::stats::{BoostStat, Boosts, saturate_u16};
 
 /// Creatures whose HP reached zero, in order, until the next faint check. At most every
@@ -837,49 +837,121 @@ impl<'a> Engine<'a> {
         }
     }
 
-    /// Damage from the side's entry hazards to a creature that just switched in, each followed
-    /// by a faint check. Returns whether the battle ended.
+    /// The side's entry hazards acting on a creature that just switched in, in the order they
+    /// were set: damage, a status, or stat stages, each damage followed by a faint check.
+    /// Returns whether the battle ended.
     fn entry_hazards(&mut self, side: Position) -> bool {
         let dex = self.dex;
-        for index in 0..self.state.side(side.side).conditions.len() {
-            let condition = self.state.side(side.side).conditions[index];
-            let Some(hazard) = &dex.side_condition(condition.id).switch_in_damage else {
-                continue;
-            };
-            let pokemon = self.active(side);
-            if pokemon.is_fainted() {
+        let mut index = 0;
+        while let Some(&condition) = self.state.side(side.side).conditions.get(index) {
+            index += 1;
+            if self.active(side).is_fainted() {
                 return false;
             }
-            if hazard
-                .grounded_type
-                .is_some_and(|grounded_type| !self.is_grounded(side, grounded_type))
+            let data = dex.side_condition(condition.id);
+            if let Some(hazard) = &data.switch_in_damage
+                && self.hazard_damage(side, condition, hazard)
             {
-                continue;
-            }
-            let layer = usize::from(condition.layers.max(1)) - 1;
-            let fraction = hazard.layers[layer.min(hazard.layers.len() - 1)];
-            // Showdown ignores immunities here: `runEffectiveness`, clamped to ±6.
-            let effectiveness = hazard.type_id.map_or(0, |type_id| {
-                pokemon
-                    .types()
-                    .map(|defender| dex.type_modifier(type_id, [defender]).unwrap_or(0))
-                    .sum::<i8>()
-                    .clamp(-6, 6)
-            });
-            let scaled = u64::from(pokemon.max_hp()) * u64::from(fraction.numerator);
-            let divisor = u64::from(fraction.denominator);
-            let shift = u32::from(effectiveness.unsigned_abs());
-            let amount = if effectiveness >= 0 {
-                (scaled << shift) / divisor
-            } else {
-                scaled / (divisor << shift)
-            };
-            let amount = u32::try_from(amount).unwrap_or(u32::MAX).max(1);
-            self.damage(side, amount, DamageSource::Hazard(condition.id));
-            if self.faint_messages() {
                 return true;
             }
+            if let Some(hazard) = &data.switch_in_status
+                && self.hazard_status(side, condition, hazard)
+            {
+                // Absorbed, like Toxic Spikes by a Poison type: the next one moved up.
+                index -= 1;
+            }
+            if let Some(hazard) = &data.switch_in_boosts
+                && hazard
+                    .grounded_type
+                    .is_none_or(|grounded_type| self.is_grounded(side, grounded_type))
+            {
+                self.emit(Event::SideActivate {
+                    side: side.side,
+                    condition: condition.id,
+                });
+                self.boost(side, hazard.boosts);
+            }
         }
+        false
+    }
+
+    /// A hazard's damage, like Stealth Rock's. Returns whether the battle ended.
+    fn hazard_damage(
+        &mut self,
+        side: Position,
+        condition: SideConditionState,
+        hazard: &SwitchInDamage,
+    ) -> bool {
+        let dex = self.dex;
+        if hazard
+            .grounded_type
+            .is_some_and(|grounded_type| !self.is_grounded(side, grounded_type))
+        {
+            return false;
+        }
+        let pokemon = self.active(side);
+        let layer = usize::from(condition.layers.max(1)) - 1;
+        let fraction = hazard.layers[layer.min(hazard.layers.len() - 1)];
+        // Showdown ignores immunities here: `runEffectiveness`, clamped to ±6.
+        let effectiveness = hazard.type_id.map_or(0, |type_id| {
+            pokemon
+                .types()
+                .map(|defender| dex.type_modifier(type_id, [defender]).unwrap_or(0))
+                .sum::<i8>()
+                .clamp(-6, 6)
+        });
+        let scaled = u64::from(pokemon.max_hp()) * u64::from(fraction.numerator);
+        let divisor = u64::from(fraction.denominator);
+        let shift = u32::from(effectiveness.unsigned_abs());
+        let amount = if effectiveness >= 0 {
+            (scaled << shift) / divisor
+        } else {
+            scaled / (divisor << shift)
+        };
+        let amount = u32::try_from(amount).unwrap_or(u32::MAX).max(1);
+        self.damage(side, amount, DamageSource::Hazard(condition.id));
+        self.faint_messages()
+    }
+
+    /// A hazard's status, like Toxic Spikes': poison by layer, unless the creature is of a type
+    /// that ignores it, or one that absorbs it. Returns whether the hazard was absorbed.
+    fn hazard_status(
+        &mut self,
+        side: Position,
+        condition: SideConditionState,
+        hazard: &SwitchInStatus,
+    ) -> bool {
+        if hazard
+            .grounded_type
+            .is_some_and(|grounded_type| !self.is_grounded(side, grounded_type))
+        {
+            return false;
+        }
+        let has_type = |engine: &Self, wanted: TypeId| {
+            engine.active(side).types().any(|type_id| type_id == wanted)
+        };
+        if hazard
+            .absorbed_by
+            .is_some_and(|absorber| has_type(self, absorber))
+        {
+            let conditions = &mut self.state.sides[side.side.index()].conditions;
+            conditions.retain(|state| state.id != condition.id);
+            self.emit(Event::SideEnd {
+                side: side.side,
+                condition: condition.id,
+            });
+            return true;
+        }
+        if hazard
+            .ignored_by
+            .iter()
+            .any(|&ignored| has_type(self, ignored))
+        {
+            return false;
+        }
+        let layer = usize::from(condition.layers.max(1)) - 1;
+        let status = hazard.layers[layer.min(hazard.layers.len() - 1)];
+        self.set_status(side, status);
         false
     }
 

@@ -54,6 +54,9 @@ enum Volatile {
     HelpingHand,
 }
 
+/// Showdown's Leech Seed `onResidualOrder`.
+const LEECH_SEED_ORDER: u32 = 8;
+
 /// What one residual handler does.
 #[derive(Clone, Copy, Debug)]
 enum Residual {
@@ -66,6 +69,7 @@ enum Residual {
     Heal(Position, Effect, Fraction),
     Boosts(Position, Effect, Boosts),
     Volatile(Position, Volatile),
+    LeechSeed(Position),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -192,6 +196,14 @@ impl Engine<'_> {
                 _ => {}
             }
             let volatiles = &pokemon.volatiles;
+            if volatiles.leech_seed.is_some() {
+                handlers.push(
+                    LEECH_SEED_ORDER,
+                    speed,
+                    VOLATILE_SUB_ORDER,
+                    Residual::LeechSeed(side),
+                );
+            }
             let charge_volatile = volatiles.charging.is_some() && self.is_semi_invulnerable(side);
             for (present, volatile) in [
                 (volatiles.locked_move.is_some(), Volatile::LockedMove),
@@ -254,6 +266,7 @@ impl Engine<'_> {
         match residual {
             Residual::Weather => return self.weather_residual(),
             Residual::Terrain => self.terrain_residual(),
+            Residual::LeechSeed(side) => return self.leech_seed_residual(side),
             Residual::PseudoWeather(id) => self.pseudo_weather_residual(id),
             Residual::SideCondition(side, id) => self.side_condition_residual(side, id),
             Residual::Volatile(side, volatile) => return self.volatile_residual(side, volatile),
@@ -352,6 +365,28 @@ impl Engine<'_> {
         } else {
             self.state.field.terrain = Some(terrain);
         }
+    }
+
+    /// Leech Seed drains 1/8 of the seeded creature's max HP into whoever stands in the
+    /// seeder's position, if anyone does. Returns whether it drained.
+    fn leech_seed_residual(&mut self, side: Position) -> bool {
+        let pokemon = self.active(side);
+        let Some(source) = pokemon
+            .volatiles
+            .leech_seed
+            .filter(|_| !pokemon.is_fainted())
+        else {
+            return false;
+        };
+        let max_hp = u32::from(pokemon.max_hp());
+        if !self.positions().iter().any(|open| open == source) || self.active(source).is_fainted() {
+            return false;
+        }
+        let dealt = self.damage(side, (max_hp / 8).max(1), DamageSource::LeechSeed);
+        if dealt > 0 {
+            self.heal(source, dealt, HealSource::LeechSeed);
+        }
+        true
     }
 
     /// Counts down a pseudo-weather, like Trick Room, and ends it at zero.

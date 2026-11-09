@@ -401,7 +401,10 @@
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
-        "Ambush Strike": ["9M"]
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"]
       },
       "abilities": {
         "0": "Kindling Heart",
@@ -434,6 +437,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -482,6 +488,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Night Bite": ["9M"],
@@ -528,6 +537,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -580,6 +592,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -633,6 +648,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -684,6 +702,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Night Bite": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9L1", "9M"],
@@ -733,6 +754,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Night Bite": ["9L18"],
         "Phantom Wail": ["9M"],
         "Pounce": ["9M", "9L1"],
@@ -778,6 +802,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -834,6 +861,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Pincer Slash": ["9L1"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -883,6 +913,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Mind Ground": ["9L30"],
         "Mind Pulse": ["9L12"],
         "Mist Ground": ["9L6"],
@@ -939,6 +972,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -988,6 +1024,9 @@
         "Rampart Wall": ["9M"],
         "Twist Room": ["9M"],
         "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -1877,8 +1916,9 @@
         "metronome": 1
       },
       "clearSideConditions": {
-        "user": ["Jagged Stones", "Caltrops"]
+        "user": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"]
       },
+      "clearUserVolatiles": ["leechseed"],
       "secondaries": [
         {
           "chance": 100,
@@ -1905,8 +1945,15 @@
         "evasion": -1
       },
       "clearSideConditions": {
-        "user": ["Jagged Stones", "Caltrops"],
-        "target": ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"]
+        "user": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"],
+        "target": [
+          "Jagged Stones",
+          "Caltrops",
+          "Barbs",
+          "Silk Snare",
+          "Mirror Wall",
+          "Prism Veil"
+        ]
       },
       "clearTerrain": true,
       "substituteBlocksBoosts": true
@@ -2014,6 +2061,43 @@
       "flags": {
         "contact": 1,
         "protect": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Drain Seed",
+      "type": "Grass",
+      "category": "Status",
+      "accuracy": 90,
+      "pp": 10,
+      "volatileStatus": "leechseed",
+      "failsAgainstType": "Grass",
+      "flags": {
+        "protect": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Scatter Barbs",
+      "type": "Poison",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Barbs",
+      "flags": {
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Weave Snare",
+      "type": "Bug",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Silk Snare",
+      "flags": {
         "metronome": 1
       }
     }
@@ -2415,6 +2499,22 @@
       "name": "Rampart",
       "duration": 1,
       "blocksSpreadMoves": true
+    },
+    {
+      "name": "Barbs",
+      "switchInStatus": {
+        "layers": ["psn", "tox"],
+        "groundedType": "Ground",
+        "absorbedBy": "Poison",
+        "ignoredBy": ["Steel"]
+      }
+    },
+    {
+      "name": "Silk Snare",
+      "switchInBoosts": {
+        "boosts": { "spe": -1 },
+        "groundedType": "Ground"
+      }
     }
   ],
   "terrains": [

@@ -206,6 +206,7 @@ fn heal_source(dex: &Dex, from: HealSource) -> String {
         HealSource::Move => String::new(),
         HealSource::Effect(effect) => format!(" from {}", effect_name(dex, effect)),
         HealSource::Terrain(terrain) => format!(" from {}", dex.terrain(terrain).name),
+        HealSource::LeechSeed => " by Leech Seed".to_owned(),
     }
 }
 

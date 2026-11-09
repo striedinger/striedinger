@@ -4,7 +4,8 @@ mod common;
 
 use common::{P1, P1A, P2, P2A, damage_to, edit, max_hp, movers, play, set, start};
 use pkmn::battle::DamageSource;
-use pkmn::dex::{SideConditionId, VolatileStatus};
+use pkmn::dex::{SideConditionId, Status, VolatileStatus};
+use pkmn::stats::BoostStat;
 use pkmn::{Battle, BattleState, Choice, Event, Request};
 
 const MOVE: Choice = Choice::Move(0);
@@ -241,6 +242,115 @@ fn spikes_style_hazards_stack_to_three_layers_and_skip_flying_types() {
         hazard_damage(&events, P2).is_empty(),
         "Flying types are not grounded"
     );
+}
+
+#[test]
+fn barbs_poison_switch_ins_badly_at_two_layers_and_poison_types_absorb_them() {
+    let mut poison_type = set("Mirewisp", &["Hunker Down"]);
+    poison_type.ability = Some("Loose Limbs".to_owned());
+    let mut battle = start(
+        &[set("Zaplet", &["Scatter Barbs", "Hunker Down"])],
+        &[
+            set("Brawlstag", &["Hunker Down"]),
+            set("Tidewhelp", &["Hunker Down"]),
+            set("Ironmantis", &["Hunker Down"]),
+            set("Bramblehog", &["Hunker Down"]),
+            poison_type,
+        ],
+        16,
+    );
+    play(&mut battle, MOVE, MOVE);
+    play(&mut battle, Choice::Move(1), Choice::Switch(1));
+    let team = &battle.state().side(P2).team;
+    assert_eq!(team[1].status, Some(Status::Poison));
+    // Steel types are not poisoned.
+    play(&mut battle, Choice::Move(1), Choice::Switch(2));
+    assert_eq!(battle.state().side(P2).team[2].status, None);
+    play(&mut battle, MOVE, MOVE);
+    assert_eq!(battle.state().side(P2).conditions[0].layers, 2);
+    play(&mut battle, Choice::Move(1), Choice::Switch(3));
+    assert_eq!(battle.state().side(P2).team[3].status, Some(Status::Toxic));
+    // A grounded Poison type picks them up.
+    let events = play(&mut battle, Choice::Move(1), Choice::Switch(4));
+    assert!(events.contains(&Event::SideEnd {
+        side: P2,
+        condition: condition(&battle, "Barbs")
+    }));
+    assert!(battle.state().side(P2).conditions.is_empty());
+    assert_eq!(battle.state().side(P2).team[4].status, None);
+}
+
+#[test]
+fn silk_snare_slows_grounded_switch_ins() {
+    let mut battle = start(
+        &[set("Zaplet", &["Weave Snare", "Hunker Down"])],
+        &[
+            set("Brawlstag", &["Hunker Down"]),
+            set("Tidewhelp", &["Hunker Down"]),
+            set("Galewing", &["Hunker Down"]),
+        ],
+        17,
+    );
+    play(&mut battle, MOVE, MOVE);
+    let events = play(&mut battle, Choice::Move(1), Choice::Switch(1));
+    assert!(events.contains(&Event::Boost {
+        pokemon: P2A,
+        stat: BoostStat::Speed,
+        stages: -1
+    }));
+    let events = play(&mut battle, Choice::Move(1), Choice::Switch(2));
+    assert!(
+        !events.iter().any(|event| matches!(
+            event,
+            Event::Boost {
+                pokemon: P2A,
+                stat: BoostStat::Speed,
+                ..
+            }
+        )),
+        "Flying types are not grounded"
+    );
+}
+
+#[test]
+fn drain_seed_drains_each_turn_until_spun_off() {
+    let battle = start(
+        &[set("Zaplet", &["Drain Seed", "Hunker Down"])],
+        &[set("Brawlstag", &["Hunker Down", "Spin Clear"])],
+        18,
+    );
+    let mut battle = edit(battle, |state: &mut BattleState| {
+        state.sides[0].team[0].hp = 100;
+    });
+    // Drain Seed can miss; keep trying until it lands.
+    for _ in 0..5 {
+        play(&mut battle, MOVE, MOVE);
+        if battle.state().active(P2).volatiles.leech_seed.is_some() {
+            break;
+        }
+    }
+    let before = battle.state().active(P1).hp;
+    let events = play(&mut battle, Choice::Move(1), MOVE);
+    let drained = damage_to(&events, P2, DamageSource::LeechSeed);
+    assert_eq!(drained, [max_hp(&battle, P2) / 8]);
+    assert_eq!(battle.state().active(P1).hp, before + drained[0]);
+    let events = play(&mut battle, Choice::Move(1), Choice::Move(1));
+    assert!(events.contains(&Event::End {
+        pokemon: P2A,
+        volatile: VolatileStatus::LeechSeed
+    }));
+    assert!(damage_to(&events, P2, DamageSource::LeechSeed).is_empty());
+}
+
+#[test]
+fn grass_types_cannot_be_seeded() {
+    let mut battle = start(
+        &[set("Zaplet", &["Drain Seed"])],
+        &[set("Bramblehog", &["Hunker Down"])],
+        19,
+    );
+    let events = play(&mut battle, MOVE, MOVE);
+    assert!(events.contains(&Event::Immune { pokemon: P2A }));
 }
 
 #[test]
