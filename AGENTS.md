@@ -8,6 +8,7 @@ These guidelines apply to the entire monorepo. Update this file as the project‚Ä
 - The Pok√©mon collection engine and CLI use the root Cargo workspace, with all Rust crates under top-level `crates/`, including the CLI in `crates/pkmn-tcg-dex-cli`. Use Cargo, rustfmt, Clippy, and native Rust tests for those crates. Browser typography and browser translation integration apply to web applications.
 - Use pnpm exclusively for JavaScript/TypeScript dependencies. Keep the root `packageManager` field and `pnpm-lock.yaml` authoritative; do not introduce npm or Yarn lockfiles.
 - Target the latest Node.js LTS release and keep `.node-version`, `.nvmrc`, and the `engines.node` ranges in the root and `apps/web` manifests aligned. Vercel builds from `apps/web` and takes its Node.js version from that manifest.
+- Vercel skips `apps/web` deployments that `turbo-ignore` finds don't affect the `web` workspace or its dependencies (`apps/web/vercel.json`). Keep the `turbo-ignore` version range in step with the root `turbo` dependency.
 - Keep reusable TypeScript code in focused workspace packages and web applications under `apps/`. Keep Rust libraries and CLI applications under `crates/`.
 - Put every Rust crate under the top-level `crates/` directory, as a member of the root Cargo workspace (`Cargo.toml`). Name crate directories and packages in kebab-case. Applications under `apps/` consume crates; they do not contain Rust code themselves.
 - Use Tailwind CSS utilities for application styling; do not introduce CSS Modules for ordinary component styling.
