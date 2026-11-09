@@ -90,7 +90,8 @@ fn fillers_removed(result: &DictationResult) -> Result<(), String> {
 }
 
 fn correction_applied(result: &DictationResult) -> Result<(), String> {
-    expect_contains_any(&result.output, &["four", "4"])
+    expect_contains_any(&result.output, &["four", "4"])?;
+    expect_absent(&result.output, &["no wait", "three"])
 }
 
 fn question_not_answered(result: &DictationResult) -> Result<(), String> {
