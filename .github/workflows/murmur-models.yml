@@ -63,6 +63,8 @@ jobs:
           path: ${{ env.MODELS_DIR }}
           key: ${{ steps.models.outputs.cache-primary-key }}
       - name: Run the end-to-end test
+        # A healthy run takes a few minutes; fail fast if inference hangs.
+        timeout-minutes: 25
         run: |
           data="$RUNNER_TEMP/murmur-data"
           mkdir -p "$data"

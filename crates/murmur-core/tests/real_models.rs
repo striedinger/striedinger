@@ -139,9 +139,11 @@ fn real_models_end_to_end() {
     let samples_dir = data_dir.join("samples");
     std::fs::create_dir_all(&samples_dir).unwrap();
 
+    eprintln!("[real-models] loading models and warming up");
     let started = std::time::Instant::now();
     let engine = Engine::new(data_dir.to_string_lossy().into_owned()).expect("engine loads");
     let load_ms = started.elapsed().as_millis();
+    eprintln!("[real-models] loaded in {load_ms} ms");
     assert!(engine.llm_available(), "the cleanup model should be loaded");
 
     let mut report = format!(
@@ -152,6 +154,7 @@ fn real_models_end_to_end() {
     let mut failures = Vec::new();
 
     for case in CASES {
+        eprintln!("[real-models] case: {}", case.name);
         let samples = speak(
             case.spoken,
             &samples_dir.join(format!("{}.wav", case.name.replace(' ', "-"))),
@@ -224,9 +227,10 @@ fn read_wav_i16(bytes: &[u8]) -> Vec<f32> {
         let size = u32::from_le_bytes(bytes[offset + 4..offset + 8].try_into().unwrap()) as usize;
         let body = offset + 8;
         if id == b"data" {
-            return bytes[body..(body + size).min(bytes.len())]
-                .chunks_exact(2)
-                .map(|pair| f32::from(i16::from_le_bytes([pair[0], pair[1]])) / f32::from(i16::MAX))
+            let (samples, _) = bytes[body..(body + size).min(bytes.len())].as_chunks::<2>();
+            return samples
+                .iter()
+                .map(|pair| f32::from(i16::from_le_bytes(*pair)) / f32::from(i16::MAX))
                 .collect();
         }
         offset = body + size + (size & 1);
