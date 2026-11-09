@@ -189,17 +189,29 @@ impl<'a> Engine<'a> {
             if self.state.game_type.active_per_half() > 1 {
                 self.resolve_targets(&mut queue);
             }
+            // With a shift queued, the turn-start order matters: Showdown keeps it until a
+            // move heads the queue (see `continue_turn`).
+            let old_order = queue
+                .contains(&Some(QueuedAction::Shift))
+                .then(|| self.queue_order(queue, None));
             if choices.iter().any(|choice| choice.terastallizes()) {
                 // Showdown's queue order: switches (103), then Terastallization (106), then
                 // moves.
-                while let Some(position) = self.next_actor(&queue, true) {
+                while let Some(position) = old_order
+                    .and_then(|order| {
+                        order.iter().find(|position| {
+                            matches!(queue[position.flat()], Some(QueuedAction::Switch(_)))
+                        })
+                    })
+                    .or_else(|| self.next_actor(&queue, true))
+                {
                     if self.act(position, &mut queue) {
                         return;
                     }
                 }
                 self.terastallize(choices);
             }
-            self.continue_turn(queue);
+            self.continue_turn(queue, old_order);
             return;
         }
         let mut switched = Positions::new();
@@ -216,7 +228,7 @@ impl<'a> Engine<'a> {
         self.update();
         // A mid-turn switch (after a move like U-turn) resumes the paused turn.
         match self.state.queue.take() {
-            Some(queue) => self.continue_turn(queue),
+            Some(queue) => self.continue_turn(queue, None),
             None => self.next_turn(),
         }
     }
@@ -272,7 +284,11 @@ impl<'a> Engine<'a> {
 
     /// Runs queued actions until the turn ends, the battle ends, or a creature must switch
     /// mid-turn, in which case the rest of the queue waits in the state.
-    fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; MAX_POSITIONS]) {
+    fn continue_turn(
+        &mut self,
+        mut queue: [Option<QueuedAction>; MAX_POSITIONS],
+        mut old_order: Option<Positions>,
+    ) {
         // The next actor is picked from the remaining actions each time, re-reading speed after
         // every action as Generation 8 onward does. Showdown re-sorts the queue after an
         // action that ran only when the head of the old order is a move, resolving every
@@ -280,7 +296,6 @@ impl<'a> Engine<'a> {
         // nothing. Only a shift, in triples, can make the old head and the next actor differ,
         // so the old order is kept only while the queue holds one.
         let mut ran = true;
-        let mut old_order: Option<Positions> = None;
         loop {
             let head = old_order
                 .as_ref()
@@ -303,7 +318,7 @@ impl<'a> Engine<'a> {
                 }
                 old_order = queue
                     .contains(&Some(QueuedAction::Shift))
-                    .then(|| self.queue_order(queue, side));
+                    .then(|| self.queue_order(queue, Some(side)));
             }
             let skippable = is_move || action == Some(QueuedAction::Shift);
             ran = !(skippable && self.active(side).is_fainted());
@@ -326,13 +341,15 @@ impl<'a> Engine<'a> {
         self.residual();
     }
 
-    /// The order the rest of the queue runs in after `first`, as Showdown's sort leaves it.
+    /// The order the queue runs in, apart from `first`, as Showdown's sort leaves it.
     fn queue_order(
         &mut self,
         mut queue: [Option<QueuedAction>; MAX_POSITIONS],
-        first: Position,
+        first: Option<Position>,
     ) -> Positions {
-        queue[first.flat()] = None;
+        if let Some(first) = first {
+            queue[first.flat()] = None;
+        }
         let mut order = Positions::new();
         while let Some(next) = self.next_actor(&queue, false) {
             queue[next.flat()] = None;
@@ -660,11 +677,27 @@ impl<'a> Engine<'a> {
     }
 
     fn switch_in(&mut self, side: Position, slot: usize) {
+        let index = usize::from(side.index);
+        let passing = self.state.side(side.side).baton_pass[index];
         let outgoing = self.active_mut(side);
+        // Baton Pass: stat stages and volatiles go to the replacement, except Showdown's
+        // `noCopy` ones (a choice lock, Encore, Disable) and what it remembers of its moves.
+        let passed = (passing && !outgoing.is_fainted()).then_some((
+            outgoing.boosts,
+            Volatiles {
+                choice_lock: None,
+                struggle_lock: false,
+                encore: None,
+                disable: None,
+                last_move: None,
+                last_target: None,
+                ..outgoing.volatiles
+            },
+        ));
         outgoing.boosts = Boosts::default();
         outgoing.volatiles = Volatiles::default();
-        let index = usize::from(side.index);
         let team = &mut self.state.sides[side.side.index()];
+        team.baton_pass[index] = false;
         team.active[index] = Some(slot);
         team.switch_flag[index] = false;
         // Showdown swaps the incoming creature into the position's place in `side.pokemon`.
@@ -674,6 +707,10 @@ impl<'a> Engine<'a> {
         let incoming = team.active_mut_at(side.index);
         incoming.active_turns = 0;
         incoming.status_state.stage = 0;
+        if let Some((boosts, volatiles)) = passed {
+            incoming.boosts = boosts;
+            incoming.volatiles = volatiles;
+        }
         self.emit_switch(side);
     }
 
@@ -1058,7 +1095,7 @@ impl<'a> Engine<'a> {
 
     /// Applies stat stages and returns whether any changed.
     fn boost(&mut self, side: Position, boosts: Boosts) -> bool {
-        if self.active(side).is_fainted() {
+        if self.active(side).is_fainted() || !self.foes_left(side.side) {
             return false;
         }
         let mut changed = false;
@@ -1066,6 +1103,16 @@ impl<'a> Engine<'a> {
             changed |= self.boost_stat(side, stat, stages);
         }
         changed
+    }
+
+    /// Showdown's `foePokemonLeft`, which stat changes need: whether any foe still has a
+    /// creature, counting one whose faint has yet to be processed.
+    fn foes_left(&self, side: SideId) -> bool {
+        let pending = self.faint_queue.positions;
+        self.state.side_ids().filter(|&foe| foe != side).any(|foe| {
+            !self.state.side(foe).is_defeated()
+                || pending.iter().flatten().any(|position| position.side == foe)
+        })
     }
 
     fn boost_stat(&mut self, side: Position, stat: BoostStat, stages: i8) -> bool {
@@ -1221,7 +1268,13 @@ impl<'a> Engine<'a> {
                 let mut tied = [(); 4];
                 self.shuffle(&mut tied[..restrictions]);
             }
-            self.active_mut(side).volatiles.struggle_lock = false;
+            // A lock on Struggle drops itself, as does one whose holder lost its choice item.
+            let holds_choice = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
+            let volatiles = &mut self.active_mut(side).volatiles;
+            volatiles.struggle_lock = false;
+            if !holds_choice {
+                volatiles.choice_lock = None;
+            }
         }
         for side in self.positions().iter() {
             let active = self.active_mut(side);

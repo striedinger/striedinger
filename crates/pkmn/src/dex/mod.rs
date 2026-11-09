@@ -17,11 +17,11 @@ pub use handlers::{
     AbilityData, Condition, ConditionSource, Handler, HandlerMask, HandlerSource, ItemData,
 };
 pub use source::{
-    AbilitySource, Accuracy, CallsMove, ClearSideConditionsSource, DexSource, Grounded, ItemSource,
-    MoveFlags, MoveSource, Multihit, NatureSource, PseudoWeatherSource, ScreenSource,
-    SecondarySource, SelfEffectSource, SideConditionSource, SpeciesSource, SwitchInBoostsSource,
-    SwitchInDamageSource, SwitchInStatusSource, TerrainMoveModifierSource, TerrainSource,
-    TypeSource, WeatherDefenseBoostSource, WeatherSource,
+    AbilitySource, Accuracy, CallsMove, ClearSideConditionsSource, DexSource, Grounded, ItemEffect,
+    ItemSource, MoveFlags, MoveSource, Multihit, NatureSource, PseudoWeatherSource, ScreenSource,
+    SecondarySource, SelfEffectSource, SelfSwitch, SideConditionSource, SpeciesSource,
+    SwitchInBoostsSource, SwitchInDamageSource, SwitchInStatusSource, TerrainMoveModifierSource,
+    TerrainSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
@@ -676,6 +676,10 @@ pub struct MoveData {
     pub stalling_move: bool,
     /// Whether the user switches out after it works.
     pub self_switch: bool,
+    /// Whether the replacement takes the user's stat stages and volatiles, like Baton Pass.
+    pub copies_volatiles: bool,
+    /// See [`MoveSource::item_effect`].
+    pub item_effect: Option<ItemEffect>,
     /// Whether the target is dragged out after it works.
     pub force_switch: bool,
     /// The terrain it sets.
@@ -1430,7 +1434,9 @@ impl Dex {
                 name,
             )?,
             stalling_move: source.stalling_move,
-            self_switch: source.self_switch,
+            self_switch: source.self_switch != SelfSwitch::No,
+            copies_volatiles: source.self_switch == SelfSwitch::CopyVolatile,
+            item_effect: source.item_effect,
             force_switch: source.force_switch,
             terrain: resolve_optional(
                 &self.terrain_ids,
@@ -1757,7 +1763,8 @@ fn built_in_struggle() -> MoveSource {
         secondaries: Vec::new(),
         side_condition: None,
         stalling_move: false,
-        self_switch: false,
+        self_switch: SelfSwitch::No,
+        item_effect: None,
         force_switch: false,
         terrain: None,
         charge_boosts: None,

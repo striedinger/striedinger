@@ -10,8 +10,8 @@ use crate::battle::state::{
 };
 use crate::battle::state::{MAX_MOVES, MAX_POSITIONS};
 use crate::dex::{
-    CallsMove, Handler, HandlerMask, MoveData, MoveEffect, MoveId, MoveTarget, Recoil, Status,
-    VolatileStatus,
+    CallsMove, Handler, HandlerMask, ItemEffect, MoveData, MoveEffect, MoveId, MoveTarget, Recoil,
+    Status, VolatileStatus,
 };
 use crate::stats::apply_accuracy_stage;
 
@@ -210,7 +210,9 @@ impl Engine<'_> {
                 .next()
                 .is_some()
         {
-            self.state.sides[side.side.index()].switch_flag[index] = true;
+            let team = &mut self.state.sides[side.side.index()];
+            team.switch_flag[index] = true;
+            team.baton_pass[index] = move_data.copies_volatiles;
         }
         let target = target?;
         let drags = worked
@@ -735,8 +737,33 @@ impl Engine<'_> {
         true
     }
 
+    /// Showdown's `choicelock`: a move other than the locked one, which a rampage, a charge,
+    /// or a calling move can force, fails. Without the choice item any more, the lock ends.
+    fn choice_locked_out(&mut self, side: Position, move_id: MoveId) -> bool {
+        if !self.mask(side).intersects(HandlerMask::CHOICE_LOCK) {
+            let volatiles = &mut self.active_mut(side).volatiles;
+            volatiles.choice_lock = None;
+            volatiles.struggle_lock = false;
+        }
+        let user = self.active(side);
+        let locked = user
+            .volatiles
+            .choice_lock
+            .and_then(|slot| user.move_slots[usize::from(slot)])
+            .map(|move_slot| move_slot.id);
+        if locked.is_some_and(|locked| locked != move_id && move_id != self.dex.struggle()) {
+            self.emit(Event::Move {
+                pokemon: side,
+                move_id,
+            });
+            self.emit(Event::Fail { pokemon: side });
+            return true;
+        }
+        false
+    }
+
     /// Showdown's `onBeforeMove` handlers in priority order: sleep and freeze, flinch,
-    /// confusion, then paralysis.
+    /// Disable, Taunt, confusion, paralysis, then a choice lock.
     fn before_move(&mut self, side: Position, move_id: MoveId) -> bool {
         let sleep_usable = self.dex.move_data(move_id).sleep_usable;
         match self.active(side).status {
@@ -822,20 +849,7 @@ impl Engine<'_> {
             });
             return false;
         }
-        // Showdown's `choicelock`: a move other than the locked one, which a rampage, a charge,
-        // or a calling move can force, fails.
-        let user = self.active(side);
-        let locked = user
-            .volatiles
-            .choice_lock
-            .and_then(|slot| user.move_slots[usize::from(slot)])
-            .map(|move_slot| move_slot.id);
-        if locked.is_some_and(|locked| locked != move_id && move_id != self.dex.struggle()) {
-            self.emit(Event::Move {
-                pokemon: side,
-                move_id,
-            });
-            self.emit(Event::Fail { pokemon: side });
+        if self.choice_locked_out(side, move_id) {
             return false;
         }
         true
@@ -1066,6 +1080,12 @@ impl Engine<'_> {
                 self.secondaries(side, target, move_data, true);
                 if dealt > 0 {
                     self.damaging_hit(side, target, move_data);
+                }
+                // `onAfterHit` needs the attacker still standing, say after Rocky Helmet.
+                if move_data.item_effect == Some(ItemEffect::KnockOff)
+                    && !self.active(side).is_fainted()
+                {
+                    self.knock_off(target);
                 }
                 (dealt, false)
             }
@@ -1371,6 +1391,17 @@ impl Engine<'_> {
         if seeds {
             applied |= self.plant_leech_seed(side, target);
         }
+        if move_data.item_effect == Some(ItemEffect::Swap) {
+            applied |= self.swap_items(side, target);
+        }
+        // A switching move like Baton Pass works if the user can switch out.
+        applied |= move_data.self_switch
+            && self
+                .state
+                .side(side.side)
+                .switches_at(side.index)
+                .next()
+                .is_some();
         if let Some(fraction) = move_data.heal {
             let max_hp = u32::from(self.active(target).max_hp());
             applied |= self.heal(target, fraction.of_rounded(max_hp), HealSource::Move) > 0;
@@ -1545,6 +1576,45 @@ impl Engine<'_> {
             pokemon: recipient,
             volatile,
         });
+        true
+    }
+
+    /// Knock Off's `onAfterHit`: the target loses its item, even if it fainted.
+    fn knock_off(&mut self, target: Position) {
+        let dex = self.dex;
+        let pokemon = self.active_mut(target);
+        if let Some(item) = pokemon.item.take() {
+            pokemon.refresh_mask(dex);
+            self.emit(Event::EndItem {
+                pokemon: target,
+                item,
+            });
+        }
+    }
+
+    /// Trick's `onHit`: the user and the target trade items, if either holds one. A creature
+    /// given a choice item drops any choice lock, as the item's `onStart` does.
+    fn swap_items(&mut self, user: Position, target: Position) -> bool {
+        let (mine, theirs) = (self.active(user).item, self.active(target).item);
+        if mine.is_none() && theirs.is_none() {
+            return false;
+        }
+        let dex = self.dex;
+        for (holder, item) in [(target, mine), (user, theirs)] {
+            let pokemon = self.active_mut(holder);
+            pokemon.item = item;
+            pokemon.refresh_mask(dex);
+            if pokemon.mask.intersects(HandlerMask::CHOICE_LOCK) {
+                pokemon.volatiles.choice_lock = None;
+                pokemon.volatiles.struggle_lock = false;
+            }
+            if let Some(item) = item {
+                self.emit(Event::Item {
+                    pokemon: holder,
+                    item,
+                });
+            }
+        }
         true
     }
 

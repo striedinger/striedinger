@@ -423,9 +423,14 @@ pub struct MoveSource {
     /// used on consecutive turns.
     #[serde(default)]
     pub stalling_move: bool,
-    /// After the move works, the user switches out, like U-turn.
+    /// After the move works, the user switches out, like U-turn; `"copyvolatile"` also passes
+    /// its stat stages and volatile statuses to the replacement, like Baton Pass.
     #[serde(default)]
-    pub self_switch: bool,
+    pub self_switch: SelfSwitch,
+    /// What the move does with held items, like Knock Off or Trick (code in Showdown's move
+    /// callbacks).
+    #[serde(default)]
+    pub item_effect: Option<ItemEffect>,
     /// After the move works, the target is dragged out for a random replacement, like Roar.
     #[serde(default)]
     pub force_switch: bool,
@@ -477,6 +482,59 @@ pub struct MoveSource {
     /// `stall`).
     #[serde(default)]
     pub guard: bool,
+}
+
+/// What a move does with held items.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ItemEffect {
+    /// ×1.5 base power against a target holding an item, which the hit then removes, like
+    /// Knock Off (Showdown's `onBasePower` and `onAfterHit`).
+    KnockOff,
+    /// The user and the target trade items, like Trick; fails if neither holds one
+    /// (Showdown's `onHit`).
+    Swap,
+}
+
+/// Showdown's `selfSwitch`: `true`, or `"copyvolatile"`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SelfSwitch {
+    /// The user stays in.
+    #[default]
+    No,
+    /// The user switches out.
+    Yes,
+    /// The user switches out, passing its stat stages and volatile statuses.
+    CopyVolatile,
+}
+
+impl Serialize for SelfSwitch {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::No => serializer.serialize_bool(false),
+            Self::Yes => serializer.serialize_bool(true),
+            Self::CopyVolatile => serializer.serialize_str("copyvolatile"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SelfSwitch {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Written {
+            Switches(bool),
+            Kind(String),
+        }
+        match Written::deserialize(deserializer)? {
+            Written::Switches(false) => Ok(Self::No),
+            Written::Switches(true) => Ok(Self::Yes),
+            Written::Kind(kind) if kind == "copyvolatile" => Ok(Self::CopyVolatile),
+            Written::Kind(kind) => Err(serde::de::Error::custom(format!(
+                "selfSwitch must be true, false, or \"copyvolatile\", not {kind:?}"
+            ))),
+        }
+    }
 }
 
 /// Which move a calling move uses.

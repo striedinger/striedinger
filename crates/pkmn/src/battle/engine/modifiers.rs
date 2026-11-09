@@ -9,7 +9,8 @@ use crate::battle::damage::{
 };
 use crate::battle::state::{GameType, Pokemon, Position, TeraType};
 use crate::dex::{
-    Condition, Grounded, Handler, HandlerMask, MoveCategory, MoveData, Status, TerrainData,
+    Condition, Grounded, Handler, HandlerMask, ItemEffect, MoveCategory, MoveData, Status,
+    TerrainData,
 };
 use crate::stats::{BoostStat, MODIFIER_SCALE, Stat, apply_modifier, apply_stage, chain_modifiers};
 
@@ -279,10 +280,19 @@ impl Engine<'_> {
             1 => MODIFIER_SCALE * 3 / 2,
             _ => MODIFIER_SCALE * 9 / 4,
         };
+        // Knock Off's own `onBasePower` has priority 0, after terrain (6).
+        let knock_off = if move_data.item_effect == Some(ItemEffect::KnockOff)
+            && self.active(target).item.is_some()
+        {
+            MODIFIER_SCALE * 3 / 2
+        } else {
+            MODIFIER_SCALE
+        };
         let base_power_modifier = chain_modifiers([
             base_power_modifier,
             helping_hand,
             self.terrain_base_power_modifier(side, target, move_data),
+            knock_off,
         ]);
         let mut base_power =
             apply_modifier(u32::from(move_data.base_power), base_power_modifier).max(1);

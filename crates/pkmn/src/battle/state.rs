@@ -690,6 +690,10 @@ pub struct Side {
     /// (Showdown's `switchFlag`).
     #[serde(default)]
     pub switch_flag: [bool; MAX_ACTIVE],
+    /// Whether each position's switch flag came from a move like Baton Pass, which passes the
+    /// outgoing creature's stat stages and volatiles to its replacement.
+    #[serde(default)]
+    pub baton_pass: [bool; MAX_ACTIVE],
     /// Whether a team member may still Terastallize this battle.
     #[serde(default = "can_terastallize")]
     pub can_terastallize: bool,

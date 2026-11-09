@@ -705,3 +705,75 @@ fn seal_move_disables_the_last_move_used() {
     assert!(!can_choose(&battle, P2, Choice::Move(0)));
     assert!(can_choose(&battle, P2, Choice::Move(1)));
 }
+
+fn holding(species: &str, moves: &[&str], item: &str) -> PokemonSet {
+    let mut pokemon = set(species, moves);
+    pokemon.item = Some(item.to_owned());
+    pokemon
+}
+
+#[test]
+fn swipe_away_hits_harder_against_an_item_and_knocks_it_off() {
+    let first_hit = |target: PokemonSet| {
+        let mut battle = start(&[set("Galewing", &["Swipe Away"])], &[target], 33);
+        let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
+        (damage_to(&events, P2, DamageSource::Move), battle)
+    };
+    let (plain, _) = first_hit(set("Craghorn", &["Hunker Down"]));
+    let (boosted, battle) = first_hit(holding("Craghorn", &["Hunker Down"], "Moss Pouch"));
+    let ([plain], [boosted]) = (plain.as_slice(), boosted.as_slice()) else {
+        panic!("one hit each: {plain:?} {boosted:?}");
+    };
+    let ratio = f64::from(*boosted) / f64::from(*plain);
+    assert!((1.4..1.6).contains(&ratio), "{plain} -> {boosted}");
+    assert_eq!(battle.state().active(P2).item, None);
+}
+
+#[test]
+fn sleight_trades_items_and_fails_without_any() {
+    let mut battle = start(
+        &[holding("Zaplet", &["Sleight"], "Power Band")],
+        &[holding("Craghorn", &["Hunker Down"], "Moss Pouch")],
+        34,
+    );
+    play(&mut battle, Choice::Move(0), Choice::Move(0));
+    let item = |battle: &Battle, side| {
+        battle
+            .state()
+            .active(side)
+            .item
+            .map(|item| battle.dex().item(item).name.clone())
+    };
+    assert_eq!(item(&battle, P1).as_deref(), Some("Moss Pouch"));
+    assert_eq!(item(&battle, P2).as_deref(), Some("Power Band"));
+
+    let mut battle = start(
+        &[set("Zaplet", &["Sleight"])],
+        &[set("Craghorn", &["Hunker Down"])],
+        34,
+    );
+    let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
+    assert!(events.contains(&Event::Fail { pokemon: P1A }));
+}
+
+#[test]
+fn relay_passes_stat_stages_and_a_substitute_to_the_replacement() {
+    let mut battle = start(
+        &[
+            set("Zaplet", &["Hunker Down", "Stand-In", "Relay"]),
+            set("Craghorn", &["Hunker Down"]),
+        ],
+        &[set("Tidewhelp", &["Hunker Down"])],
+        35,
+    );
+    play(&mut battle, Choice::Move(0), Choice::Move(0));
+    play(&mut battle, Choice::Move(1), Choice::Move(0));
+    let substitute = battle.state().active(P1).volatiles.substitute;
+    assert!(substitute.is_some());
+    play(&mut battle, Choice::Move(2), Choice::Move(0));
+    play(&mut battle, Choice::Switch(1), Choice::Pass);
+    let incoming = battle.state().active(P1);
+    assert_eq!(incoming.species, battle.state().side(P1).team[1].species);
+    assert_eq!(incoming.boosts.get(BoostStat::Defense), 1);
+    assert_eq!(incoming.volatiles.substitute, substitute);
+}

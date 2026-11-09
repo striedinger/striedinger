@@ -412,6 +412,7 @@ pub(crate) fn build_side(
         active,
         conditions: Vec::new(),
         switch_flag: [false; MAX_ACTIVE],
+        baton_pass: [false; MAX_ACTIVE],
         can_terastallize: true,
         switch_order,
     })
