@@ -3,10 +3,14 @@ use crate::{Card, Catalog, CollectionStore};
 use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 
+/// A paginated catalog query by name or set and collector number.
 #[derive(Clone, Debug)]
 pub struct Identification {
+    /// Optional case-insensitive card-name substring.
     pub name: Option<String>,
+    /// Optional provider-specific set ID.
     pub set: Option<String>,
+    /// Collector number, which requires a set ID.
     pub number: Option<String>,
     /// One-based page, with at most 20 candidates per page.
     pub page: u32,
@@ -24,8 +28,13 @@ impl Default for Identification {
 }
 
 impl Identification {
+    /// Maximum candidates returned on one search page.
     pub const PAGE_SIZE: usize = 20;
 
+    /// Validate query fields and pagination bounds.
+    ///
+    /// # Errors
+    /// Returns an error for blank fields, unsupported page numbers, or ambiguous number-only queries.
     pub fn validate(&self) -> Result<()> {
         ensure!(
             self.page > 0 && self.page <= 10_000,
@@ -45,6 +54,8 @@ impl Identification {
         Ok(())
     }
 
+    /// Match a candidate against the query fields, independently of pagination.
+    #[must_use]
     pub fn matches(&self, candidate: &Candidate) -> bool {
         self.name.as_ref().is_none_or(|name| {
             candidate
@@ -59,6 +70,7 @@ impl Identification {
 }
 
 /// Normalize ordinary numeric collector numbers, retaining promo prefixes.
+#[must_use]
 pub fn normalize_number(number: &str) -> &str {
     let number = number.split('/').next().unwrap_or_default().trim();
     if !number.is_empty() && number.bytes().all(|b| b.is_ascii_digit()) {
@@ -73,11 +85,16 @@ pub fn normalize_number(number: &str) -> &str {
     }
 }
 
+/// A lightweight search match that must be resolved before adding a copy.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Candidate {
+    /// Provider-specific full card ID.
     pub id: String,
+    /// Localized card name.
     pub name: String,
+    /// Provider-specific set ID.
     pub set_id: String,
+    /// Collector number.
     pub number: String,
 }
 
@@ -93,6 +110,9 @@ impl From<Card> for Candidate {
 }
 
 /// Offline identification searches only full records already cached locally.
+///
+/// # Errors
+/// Returns an error for invalid queries or catalog/storage failures.
 pub fn identify(
     catalog: &impl Catalog,
     store: &impl CollectionStore,

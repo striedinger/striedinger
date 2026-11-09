@@ -1,30 +1,48 @@
+//! SQLite storage and migrations for catalog snapshots and physical copies.
 use anyhow::{Result, ensure};
 use pkmn_tcg_dex_core::{Card, CollectionStore, OwnedCopy};
 use rusqlite::{Connection, params};
 use std::path::Path;
 
+/// A local collection database, with atomic migrations and imports.
 pub struct SqliteStore {
     connection: Connection,
 }
 
 impl SqliteStore {
+    /// Open or initialize a collection database. Concurrent first opens share one migration.
+    ///
+    /// # Errors
+    /// Returns an error for unavailable or incompatible databases and migration failures.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
-        let connection = Connection::open(path)?;
+        let mut connection = Connection::open(path)?;
         connection.busy_timeout(std::time::Duration::from_secs(5))?;
         let version: i64 = connection.query_row("PRAGMA user_version", [], |r| r.get(0))?;
         ensure!(version <= 1, "Database was created by a newer application");
         if version == 0 {
-            connection.execute_batch("BEGIN;
+            // Another process may migrate after the initial read. Serialize and
+            // recheck while holding the write lock, before creating any tables.
+            let tx =
+                connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+            let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+            ensure!(version <= 1, "Database was created by a newer application");
+            if version == 0 {
+                tx.execute_batch("
                 CREATE TABLE cards (provider TEXT NOT NULL, language TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(provider, language, id));
                 CREATE TABLE copies (id TEXT PRIMARY KEY NOT NULL, data TEXT NOT NULL);
-                PRAGMA user_version = 1;
-                COMMIT;")?;
+                PRAGMA user_version = 1;")?;
+            }
+            tx.commit()?;
         }
         Ok(Self { connection })
     }
 
     /// Merge an exported collection atomically. Existing identical IDs are skipped;
     /// conflicting IDs fail rather than overwriting local edits.
+    ///
+    /// # Errors
+    /// Returns an error for invalid copies, conflicting copy IDs, or storage failures.
+    /// No imported changes are committed on failure.
     pub fn import(&mut self, copies: &[OwnedCopy]) -> Result<()> {
         for copy in copies {
             copy.validate()?;
@@ -302,7 +320,7 @@ mod tests {
                 .move_copy(&original.id.to_string(), Some("Other"))
                 .is_err()
         );
-        assert!(store.copies()?.is_empty());
+        assert_eq!(store.copies()?, [] as [pkmn_tcg_dex_core::OwnedCopy; 0]);
         drop(other);
         drop(store);
         std::fs::remove_file(path)?;
@@ -334,7 +352,38 @@ mod tests {
         assert_eq!(second.len(), 5);
         assert!(!first.iter().any(|a| second.iter().any(|b| a.id == b.id)));
         assert_eq!(catalog.calls.get(), 0);
-        assert!(identify(&catalog, &store, "ja", &query, true)?.is_empty());
+        assert_eq!(
+            identify(&catalog, &store, "ja", &query, true)?,
+            [] as [pkmn_tcg_dex_core::identification::Candidate; 0]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn concurrent_first_opens_share_one_migration() -> Result<()> {
+        let path = std::env::temp_dir().join(format!("pkmn-tcg-dex-init-{}.sqlite", copy().id));
+        let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+        let workers: Vec<_> = (0..8)
+            .map(|_| {
+                let path = path.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    SqliteStore::open(path).map(|_| ())
+                })
+            })
+            .collect();
+        for worker in workers {
+            worker.join().unwrap()?;
+        }
+        let store = SqliteStore::open(&path)?;
+        assert_eq!(store.copies()?, [] as [pkmn_tcg_dex_core::OwnedCopy; 0]);
+        let version: i64 = store
+            .connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))?;
+        assert_eq!(version, 1);
+        drop(store);
+        std::fs::remove_file(path)?;
         Ok(())
     }
 }

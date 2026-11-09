@@ -12,3 +12,6 @@ pkmn-tcg-dex-core.workspace = true
 pkmn-tcg-dex-tcgdex.workspace = true
 pkmn-tcg-dex-sqlite.workspace = true
 clap = { version = "4", features = ["derive"] }
+
+[lints]
+workspace = true

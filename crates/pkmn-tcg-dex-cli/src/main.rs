@@ -1,3 +1,4 @@
+//! Local collection CLI with explicit preview and confirmation before additions.
 mod backup;
 mod browse;
 mod selection;
@@ -41,22 +42,7 @@ enum Command {
         query: FindArgs,
     },
     /// Preview a card, then confirm adding one physical copy.
-    Add {
-        id: Option<String>,
-        #[command(flatten)]
-        query: FindArgs,
-        #[arg(long)]
-        variant: Option<String>,
-        #[arg(long, default_value = "unknown")]
-        condition: String,
-        #[arg(long)]
-        folder: Option<String>,
-        #[arg(long, default_value = "")]
-        notes: String,
-        /// Confirm without prompting, for scripts.
-        #[arg(long)]
-        yes: bool,
-    },
+    Add(AddArgs),
     /// Search names, descriptions, moves, and notes in owned cards.
     List {
         #[arg(default_value = "")]
@@ -98,6 +84,24 @@ enum Command {
     Import { file: PathBuf },
 }
 
+#[derive(Args)]
+struct AddArgs {
+    id: Option<String>,
+    #[command(flatten)]
+    query: FindArgs,
+    #[arg(long)]
+    variant: Option<String>,
+    #[arg(long, default_value = "unknown")]
+    condition: String,
+    #[arg(long)]
+    folder: Option<String>,
+    #[arg(long, default_value = "")]
+    notes: String,
+    /// Confirm without prompting, for scripts.
+    #[arg(long)]
+    yes: bool,
+}
+
 #[derive(Args, Default)]
 struct FindArgs {
     #[arg(long)]
@@ -129,7 +133,7 @@ impl Cli {
         );
         match &self.command {
             Command::Find { query } => Identification::from(query).validate()?,
-            Command::Add { id, query, .. } => {
+            Command::Add(AddArgs { id, query, yes, .. }) => {
                 if id.is_some() {
                     ensure!(
                         query.name.is_none()
@@ -140,6 +144,10 @@ impl Cli {
                     );
                 } else {
                     Identification::from(query).validate()?;
+                    ensure!(
+                        !yes || query.page == 1,
+                        "--yes requires the first search page or an exact card ID; later pages cannot establish an unambiguous match"
+                    );
                 }
             }
             _ => {}
@@ -157,6 +165,103 @@ fn confirm(message: &str) -> Result<bool> {
         answer.trim().to_ascii_lowercase().as_str(),
         "y" | "yes"
     ))
+}
+
+fn resolve_id(
+    args: &AddArgs,
+    catalog: &impl pkmn_tcg_dex_core::Catalog,
+    store: &impl CollectionStore,
+    language: &str,
+    offline: bool,
+) -> Result<Option<String>> {
+    if let Some(id) = &args.id {
+        Ok(Some(id.clone()))
+    } else {
+        let candidates = identify(
+            catalog,
+            store,
+            language,
+            &Identification::from(&args.query),
+            offline,
+        )?;
+        ensure!(
+            !candidates.is_empty(),
+            "No matching cards{}",
+            if offline { " in the local cache" } else { "" }
+        );
+        if candidates.len() == Identification::PAGE_SIZE {
+            eprintln!(
+                "More matches may be available; use --page {}.",
+                args.query.page + 1
+            );
+        }
+        let index = if candidates.len() == 1 {
+            0
+        } else {
+            ensure!(
+                !args.yes,
+                "Multiple cards match; use find and pass an exact card ID for --yes"
+            );
+            let labels = candidates
+                .iter()
+                .map(|c| format!("{} | {} | #{} | {}", c.name, c.set_id, c.number, c.id))
+                .collect::<Vec<_>>();
+            let Some(index) =
+                selection::choose(&labels, &mut io::stdin().lock(), &mut io::stderr())?
+            else {
+                return Ok(None);
+            };
+            index
+        };
+        Ok(Some(candidates[index].id.clone()))
+    }
+}
+
+fn add_card(args: AddArgs, language: &str, offline: bool, store: &mut SqliteStore) -> Result<()> {
+    let catalog = Tcgdex::new()?;
+    let exact_id = args.id.is_some();
+    let Some(id) = resolve_id(&args, &catalog, store, language, offline)? else {
+        eprintln!("Cancelled; no copy added.");
+        return Ok(());
+    };
+    let card = preview(&catalog, store, language, &id, offline)?;
+    eprintln!("{}", serde_json::to_string_pretty(&card)?);
+    let variant = if let Some(variant) = args.variant {
+        variant
+    } else if (exact_id || args.yes) && card.variants.iter().any(|v| v == "normal") {
+        "normal".into()
+    } else {
+        ensure!(
+            !args.yes,
+            "Supply --variant for a card without a normal printing"
+        );
+        ensure!(
+            !card.variants.is_empty(),
+            "Catalog has no variant information; this card cannot be added yet"
+        );
+        eprintln!("Select the printing variant:");
+        let Some(index) =
+            selection::choose(&card.variants, &mut io::stdin().lock(), &mut io::stderr())?
+        else {
+            eprintln!("Cancelled; no copy added.");
+            return Ok(());
+        };
+        card.variants[index].clone()
+    };
+    let copy = OwnedCopy::new(card, variant, args.condition, args.folder, args.notes)?;
+    eprintln!(
+        "Variant: {} | Condition: {} | Folder: {}",
+        copy.variant,
+        copy.condition,
+        copy.folder.as_deref().unwrap_or("unfiled")
+    );
+    if args.yes || confirm("Add this copy to your collection?")? {
+        store.add(&copy)?;
+        println!("{}", copy.id);
+    } else {
+        eprintln!("Cancelled; no copy added.");
+    }
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -196,101 +301,7 @@ fn main() -> Result<()> {
                 eprintln!("Searching cached card records only.");
             }
         }
-        Command::Add {
-            id,
-            query,
-            variant,
-            condition,
-            folder,
-            notes,
-            yes,
-        } => {
-            let catalog = Tcgdex::new()?;
-            let exact_id = id.is_some();
-            let id = if let Some(id) = id {
-                id
-            } else {
-                let candidates = identify(
-                    &catalog,
-                    &store,
-                    &cli.language,
-                    &Identification::from(&query),
-                    cli.offline,
-                )?;
-                ensure!(
-                    !candidates.is_empty(),
-                    "No matching cards{}",
-                    if cli.offline {
-                        " in the local cache"
-                    } else {
-                        ""
-                    }
-                );
-                if candidates.len() == Identification::PAGE_SIZE {
-                    eprintln!(
-                        "More matches may be available; use --page {}.",
-                        query.page + 1
-                    );
-                }
-                let index = if candidates.len() == 1 {
-                    0
-                } else {
-                    ensure!(
-                        !yes,
-                        "Multiple cards match; use find and pass an exact card ID for --yes"
-                    );
-                    let labels = candidates
-                        .iter()
-                        .map(|c| format!("{} | {} | #{} | {}", c.name, c.set_id, c.number, c.id))
-                        .collect::<Vec<_>>();
-                    let Some(index) =
-                        selection::choose(&labels, &mut io::stdin().lock(), &mut io::stderr())?
-                    else {
-                        eprintln!("Cancelled; no copy added.");
-                        return Ok(());
-                    };
-                    index
-                };
-                candidates[index].id.clone()
-            };
-            let card = preview(&catalog, &mut store, &cli.language, &id, cli.offline)?;
-            eprintln!("{}", serde_json::to_string_pretty(&card)?);
-            let variant = if let Some(variant) = variant {
-                variant
-            } else if (exact_id || yes) && card.variants.iter().any(|v| v == "normal") {
-                "normal".into()
-            } else {
-                ensure!(
-                    !yes,
-                    "Supply --variant for a card without a normal printing"
-                );
-                ensure!(
-                    !card.variants.is_empty(),
-                    "Catalog has no variant information; this card cannot be added yet"
-                );
-                eprintln!("Select the printing variant:");
-                let Some(index) =
-                    selection::choose(&card.variants, &mut io::stdin().lock(), &mut io::stderr())?
-                else {
-                    eprintln!("Cancelled; no copy added.");
-                    return Ok(());
-                };
-                card.variants[index].clone()
-            };
-            let copy = OwnedCopy::new(card, variant, condition, folder, notes)?;
-            eprintln!(
-                "Variant: {} | Condition: {} | Folder: {}",
-                copy.variant,
-                copy.condition,
-                copy.folder.as_deref().unwrap_or("unfiled")
-            );
-            if yes || confirm("Add this copy to your collection?")? {
-                store.add(&copy)?;
-                println!("{}", copy.id);
-            } else {
-                eprintln!("Cancelled; no copy added.");
-            }
-        }
+        Command::Add(args) => add_card(args, &cli.language, cli.offline, &mut store)?,
         Command::List {
             query,
             set,

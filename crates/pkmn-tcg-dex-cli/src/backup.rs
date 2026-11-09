@@ -73,7 +73,10 @@ mod tests {
                 .contains("bytes")
         );
         assert!(read_import(&b"[] []"[..], 100, 2).is_err());
-        assert!(read_import(&b"[]"[..], 2, 0).unwrap().is_empty());
+        assert_eq!(
+            read_import(&b"[]"[..], 2, 0).unwrap(),
+            [] as [pkmn_tcg_dex_core::OwnedCopy; 0]
+        );
     }
     #[test]
     fn enforces_record_limit_during_parsing() {

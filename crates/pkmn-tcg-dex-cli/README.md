@@ -29,7 +29,7 @@ cargo install --path crates/pkmn-tcg-dex-cli
 `--yes` confirms explicitly for scripts. Repeated additions create separate copies.
 When adding by name or set/number, choose a candidate and its variant before
 confirmation. Blank input or EOF cancels selection. `--yes` rejects ambiguous
-searches; use an exact ID to script a specific printing. An exact ID keeps the
+searches and later search pages; use an exact ID to script a specific printing. An exact ID keeps the
 existing default `normal` variant when available; cards without it require variant
 selection or an explicit `--variant` for scripts. Conditions are free text; variants must match the catalog. Omitting `--folder`
 from `move` unfiles the copy. `remove` also requires confirmation or `--yes`.

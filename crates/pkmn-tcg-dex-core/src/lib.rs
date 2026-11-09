@@ -6,22 +6,38 @@ use anyhow::{Context, Result, bail, ensure};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// A normalized catalog printing, identified by provider, language, and card ID.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Card {
+    /// Catalog provider namespace.
     pub provider: String,
+    /// Provider-specific printing ID.
     pub id: String,
+    /// Catalog language code.
     pub language: String,
+    /// Localized card name.
     pub name: String,
+    /// Provider-specific set ID.
     pub set_id: String,
+    /// Localized set name.
     pub set_name: String,
+    /// Collector number, including any promo prefix.
     pub number: String,
+    /// Localized descriptive or rules text.
     pub description: String,
+    /// Attack names and effects used for searching.
     pub moves: Vec<String>,
+    /// Variant identifiers available for this printing.
     pub variants: Vec<String>,
+    /// Remote image URL; image bytes are not stored here.
     pub image_url: Option<String>,
 }
 
 impl Card {
+    /// Validate nonempty catalog identity fields.
+    ///
+    /// # Errors
+    /// Returns an error if an identity field is empty or blank.
     pub fn validate(&self) -> Result<()> {
         for value in [
             &self.provider,
@@ -40,18 +56,29 @@ impl Card {
     }
 }
 
+/// One physical copy, with its catalog snapshot and collection metadata.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct OwnedCopy {
+    /// Stable physical-copy ID used by moves, deletion, and backup merging.
     pub id: Uuid,
+    /// Catalog snapshot captured when this copy was added.
     pub card: Card,
+    /// Selected printing variant.
     pub variant: String,
+    /// Collector-supplied condition label.
     pub condition: String,
+    /// Optional folder name; absent means unfiled.
     pub folder: Option<String>,
+    /// Collector-supplied notes for this copy.
     pub notes: String,
 }
 
 impl OwnedCopy {
-    /// Invoke only after the caller presents the card preview and obtains confirmation.
+    /// Construct and validate a prospective physical copy.
+    /// Obtain caller confirmation before persisting it with `CollectionStore::add`.
+    ///
+    /// # Errors
+    /// Returns an error for invalid identity, variant, condition, or folder fields.
     pub fn new(
         card: Card,
         variant: String,
@@ -71,6 +98,10 @@ impl OwnedCopy {
         Ok(copy)
     }
 
+    /// Validate the snapshot and collection fields.
+    ///
+    /// # Errors
+    /// Returns an error for an unavailable variant or blank required fields.
     pub fn validate(&self) -> Result<()> {
         self.card.validate()?;
         ensure!(!self.variant.trim().is_empty(), "Variant cannot be empty");
@@ -90,9 +121,19 @@ impl OwnedCopy {
     }
 }
 
+/// Catalog boundary implemented by external metadata providers.
 pub trait Catalog {
+    /// Return the provider namespace used in cache keys.
     fn provider(&self) -> &str;
+    /// Resolve one full printing ID.
+    ///
+    /// # Errors
+    /// Returns an error for missing cards or provider failures.
     fn lookup(&self, language: &str, id: &str) -> Result<Card>;
+    /// Return one page of candidate printings.
+    ///
+    /// # Errors
+    /// Returns an error for invalid queries, provider failures, or unsupported search.
     fn find(
         &self,
         _language: &str,
@@ -102,16 +143,49 @@ pub trait Catalog {
     }
 }
 
+/// Storage boundary for cached catalog records and owned physical copies.
 pub trait CollectionStore {
+    /// Insert or replace a normalized catalog record.
+    ///
+    /// # Errors
+    /// Returns an error for invalid records or storage failures.
     fn cache(&mut self, card: &Card) -> Result<()>;
+    /// Read a cached record by provider, language, and full ID.
+    ///
+    /// # Errors
+    /// Returns an error for storage or deserialization failures.
     fn cached(&self, provider: &str, language: &str, id: &str) -> Result<Option<Card>>;
+    /// Read all cached records for one provider and language.
+    ///
+    /// # Errors
+    /// Returns an error for storage or deserialization failures.
     fn cached_cards(&self, provider: &str, language: &str) -> Result<Vec<Card>>;
+    /// Persist a validated physical copy after caller confirmation; cache separately.
+    ///
+    /// # Errors
+    /// Returns an error for invalid copies, duplicate IDs, or storage failures.
     fn add(&mut self, copy: &OwnedCopy) -> Result<()>;
+    /// Read the physical copies currently stored.
+    ///
+    /// # Errors
+    /// Returns an error for storage or deserialization failures.
     fn copies(&self) -> Result<Vec<OwnedCopy>>;
+    /// Assign a physical copy to a folder, or unfile it with `None`.
+    ///
+    /// # Errors
+    /// Returns an error for missing copies, invalid folders, or storage failures.
     fn move_copy(&mut self, id: &str, folder: Option<&str>) -> Result<()>;
+    /// Delete one physical copy by its ID.
+    ///
+    /// # Errors
+    /// Returns an error for missing copies or storage failures.
     fn remove(&mut self, id: &str) -> Result<()>;
 }
 
+/// Resolve a preview from cache, fetching and caching a full record when online.
+///
+/// # Errors
+/// Returns an error for offline cache misses, identity mismatches, or provider/storage failures.
 pub fn preview(
     catalog: &impl Catalog,
     store: &mut impl CollectionStore,
@@ -127,6 +201,9 @@ pub fn preview(
 }
 
 /// Fetch current catalog metadata without changing existing owned-copy snapshots.
+///
+/// # Errors
+/// Returns an error for invalid metadata, identity mismatches, or provider/storage failures.
 pub fn refresh(
     catalog: &impl Catalog,
     store: &mut impl CollectionStore,
@@ -143,17 +220,27 @@ pub fn refresh(
     Ok(card)
 }
 
+/// Filters for owned copies; optional fields match exactly.
 #[derive(Default)]
 pub struct Query {
+    /// Case-insensitive substring across names, descriptions, moves, and notes.
     pub text: String,
+    /// Optional set ID filter.
     pub set: Option<String>,
+    /// Optional folder name filter.
     pub folder: Option<String>,
+    /// Optional catalog language filter.
     pub language: Option<String>,
+    /// Optional variant identifier filter.
     pub variant: Option<String>,
+    /// Optional condition label filter.
     pub condition: Option<String>,
+    /// Reverse the default name, set, collector-number, and copy-ID order.
     pub descending: bool,
 }
 
+/// Filter copies and sort by name, set, collector number as text, and copy ID.
+#[must_use]
 pub fn search(mut copies: Vec<OwnedCopy>, query: &Query) -> Vec<OwnedCopy> {
     let needle = query.text.to_lowercase();
     copies.retain(|c| {
@@ -196,6 +283,10 @@ pub fn search(mut copies: Vec<OwnedCopy>, query: &Query) -> Vec<OwnedCopy> {
     copies
 }
 
+/// Convert a full `TCGdex` JSON record to the normalized catalog schema.
+///
+/// # Errors
+/// Returns an error for missing required metadata or invalid identity fields.
 pub fn normalize_tcgdex(language: &str, raw: &serde_json::Value) -> Result<Card> {
     let required = |value: &serde_json::Value| {
         value
@@ -269,15 +360,15 @@ mod tests {
             ),
             vec![copy.clone()]
         );
-        assert!(
+        assert_eq!(
             search(
                 vec![copy],
                 &Query {
                     folder: Some("Other".into()),
                     ..Default::default()
                 }
-            )
-            .is_empty()
+            ),
+            [] as [OwnedCopy; 0]
         );
     }
     #[test]
