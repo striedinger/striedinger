@@ -264,9 +264,15 @@ fn load_llm(dir: &std::path::Path, config: &Config) -> anyhow::Result<Option<llm
     if !config.llm.enabled {
         return Ok(None);
     }
+    // MURMUR_GPU_LAYERS overrides the setting without editing config.toml, for diagnosing
+    // GPU problems (0 runs the cleanup model on the CPU only).
+    let gpu_layers = std::env::var("MURMUR_GPU_LAYERS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(config.llm.gpu_layers);
     let llm = llm::Llm::load(
         &Config::resolve(dir, &config.llm.model_path),
-        config.llm.gpu_layers,
+        gpu_layers,
         config.llm.context_size,
         config.llm.max_tokens,
     )?;

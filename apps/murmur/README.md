@@ -86,6 +86,7 @@ first run. Use **Menu bar → Open Settings…** and then **Reload Settings** af
 - `[[app_rules]]`: a tone per app (bundle id). Find an app's id with
   `osascript -e 'id of app "Slack"'`
 - `llm.enabled = false`: run raw speech-to-text only (lighter and faster)
+- `MURMUR_GPU_LAYERS=0` (environment variable): run the cleanup model on the CPU only, without editing the config. Useful for diagnosing GPU problems
 - To try other LLMs, drop any GGUF instruct model into `models/` and point `llm.model_path` at it.
   3–8B models are a good balance. Smaller ones (1–2B) are faster but follow instructions less reliably.
 
