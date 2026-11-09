@@ -1111,7 +1111,10 @@ impl<'a> Engine<'a> {
         let pending = self.faint_queue.positions;
         self.state.side_ids().filter(|&foe| foe != side).any(|foe| {
             !self.state.side(foe).is_defeated()
-                || pending.iter().flatten().any(|position| position.side == foe)
+                || pending
+                    .iter()
+                    .flatten()
+                    .any(|position| position.side == foe)
         })
     }
 
