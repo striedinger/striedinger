@@ -10,8 +10,8 @@
  * `crates/pkmn/tests/fixtures/showdown.json`, and `crates/pkmn/tests/showdown.rs` replays them
  * through pkmn and compares.
  *
- * Showdown draws extra random numbers whenever the two active creatures are speed-tied, a
- * documented difference, so a battle's recording stops at its first speed tie.
+ * pkmn takes Showdown's random draws for speed ties too, so a recording stops only at a
+ * shuffle from a sort pkmn does not reproduce (see `watchSpeedTies`).
  *
  * Usage: pnpm --filter @workspace/pkmn-oracle generate [battles]
  *   [--doubles | --triples | --free-for-all]
@@ -138,7 +138,7 @@ interface RecordedBattle {
   stats: StatTable[][];
   start: Snapshot;
   steps: { choices: Choice[][]; after: Snapshot }[];
-  stopped: "finished" | "speed_tie" | "step_limit" | "called_rampage";
+  stopped: "finished" | "speed_tie" | "step_limit";
 }
 
 const TEAM_SIZE: Record<GameType, number> = { singles: 3, doubles: 4, triples: 5, freeforall: 3 };
@@ -831,19 +831,6 @@ function hexSeed(index: number): string {
   return Array.from({ length: 4 }, () => random(0x1_0000).toString(16).padStart(4, "0")).join("");
 }
 
-/**
- * Whether a rampage was started by a calling move, like Outrage from Metronome. Showdown aims
- * its later turns at the caller's target, the user, so they fail; in the games, and in pkmn,
- * the rampage goes on. A documented difference.
- */
-function calledRampage(battle: ShowdownBattle): boolean {
-  return battle.sides.some((side) =>
-    side.active.some(
-      (user) => "lockedmove" in user.volatiles && user.lastMoveTargetLoc === user.getLocOf(user),
-    ),
-  );
-}
-
 /** A copy of a format with another game type and its player count, keeping its rules. */
 function withGameType<T extends object>(format: T, gameType: GameType): T {
   return Object.assign(Object.create(Object.getPrototypeOf(format) as object) as T, format, {
@@ -899,7 +886,6 @@ function recordBattle(index: number, sample: SampleDex, gameType: GameType): Rec
   if (speedTieSeen()) return null;
   while (!battle.ended) {
     if (recorded.steps.length >= STEP_LIMIT) return { ...recorded, stopped: "step_limit" };
-    if (calledRampage(battle)) return { ...recorded, stopped: "called_rampage" };
     const choices = battle.sides.map((side) => chooseForSide(side, random));
     for (const [sideIndex, choice] of choices.entries()) {
       if (choice.theirs !== null) battle.choose(`p${sideIndex + 1}` as "p1", choice.theirs);

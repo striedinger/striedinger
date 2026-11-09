@@ -134,15 +134,13 @@ Names follow Pokémon Showdown, which follows the games, so its documentation an
 
 Speed ties take Showdown's random draws wherever Showdown sorts, even where the order changes nothing: the team-preview order at the start, the turn's queue and its re-sorts, `runSwitch` and its insertion into the queue, every `eachEvent` (`Update`, `BeforeTurn`, weather and terrain changes), and the residual sort, which keeps a creature that fainted that turn. Each creature caches its speed when Showdown runs `updateSpeed`, and these sorts read the cached speed. Follow Me users that tie are ordered by who switched in first, without a draw.
 
-One deliberate difference follows the games rather than Showdown. A rampage started by a calling move, like Outrage from Metronome, carries on in pkmn. Showdown aims its later turns at the caller's target, the user, so they fail.
-
 ## Differential testing
 
 `apps/pkmn-oracle` plays seeded random singles, doubles, triples and free-for-all battles in Pokémon Showdown with the sample pack injected. pkmn's data format follows Showdown's, so species and moves go in almost unchanged. Names that Showdown implements in code are mapped to the Showdown effect they reproduce: abilities, items, weathers, terrains, side conditions, and the callbacks of moves like Protect or Rapid Spin.
 
 The oracle writes every step's choices and the resulting state to `tests/fixtures/showdown.json` (and `showdown-doubles.json`, `showdown-triples.json` or `showdown-free-for-all.json` with `--doubles`, `--triples` or `--free-for-all`). The state covers HP, status, items, PP, each position's stat stages, Substitute, confusion and Tera, weather, terrain, side conditions and their durations, and the winner. `tests/showdown.rs` replays each battle through pkmn from the same seed and requires the same state after every step.
 
-A recording stops at the documented difference above, a rampage started by a calling move, or at a speed tie in a sort pkmn does not reproduce, which no recording currently reaches. The fixtures are generated, not committed, so CI records 2,000 battles of each on every run. Without the fixture, the test is skipped unless `PKMN_REQUIRE_SHOWDOWN` is set.
+A recording stops at a speed tie in a sort pkmn does not reproduce, which no recording currently reaches. The fixtures are generated, not committed, so CI records 2,000 battles of each on every run. Without the fixture, the test is skipped unless `PKMN_REQUIRE_SHOWDOWN` is set.
 
 ## Not yet
 
