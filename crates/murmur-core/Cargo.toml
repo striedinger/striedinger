@@ -18,7 +18,7 @@ serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 cpal = "0.15"
 crossbeam-channel = "0.5"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.41", features = ["bundled"] }
 # Parakeet TDT v3 (and Whisper) via sherpa-onnx. Downloads prebuilt sherpa-onnx libs at build time.
 sherpa-rs = "0.6"
 # Embedded llama.cpp for the cleanup model.
