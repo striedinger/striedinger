@@ -50,6 +50,8 @@ interface SampleMove {
   guard?: boolean;
   failsUnlessTargetAttacks?: boolean;
   failsAgainstType?: string;
+  itemEffect?: string;
+  selfSwitch?: boolean | string;
   clearUserVolatiles?: string[];
   calls?: string;
   weather?: string;
@@ -282,6 +284,18 @@ const BORROWED: Record<string, Borrowed> = {
   },
   "Echo Step": { from: "copycat", callbacks: ["onHit"], expect: { calls: "lastMove" } },
   "Seal Move": { from: "disable", callbacks: ["onTryHit"], expect: { volatileStatus: "disable" } },
+  "Swipe Away": {
+    from: "knockoff",
+    callbacks: ["onBasePower", "onAfterHit"],
+    expect: { itemEffect: "knockOff" },
+  },
+  Sleight: { from: "trick", callbacks: ["onTryImmunity", "onHit"], expect: { itemEffect: "swap" } },
+  // Baton Pass's `self.onHit` skips the `BeforeSwitchOut` event and its `Update`.
+  Relay: {
+    from: "batonpass",
+    callbacks: ["onHit", "self"],
+    expect: { selfSwitch: "copyvolatile" },
+  },
   "Drain Seed": {
     from: "leechseed",
     callbacks: ["onTryImmunity"],
@@ -332,6 +346,7 @@ const PKMN_ONLY_FIELDS = [
   "failsUnlessTargetAttacks",
   "failsAgainstType",
   "clearUserVolatiles",
+  "itemEffect",
 ];
 const CHARGING_FIELDS = ["chargeBoosts", "chargeSkippedIn", "semiInvulnerable"];
 
@@ -393,7 +408,9 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
       move.guard !== undefined ||
       move.failsUnlessTargetAttacks !== undefined ||
       move.failsAgainstType !== undefined ||
-      move.clearUserVolatiles !== undefined) &&
+      move.clearUserVolatiles !== undefined ||
+      move.itemEffect !== undefined ||
+      move.selfSwitch === "copyvolatile") &&
     borrowed === undefined
   ) {
     throw new Error(`${move.name} needs Showdown callbacks; add it to BORROWED`);
