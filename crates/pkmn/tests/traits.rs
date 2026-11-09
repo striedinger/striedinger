@@ -57,7 +57,7 @@ fn type_immunity_traits_block_moves_of_that_type() {
     );
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.contains(&Event::Immune { side: P2 }));
-    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_eq!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn absorbing_traits_heal_instead_of_taking_damage() {
         event,
         Event::Heal { side: P2, amount, from: HealSource::Effect(_), .. } if *amount == quarter
     )));
-    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_eq!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
 }
 
 #[test]
@@ -382,7 +382,10 @@ fn cure_berries_remove_a_status_as_soon_as_it_lands() {
                 side: P2,
                 status: Status::Burn
             }));
-            assert!(damage_to(&events, P2, DamageSource::Status(Status::Burn)).is_empty());
+            assert_eq!(
+                damage_to(&events, P2, DamageSource::Status(Status::Burn)),
+                [] as [u16; 0]
+            );
             return;
         }
     }
@@ -443,7 +446,10 @@ fn a_battle_can_end_partway_through_the_end_of_a_turn() {
     let mut battle = battle;
     let events = play(&mut battle, MOVE, MOVE);
     assert_eq!(battle.outcome(), Some(Outcome::Win(P1)));
-    assert!(damage_to(&events, P1, DamageSource::Status(Status::Burn)).is_empty());
+    assert_eq!(
+        damage_to(&events, P1, DamageSource::Status(Status::Burn)),
+        [] as [u16; 0]
+    );
 }
 
 /// The sample pack plus extra moves and items, given as JSON arrays.

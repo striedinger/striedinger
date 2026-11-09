@@ -91,7 +91,6 @@ jobs:
           ! otool -L "$app"/Contents/Frameworks/*.dylib "$app/Contents/MacOS/Murmur" \
             | grep -E '^\s+/(Users|opt|private|var)/'
 
-
   # Cross-building from Linux with xtool needs Apple's Darwin SDK. Rather than storing
   # the SDK anywhere, a macOS runner (Apple hardware with Xcode preinstalled) builds it
   # fresh each run and hands it to the Linux job as a short-lived artifact, which the

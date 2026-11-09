@@ -54,7 +54,7 @@ fn type_immunities_stop_damaging_moves_and_opted_in_status_moves() {
     );
     let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
     assert!(events.contains(&Event::Immune { side: P2 }));
-    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_eq!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
 
     let events = play(&mut battle, Choice::Move(1), Choice::Move(0));
     assert!(events.contains(&Event::Immune { side: P2 }));
@@ -133,7 +133,10 @@ fn sandstorm_chips_creatures_that_are_not_immune() {
         damage_to(&events, P2, DamageSource::Weather(sandstorm(&battle))),
         [max_hp(&battle, P2) / 16]
     );
-    assert!(damage_to(&events, P1, DamageSource::Weather(sandstorm(&battle))).is_empty());
+    assert_eq!(
+        damage_to(&events, P1, DamageSource::Weather(sandstorm(&battle))),
+        [] as [u16; 0]
+    );
 }
 
 #[test]
