@@ -9,7 +9,11 @@
       ]
     },
     "apps/web": {
-      "entry": ["scripts/generate-mta-stations.mjs", "scripts/get-spotify-refresh-token.mjs"],
+      "entry": [
+        "scripts/generate-mta-stations.mjs",
+        "scripts/get-spotify-refresh-token.mjs",
+        "scripts/ignore-build.mjs"
+      ],
       "ignoreUnresolved": ["^\\./(avif_enc|meta|utils)\\.js$"]
     }
   }

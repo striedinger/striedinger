@@ -40,6 +40,27 @@ Dark mode follows `prefers-color-scheme`; no `dark` class or theme provider is u
 
 The web app exposes the full tweakcn preset catalog from the navigation drawer. The selected preset is stored in the `theme` cookie, applied before hydration, and shared by every route through the tokens in `packages/ui/src/styles/themes`.
 
+## Deployment storage
+
+The Vercel web project skips native-only changes through `apps/web/scripts/ignore-build.mjs`.
+It compares against the last successful deployment for the branch. First previews compare the
+whole branch with `main`; unavailable history and unknown inputs continue building. Web code,
+shared TypeScript packages, lockfiles, and build configuration changes still build.
+For a deliberate rebuild of unchanged code, uncheck **Use project's Ignore Build Step** in
+Vercel's Redeploy dialog, or set `FORCE_WEB_BUILD=1` for that deployment.
+
+Before development and production builds, the runtime-asset sync removes only its four generated
+vendor namespaces and repopulates the installed versions. This prevents restored build caches
+from shipping obsolete ONNX, PDF, and image-codec versions. Both current CPU and WebGPU runtimes
+remain available. Unmanaged vendor namespaces are preserved.
+
+The desired project retention policy is **3 days for previews** and **30 days for production**,
+with the live production deployment and rollback candidates retained. This is a Vercel dashboard
+setting under **Project → Settings → Build and Deployment → Deployment Retention Policy**, not a
+setting in `vercel.json`. Vercel's retention exceptions preserve the current production aliases,
+recent production deployments, and active branch previews. Expiration cleanup is asynchronous;
+historical GB-month usage does not reset when deployments are deleted.
+
 ## Production rate limiting
 
 Remote metadata previews and MTA actions use a bounded in-process fallback during local development. For deployment-wide limits across Vercel instances, configure an Upstash-compatible Redis integration with `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (or the equivalent `KV_REST_API_URL` and `KV_REST_API_TOKEN`). Client identifiers are hashed before they are included in rate-limit keys.
