@@ -4,8 +4,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::dex::{
-    AbilityId, Dex, HandlerMask, ItemId, MoveCategory, MoveId, SideConditionId, SpeciesId, Status,
-    TerrainId, TypeId, WeatherId,
+    AbilityId, Dex, HandlerMask, ItemId, MoveCategory, MoveId, PseudoWeatherId, SideConditionId,
+    SpeciesId, Status, TerrainId, TypeId, WeatherId,
 };
 use crate::prng::Prng;
 use crate::stats::{Boosts, StatTable};
@@ -751,7 +751,7 @@ pub struct WeatherState {
 }
 
 /// Conditions affecting the whole battle.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Field {
     /// The current weather, if any.
@@ -759,6 +759,19 @@ pub struct Field {
     /// The current terrain, if any.
     #[serde(default)]
     pub terrain: Option<TerrainState>,
+    /// Pseudo-weathers in effect, like Trick Room, in the order they began.
+    #[serde(default)]
+    pub pseudo_weathers: Vec<PseudoWeatherState>,
+}
+
+/// A pseudo-weather and its remaining duration, like Showdown's `pseudoWeather` entries.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PseudoWeatherState {
+    /// The pseudo-weather.
+    pub id: PseudoWeatherId,
+    /// End-of-turn checks left before it ends.
+    pub duration: u8,
 }
 
 /// The active terrain and its remaining duration, like Showdown's `terrainState`.

@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use super::state::{Position, SideId, TeraType};
 use crate::dex::{
-    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, TerrainId, VolatileStatus,
-    WeatherId,
+    AbilityId, ItemId, MoveId, PseudoWeatherId, SideConditionId, SpeciesId, Status, TerrainId,
+    VolatileStatus, WeatherId,
 };
 use crate::stats::BoostStat;
 
@@ -177,6 +177,16 @@ pub enum Event {
     Terrain {
         /// The new terrain.
         terrain: Option<TerrainId>,
+    },
+    /// `-fieldstart`: a pseudo-weather, like Trick Room, began.
+    PseudoWeatherStart {
+        /// The pseudo-weather.
+        pseudo_weather: PseudoWeatherId,
+    },
+    /// `-fieldend`: a pseudo-weather ended.
+    PseudoWeatherEnd {
+        /// The pseudo-weather.
+        pseudo_weather: PseudoWeatherId,
     },
     /// `-terastallize`: the active creature Terastallized.
     Terastallize {

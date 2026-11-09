@@ -88,7 +88,8 @@ impl Engine<'_> {
                 user.volatiles.choice_lock = u8::try_from(slot).ok();
             }
         }
-        let priority = dex.move_data(move_id).priority;
+        let (priority, prankster) = self.move_priority(side, dex.move_data(move_id));
+        self.prankster_boosted = prankster;
         let drag = self.use_move(side, move_id, priority, resolved, false, others_will_act);
         self.after_move_lock(side);
         drag
@@ -340,6 +341,16 @@ impl Engine<'_> {
         if targets.len() == 0 {
             self.emit(Event::Fail { pokemon: side });
             return None;
+        }
+        // Like Sucker Punch's `onTry`: the first target must be about to use a damaging move.
+        if move_data.fails_unless_target_attacks
+            && targets.first().is_none_or(|target| {
+                self.queued_moves[target.flat()]
+                    .is_none_or(|queued| !self.dex.move_data(queued).is_damaging())
+            })
+        {
+            self.emit(Event::Fail { pokemon: side });
+            return Some((false, false, None));
         }
         let spread = targets.len() > 1;
         let hittable: Positions = targets
@@ -890,6 +901,18 @@ impl Engine<'_> {
                 return false;
             }
         }
+        // Showdown's `hitStepTryImmunity`: a move Prankster boosted fails against a foe whose
+        // type is immune to it, like Dark.
+        if self.prankster_boosted
+            && target.side != side.side
+            && self
+                .active(target)
+                .types()
+                .any(|type_id| self.dex.type_data(type_id).prankster_immune)
+        {
+            self.emit(Event::Immune { pokemon: target });
+            return false;
+        }
         if !self.accuracy_check(side, target, move_data) {
             self.emit(Event::Miss { pokemon: side });
             return false;
@@ -1273,6 +1296,9 @@ impl Engine<'_> {
         if let Some(terrain) = move_data.terrain {
             applied |= self.set_terrain(terrain);
         }
+        if let Some(pseudo_weather) = move_data.pseudo_weather {
+            applied |= self.add_pseudo_weather(pseudo_weather);
+        }
         applied |= self.clear_conditions(side, target, move_data);
         if move_data.force_switch {
             applied |= self
@@ -1349,7 +1375,8 @@ impl Engine<'_> {
             // Showdown's Helping Hand `onTryHit`: the ally must still move this turn, or have
             // just switched in.
             Some(VolatileStatus::HelpingHand)
-                if self.will_move[recipient.flat()] || self.active(recipient).active_turns == 0 =>
+                if self.queued_moves[recipient.flat()].is_some()
+                    || self.active(recipient).active_turns == 0 =>
             {
                 let volatiles = &mut self.active_mut(recipient).volatiles;
                 volatiles.helping_hand = volatiles.helping_hand.saturating_add(1);

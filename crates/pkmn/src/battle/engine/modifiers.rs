@@ -121,15 +121,54 @@ impl Engine<'_> {
         let pokemon = self.active(side);
         // A fainted creature is no longer active, so Showdown gathers none of its handlers:
         // its queued action sorts at its bare stat, without status, ability, or item.
-        if pokemon.is_fainted() {
-            return u32::from(pokemon.stats.speed).min(MAX_SPEED) % (1 << ACTION_SPEED_BITS);
+        let speed = if pokemon.is_fainted() {
+            u32::from(pokemon.stats.speed)
+        } else {
+            let stage = pokemon.boosts.get(BoostStat::Speed);
+            let speed = self.modified_stat(side, Stat::Speed, stage, Context::NO_MOVE);
+            if pokemon.status == Some(Status::Paralysis) {
+                speed / 2
+            } else {
+                speed
+            }
         }
-        let stage = pokemon.boosts.get(BoostStat::Speed);
-        let mut speed = self.modified_stat(side, Stat::Speed, stage, Context::NO_MOVE);
-        if pokemon.status == Some(Status::Paralysis) {
-            speed /= 2;
+        .min(MAX_SPEED);
+        // Trick Room: Showdown's `getActionSpeed` takes 10000 minus speed, then keeps 13 bits.
+        let speed = if self.speed_reversed() {
+            MAX_SPEED - speed
+        } else {
+            speed
+        };
+        speed % (1 << ACTION_SPEED_BITS)
+    }
+
+    /// A move's priority after the user's `ModifyPriority` handlers, like Prankster's, and
+    /// whether one marked it `pranksterBoosted`. A fainted creature has no handlers.
+    pub(super) fn move_priority(&self, side: Position, move_data: &MoveData) -> (i8, bool) {
+        let mut priority = move_data.priority;
+        let mut prankster = false;
+        let holder = self.active(side);
+        if self.mask(side).intersects(HandlerMask::MODIFY_PRIORITY) && !holder.is_fainted() {
+            let context = Context {
+                move_data: Some(move_data),
+                type_modifier: 0,
+            };
+            for (_, handler) in self.handlers(side) {
+                if let Handler::ModifyPriority {
+                    amount,
+                    conditions,
+                    prankster: marks,
+                } = handler
+                    && conditions
+                        .iter()
+                        .all(|&condition| self.condition_holds(condition, holder, context))
+                {
+                    priority = priority.saturating_add(*amount);
+                    prankster |= *marks;
+                }
+            }
         }
-        speed.min(MAX_SPEED) % (1 << ACTION_SPEED_BITS)
+        (priority, prankster)
     }
 
     pub(super) fn type_modifier(&self, move_data: &MoveData, target: Position) -> Option<i8> {

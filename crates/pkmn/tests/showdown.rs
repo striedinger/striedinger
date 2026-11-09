@@ -4,8 +4,8 @@
 //! injected, and writes every step's choices and resulting state to
 //! `tests/fixtures/showdown.json`. This test replays them through pkmn from the same seed and
 //! requires identical state after every step: stats, HP, statuses, items, PP, active slots,
-//! stat stages, Substitute, confusion, Terastallization, weather, terrain, side conditions and
-//! their durations, the turn, and the winner.
+//! stat stages, Substitute, confusion, Terastallization, weather, terrain, pseudo-weathers,
+//! side conditions and their durations, the turn, and the winner.
 //!
 //! The recordings, singles, doubles, triples and free-for-all, are generated, not committed.
 //! Create them with `pnpm --filter @workspace/pkmn-oracle generate`, adding `-- --doubles`,
@@ -58,10 +58,12 @@ struct Step {
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct Snapshot {
     turn: u32,
     weather: Option<Timed>,
     terrain: Option<Timed>,
+    pseudo_weathers: Vec<Timed>,
     winner: Option<String>,
     sides: Vec<SideSnapshot>,
 }
@@ -117,6 +119,19 @@ fn snapshot(battle: &Battle) -> Snapshot {
             name: dex.terrain(terrain.id).name.clone(),
             duration: Some(terrain.duration),
         }),
+        pseudo_weathers: {
+            let mut list: Vec<Timed> = state
+                .field
+                .pseudo_weathers
+                .iter()
+                .map(|condition| Timed {
+                    name: dex.pseudo_weather(condition.id).name.clone(),
+                    duration: Some(condition.duration),
+                })
+                .collect();
+            list.sort_by(|left, right| left.name.cmp(&right.name));
+            list
+        },
         winner: battle.outcome().map(|outcome| {
             match outcome {
                 Outcome::Win(side) => side.id(),

@@ -18,8 +18,9 @@ pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, Choices, MoveOption, Request};
 pub use state::{
     BattleState, Field, GameType, LockedMove, MAX_ACTIVE, MAX_MOVES, MAX_POSITIONS, MAX_SIDES,
-    MoveSlot, Outcome, Pokemon, Position, QueuedAction, Side, SideConditionState, SideId, Stall,
-    StatusState, TeraType, TerrainState, Volatiles, WeatherState,
+    MoveSlot, Outcome, Pokemon, Position, PseudoWeatherState, QueuedAction, Side,
+    SideConditionState, SideId, Stall, StatusState, TeraType, TerrainState, Volatiles,
+    WeatherState,
 };
 pub use team::{MAX_TEAM_SIZE, PokemonSet, TeamError, TeamErrorReason};
 
@@ -320,6 +321,11 @@ fn validate_state(dex: &Dex, state: &BattleState) -> Result<(), InvalidStateErro
         .is_some_and(|terrain| terrain.id.index() >= dex.terrain_count())
     {
         return invalid("unknown terrain");
+    }
+    if state.field.pseudo_weathers.iter().any(|condition| {
+        condition.id.index() >= dex.pseudo_weather_count() || condition.duration == 0
+    }) {
+        return invalid("unknown pseudo-weather");
     }
     if state.sides.len() != state.game_type.side_count() {
         return invalid("the number of sides does not match the game type");

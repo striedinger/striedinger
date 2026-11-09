@@ -185,7 +185,8 @@
         "Fairy": 1,
         "Fighting": 1,
         "Ghost": 2,
-        "Psychic": 3
+        "Psychic": 3,
+        "prankster": 3
       }
     },
     {
@@ -398,7 +399,9 @@
         "Hunker Down": ["9M"],
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
-        "Rampart Wall": ["9M"]
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"]
       },
       "abilities": {
         "0": "Kindling Heart",
@@ -429,6 +432,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -475,6 +480,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Night Bite": ["9M"],
@@ -519,6 +526,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -569,6 +578,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -620,6 +631,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -669,6 +682,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Night Bite": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9L1", "9M"],
@@ -716,6 +731,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Night Bite": ["9L18"],
         "Phantom Wail": ["9M"],
         "Pounce": ["9M", "9L1"],
@@ -759,6 +776,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -783,6 +802,7 @@
       },
       "abilities": {
         "0": "Featherfall",
+        "1": "Mischief",
         "H": "Loose Limbs"
       }
     },
@@ -812,6 +832,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Pincer Slash": ["9L1"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -859,6 +881,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Mind Ground": ["9L30"],
         "Mind Pulse": ["9L12"],
         "Mist Ground": ["9L6"],
@@ -883,6 +907,7 @@
       },
       "abilities": {
         "0": "Purebred",
+        "1": "Mischief",
         "H": "Loose Limbs"
       }
     },
@@ -912,6 +937,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -959,6 +986,8 @@
         "Lure Call": ["9M"],
         "Cheer On": ["9M"],
         "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -1959,6 +1988,34 @@
       "target": "allySide",
       "sideCondition": "Rampart",
       "guard": true
+    },
+    {
+      "name": "Twist Room",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 5,
+      "priority": -7,
+      "target": "self",
+      "pseudoWeather": "Twisted Room",
+      "flags": {
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Ambush Strike",
+      "type": "Dark",
+      "category": "Physical",
+      "basePower": 70,
+      "accuracy": 100,
+      "pp": 5,
+      "priority": 1,
+      "failsUnlessTargetAttacks": true,
+      "flags": {
+        "contact": 1,
+        "protect": 1,
+        "metronome": 1
+      }
     }
   ],
   "abilities": [
@@ -2170,6 +2227,18 @@
       "handlers": [
         {
           "startTerrain": "Charged Field"
+        }
+      ]
+    },
+    {
+      "name": "Mischief",
+      "handlers": [
+        {
+          "modifyPriority": {
+            "amount": 1,
+            "conditions": [{ "category": "Status" }],
+            "prankster": true
+          }
         }
       ]
     }
@@ -2388,6 +2457,16 @@
         "Psychic": [5325, 4096]
       },
       "blocksPriority": true
+    }
+  ],
+  "pseudoWeathers": [
+    {
+      "name": "Twisted Room",
+      "duration": 5,
+      "reversesSpeed": true,
+      "endsWhenRepeated": true,
+      "residualOrder": 27,
+      "residualSubOrder": 1
     }
   ]
 }

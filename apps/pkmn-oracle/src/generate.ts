@@ -48,9 +48,11 @@ interface SampleMove {
   flags?: Record<string, number>;
   stallingMove?: boolean;
   guard?: boolean;
+  failsUnlessTargetAttacks?: boolean;
   calls?: string;
   weather?: string;
   terrain?: string;
+  pseudoWeather?: string;
   sideCondition?: string;
   chargeBoosts?: unknown;
   chargeSkippedIn?: unknown;
@@ -120,6 +122,7 @@ interface Snapshot {
   turn: number;
   weather: Timed | null;
   terrain: Timed | null;
+  pseudoWeathers: Timed[];
   winner: string | null;
   sides: SideSnapshot[];
 }
@@ -173,6 +176,10 @@ const TERRAINS: Record<string, string> = {
   "Mist Field": "mistyterrain",
   "Mind Field": "psychicterrain",
 };
+/** Showdown's pseudo-weather for each sample pseudo-weather. */
+const PSEUDO_WEATHERS: Record<string, string> = {
+  "Twisted Room": "trickroom",
+};
 /** Showdown's side condition for each sample side condition. */
 const SIDE_CONDITIONS: Record<string, string> = {
   "Jagged Stones": "stealthrock",
@@ -212,6 +219,7 @@ const ABILITIES: Record<string, string> = {
   Steadfast: "Sturdy",
   "Loose Limbs": "Limber",
   "Live Wire": "Electric Surge",
+  Mischief: "Prankster",
 };
 /** The Showdown item each sample item is written to reproduce. */
 const ITEMS: Record<string, string> = {
@@ -266,6 +274,11 @@ const BORROWED: Record<string, Borrowed> = {
     expect: { calls: "ownMove", sleepUsable: true },
   },
   "Echo Step": { from: "copycat", callbacks: ["onHit"], expect: { calls: "lastMove" } },
+  "Ambush Strike": {
+    from: "suckerpunch",
+    callbacks: ["onTry"],
+    expect: { failsUnlessTargetAttacks: true },
+  },
   "Lure Call": { from: "followme", callbacks: ["onTry"], expect: { volatileStatus: "followme" } },
   "Cheer On": {
     from: "helpinghand",
@@ -303,6 +316,7 @@ const PKMN_ONLY_FIELDS = [
   "substituteBlocksBoosts",
   "calls",
   "guard",
+  "failsUnlessTargetAttacks",
 ];
 const CHARGING_FIELDS = ["chargeBoosts", "chargeSkippedIn", "semiInvulnerable"];
 
@@ -329,6 +343,7 @@ function reverse(table: Record<string, string>): Map<string, string> {
 
 const OUR_WEATHERS = reverse(WEATHERS);
 const OUR_TERRAINS = reverse(TERRAINS);
+const OUR_PSEUDO_WEATHERS = reverse(PSEUDO_WEATHERS);
 const OUR_SIDE_CONDITIONS = reverse(SIDE_CONDITIONS);
 const OUR_ITEMS = reverse(ITEMS);
 
@@ -360,7 +375,8 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
       clearing ||
       calling ||
       move.stallingMove !== undefined ||
-      move.guard !== undefined) &&
+      move.guard !== undefined ||
+      move.failsUnlessTargetAttacks !== undefined) &&
     borrowed === undefined
   ) {
     throw new Error(`${move.name} needs Showdown callbacks; add it to BORROWED`);
@@ -385,6 +401,9 @@ function toShowdownMove(move: SampleMove, num: number): Record<string, unknown> 
   };
   if (move.weather !== undefined) injected["weather"] = lookup(WEATHERS, move.weather, "weather");
   if (move.terrain !== undefined) injected["terrain"] = lookup(TERRAINS, move.terrain, "terrain");
+  if (move.pseudoWeather !== undefined) {
+    injected["pseudoWeather"] = lookup(PSEUDO_WEATHERS, move.pseudoWeather, "pseudo-weather");
+  }
   if (move.sideCondition !== undefined) {
     injected["sideCondition"] = lookup(SIDE_CONDITIONS, move.sideCondition, "side condition");
   }
@@ -589,6 +608,12 @@ function snapshot(battle: ShowdownBattle): Snapshot {
     turn: battle.turn,
     weather: timed(OUR_WEATHERS, field.weather, field.weatherState.duration),
     terrain: timed(OUR_TERRAINS, field.terrain, field.terrainState.duration),
+    pseudoWeathers: Object.entries(field.pseudoWeather)
+      .map(([id, state]) => ({
+        name: sampleName(OUR_PSEUDO_WEATHERS, id),
+        duration: (state as { duration?: number }).duration ?? null,
+      }))
+      .toSorted((left, right) => left.name.localeCompare(right.name)),
     winner,
     sides: battle.sides.map(snapshotSide),
   };

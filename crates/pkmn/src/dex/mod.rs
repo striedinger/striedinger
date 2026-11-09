@@ -18,9 +18,9 @@ pub use handlers::{
 };
 pub use source::{
     AbilitySource, Accuracy, CallsMove, ClearSideConditionsSource, DexSource, Grounded, ItemSource,
-    MoveFlags, MoveSource, Multihit, NatureSource, ScreenSource, SecondarySource, SelfEffectSource,
-    SideConditionSource, SpeciesSource, SwitchInDamageSource, TerrainMoveModifierSource,
-    TerrainSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
+    MoveFlags, MoveSource, Multihit, NatureSource, PseudoWeatherSource, ScreenSource,
+    SecondarySource, SelfEffectSource, SideConditionSource, SpeciesSource, SwitchInDamageSource,
+    TerrainMoveModifierSource, TerrainSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
@@ -84,6 +84,10 @@ id_type!(
 id_type!(
     /// Identifies a terrain within a [`Dex`].
     TerrainId(u8)
+);
+id_type!(
+    /// Identifies a pseudo-weather within a [`Dex`].
+    PseudoWeatherId(u8)
 );
 
 /// A ratio written as `[numerator, denominator]` in data files.
@@ -328,6 +332,25 @@ pub struct TypeData {
     pub weather_immunities: Vec<WeatherId>,
     /// Whether this type's damaging moves thaw a frozen target.
     pub thaws_frozen_targets: bool,
+    /// Whether moves boosted by Prankster fail against it (`damageTaken.prankster`).
+    pub prankster_immune: bool,
+}
+
+/// A compiled pseudo-weather; see [`PseudoWeatherSource`].
+#[derive(Clone, Debug)]
+pub struct PseudoWeatherData {
+    /// Display name.
+    pub name: String,
+    /// Turns it lasts.
+    pub duration: u8,
+    /// Whether action speed becomes 10000 minus speed.
+    pub reverses_speed: bool,
+    /// Whether setting it again ends it.
+    pub ends_when_repeated: bool,
+    /// Showdown's `onFieldResidualOrder`.
+    pub residual_order: Option<u8>,
+    /// Showdown's `onFieldResidualSubOrder`.
+    pub residual_sub_order: u8,
 }
 
 /// A compiled weather.
@@ -626,6 +649,10 @@ pub struct MoveData {
     pub sleep_usable: bool,
     /// See [`MoveSource::guard`].
     pub guard: bool,
+    /// See [`MoveSource::pseudo_weather`].
+    pub pseudo_weather: Option<PseudoWeatherId>,
+    /// See [`MoveSource::fails_unless_target_attacks`].
+    pub fails_unless_target_attacks: bool,
 }
 
 impl MoveData {
@@ -661,6 +688,7 @@ pub struct Dex {
     items: Vec<ItemData>,
     side_conditions: Vec<SideConditionData>,
     terrains: Vec<TerrainData>,
+    pseudo_weathers: Vec<PseudoWeatherData>,
     type_ids: NameMap<TypeId>,
     weather_ids: NameMap<WeatherId>,
     nature_ids: NameMap<NatureId>,
@@ -670,6 +698,7 @@ pub struct Dex {
     item_ids: NameMap<ItemId>,
     side_condition_ids: NameMap<SideConditionId>,
     terrain_ids: NameMap<TerrainId>,
+    pseudo_weather_ids: NameMap<PseudoWeatherId>,
     struggle: MoveId,
 }
 
@@ -754,6 +783,7 @@ impl Dex {
             items: Vec::new(),
             side_conditions: Vec::new(),
             terrains: Vec::new(),
+            pseudo_weathers: Vec::new(),
             type_ids: NameMap::default(),
             weather_ids: NameMap::default(),
             nature_ids: NameMap::default(),
@@ -763,6 +793,7 @@ impl Dex {
             item_ids: NameMap::default(),
             side_condition_ids: NameMap::default(),
             terrain_ids: NameMap::default(),
+            pseudo_weather_ids: NameMap::default(),
             struggle: MoveId(0),
         };
         // Stellar Terastallization tracks boosted types in a 32-bit set.
@@ -788,6 +819,9 @@ impl Dex {
         }
         for terrain in &source.terrains {
             dex.compile_terrain(terrain)?;
+        }
+        for pseudo_weather in &source.pseudo_weathers {
+            dex.compile_pseudo_weather(pseudo_weather)?;
         }
         for move_source in &source.moves {
             dex.compile_move(move_source)?;
@@ -896,6 +930,7 @@ impl Dex {
         for (defender, source) in sources.iter().enumerate() {
             let mut status_immunities = Vec::new();
             let mut weather_immunities = Vec::new();
+            let mut prankster_immune = false;
             for (key, &code) in &source.damage_taken {
                 if code > 3 {
                     return Err(DexError::invalid(
@@ -920,9 +955,11 @@ impl Dex {
                     if code == 3 {
                         weather_immunities.push(weather);
                     }
+                } else if key == "prankster" {
+                    prankster_immune = code == 3;
                 } else {
                     return Err(DexError::UnknownReference {
-                        kind: "type, status, or weather",
+                        kind: "type, status, weather, or prankster",
                         name: key.clone(),
                         referenced_by: source.name.clone(),
                     });
@@ -933,6 +970,7 @@ impl Dex {
                 status_immunities,
                 weather_immunities,
                 thaws_frozen_targets: source.thaws_frozen_targets,
+                prankster_immune,
             });
         }
         Ok(())
@@ -981,6 +1019,32 @@ impl Dex {
             residual_damage: source.residual_damage,
             defense_boosts,
             prevents_statuses: source.prevents_statuses.clone(),
+        });
+        Ok(())
+    }
+
+    fn compile_pseudo_weather(&mut self, source: &PseudoWeatherSource) -> Result<(), DexError> {
+        let id = PseudoWeatherId::from_index(self.pseudo_weathers.len())
+            .ok_or(DexError::TooMany("pseudo-weathers"))?;
+        insert_unique(
+            &mut self.pseudo_weather_ids,
+            "pseudo-weather",
+            &source.name,
+            id,
+        )?;
+        if source.duration == 0 {
+            return Err(DexError::invalid(
+                &source.name,
+                "must last at least one turn",
+            ));
+        }
+        self.pseudo_weathers.push(PseudoWeatherData {
+            name: source.name.clone(),
+            duration: source.duration,
+            reverses_speed: source.reverses_speed,
+            ends_when_repeated: source.ends_when_repeated,
+            residual_order: source.residual_order,
+            residual_sub_order: source.residual_sub_order,
         });
         Ok(())
     }
@@ -1286,6 +1350,14 @@ impl Dex {
                 .as_deref()
                 .map(|terrain| resolve(&self.terrain_ids, "terrain", terrain, name))
                 .transpose()?,
+            pseudo_weather: source
+                .pseudo_weather
+                .as_deref()
+                .map(|condition| {
+                    resolve(&self.pseudo_weather_ids, "pseudo-weather", condition, name)
+                })
+                .transpose()?,
+            fails_unless_target_attacks: source.fails_unless_target_attacks,
             charge: if source.flags.charge {
                 Some(Charge {
                     boosts: validate_boosts(source.charge_boosts, name)?,
@@ -1381,6 +1453,24 @@ impl Dex {
     #[must_use]
     pub fn terrain(&self, id: TerrainId) -> &TerrainData {
         &self.terrains[id.index()]
+    }
+
+    /// Returns a pseudo-weather.
+    #[must_use]
+    pub fn pseudo_weather(&self, id: PseudoWeatherId) -> &PseudoWeatherData {
+        &self.pseudo_weathers[id.index()]
+    }
+
+    /// Looks up a pseudo-weather by name.
+    #[must_use]
+    pub fn pseudo_weather_id(&self, name: &str) -> Option<PseudoWeatherId> {
+        lookup(&self.pseudo_weather_ids, name)
+    }
+
+    /// The number of pseudo-weathers.
+    #[must_use]
+    pub fn pseudo_weather_count(&self) -> usize {
+        self.pseudo_weathers.len()
     }
 
     /// Looks up a terrain by name.
@@ -1581,6 +1671,8 @@ fn built_in_struggle() -> MoveSource {
         calls: None,
         sleep_usable: false,
         guard: false,
+        pseudo_weather: None,
+        fails_unless_target_attacks: false,
     }
 }
 

@@ -37,6 +37,40 @@ pub struct DexSource {
     /// Terrains.
     #[serde(default)]
     pub terrains: Vec<TerrainSource>,
+    /// Field-wide conditions beside weather and terrain, like Trick Room (Showdown's
+    /// `pseudoWeather`).
+    #[serde(default)]
+    pub pseudo_weathers: Vec<PseudoWeatherSource>,
+}
+
+/// A field-wide condition beside weather and terrain (Showdown's `pseudoWeather`).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PseudoWeatherSource {
+    /// Display name, also used to reference the condition.
+    pub name: String,
+    /// Turns it lasts.
+    #[serde(default = "default_terrain_duration")]
+    pub duration: u8,
+    /// Slower creatures act first, like Trick Room: action speed becomes 10000 minus speed.
+    #[serde(default)]
+    pub reverses_speed: bool,
+    /// Setting it again ends it, like Trick Room (Showdown's `onFieldRestart`); otherwise the
+    /// move fails.
+    #[serde(default)]
+    pub ends_when_repeated: bool,
+    /// Showdown's `onFieldResidualOrder`; without one, it ends among the effects that only
+    /// count down.
+    #[serde(default)]
+    pub residual_order: Option<u8>,
+    /// Showdown's `onFieldResidualSubOrder`; defaults to 5, Showdown's default for field
+    /// conditions.
+    #[serde(default = "default_field_residual_sub_order")]
+    pub residual_sub_order: u8,
+}
+
+fn default_field_residual_sub_order() -> u8 {
+    5
 }
 
 /// Side conditions a move removes.
@@ -363,6 +397,13 @@ pub struct MoveSource {
     /// A terrain, by name, that the move sets.
     #[serde(default)]
     pub terrain: Option<String>,
+    /// A pseudo-weather, by name, that the move sets, like Trick Room.
+    #[serde(default)]
+    pub pseudo_weather: Option<String>,
+    /// Fails unless the target is about to use a damaging move this turn, like Sucker Punch
+    /// (code in Showdown's `onTry`).
+    #[serde(default)]
+    pub fails_unless_target_attacks: bool,
     /// Stat stages the user gains on a `charge` move's first turn, like Skull Bash.
     #[serde(default)]
     pub charge_boosts: Option<Boosts>,

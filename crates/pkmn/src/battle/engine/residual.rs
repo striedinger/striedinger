@@ -18,6 +18,7 @@
 //! | 9     | 0         | Poison and bad poison                     |
 //! | 10    | 0         | Burn                                      |
 //! | data  | data      | Side conditions with a duration: screens at 26, Wide Guard with none |
+//! | data  | data      | Pseudo-weathers: Trick Room at 27, 1      |
 //! | 27    | 7         | Terrain                                   |
 //! | 28    | 2         | `residualBoosts` (Speed Boost)            |
 //! | none  | 2         | Volatiles with a duration                 |
@@ -34,9 +35,10 @@ const MAX_TOXIC_STAGE: u8 = 15;
 const NO_ORDER: u32 = u32::MAX;
 /// Showdown's default sub-order for conditions on a creature (`effectTypeOrder.Condition`).
 const VOLATILE_SUB_ORDER: u8 = 2;
-/// At most: weather and terrain, then per side five conditions and, for each of its three
-/// positions, a status, an ability and an item handler, terrain healing, and eight volatiles.
-const MAX_HANDLERS: usize = 2 + 2 * (5 + 3 * 12);
+/// At most: weather, terrain and six pseudo-weathers, then per side five conditions and, for
+/// each of its three positions, a status, an ability and an item handler, terrain healing, and
+/// eight volatiles.
+const MAX_HANDLERS: usize = 8 + 2 * (5 + 3 * 12);
 
 /// A volatile that only counts down at the end of the turn.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -57,6 +59,7 @@ enum Volatile {
 enum Residual {
     Weather,
     Terrain,
+    PseudoWeather(crate::dex::PseudoWeatherId),
     SideCondition(SideId, crate::dex::SideConditionId),
     Status(Position),
     TerrainHeal(Position),
@@ -132,6 +135,15 @@ impl Engine<'_> {
     /// conditions and its active creature's status, volatiles, ability, item, and terrain
     /// healing.
     fn gather_residuals(&self, handlers: &mut Handlers) {
+        for state in &self.state.field.pseudo_weathers {
+            let data = self.dex.pseudo_weather(state.id);
+            handlers.push(
+                data.residual_order.map_or(NO_ORDER, u32::from),
+                0,
+                data.residual_sub_order,
+                Residual::PseudoWeather(state.id),
+            );
+        }
         if self.state.field.weather.is_some() {
             handlers.push(1, 0, 5, Residual::Weather);
         }
@@ -242,6 +254,7 @@ impl Engine<'_> {
         match residual {
             Residual::Weather => return self.weather_residual(),
             Residual::Terrain => self.terrain_residual(),
+            Residual::PseudoWeather(id) => self.pseudo_weather_residual(id),
             Residual::SideCondition(side, id) => self.side_condition_residual(side, id),
             Residual::Volatile(side, volatile) => return self.volatile_residual(side, volatile),
             Residual::Status(side) => self.status_residual(side),
@@ -338,6 +351,19 @@ impl Engine<'_> {
             self.emit(Event::Terrain { terrain: None });
         } else {
             self.state.field.terrain = Some(terrain);
+        }
+    }
+
+    /// Counts down a pseudo-weather, like Trick Room, and ends it at zero.
+    fn pseudo_weather_residual(&mut self, id: crate::dex::PseudoWeatherId) {
+        let field = &mut self.state.field.pseudo_weathers;
+        let Some(index) = field.iter().position(|state| state.id == id) else {
+            return;
+        };
+        field[index].duration = field[index].duration.saturating_sub(1);
+        if field[index].duration == 0 {
+            field.remove(index);
+            self.emit(Event::PseudoWeatherEnd { pseudo_weather: id });
         }
     }
 

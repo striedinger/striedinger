@@ -15,11 +15,11 @@ use std::cmp::Ordering;
 use super::events::{DamageSource, Effect, Event, HealSource};
 use super::request::Choice;
 use super::state::{
-    BattleState, GameType, MAX_POSITIONS, Outcome, Pokemon, Position, Positions, QueuedAction,
-    SideId, Volatiles, WeatherState,
+    BattleState, GameType, MAX_POSITIONS, Outcome, Pokemon, Position, Positions,
+    PseudoWeatherState, QueuedAction, SideId, Volatiles, WeatherState,
 };
-use crate::dex::MoveId;
 use crate::dex::{Dex, Handler, HandlerMask, Status, WeatherData, WeatherId};
+use crate::dex::{MoveId, PseudoWeatherId};
 use crate::stats::{BoostStat, Boosts, saturate_u16};
 
 /// Creatures whose HP reached zero, in order, until the next faint check. At most every
@@ -49,11 +49,14 @@ pub(crate) struct Engine<'a> {
     /// Whether the move being used has had a Stellar boost, which lasts for all its hits
     /// (Showdown's `move.stellarBoosted`).
     stellar_boosted: bool,
+    /// Whether the move in use was boosted by Prankster, which a move it calls keeps
+    /// (Showdown's `move.pranksterBoosted`).
+    prankster_boosted: bool,
     /// The move in use, which becomes [`BattleState::last_move`] when the action ends
     /// (Showdown's `activeMove`).
     active_move: Option<MoveId>,
-    /// Which positions still have a move queued this turn (Showdown's `queue.willMove`).
-    will_move: [bool; MAX_POSITIONS],
+    /// The move each position still has queued this turn (Showdown's `queue.willMove`).
+    queued_moves: [Option<MoveId>; MAX_POSITIONS],
 }
 
 impl<'a> Engine<'a> {
@@ -64,8 +67,9 @@ impl<'a> Engine<'a> {
             events,
             faint_queue: FaintQueue::default(),
             stellar_boosted: false,
+            prankster_boosted: false,
             active_move: None,
-            will_move: [false; MAX_POSITIONS],
+            queued_moves: [None; MAX_POSITIONS],
         }
     }
 
@@ -281,7 +285,10 @@ impl<'a> Engine<'a> {
             let head = old_order
                 .as_ref()
                 .and_then(|order| order.iter().find(|head| queue[head.flat()].is_some()));
-            let stale = head.filter(|head| !ran || queue[head.flat()] == Some(QueuedAction::Shift));
+            // A switch or shift at the head of the old order runs without a re-sort.
+            let stale = head.filter(|head| {
+                !ran || !matches!(queue[head.flat()], Some(QueuedAction::Move { .. }))
+            });
             let Some(side) = stale.or_else(|| self.next_actor(&queue, false)) else {
                 break;
             };
@@ -407,8 +414,10 @@ impl<'a> Engine<'a> {
             QueuedAction::Move { slot, target, .. } => {
                 if !self.active(side).is_fainted() {
                     let others_will_act = queue.iter().any(Option::is_some);
-                    self.will_move =
-                        queue.map(|action| matches!(action, Some(QueuedAction::Move { .. })));
+                    self.queued_moves = queue.map(|action| match action {
+                        Some(QueuedAction::Move { move_id, .. }) => Some(move_id),
+                        _ => None,
+                    });
                     let drag = self.run_move(side, slot, target, others_will_act);
                     // Showdown's `clearActiveMove`: a move that got as far as being used is
                     // the battle's last move.
@@ -437,10 +446,12 @@ impl<'a> Engine<'a> {
         false
     }
 
-    fn priority(&self, action: QueuedAction) -> i8 {
+    fn priority(&self, side: Position, action: QueuedAction) -> i8 {
         match action {
             QueuedAction::Switch(_) | QueuedAction::Shift => 0,
-            QueuedAction::Move { move_id, .. } => self.dex.move_data(move_id).priority,
+            QueuedAction::Move { move_id, .. } => {
+                self.move_priority(side, self.dex.move_data(move_id)).0
+            }
         }
     }
 
@@ -465,14 +476,14 @@ impl<'a> Engine<'a> {
         if let [first, second] = *waiting.as_mut_slice() {
             let first_action = queue[first.flat()].expect("a waiting position has an action");
             let second_action = queue[second.flat()].expect("a waiting position has an action");
-            let key = |engine: &Self, action| {
+            let key = |engine: &Self, position, action| {
                 (
                     matches!(action, QueuedAction::Switch(_)),
-                    engine.priority(action),
+                    engine.priority(position, action),
                 )
             };
             return Some(
-                match key(self, first_action).cmp(&key(self, second_action)) {
+                match key(self, first, first_action).cmp(&key(self, second, second_action)) {
                     Ordering::Greater => first,
                     Ordering::Less => second,
                     Ordering::Equal => {
@@ -487,7 +498,7 @@ impl<'a> Engine<'a> {
             let action = queue[position.flat()].expect("a waiting position has an action");
             (
                 matches!(action, QueuedAction::Switch(_)),
-                engine.priority(action),
+                engine.priority(position, action),
             )
         };
         // Speed is only computed when switching and priority do not decide.
@@ -736,6 +747,35 @@ impl<'a> Engine<'a> {
         });
         self.emit(Event::Terrain { terrain: Some(id) });
         true
+    }
+
+    /// Showdown's `addPseudoWeather`: starts it, or, when it is already in effect, ends it if
+    /// it ends when repeated (Trick Room's `onFieldRestart`) and fails otherwise.
+    fn add_pseudo_weather(&mut self, id: PseudoWeatherId) -> bool {
+        let field = &mut self.state.field.pseudo_weathers;
+        if let Some(index) = field.iter().position(|state| state.id == id) {
+            if !self.dex.pseudo_weather(id).ends_when_repeated {
+                return false;
+            }
+            field.remove(index);
+            self.emit(Event::PseudoWeatherEnd { pseudo_weather: id });
+            return true;
+        }
+        field.push(PseudoWeatherState {
+            id,
+            duration: self.dex.pseudo_weather(id).duration,
+        });
+        self.emit(Event::PseudoWeatherStart { pseudo_weather: id });
+        true
+    }
+
+    /// Whether a pseudo-weather in effect reverses speed, like Trick Room.
+    pub(super) fn speed_reversed(&self) -> bool {
+        self.state
+            .field
+            .pseudo_weathers
+            .iter()
+            .any(|state| self.dex.pseudo_weather(state.id).reverses_speed)
     }
 
     fn clear_terrain(&mut self) -> bool {
