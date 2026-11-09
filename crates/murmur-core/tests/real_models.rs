@@ -104,7 +104,12 @@ fn instruction_kept_as_text(result: &DictationResult) -> Result<(), String> {
 }
 
 fn email_keeps_names(result: &DictationResult) -> Result<(), String> {
-    expect_contains(&result.output, &["sam", "report"])
+    expect_contains(&result.output, &["sam", "report"])?;
+    if result.output.trim() == result.raw.trim() {
+        Err("returned the dictation instead of an email".into())
+    } else {
+        Ok(())
+    }
 }
 
 fn three_bullets(result: &DictationResult) -> Result<(), String> {

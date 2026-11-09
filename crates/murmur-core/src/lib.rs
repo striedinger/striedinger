@@ -215,8 +215,14 @@ impl Engine {
             "The transcript is the user's selected text. Apply this edit request to it and return \
              only the edited text: {spoken}"
         );
-        llm.process(&selection, &instruction, tone.as_deref(), &vocabulary)
-            .map_err(MurmurError::processing)
+        llm.process(
+            &selection,
+            &instruction,
+            tone.as_deref(),
+            &vocabulary,
+            false,
+        )
+        .map_err(MurmurError::processing)
     }
 
     pub fn modes(&self) -> Vec<ModeInfo> {
@@ -280,7 +286,13 @@ fn load_llm(dir: &std::path::Path, config: &Config) -> anyhow::Result<Option<llm
         .mode(&config.default_mode)
         .filter(|mode| mode.use_llm)
     {
-        llm.process("Hello there.", &mode.instruction, None, &config.vocabulary)?;
+        llm.process(
+            "Hello there.",
+            &mode.instruction,
+            None,
+            &config.vocabulary,
+            mode.examples,
+        )?;
     }
     Ok(Some(llm))
 }
@@ -291,6 +303,7 @@ struct ModeRequest {
     instruction: String,
     tone: Option<String>,
     vocabulary: Vec<String>,
+    examples: bool,
 }
 
 impl Engine {
@@ -324,6 +337,7 @@ impl Engine {
                 instruction: mode.instruction.clone(),
                 tone: cfg.tone_for(app).map(str::to_string),
                 vocabulary: cfg.vocabulary.clone(),
+                examples: mode.examples,
             };
             (llm, request)
         };
@@ -332,6 +346,7 @@ impl Engine {
             &request.instruction,
             request.tone.as_deref(),
             &request.vocabulary,
+            request.examples,
         )
         .map_err(MurmurError::processing)
     }

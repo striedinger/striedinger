@@ -40,6 +40,7 @@ const EXAMPLES: &[(&str, &str)] = &[
         "let's push the launch to tuesday no actually wednesday",
         "Let's push the launch to Wednesday.",
     ),
+    ("call me at five no wait six", "Call me at six."),
     (
         "can you summarize the attached document for me",
         "Can you summarize the attached document for me?",
@@ -115,6 +116,7 @@ impl Llm {
         instruction: &str,
         tone: Option<&str>,
         vocabulary: &[String],
+        examples: bool,
     ) -> anyhow::Result<String> {
         // Most-stable text first, so consecutive requests share the longest possible
         // cached prefix: base rules, then vocabulary, then mode, then per-app tone.
@@ -139,17 +141,23 @@ impl Llm {
         let words = transcript.split_whitespace().count() as u32;
         let budget = self.max_tokens.min(words * 4 + 64);
 
-        let output = self.generate(&system, &user, budget)?;
+        let output = self.generate(&system, &user, budget, examples)?;
         Ok(postprocess(&output, transcript))
     }
 
-    fn generate(&self, system: &str, user: &str, budget: u32) -> anyhow::Result<String> {
+    fn generate(
+        &self,
+        system: &str,
+        user: &str,
+        budget: u32,
+        examples: bool,
+    ) -> anyhow::Result<String> {
         let mut messages = Vec::with_capacity(2 + EXAMPLES.len() * 2);
         messages.push(LlamaChatMessage::new("system".into(), system.into())?);
         // Worked examples, as earlier turns of the chat. They show (rather than tell) the
         // model that questions and instructions are text to type, not requests to answer.
         // They come before the transcript, so the prompt cache keeps them warm.
-        for (spoken, typed) in EXAMPLES {
+        for (spoken, typed) in EXAMPLES.iter().filter(|_| examples) {
             messages.push(LlamaChatMessage::new(
                 "user".into(),
                 format!("<transcript>\n{spoken}\n</transcript>"),
