@@ -425,6 +425,9 @@ impl<'a> Engine<'a> {
                         self.state.last_move = Some(move_id);
                     }
                     if let Some(target) = drag {
+                        // Showdown's `runMove` checks faints and the win first, and the drag
+                        // still runs once the battle has ended, its own faints unprocessed.
+                        self.faint_messages();
                         self.drag_in(target, queue);
                     }
                 }
@@ -1197,6 +1200,28 @@ impl<'a> Engine<'a> {
     fn next_turn(&mut self) {
         if self.state.outcome.is_some() || self.state.awaiting_switch() {
             return;
+        }
+        // Showdown's `DisableMove` event for each active creature sorts its handlers. Its
+        // volatiles that restrict moves (a choice lock, Taunt, Encore, Disable) tie with one
+        // another, so with two or more Showdown shuffles them, one draw past the first. A lock
+        // on Struggle then drops itself.
+        for side in self.positions().iter() {
+            let pokemon = self.active(side);
+            let volatiles = &pokemon.volatiles;
+            let restrictions = [
+                volatiles.choice_lock.is_some() || volatiles.struggle_lock,
+                volatiles.taunt.is_some(),
+                volatiles.encore.is_some(),
+                volatiles.disable.is_some(),
+            ]
+            .into_iter()
+            .filter(|&present| present)
+            .count();
+            if !pokemon.is_fainted() && restrictions > 1 {
+                let mut tied = [(); 4];
+                self.shuffle(&mut tied[..restrictions]);
+            }
+            self.active_mut(side).volatiles.struggle_lock = false;
         }
         for side in self.positions().iter() {
             let active = self.active_mut(side);

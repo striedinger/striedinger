@@ -18,7 +18,7 @@ pub use events::{CantReason, DamageSource, Effect, Event, HealSource};
 pub use request::{Choice, ChoiceError, ChoiceErrorReason, Choices, MoveOption, Request};
 pub use state::{
     BattleState, Field, GameType, LockedMove, MAX_ACTIVE, MAX_MOVES, MAX_POSITIONS, MAX_SIDES,
-    MoveSlot, Outcome, Pokemon, Position, PseudoWeatherState, QueuedAction, Side,
+    MoveRestriction, MoveSlot, Outcome, Pokemon, Position, PseudoWeatherState, QueuedAction, Side,
     SideConditionState, SideId, Stall, StatusState, TeraType, TerrainState, Volatiles,
     WeatherState,
 };

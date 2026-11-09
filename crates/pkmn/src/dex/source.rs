@@ -531,6 +531,9 @@ pub struct MoveFlags {
     /// Copycat fails instead of copying the move.
     #[serde(default, deserialize_with = "deserialize_flag")]
     pub failcopycat: bool,
+    /// Encore fails against a creature whose last move this was.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub failencore: bool,
 }
 
 /// Effects on the move's user.

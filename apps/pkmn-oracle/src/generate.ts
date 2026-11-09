@@ -281,6 +281,7 @@ const BORROWED: Record<string, Borrowed> = {
     expect: { calls: "ownMove", sleepUsable: true },
   },
   "Echo Step": { from: "copycat", callbacks: ["onHit"], expect: { calls: "lastMove" } },
+  "Seal Move": { from: "disable", callbacks: ["onTryHit"], expect: { volatileStatus: "disable" } },
   "Drain Seed": {
     from: "leechseed",
     callbacks: ["onTryImmunity"],
@@ -745,14 +746,16 @@ interface SortedHandler {
 
 /**
  * Watches for shuffles pkmn does not reproduce. pkmn sorts residual handlers exactly as
- * Showdown does, and draws for the tie among screens in the `ModifyDamage` event, so those
- * shuffles are expected. Any other shuffle breaks a speed tie, where pkmn draws differently (a
+ * Showdown does, draws for the tie among screens in the `ModifyDamage` event, and for the tie
+ * among one creature's move-restricting volatiles in `DisableMove`, so those shuffles are
+ * expected. Any other shuffle breaks a speed tie, where pkmn draws differently (a
  * documented difference), as does a residual tie that includes a fainted creature's handler.
  */
 function watchSpeedTies(battle: ShowdownBattle): () => boolean {
   let seen = false;
-  let next: "residual" | "modifyDamage" | null = null;
-  let sorting: "residual" | "modifyDamage" | null = null;
+  type Sorting = "residual" | "modifyDamage" | "disableMove";
+  let next: Sorting | null = null;
+  let sorting: Sorting | null = null;
   const fieldEvent = battle.fieldEvent.bind(battle);
   battle.fieldEvent = (eventid, targets) => {
     if (eventid === "Residual") next = "residual";
@@ -761,8 +764,9 @@ function watchSpeedTies(battle: ShowdownBattle): () => boolean {
   const runEvent = battle.runEvent.bind(battle);
   battle.runEvent = function watchedRunEvent(...args: Parameters<typeof runEvent>): unknown {
     if (args[0] === "ModifyDamage") next = "modifyDamage";
+    if (args[0] === "DisableMove") next = "disableMove";
     const result: unknown = runEvent(...args);
-    if (next === "modifyDamage") next = null;
+    if (next === "modifyDamage" || next === "disableMove") next = null;
     return result;
   };
   const speedSort = battle.speedSort.bind(battle);
@@ -780,7 +784,8 @@ function watchSpeedTies(battle: ShowdownBattle): () => boolean {
       (sorting === "residual" &&
         !(holders.some((holder) => holder?.fainted === true) && new Set(holders).size > 1)) ||
       (sorting === "modifyDamage" &&
-        holders.every((holder) => holder?.sideConditions !== undefined));
+        holders.every((holder) => holder?.sideConditions !== undefined)) ||
+      (sorting === "disableMove" && new Set(holders).size === 1);
     if (!expected) seen = true;
     shuffle(items, start, end);
   };

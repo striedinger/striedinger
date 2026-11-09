@@ -123,6 +123,32 @@ pub struct Volatiles {
     /// The position whose creature Leech Seed drains into (Showdown's `sourceSlot`).
     #[serde(default)]
     pub leech_seed: Option<Position>,
+    /// End-of-turn checks left on Taunt.
+    #[serde(default)]
+    pub taunt: Option<u8>,
+    /// The move Encore holds it to.
+    #[serde(default)]
+    pub encore: Option<MoveRestriction>,
+    /// The move Disable keeps it from.
+    #[serde(default)]
+    pub disable: Option<MoveRestriction>,
+    /// The last move it used, which Encore and Disable act on (Showdown's `lastMove`).
+    #[serde(default)]
+    pub last_move: Option<MoveId>,
+    /// A choice item's lock taken by Struggle, which Showdown keeps until the next turn's
+    /// `DisableMove`, where it drops it.
+    #[serde(default)]
+    pub struggle_lock: bool,
+}
+
+/// Encore or Disable: the move it applies to and the end-of-turn checks left.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoveRestriction {
+    /// The move.
+    pub move_id: MoveId,
+    /// End-of-turn checks left.
+    pub duration: u8,
 }
 
 /// Showdown's `lockedmove` volatile, with its two counters.
@@ -587,13 +613,24 @@ impl Pokemon {
         let Some(move_slot) = self.move_slots.get(slot).copied().flatten() else {
             return false;
         };
-        let locked_out = self
-            .volatiles
+        let volatiles = &self.volatiles;
+        let locked_out = volatiles
             .choice_lock
             .is_some_and(|locked| usize::from(locked) != slot);
+        // Encore holds it to a move it still knows; Disable and Taunt rule moves out.
+        let encored_out = volatiles.encore.is_some_and(|encore| {
+            encore.move_id != move_slot.id
+                && self.moves().any(|(_, known)| known.id == encore.move_id)
+        });
+        let disabled = volatiles
+            .disable
+            .is_some_and(|disable| disable.move_id == move_slot.id);
+        let status = dex.move_data(move_slot.id).category == MoveCategory::Status;
         move_slot.pp > 0
             && !locked_out
-            && !(disables_status && dex.move_data(move_slot.id).category == MoveCategory::Status)
+            && !encored_out
+            && !disabled
+            && !((disables_status || volatiles.taunt.is_some()) && status)
     }
 
     /// Whether the move in `slot` can be selected: it has PP, and neither a choice lock nor

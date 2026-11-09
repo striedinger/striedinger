@@ -642,3 +642,66 @@ fn sets_are_validated_against_abilities_and_evolution_lines() {
         "Emberkit evolves at level 16"
     );
 }
+
+fn can_choose(battle: &Battle, side: SideId, choice: Choice) -> bool {
+    battle.choices(side).any(|option| option == choice)
+}
+
+#[test]
+fn goad_keeps_the_target_from_status_moves_for_three_turns() {
+    let mut battle = start(
+        &[set("Zaplet", &["Goad", "Hunker Down"])],
+        &[set("Craghorn", &["Hunker Down", "Pounce"])],
+        30,
+    );
+    // Taunted before it moves, Craghorn cannot use its status move this turn.
+    let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
+    assert!(events.contains(&Event::Cant {
+        pokemon: P2A,
+        reason: CantReason::Taunt
+    }));
+    for _ in 0..2 {
+        assert!(!can_choose(&battle, P2, Choice::Move(0)));
+        play(&mut battle, Choice::Move(1), Choice::Move(1));
+    }
+    assert!(battle.state().active(P2).volatiles.taunt.is_none());
+    assert!(can_choose(&battle, P2, Choice::Move(0)));
+}
+
+#[test]
+fn reprise_holds_the_target_to_its_last_move() {
+    let mut battle = start(
+        &[set("Zaplet", &["Reprise", "Hunker Down"])],
+        &[set("Craghorn", &["Pounce", "Hunker Down"])],
+        31,
+    );
+    // Without a last move to repeat, it fails.
+    let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
+    assert!(events.contains(&Event::Fail { pokemon: P1A }), "{events:?}");
+    // Encored into Pounce, Craghorn's Hunker Down this turn becomes Pounce.
+    let events = play(&mut battle, Choice::Move(0), Choice::Move(1));
+    let pounce = battle.dex().move_id("Pounce").expect("in the sample");
+    assert!(events.contains(&Event::Move {
+        pokemon: P2A,
+        move_id: pounce
+    }));
+    assert!(!can_choose(&battle, P2, Choice::Move(1)));
+    assert!(can_choose(&battle, P2, Choice::Move(0)));
+}
+
+#[test]
+fn seal_move_disables_the_last_move_used() {
+    let mut battle = start(
+        &[set("Zaplet", &["Seal Move", "Hunker Down"])],
+        &[set("Craghorn", &["Pounce", "Hunker Down"])],
+        32,
+    );
+    play(&mut battle, Choice::Move(1), Choice::Move(0));
+    let events = play(&mut battle, Choice::Move(0), Choice::Move(0));
+    assert!(events.contains(&Event::Cant {
+        pokemon: P2A,
+        reason: CantReason::Disable
+    }));
+    assert!(!can_choose(&battle, P2, Choice::Move(0)));
+    assert!(can_choose(&battle, P2, Choice::Move(1)));
+}

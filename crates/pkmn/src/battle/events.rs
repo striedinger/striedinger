@@ -273,6 +273,10 @@ pub enum CantReason {
     Paralysis,
     /// `flinch`.
     Flinch,
+    /// `move: Taunt`: a status move while taunted.
+    Taunt,
+    /// `Disable`: the disabled move.
+    Disable,
 }
 
 /// What caused HP loss.

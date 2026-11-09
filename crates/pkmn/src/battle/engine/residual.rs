@@ -25,8 +25,8 @@
 
 use super::Engine;
 use crate::battle::events::{DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{Position, Positions, SideId, Stall};
-use crate::dex::{Fraction, Handler, HandlerMask, Status};
+use crate::battle::state::{MoveRestriction, Position, Positions, SideId, Stall};
+use crate::dex::{Fraction, Handler, HandlerMask, Status, VolatileStatus};
 use crate::stats::Boosts;
 
 /// Bad poison stops growing after this many sixteenths.
@@ -52,6 +52,31 @@ enum Volatile {
     Flinch,
     FollowMe,
     HelpingHand,
+    Taunt,
+    Encore,
+    Disable,
+}
+
+impl Volatile {
+    /// Showdown's `onResidualOrder`: Taunt 15, Encore 16, Disable 17; the others have none.
+    fn order(self) -> u32 {
+        match self {
+            Self::Taunt => 15,
+            Self::Encore => 16,
+            Self::Disable => 17,
+            _ => NO_ORDER,
+        }
+    }
+}
+
+/// One end-of-turn check off Encore or Disable, ending it at zero.
+fn count_down(restriction: Option<MoveRestriction>) -> Option<MoveRestriction> {
+    restriction
+        .map(|restriction| MoveRestriction {
+            duration: restriction.duration.saturating_sub(1),
+            ..restriction
+        })
+        .filter(|restriction| restriction.duration > 0)
 }
 
 /// Showdown's Leech Seed `onResidualOrder`.
@@ -214,10 +239,13 @@ impl Engine<'_> {
                 (volatiles.flinch, Volatile::Flinch),
                 (volatiles.follow_me, Volatile::FollowMe),
                 (volatiles.helping_hand > 0, Volatile::HelpingHand),
+                (volatiles.taunt.is_some(), Volatile::Taunt),
+                (volatiles.encore.is_some(), Volatile::Encore),
+                (volatiles.disable.is_some(), Volatile::Disable),
             ] {
                 if present {
                     handlers.push(
-                        NO_ORDER,
+                        volatile.order(),
                         speed,
                         VOLATILE_SUB_ORDER,
                         Residual::Volatile(side, volatile),
@@ -455,6 +483,44 @@ impl Engine<'_> {
             Volatile::Flinch => volatiles.flinch = false,
             Volatile::FollowMe => volatiles.follow_me = false,
             Volatile::HelpingHand => volatiles.helping_hand = 0,
+            Volatile::Taunt => {
+                volatiles.taunt = volatiles
+                    .taunt
+                    .and_then(|left| left.checked_sub(1))
+                    .filter(|&left| left > 0);
+                if volatiles.taunt.is_none() {
+                    self.emit(Event::End {
+                        pokemon: side,
+                        volatile: VolatileStatus::Taunt,
+                    });
+                }
+            }
+            Volatile::Disable => {
+                volatiles.disable = count_down(volatiles.disable);
+                if volatiles.disable.is_none() {
+                    self.emit(Event::End {
+                        pokemon: side,
+                        volatile: VolatileStatus::Disable,
+                    });
+                }
+            }
+            // Encore also ends once its move is out of PP (its `onResidual`).
+            Volatile::Encore => {
+                volatiles.encore = count_down(volatiles.encore).filter(|encore| {
+                    pokemon
+                        .move_slots
+                        .iter()
+                        .flatten()
+                        .any(|known| known.id == encore.move_id && known.pp > 0)
+                });
+                if volatiles.encore.is_none() {
+                    self.emit(Event::End {
+                        pokemon: side,
+                        volatile: VolatileStatus::Encore,
+                    });
+                }
+                return true;
+            }
             Volatile::Stall => {
                 volatiles.stall = volatiles.stall.and_then(|stall| {
                     let duration = stall.duration.saturating_sub(1);

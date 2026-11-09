@@ -5,7 +5,9 @@ use std::cmp::Ordering;
 use super::Engine;
 use super::Positions;
 use crate::battle::events::{CantReason, DamageSource, Effect, Event, HealSource};
-use crate::battle::state::{GameType, LockedMove, Position, SideConditionState, SideId, Stall};
+use crate::battle::state::{
+    GameType, LockedMove, MoveRestriction, Position, SideConditionState, SideId, Stall,
+};
 use crate::battle::state::{MAX_MOVES, MAX_POSITIONS};
 use crate::dex::{
     CallsMove, Handler, HandlerMask, MoveData, MoveEffect, MoveId, MoveTarget, Recoil, Status,
@@ -23,6 +25,13 @@ const STALL_COUNTER_START: u16 = 3;
 const STALL_COUNTER_MAX: u16 = 729;
 /// End-of-turn checks a `stall` counter survives.
 const STALL_DURATION: u8 = 2;
+
+/// End-of-turn checks Taunt lasts.
+const TAUNT_DURATION: u8 = 3;
+/// End-of-turn checks Encore lasts.
+const ENCORE_DURATION: u8 = 3;
+/// End-of-turn checks Disable lasts.
+const DISABLE_DURATION: u8 = 5;
 
 /// End-of-turn checks a `lockedmove` lasts between uses.
 const LOCKED_MOVE_DURATION: u8 = 2;
@@ -62,11 +71,27 @@ impl Engine<'_> {
         // A rampage or a charged move continues without spending PP; its queued target is
         // the one it started on.
         let forced = user.forced_move();
-        let move_id = forced
+        let mut move_id = forced
             .or_else(|| slot.and_then(|slot| user.move_slots[slot].map(|move_slot| move_slot.id)))
             .unwrap_or_else(|| dex.struggle());
+        // The chosen move's priority stays with whatever move is used.
+        let (priority, prankster) = self.move_priority(side, dex.move_data(move_id));
         // Showdown's `runMove` resolves the target first, which in doubles may draw.
-        let resolved = self.get_target(side, dex.move_data(move_id), target);
+        let mut resolved = self.get_target(side, dex.move_data(move_id), target);
+        let mut slot = slot;
+        // Showdown's `OverrideAction`: Encore swaps in its move, at a new random target.
+        let user = self.active(side);
+        if let Some(encore) = user.volatiles.encore
+            && encore.move_id != move_id
+            && move_id != dex.struggle()
+        {
+            move_id = encore.move_id;
+            slot = user
+                .moves()
+                .find(|(_, known)| known.id == encore.move_id)
+                .map(|(index, _)| index);
+            resolved = Some(self.get_random_target(side, dex.move_data(move_id)));
+        }
         if !self.before_move(side, move_id) {
             // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
             let volatiles = &mut self.active_mut(side).volatiles;
@@ -76,8 +101,10 @@ impl Engine<'_> {
         }
         let locks = self.mask(side).intersects(HandlerMask::CHOICE_LOCK);
         let user = self.active_mut(side);
-        // Showdown's `moveUsed`: the target location is remembered for a lock that follows.
+        // Showdown's `moveUsed`: the move and its target location are remembered, for Encore,
+        // Disable, and a lock that follows.
         user.volatiles.last_target = target;
+        user.volatiles.last_move = Some(move_id);
         if forced.is_none()
             && let Some(slot) = slot
         {
@@ -87,8 +114,9 @@ impl Engine<'_> {
             if locks && user.volatiles.choice_lock.is_none() {
                 user.volatiles.choice_lock = u8::try_from(slot).ok();
             }
+        } else if forced.is_none() && locks && user.volatiles.choice_lock.is_none() {
+            user.volatiles.struggle_lock = true;
         }
-        let (priority, prankster) = self.move_priority(side, dex.move_data(move_id));
         self.prankster_boosted = prankster;
         let drag = self.use_move(side, move_id, priority, resolved, false, others_will_act);
         self.after_move_lock(side);
@@ -747,6 +775,25 @@ impl Engine<'_> {
             });
             return false;
         }
+        // Disable (`onBeforeMovePriority: 7`), then Taunt (5).
+        let volatiles = &self.active(side).volatiles;
+        let reason = if volatiles
+            .disable
+            .is_some_and(|disable| disable.move_id == move_id)
+        {
+            Some(CantReason::Disable)
+        } else if volatiles.taunt.is_some() && !self.dex.move_data(move_id).is_damaging() {
+            Some(CantReason::Taunt)
+        } else {
+            None
+        };
+        if let Some(reason) = reason {
+            self.emit(Event::Cant {
+                pokemon: side,
+                reason,
+            });
+            return false;
+        }
         if let Some(time) = self.active(side).volatiles.confusion {
             let time = time.saturating_sub(1);
             if time == 0 {
@@ -1289,6 +1336,18 @@ impl Engine<'_> {
     /// A status move's effects: primary on the target, weather, healing, `self`, then
     /// secondaries. Fails if nothing changed, or if a substitute stands in the way.
     fn status_move_hit(&mut self, side: Position, target: Position, move_data: &MoveData) -> bool {
+        // Disable's `onTryHit`, which Showdown runs after accuracy, in `spreadMoveHit`: the
+        // target must have used a move other than Struggle.
+        if move_data.primary.volatile_status == Some(VolatileStatus::Disable)
+            && self
+                .active(target)
+                .volatiles
+                .last_move
+                .is_none_or(|last| last == self.dex.struggle())
+        {
+            self.emit(Event::Fail { pokemon: side });
+            return false;
+        }
         if target != side
             && self.active(target).volatiles.substitute.is_some()
             && !move_data.flags.bypasssub
@@ -1413,6 +1472,13 @@ impl Engine<'_> {
                 applied = true;
             }
             Some(
+                volatile @ (VolatileStatus::Taunt
+                | VolatileStatus::Encore
+                | VolatileStatus::Disable),
+            ) => {
+                applied |= self.restrict_moves(recipient, volatile);
+            }
+            Some(
                 VolatileStatus::Confusion
                 | VolatileStatus::LockedMove
                 | VolatileStatus::FollowMe
@@ -1422,6 +1488,64 @@ impl Engine<'_> {
             | None => {}
         }
         applied
+    }
+
+    /// Showdown's `onStart` for Taunt, Encore, and Disable. Each fails if already in effect.
+    /// Taunt and Encore last a turn longer when the creature has already moved this turn,
+    /// Disable a turn shorter when it has yet to; Encore and Disable need a last move with PP,
+    /// and Encore one without `failencore`.
+    fn restrict_moves(&mut self, recipient: Position, volatile: VolatileStatus) -> bool {
+        let will_move = self.queued_moves[recipient.flat()].is_some();
+        let dex = self.dex;
+        let pokemon = self.active_mut(recipient);
+        let volatiles = &mut pokemon.volatiles;
+        let last_with_pp = volatiles.last_move.filter(|&last| {
+            pokemon
+                .move_slots
+                .iter()
+                .flatten()
+                .any(|known| known.id == last && known.pp > 0)
+        });
+        match volatile {
+            VolatileStatus::Taunt if volatiles.taunt.is_none() => {
+                let extra = u8::from(pokemon.active_turns > 0 && !will_move);
+                volatiles.taunt = Some(TAUNT_DURATION + extra);
+            }
+            VolatileStatus::Encore if volatiles.encore.is_none() => {
+                let Some(move_id) =
+                    last_with_pp.filter(|&last| !dex.move_data(last).flags.failencore)
+                else {
+                    return false;
+                };
+                volatiles.encore = Some(MoveRestriction {
+                    move_id,
+                    duration: ENCORE_DURATION + u8::from(!will_move),
+                });
+            }
+            VolatileStatus::Disable if volatiles.disable.is_none() => {
+                // A last move outside the moveset has no PP to check, so it can be disabled.
+                let Some(move_id) = volatiles.last_move.filter(|&last| {
+                    last_with_pp == Some(last)
+                        || !pokemon
+                            .move_slots
+                            .iter()
+                            .flatten()
+                            .any(|known| known.id == last)
+                }) else {
+                    return false;
+                };
+                volatiles.disable = Some(MoveRestriction {
+                    move_id,
+                    duration: DISABLE_DURATION - u8::from(will_move),
+                });
+            }
+            _ => return false,
+        }
+        self.emit(Event::Start {
+            pokemon: recipient,
+            volatile,
+        });
+        true
     }
 
     /// Seeds `target` to drain into the user's position, unless it is seeded already.

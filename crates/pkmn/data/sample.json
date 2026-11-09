@@ -404,7 +404,10 @@
         "Ambush Strike": ["9M"],
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
-        "Weave Snare": ["9M"]
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"]
       },
       "abilities": {
         "0": "Kindling Heart",
@@ -440,6 +443,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -491,6 +497,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Night Bite": ["9M"],
@@ -540,6 +549,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -595,6 +607,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -651,6 +666,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -705,6 +723,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Night Bite": ["9M"],
         "Pincer Slash": ["9M"],
         "Pounce": ["9L1", "9M"],
@@ -757,6 +778,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Night Bite": ["9L18"],
         "Phantom Wail": ["9M"],
         "Pounce": ["9M", "9L1"],
@@ -805,6 +829,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Mind Ground": ["9M"],
         "Mind Pulse": ["9M"],
         "Mist Ground": ["9M"],
@@ -864,6 +891,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Pincer Slash": ["9L1"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -916,6 +946,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Mind Ground": ["9L30"],
         "Mind Pulse": ["9L12"],
         "Mist Ground": ["9L6"],
@@ -975,6 +1008,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
         "Reckless Rush": ["9M"],
@@ -1027,6 +1063,9 @@
         "Drain Seed": ["9M"],
         "Scatter Barbs": ["9M"],
         "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
         "Night Bite": ["9M"],
         "Pounce": ["9M", "9L1"],
         "Rally Cry": ["9M"],
@@ -1967,7 +2006,8 @@
       "target": "self",
       "flags": {
         "nosleeptalk": 1,
-        "failcopycat": 1
+        "failcopycat": 1,
+        "failencore": 1
       },
       "calls": "random"
     },
@@ -1980,7 +2020,8 @@
       "target": "self",
       "flags": {
         "nosleeptalk": 1,
-        "failcopycat": 1
+        "failcopycat": 1,
+        "failencore": 1
       },
       "sleepUsable": true,
       "calls": "ownMove"
@@ -1994,7 +2035,8 @@
       "target": "self",
       "flags": {
         "nosleeptalk": 1,
-        "failcopycat": 1
+        "failcopycat": 1,
+        "failencore": 1
       },
       "calls": "lastMove"
     },
@@ -2098,6 +2140,46 @@
       "target": "foeSide",
       "sideCondition": "Silk Snare",
       "flags": {
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Goad",
+      "type": "Dark",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 20,
+      "volatileStatus": "taunt",
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Reprise",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 5,
+      "volatileStatus": "encore",
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1,
+        "metronome": 1,
+        "failencore": 1
+      }
+    },
+    {
+      "name": "Seal Move",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 20,
+      "volatileStatus": "disable",
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1,
         "metronome": 1
       }
     }

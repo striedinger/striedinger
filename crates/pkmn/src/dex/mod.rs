@@ -225,6 +225,12 @@ pub enum VolatileStatus {
     /// stands where the seeder stood.
     #[serde(rename = "leechseed")]
     LeechSeed,
+    /// Taunt: status moves cannot be selected or used for three turns.
+    Taunt,
+    /// Encore: only the creature's last move can be selected for three turns.
+    Encore,
+    /// Disable: the creature's last move cannot be selected or used for four turns.
+    Disable,
 }
 
 /// A move's category.
@@ -1739,6 +1745,7 @@ fn built_in_struggle() -> MoveSource {
             metronome: false,
             nosleeptalk: true,
             failcopycat: true,
+            failencore: true,
         },
         ignore_immunity: None,
         boosts: None,
