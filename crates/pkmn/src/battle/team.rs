@@ -4,8 +4,11 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use super::state::{MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, Volatiles};
-use crate::dex::Dex;
+use super::state::{
+    GameType, MAX_ACTIVE, MAX_MOVES, MoveSlot, Pokemon, Side, SideId, StatusState, TeraType,
+    Volatiles,
+};
+use crate::dex::{Dex, HandlerMask, LearnMethod};
 use crate::stats::{Boosts, MAX_EV, MAX_IV, MAX_TOTAL_EVS, StatTable, calculate_stats};
 
 /// The most creatures a team can have.
@@ -77,6 +80,63 @@ impl PokemonSet {
         self
     }
 
+    /// Checks that the set is legal, as Showdown's `TeamValidator` does: everything
+    /// [`Battle::new`](crate::Battle::new) checks, and that the species can learn each move.
+    /// A level-up move needs the set's level to be at least the level it is learned at, unless
+    /// the species also learns it another way. Learnsets are each species' own; evolution
+    /// lines are not followed.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first problem found.
+    pub fn validate(&self, dex: &Dex) -> Result<(), TeamErrorReason> {
+        let pokemon = self.build(dex)?;
+        let species = dex.species(pokemon.species);
+        if let (Some(allowed), Some(ability)) = (&species.abilities, pokemon.ability)
+            && !allowed.contains(&ability)
+        {
+            return Err(TeamErrorReason::IllegalAbility(
+                self.ability.clone().unwrap_or_default(),
+            ));
+        }
+        if let Some(level) = species.evo_level
+            && self.level < level
+        {
+            return Err(TeamErrorReason::BelowEvolutionLevel(level));
+        }
+        for (name, (_, move_slot)) in self.moves.iter().zip(pokemon.moves()) {
+            // The species learns a move if it or a pre-evolution does.
+            let line = std::iter::successors(Some(species), |stage| {
+                stage.prevo.map(|prevo| dex.species(prevo))
+            });
+            let mut known = line
+                .filter_map(|stage| stage.learn_sources(move_slot.id))
+                .peekable();
+            if known.peek().is_none() {
+                return Err(TeamErrorReason::CannotLearn(name.clone()));
+            }
+            let earliest_level = known
+                .flatten()
+                .map(|source| match source.method {
+                    LearnMethod::LevelUp(level) => level,
+                    LearnMethod::Machine
+                    | LearnMethod::Tutor
+                    | LearnMethod::Egg
+                    | LearnMethod::Event => 1,
+                })
+                .min();
+            if let Some(level) = earliest_level
+                && level > self.level
+            {
+                return Err(TeamErrorReason::LearnedAtLevel {
+                    name: name.clone(),
+                    level,
+                });
+            }
+        }
+        Ok(())
+    }
+
     /// Builds the creature this set describes, as it enters battle.
     ///
     /// # Errors
@@ -135,10 +195,12 @@ impl PokemonSet {
         .and_then(|id| dex.nature(id).nature);
         let species = dex.species(species_id);
         let tera_type = match self.tera_type.as_deref() {
-            Some(name) => dex
-                .type_id(name)
-                .ok_or_else(|| TeamErrorReason::UnknownType(name.to_owned()))?,
-            None => species.primary_type,
+            Some(name) if name.eq_ignore_ascii_case("stellar") => TeraType::Stellar,
+            Some(name) => TeraType::Type(
+                dex.type_id(name)
+                    .ok_or_else(|| TeamErrorReason::UnknownType(name.to_owned()))?,
+            ),
+            None => TeraType::Type(species.primary_type),
         };
         let stats = calculate_stats(
             &species.base_stats,
@@ -162,9 +224,14 @@ impl PokemonSet {
             boosts: Boosts::default(),
             volatiles: Volatiles::default(),
             active_turns: 0,
+            switched_in: 0,
+            speed: u32::from(stats.speed),
             tera_type,
             terastallized: false,
-        })
+            stellar_boosted_types: 0,
+            mask: HandlerMask::default(),
+        }
+        .with_mask(dex))
     }
 }
 
@@ -248,6 +315,19 @@ pub enum TeamErrorReason {
     Iv,
     /// An EV is above 252 or the total is above 510.
     Ev,
+    /// The species cannot learn this move, nor can any of its pre-evolutions.
+    CannotLearn(String),
+    /// The species cannot have this ability.
+    IllegalAbility(String),
+    /// The set is below the level its species evolves at.
+    BelowEvolutionLevel(u8),
+    /// The species learns this move only by level-up, at a level above the set's.
+    LearnedAtLevel {
+        /// The move.
+        name: String,
+        /// The level it is learned at.
+        level: u8,
+    },
 }
 
 impl fmt::Display for TeamError {
@@ -288,13 +368,28 @@ impl fmt::Display for TeamError {
                 formatter,
                 " has an EV above {MAX_EV} or more than {MAX_TOTAL_EVS} in total"
             ),
+            TeamErrorReason::CannotLearn(name) => write!(formatter, " can't learn {name:?}"),
+            TeamErrorReason::IllegalAbility(name) => {
+                write!(formatter, " can't have the ability {name:?}")
+            }
+            TeamErrorReason::BelowEvolutionLevel(level) => {
+                write!(formatter, " evolves at level {level}, above the set's")
+            }
+            TeamErrorReason::LearnedAtLevel { name, level } => {
+                write!(formatter, " learns {name:?} only at level {level}")
+            }
         }
     }
 }
 
 impl std::error::Error for TeamError {}
 
-pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result<Side, TeamError> {
+pub(crate) fn build_side(
+    dex: &Dex,
+    side: SideId,
+    sets: &[PokemonSet],
+    game_type: GameType,
+) -> Result<Side, TeamError> {
     let team_error = |slot, reason| TeamError { side, slot, reason };
     if sets.is_empty() {
         return Err(team_error(None, TeamErrorReason::Empty));
@@ -311,11 +406,15 @@ pub(crate) fn build_side(dex: &Dex, side: SideId, sets: &[PokemonSet]) -> Result
         })
         .collect::<Result<_, _>>()?;
     let switch_order = (0..sets.len()).collect();
+    // The first team members lead, one per position.
+    let active = [0, 1, 2]
+        .map(|index| (index < sets.len().min(game_type.active_per_side())).then_some(index));
     Ok(Side {
         team,
-        active: 0,
+        active,
         conditions: Vec::new(),
-        switch_flag: false,
+        switch_flag: [false; MAX_ACTIVE],
+        baton_pass: [false; MAX_ACTIVE],
         can_terastallize: true,
         switch_order,
     })

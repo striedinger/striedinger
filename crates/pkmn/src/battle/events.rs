@@ -3,9 +3,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::state::SideId;
+use super::state::{Position, SideId, TeraType};
 use crate::dex::{
-    AbilityId, ItemId, MoveId, SideConditionId, SpeciesId, Status, TerrainId, TypeId,
+    AbilityId, ItemId, MoveId, PseudoWeatherId, SideConditionId, SpeciesId, Status, TerrainId,
     VolatileStatus, WeatherId,
 };
 use crate::stats::BoostStat;
@@ -26,8 +26,8 @@ pub enum Event {
     },
     /// `switch`: a creature entered the field.
     Switch {
-        /// The side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// Its team slot.
         slot: usize,
         /// Its species.
@@ -37,54 +37,63 @@ pub enum Event {
         /// Its max HP.
         max_hp: u16,
     },
+    /// `swap`: in triples, a creature traded places with the one at `to`.
+    Swap {
+        /// The creature, by the position it left.
+        pokemon: Position,
+        /// The position it moved to, whose creature took its old place.
+        to: Position,
+    },
+    /// `-center`: in triples, the last two creatures were moved to the center.
+    Center,
     /// `move`: a creature used a move.
     Move {
-        /// The user's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The move.
         move_id: MoveId,
     },
     /// `cant`: a creature could not move.
     Cant {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// Why.
         reason: CantReason,
     },
     /// `-miss`: a move missed.
     Miss {
-        /// The user's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `-fail`: a move did nothing.
     Fail {
-        /// The user's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `-immune`: the target was unaffected.
     Immune {
-        /// The target's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `-crit`: a critical hit.
     Crit {
-        /// The target's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `-supereffective`.
     SuperEffective {
-        /// The target's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `-resisted`: not very effective.
     Resisted {
-        /// The target's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `-damage`: a creature lost HP.
     Damage {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// HP lost.
         amount: u16,
         /// HP left.
@@ -94,8 +103,8 @@ pub enum Event {
     },
     /// `-heal`: a creature restored HP.
     Heal {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// HP restored.
         amount: u16,
         /// HP after healing.
@@ -110,43 +119,43 @@ pub enum Event {
     },
     /// `-status`: a creature received a status.
     Status {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The status.
         status: Status,
     },
     /// `-curestatus`: a creature's status ended.
     CureStatus {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The status.
         status: Status,
     },
     /// `-start`: a volatile status began.
     Start {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The volatile status.
         volatile: VolatileStatus,
     },
     /// `-activate`: a volatile status took effect, such as confusion on a move attempt.
     Activate {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The volatile status.
         volatile: VolatileStatus,
     },
     /// `-end`: a volatile status ended.
     End {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The volatile status.
         volatile: VolatileStatus,
     },
     /// `-boost` / `-unboost`: a stat stage changed.
     Boost {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The stat.
         stat: BoostStat,
         /// The change that applied after clamping; negative for `-unboost`.
@@ -159,8 +168,8 @@ pub enum Event {
     },
     /// `-prepare`: a `charge` move spent this turn charging.
     Prepare {
-        /// The user's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The move.
         move_id: MoveId,
     },
@@ -169,12 +178,29 @@ pub enum Event {
         /// The new terrain.
         terrain: Option<TerrainId>,
     },
+    /// `-fieldstart`: a pseudo-weather, like Trick Room, began.
+    PseudoWeatherStart {
+        /// The pseudo-weather.
+        pseudo_weather: PseudoWeatherId,
+    },
+    /// `-fieldend`: a pseudo-weather ended.
+    PseudoWeatherEnd {
+        /// The pseudo-weather.
+        pseudo_weather: PseudoWeatherId,
+    },
     /// `-terastallize`: the active creature Terastallized.
     Terastallize {
-        /// The creature's side.
+        /// The creature, by position.
+        pokemon: Position,
+        /// What it became.
+        tera_type: TeraType,
+    },
+    /// `-activate`: a side condition like Wide Guard blocked a move.
+    SideActivate {
+        /// The side it is on.
         side: SideId,
-        /// Its new type.
-        tera_type: TypeId,
+        /// The condition.
+        condition: SideConditionId,
     },
     /// `-sidestart`: a side condition began, or gained a layer.
     SideStart {
@@ -192,29 +218,29 @@ pub enum Event {
     },
     /// `-ability`: an ability took effect; the events it caused follow.
     Ability {
-        /// The holder's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The ability.
         ability: AbilityId,
     },
     /// `-item`: an item took effect; the events it caused follow.
     Item {
-        /// The holder's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The item.
         item: ItemId,
     },
     /// `-enditem`: a held item was used up.
     EndItem {
-        /// The holder's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
         /// The item.
         item: ItemId,
     },
     /// `faint`: a creature fainted.
     Faint {
-        /// The creature's side.
-        side: SideId,
+        /// The creature, by position.
+        pokemon: Position,
     },
     /// `win`: the battle ended with a winner.
     Win {
@@ -247,6 +273,10 @@ pub enum CantReason {
     Paralysis,
     /// `flinch`.
     Flinch,
+    /// `move: Taunt`: a status move while taunted.
+    Taunt,
+    /// `Disable`: the disabled move.
+    Disable,
 }
 
 /// What caused HP loss.
@@ -269,6 +299,8 @@ pub enum DamageSource {
     Substitute,
     /// `[from] ability: ...` or `[from] item: ...`.
     Effect(Effect),
+    /// `[from] Leech Seed`: drained at the end of the turn.
+    LeechSeed,
 }
 
 /// What caused HP recovery.
@@ -283,4 +315,6 @@ pub enum HealSource {
     Terrain(TerrainId),
     /// `[from] ability: ...` or `[from] item: ...`.
     Effect(Effect),
+    /// HP drained by Leech Seed from the seeded creature.
+    LeechSeed,
 }

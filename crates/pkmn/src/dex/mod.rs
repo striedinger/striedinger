@@ -17,13 +17,17 @@ pub use handlers::{
     AbilityData, Condition, ConditionSource, Handler, HandlerMask, HandlerSource, ItemData,
 };
 pub use source::{
-    AbilitySource, Accuracy, ClearSideConditionsSource, DexSource, ItemSource, MoveFlags,
-    MoveSource, Multihit, NatureSource, ScreenSource, SecondarySource, SelfEffectSource,
-    SideConditionSource, SpeciesSource, SwitchInDamageSource, TerrainSource, TypeSource,
-    WeatherDefenseBoostSource, WeatherSource,
+    AbilitySource, Accuracy, CallsMove, ClearSideConditionsSource, DexSource, Grounded, ItemEffect,
+    ItemSource, MoveFlags, MoveSource, Multihit, NatureSource, PseudoWeatherSource, ScreenSource,
+    SecondarySource, SelfEffectSource, SelfSwitch, SideConditionSource, SpeciesSource,
+    SwitchInBoostsSource, SwitchInDamageSource, SwitchInStatusSource, TerrainMoveModifierSource,
+    TerrainSource, TypeSource, WeatherDefenseBoostSource, WeatherSource,
 };
 
 use crate::stats::{Boosts, MODIFIER_SCALE, Nature, Stat, StatTable};
+
+/// The most types a dex can have.
+pub const MAX_TYPES: usize = 32;
 
 macro_rules! id_type {
     ($(#[$meta:meta])* $name:ident($repr:ty)) => {
@@ -81,6 +85,10 @@ id_type!(
 id_type!(
     /// Identifies a terrain within a [`Dex`].
     TerrainId(u8)
+);
+id_type!(
+    /// Identifies a pseudo-weather within a [`Dex`].
+    PseudoWeatherId(u8)
 );
 
 /// A ratio written as `[numerator, denominator]` in data files.
@@ -205,6 +213,24 @@ pub enum VolatileStatus {
     /// Outrage.
     #[serde(rename = "lockedmove")]
     LockedMove,
+    /// Follow Me: for the rest of the turn, the foes' single-target moves are drawn to the
+    /// user. Fails in singles.
+    #[serde(rename = "followme")]
+    FollowMe,
+    /// Helping Hand: the ally's moves this turn have ×1.5 base power, again for each use.
+    /// Fails if the ally will not move.
+    #[serde(rename = "helpinghand")]
+    HelpingHand,
+    /// Leech Seed: at the end of each turn the creature loses 1/8 of its max HP to whoever
+    /// stands where the seeder stood.
+    #[serde(rename = "leechseed")]
+    LeechSeed,
+    /// Taunt: status moves cannot be selected or used for three turns.
+    Taunt,
+    /// Encore: only the creature's last move can be selected for three turns.
+    Encore,
+    /// Disable: the creature's last move cannot be selected or used for four turns.
+    Disable,
 }
 
 /// A move's category.
@@ -234,6 +260,36 @@ pub enum MoveTarget {
     /// `allySide`: the user's side, for screens.
     #[serde(rename = "allySide")]
     AllySide,
+    /// `allAdjacentFoes`: every opposing active creature, a spread move like Rock Slide.
+    #[serde(rename = "allAdjacentFoes")]
+    AllAdjacentFoes,
+    /// `allAdjacent`: every other active creature, allies included, a spread move like
+    /// Earthquake.
+    #[serde(rename = "allAdjacent")]
+    AllAdjacent,
+    /// `randomNormal`: a random opposing creature, like Outrage.
+    #[serde(rename = "randomNormal")]
+    RandomNormal,
+    /// `adjacentAlly`: the user's ally, like Helping Hand; fails in singles.
+    #[serde(rename = "adjacentAlly")]
+    AdjacentAlly,
+}
+
+impl MoveTarget {
+    /// Whether a doubles choice must name the target (Showdown's `targetTypeChoices`).
+    #[must_use]
+    pub fn needs_choice(self) -> bool {
+        matches!(self, Self::Normal | Self::AdjacentAlly)
+    }
+
+    /// Whether the move hits creatures, rather than its user or a side.
+    #[must_use]
+    pub fn hits_others(self) -> bool {
+        matches!(
+            self,
+            Self::Normal | Self::AllAdjacentFoes | Self::AllAdjacent | Self::RandomNormal
+        )
+    }
 }
 
 /// How many times a move strikes.
@@ -287,6 +343,25 @@ pub struct TypeData {
     pub weather_immunities: Vec<WeatherId>,
     /// Whether this type's damaging moves thaw a frozen target.
     pub thaws_frozen_targets: bool,
+    /// Whether moves boosted by Prankster fail against it (`damageTaken.prankster`).
+    pub prankster_immune: bool,
+}
+
+/// A compiled pseudo-weather; see [`PseudoWeatherSource`].
+#[derive(Clone, Debug)]
+pub struct PseudoWeatherData {
+    /// Display name.
+    pub name: String,
+    /// Turns it lasts.
+    pub duration: u8,
+    /// Whether action speed becomes 10000 minus speed.
+    pub reverses_speed: bool,
+    /// Whether setting it again ends it.
+    pub ends_when_repeated: bool,
+    /// Showdown's `onFieldResidualOrder`.
+    pub residual_order: Option<u8>,
+    /// Showdown's `onFieldResidualSubOrder`.
+    pub residual_sub_order: u8,
 }
 
 /// A compiled weather.
@@ -338,6 +413,8 @@ pub struct TerrainData {
     pub prevents_volatiles: Vec<VolatileStatus>,
     /// Whether priority moves fail against grounded targets.
     pub blocks_priority: bool,
+    /// 4096-based base power modifiers for particular moves.
+    pub move_base_power_modifiers: Vec<(MoveId, u32, Grounded)>,
 }
 
 /// How a `charge` move behaves on its first turn.
@@ -360,6 +437,8 @@ pub struct Clears {
     pub target: Vec<SideConditionId>,
     /// Whether the terrain ends.
     pub terrain: bool,
+    /// Volatile statuses removed from the user.
+    pub user_volatiles: Vec<VolatileStatus>,
 }
 
 /// A compiled side condition.
@@ -371,18 +450,56 @@ pub struct SideConditionData {
     pub duration: Option<u8>,
     /// Damage to creatures switching in.
     pub switch_in_damage: Option<SwitchInDamage>,
+    /// A status for creatures switching in.
+    pub switch_in_status: Option<SwitchInStatus>,
+    /// Stat stages for creatures switching in.
+    pub switch_in_boosts: Option<SwitchInBoosts>,
     /// Damage reduction for one category.
     pub screen: Option<Screen>,
+    /// See [`SideConditionSource::residual_sub_order`].
+    pub residual_sub_order: u8,
+    /// See [`SideConditionSource::residual_order`].
+    pub residual_order: Option<u8>,
+    /// Spread moves fail against creatures on this side, like Wide Guard.
+    pub blocks_spread_moves: bool,
 }
 
 impl SideConditionData {
     /// How many times it can be set, stacking a layer each time.
     #[must_use]
     pub fn max_layers(&self) -> u8 {
-        self.switch_in_damage.as_ref().map_or(1, |damage| {
-            u8::try_from(damage.layers.len()).unwrap_or(u8::MAX)
-        })
+        let damage = self
+            .switch_in_damage
+            .as_ref()
+            .map_or(1, |damage| damage.layers.len());
+        let status = self
+            .switch_in_status
+            .as_ref()
+            .map_or(1, |status| status.layers.len());
+        u8::try_from(damage.max(status)).unwrap_or(u8::MAX)
     }
+}
+
+/// A compiled hazard's switch-in status; see [`SwitchInStatusSource`].
+#[derive(Clone, Debug)]
+pub struct SwitchInStatus {
+    /// The status by layer count, starting at one layer.
+    pub layers: Vec<Status>,
+    /// Only creatures not immune to this type are affected.
+    pub grounded_type: Option<TypeId>,
+    /// A grounded creature of this type removes the hazard.
+    pub absorbed_by: Option<TypeId>,
+    /// Creatures of these types are skipped.
+    pub ignored_by: Vec<TypeId>,
+}
+
+/// A compiled hazard's switch-in stat stages; see [`SwitchInBoostsSource`].
+#[derive(Clone, Debug)]
+pub struct SwitchInBoosts {
+    /// The stages.
+    pub boosts: Boosts,
+    /// Only creatures not immune to this type are affected.
+    pub grounded_type: Option<TypeId>,
 }
 
 /// A compiled hazard's switch-in damage.
@@ -403,6 +520,8 @@ pub struct Screen {
     pub category: MoveCategory,
     /// The 4096-based modifier for non-critical hits.
     pub modifier: u32,
+    /// The 4096-based modifier in doubles.
+    pub doubles_modifier: u32,
 }
 
 /// A compiled nature.
@@ -425,11 +544,94 @@ pub struct SpeciesData {
     pub secondary_type: Option<TypeId>,
     /// Base stats.
     pub base_stats: StatTable,
+    /// The moves it can learn, sorted by move, or `None` if it may use any move.
+    pub learnset: Option<Vec<(MoveId, Vec<LearnSource>)>>,
+    /// The abilities it may have, or `None` if any is allowed.
+    pub abilities: Option<Vec<AbilityId>>,
+    /// The species it evolves from.
+    pub prevo: Option<SpeciesId>,
+    /// The level it evolves at.
+    pub evo_level: Option<u8>,
+}
+
+impl SpeciesData {
+    /// How the species learns a move, or `None` if it cannot. A species without a learnset
+    /// learns everything, with no sources.
+    #[must_use]
+    pub fn learn_sources(&self, move_id: MoveId) -> Option<&[LearnSource]> {
+        let Some(learnset) = &self.learnset else {
+            return Some(&[]);
+        };
+        learnset
+            .binary_search_by_key(&move_id, |(id, _)| *id)
+            .ok()
+            .map(|index| learnset[index].1.as_slice())
+    }
+}
+
+/// One way a species learns a move, from Showdown's notation like `"9L15"`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LearnSource {
+    /// The generation it was learned in.
+    pub generation: u8,
+    /// How.
+    pub method: LearnMethod,
+}
+
+/// How a move is learned.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearnMethod {
+    /// `L`: on reaching this level.
+    LevelUp(u8),
+    /// `M`: from a machine.
+    Machine,
+    /// `T`: from a tutor.
+    Tutor,
+    /// `E`: as an egg move.
+    Egg,
+    /// `S`: from an event distribution.
+    Event,
+}
+
+impl LearnSource {
+    fn parse(source: &str, owner: &str) -> Result<Self, DexError> {
+        let invalid = || {
+            DexError::invalid(
+                owner,
+                "learnset sources look like 9L15, 9M, 9T, 9E, or 9S0, for generations 1 to 9",
+            )
+        };
+        let split = source
+            .find(|character: char| !character.is_ascii_digit())
+            .ok_or_else(invalid)?;
+        let (generation, rest) = source.split_at(split);
+        let generation: u8 = generation.parse().map_err(|_| invalid())?;
+        if !(1..=9).contains(&generation) {
+            return Err(invalid());
+        }
+        let mut characters = rest.chars();
+        let letter = characters.next().ok_or_else(invalid)?;
+        let detail = characters.as_str();
+        let method = match (letter, detail) {
+            ('L', level) => match level.parse::<u8>() {
+                Ok(level @ 1..=100) => LearnMethod::LevelUp(level),
+                _ => return Err(invalid()),
+            },
+            ('M', "") => LearnMethod::Machine,
+            ('T', "") => LearnMethod::Tutor,
+            ('E', "") => LearnMethod::Egg,
+            ('S', index) if index.parse::<u32>().is_ok() => LearnMethod::Event,
+            _ => return Err(invalid()),
+        };
+        Ok(Self { generation, method })
+    }
 }
 
 /// A compiled move.
 #[derive(Clone, Debug)]
 pub struct MoveData {
+    /// Its ID in the dex.
+    pub id: MoveId,
     /// Display name.
     pub name: String,
     /// The type; `None` for typeless moves.
@@ -474,6 +676,10 @@ pub struct MoveData {
     pub stalling_move: bool,
     /// Whether the user switches out after it works.
     pub self_switch: bool,
+    /// Whether the replacement takes the user's stat stages and volatiles, like Baton Pass.
+    pub copies_volatiles: bool,
+    /// See [`MoveSource::item_effect`].
+    pub item_effect: Option<ItemEffect>,
     /// Whether the target is dragged out after it works.
     pub force_switch: bool,
     /// The terrain it sets.
@@ -484,6 +690,20 @@ pub struct MoveData {
     pub clears: Clears,
     /// A volatile status on the user, after it works.
     pub self_volatile: Option<VolatileStatus>,
+    /// See [`MoveSource::substitute_blocks_boosts`].
+    pub substitute_blocks_boosts: bool,
+    /// See [`MoveSource::calls`].
+    pub calls: Option<CallsMove>,
+    /// See [`MoveSource::sleep_usable`].
+    pub sleep_usable: bool,
+    /// See [`MoveSource::guard`].
+    pub guard: bool,
+    /// See [`MoveSource::pseudo_weather`].
+    pub pseudo_weather: Option<PseudoWeatherId>,
+    /// See [`MoveSource::fails_unless_target_attacks`].
+    pub fails_unless_target_attacks: bool,
+    /// See [`MoveSource::fails_against_type`].
+    pub fails_against_type: Option<TypeId>,
 }
 
 impl MoveData {
@@ -519,6 +739,7 @@ pub struct Dex {
     items: Vec<ItemData>,
     side_conditions: Vec<SideConditionData>,
     terrains: Vec<TerrainData>,
+    pseudo_weathers: Vec<PseudoWeatherData>,
     type_ids: NameMap<TypeId>,
     weather_ids: NameMap<WeatherId>,
     nature_ids: NameMap<NatureId>,
@@ -528,6 +749,7 @@ pub struct Dex {
     item_ids: NameMap<ItemId>,
     side_condition_ids: NameMap<SideConditionId>,
     terrain_ids: NameMap<TerrainId>,
+    pseudo_weather_ids: NameMap<PseudoWeatherId>,
     struggle: MoveId,
 }
 
@@ -612,6 +834,7 @@ impl Dex {
             items: Vec::new(),
             side_conditions: Vec::new(),
             terrains: Vec::new(),
+            pseudo_weathers: Vec::new(),
             type_ids: NameMap::default(),
             weather_ids: NameMap::default(),
             nature_ids: NameMap::default(),
@@ -621,8 +844,13 @@ impl Dex {
             item_ids: NameMap::default(),
             side_condition_ids: NameMap::default(),
             terrain_ids: NameMap::default(),
+            pseudo_weather_ids: NameMap::default(),
             struggle: MoveId(0),
         };
+        // Stellar Terastallization tracks boosted types in a 32-bit set.
+        if source.types.len() > MAX_TYPES {
+            return Err(DexError::TooMany("types"));
+        }
         for type_source in &source.types {
             let id = TypeId::from_index(dex.type_ids.len()).ok_or(DexError::TooMany("types"))?;
             insert_unique(&mut dex.type_ids, "type", &type_source.name, id)?;
@@ -643,6 +871,9 @@ impl Dex {
         for terrain in &source.terrains {
             dex.compile_terrain(terrain)?;
         }
+        for pseudo_weather in &source.pseudo_weathers {
+            dex.compile_pseudo_weather(pseudo_weather)?;
+        }
         for move_source in &source.moves {
             dex.compile_move(move_source)?;
         }
@@ -650,6 +881,15 @@ impl Dex {
             Some(&id) => id,
             None => dex.compile_move(&built_in_struggle())?,
         };
+        for (index, species) in source.species.iter().enumerate() {
+            dex.compile_learnset(index, species)?;
+        }
+        for (index, terrain) in source.terrains.iter().enumerate() {
+            dex.compile_terrain_moves(index, terrain)?;
+        }
+        for (index, species) in source.species.iter().enumerate() {
+            dex.compile_evolution(index, species)?;
+        }
         for ability in &source.abilities {
             let id =
                 AbilityId::from_index(dex.abilities.len()).ok_or(DexError::TooMany("abilities"))?;
@@ -672,7 +912,65 @@ impl Dex {
                 mask,
             });
         }
+        for (index, species) in source.species.iter().enumerate() {
+            dex.compile_species_abilities(index, species)?;
+        }
         Ok(dex)
+    }
+
+    /// Resolves a species' pre-evolution, refusing a chain that loops.
+    fn compile_evolution(&mut self, index: usize, source: &SpeciesSource) -> Result<(), DexError> {
+        let Some(prevo) = &source.prevo else {
+            return Ok(());
+        };
+        let id = lookup(&self.species_ids, prevo).ok_or_else(|| DexError::UnknownReference {
+            kind: "species",
+            name: prevo.clone(),
+            referenced_by: source.name.clone(),
+        })?;
+        self.species[index].prevo = Some(id);
+        // Walk the chain; it can be no longer than the number of species.
+        let mut current = Some(id);
+        for _ in 0..=self.species.len() {
+            match current {
+                None => return Ok(()),
+                Some(step) if step.index() == index => break,
+                Some(step) => current = self.species[step.index()].prevo,
+            }
+        }
+        Err(DexError::invalid(&source.name, "its evolution line loops"))
+    }
+
+    /// Resolves a species' abilities, once every ability has an ID.
+    fn compile_species_abilities(
+        &mut self,
+        index: usize,
+        source: &SpeciesSource,
+    ) -> Result<(), DexError> {
+        let Some(abilities) = &source.abilities else {
+            return Ok(());
+        };
+        if abilities
+            .keys()
+            .any(|slot| !matches!(slot.as_str(), "0" | "1" | "H" | "S"))
+        {
+            return Err(DexError::invalid(
+                &source.name,
+                "ability slots are 0, 1, H, and S",
+            ));
+        }
+        let resolved = abilities
+            .values()
+            .map(|name| {
+                lookup(&self.ability_ids, name).ok_or_else(|| DexError::UnknownReference {
+                    kind: "ability",
+                    name: name.clone(),
+                    referenced_by: source.name.clone(),
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        self.species[index].abilities = Some(resolved);
+        Ok(())
     }
 
     /// Builds the attacker-by-defender matchup table and immunities from each type's
@@ -683,6 +981,7 @@ impl Dex {
         for (defender, source) in sources.iter().enumerate() {
             let mut status_immunities = Vec::new();
             let mut weather_immunities = Vec::new();
+            let mut prankster_immune = false;
             for (key, &code) in &source.damage_taken {
                 if code > 3 {
                     return Err(DexError::invalid(
@@ -707,9 +1006,11 @@ impl Dex {
                     if code == 3 {
                         weather_immunities.push(weather);
                     }
+                } else if key == "prankster" {
+                    prankster_immune = code == 3;
                 } else {
                     return Err(DexError::UnknownReference {
-                        kind: "type, status, or weather",
+                        kind: "type, status, weather, or prankster",
                         name: key.clone(),
                         referenced_by: source.name.clone(),
                     });
@@ -720,6 +1021,7 @@ impl Dex {
                 status_immunities,
                 weather_immunities,
                 thaws_frozen_targets: source.thaws_frozen_targets,
+                prankster_immune,
             });
         }
         Ok(())
@@ -772,6 +1074,32 @@ impl Dex {
         Ok(())
     }
 
+    fn compile_pseudo_weather(&mut self, source: &PseudoWeatherSource) -> Result<(), DexError> {
+        let id = PseudoWeatherId::from_index(self.pseudo_weathers.len())
+            .ok_or(DexError::TooMany("pseudo-weathers"))?;
+        insert_unique(
+            &mut self.pseudo_weather_ids,
+            "pseudo-weather",
+            &source.name,
+            id,
+        )?;
+        if source.duration == 0 {
+            return Err(DexError::invalid(
+                &source.name,
+                "must last at least one turn",
+            ));
+        }
+        self.pseudo_weathers.push(PseudoWeatherData {
+            name: source.name.clone(),
+            duration: source.duration,
+            reverses_speed: source.reverses_speed,
+            ends_when_repeated: source.ends_when_repeated,
+            residual_order: source.residual_order,
+            residual_sub_order: source.residual_sub_order,
+        });
+        Ok(())
+    }
+
     fn compile_terrain(&mut self, source: &TerrainSource) -> Result<(), DexError> {
         let id = TerrainId::from_index(self.terrains.len()).ok_or(DexError::TooMany("terrains"))?;
         insert_unique(&mut self.terrain_ids, "terrain", &source.name, id)?;
@@ -813,6 +1141,7 @@ impl Dex {
             prevents_statuses: source.prevents_statuses.clone(),
             prevents_volatiles: source.prevents_volatiles.clone(),
             blocks_priority: source.blocks_priority,
+            move_base_power_modifiers: Vec::new(),
         };
         self.terrains.push(terrain);
         Ok(())
@@ -855,18 +1184,67 @@ impl Dex {
                 })
             }
         };
+        let resolve_type = |type_name: Option<&str>| {
+            type_name
+                .map(|type_name| self.resolve_type(type_name, name))
+                .transpose()
+        };
+        let switch_in_status = match &source.switch_in_status {
+            None => None,
+            Some(status) => {
+                if status.layers.is_empty() {
+                    return Err(DexError::invalid(
+                        name,
+                        "switchInStatus needs at least one layer",
+                    ));
+                }
+                Some(SwitchInStatus {
+                    layers: status.layers.clone(),
+                    grounded_type: resolve_type(status.grounded_type.as_deref())?,
+                    absorbed_by: resolve_type(status.absorbed_by.as_deref())?,
+                    ignored_by: status
+                        .ignored_by
+                        .iter()
+                        .map(|type_name| self.resolve_type(type_name, name))
+                        .collect::<Result<_, _>>()?,
+                })
+            }
+        };
+        let switch_in_boosts = match &source.switch_in_boosts {
+            None => None,
+            Some(boosts) if boosts.boosts.is_empty() => {
+                return Err(DexError::invalid(
+                    name,
+                    "switchInBoosts needs at least one non-zero stage",
+                ));
+            }
+            Some(boosts) => Some(SwitchInBoosts {
+                boosts: boosts.boosts,
+                grounded_type: resolve_type(boosts.grounded_type.as_deref())?,
+            }),
+        };
         let screen = match &source.damage_modifier {
             None => None,
             Some(screen) => Some(Screen {
                 category: screen.category,
                 modifier: validate_fraction(screen.modifier, name)?.to_modifier(),
+                doubles_modifier: validate_fraction(
+                    screen.doubles_modifier.unwrap_or(screen.modifier),
+                    name,
+                )?
+                .to_modifier(),
             }),
         };
         self.side_conditions.push(SideConditionData {
             name: source.name.clone(),
             duration: source.duration,
             switch_in_damage,
+            switch_in_status,
+            switch_in_boosts,
             screen,
+            residual_sub_order: source.residual_sub_order,
+            residual_order: source.residual_order,
+            blocks_spread_moves: source.blocks_spread_moves,
         });
         Ok(())
     }
@@ -923,7 +1301,75 @@ impl Dex {
             primary_type,
             secondary_type,
             base_stats: source.base_stats,
+            learnset: None,
+            abilities: None,
+            prevo: None,
+            evo_level: source.evo_level,
         });
+        Ok(())
+    }
+
+    /// Resolves a terrain's per-move modifiers, once every move has an ID.
+    fn compile_terrain_moves(
+        &mut self,
+        index: usize,
+        source: &TerrainSource,
+    ) -> Result<(), DexError> {
+        let modifiers = source
+            .move_base_power_modifiers
+            .iter()
+            .map(|entry| {
+                let move_id = lookup(&self.move_ids, &entry.move_name).ok_or_else(|| {
+                    DexError::UnknownReference {
+                        kind: "move",
+                        name: entry.move_name.clone(),
+                        referenced_by: source.name.clone(),
+                    }
+                })?;
+                let modifier = validate_fraction(entry.modifier, &source.name)?.to_modifier();
+                Ok((move_id, modifier, entry.grounded))
+            })
+            .collect::<Result<Vec<_>, DexError>>()?;
+        self.terrains[index].move_base_power_modifiers = modifiers;
+        Ok(())
+    }
+
+    /// Resolves a species' learnset, once every move has an ID.
+    fn compile_learnset(&mut self, index: usize, source: &SpeciesSource) -> Result<(), DexError> {
+        let Some(learnset) = &source.learnset else {
+            return Ok(());
+        };
+        let mut compiled = learnset
+            .iter()
+            .map(|(move_name, sources)| {
+                let move_id = lookup(&self.move_ids, move_name).ok_or_else(|| {
+                    DexError::UnknownReference {
+                        kind: "move",
+                        name: move_name.clone(),
+                        referenced_by: source.name.clone(),
+                    }
+                })?;
+                if sources.is_empty() {
+                    return Err(DexError::invalid(
+                        &source.name,
+                        "each learnset move needs at least one source",
+                    ));
+                }
+                let sources = sources
+                    .iter()
+                    .map(|learned| LearnSource::parse(learned, &source.name))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Ok((move_id, sources))
+            })
+            .collect::<Result<Vec<_>, DexError>>()?;
+        compiled.sort_unstable_by_key(|(move_id, _)| *move_id);
+        if compiled.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+            return Err(DexError::invalid(
+                &source.name,
+                "its learnset names a move twice",
+            ));
+        }
+        self.species[index].learnset = Some(compiled);
         Ok(())
     }
 
@@ -957,6 +1403,7 @@ impl Dex {
             name,
         )?;
         self.moves.push(MoveData {
+            id,
             name: source.name.clone(),
             move_type,
             category: source.category,
@@ -980,41 +1427,63 @@ impl Dex {
             heal: source.heal,
             self_boosts,
             secondaries,
-            side_condition: source
-                .side_condition
-                .as_deref()
-                .map(|condition| {
-                    resolve(&self.side_condition_ids, "side condition", condition, name)
-                })
-                .transpose()?,
+            side_condition: resolve_optional(
+                &self.side_condition_ids,
+                "side condition",
+                source.side_condition.as_deref(),
+                name,
+            )?,
             stalling_move: source.stalling_move,
-            self_switch: source.self_switch,
+            self_switch: source.self_switch != SelfSwitch::No,
+            copies_volatiles: source.self_switch == SelfSwitch::CopyVolatile,
+            item_effect: source.item_effect,
             force_switch: source.force_switch,
-            terrain: source
-                .terrain
-                .as_deref()
-                .map(|terrain| resolve(&self.terrain_ids, "terrain", terrain, name))
-                .transpose()?,
-            charge: if source.flags.charge {
-                Some(Charge {
-                    boosts: validate_boosts(source.charge_boosts, name)?,
-                    skipped_in: source
-                        .charge_skipped_in
-                        .iter()
-                        .map(|weather| self.resolve_weather(weather, name))
-                        .collect::<Result<_, _>>()?,
-                    semi_invulnerable: source.semi_invulnerable,
-                })
-            } else {
-                None
-            },
+            terrain: resolve_optional(
+                &self.terrain_ids,
+                "terrain",
+                source.terrain.as_deref(),
+                name,
+            )?,
+            pseudo_weather: resolve_optional(
+                &self.pseudo_weather_ids,
+                "pseudo-weather",
+                source.pseudo_weather.as_deref(),
+                name,
+            )?,
+            fails_unless_target_attacks: source.fails_unless_target_attacks,
+            fails_against_type: resolve_optional(
+                &self.type_ids,
+                "type",
+                source.fails_against_type.as_deref(),
+                name,
+            )?,
+            charge: self.compile_charge(source)?,
             clears: self.compile_clears(source)?,
             self_volatile: source
                 .self_effect
                 .as_ref()
                 .and_then(|effect| effect.volatile_status),
+            substitute_blocks_boosts: source.substitute_blocks_boosts,
+            calls: source.calls,
+            sleep_usable: source.sleep_usable,
+            guard: source.guard,
         });
         Ok(id)
+    }
+
+    fn compile_charge(&self, source: &MoveSource) -> Result<Option<Charge>, DexError> {
+        if !source.flags.charge {
+            return Ok(None);
+        }
+        Ok(Some(Charge {
+            boosts: validate_boosts(source.charge_boosts, &source.name)?,
+            skipped_in: source
+                .charge_skipped_in
+                .iter()
+                .map(|weather| self.resolve_weather(weather, &source.name))
+                .collect::<Result<_, _>>()?,
+            semi_invulnerable: source.semi_invulnerable,
+        }))
     }
 
     fn compile_clears(&self, source: &MoveSource) -> Result<Clears, DexError> {
@@ -1036,6 +1505,7 @@ impl Dex {
             user: names(&lists.user)?,
             target: names(&lists.target)?,
             terrain: source.clear_terrain,
+            user_volatiles: source.clear_user_volatiles.clone(),
         })
     }
 
@@ -1071,6 +1541,11 @@ impl Dex {
         &self.species[id.index()]
     }
 
+    /// Every move, in ID order.
+    pub fn all_moves(&self) -> impl Iterator<Item = &MoveData> {
+        self.moves.iter()
+    }
+
     /// Returns a move. Panics if the ID is not from this dex.
     #[must_use]
     pub fn move_data(&self, id: MoveId) -> &MoveData {
@@ -1081,6 +1556,24 @@ impl Dex {
     #[must_use]
     pub fn terrain(&self, id: TerrainId) -> &TerrainData {
         &self.terrains[id.index()]
+    }
+
+    /// Returns a pseudo-weather.
+    #[must_use]
+    pub fn pseudo_weather(&self, id: PseudoWeatherId) -> &PseudoWeatherData {
+        &self.pseudo_weathers[id.index()]
+    }
+
+    /// Looks up a pseudo-weather by name.
+    #[must_use]
+    pub fn pseudo_weather_id(&self, name: &str) -> Option<PseudoWeatherId> {
+        lookup(&self.pseudo_weather_ids, name)
+    }
+
+    /// The number of pseudo-weathers.
+    #[must_use]
+    pub fn pseudo_weather_count(&self) -> usize {
+        self.pseudo_weathers.len()
     }
 
     /// Looks up a terrain by name.
@@ -1244,7 +1737,7 @@ fn built_in_struggle() -> MoveSource {
         accuracy: Accuracy(None),
         pp: 1,
         priority: 0,
-        target: MoveTarget::Normal,
+        target: MoveTarget::RandomNormal,
         crit_ratio: 1,
         multihit: None,
         drain: None,
@@ -1255,6 +1748,10 @@ fn built_in_struggle() -> MoveSource {
             protect: true,
             charge: false,
             bypasssub: false,
+            metronome: false,
+            nosleeptalk: true,
+            failcopycat: true,
+            failencore: true,
         },
         ignore_immunity: None,
         boosts: None,
@@ -1266,7 +1763,8 @@ fn built_in_struggle() -> MoveSource {
         secondaries: Vec::new(),
         side_condition: None,
         stalling_move: false,
-        self_switch: false,
+        self_switch: SelfSwitch::No,
+        item_effect: None,
         force_switch: false,
         terrain: None,
         charge_boosts: None,
@@ -1274,6 +1772,14 @@ fn built_in_struggle() -> MoveSource {
         semi_invulnerable: false,
         clear_side_conditions: None,
         clear_terrain: false,
+        substitute_blocks_boosts: false,
+        calls: None,
+        sleep_usable: false,
+        guard: false,
+        pseudo_weather: None,
+        fails_unless_target_attacks: false,
+        fails_against_type: None,
+        clear_user_volatiles: Vec::new(),
     }
 }
 
@@ -1360,10 +1866,48 @@ fn validate_move_effects(source: &MoveSource, damaging: bool) -> Result<(), DexE
             .secondaries
             .iter()
             .any(|secondary| secondary.volatile_status == Some(VolatileStatus::LockedMove));
+    let follow_me = source.volatile_status == Some(VolatileStatus::FollowMe);
+    let helping_hand = source.volatile_status == Some(VolatileStatus::HelpingHand);
+    if (follow_me && (damaging || source.target != MoveTarget::User))
+        || (helping_hand && (damaging || source.target != MoveTarget::AdjacentAlly))
+    {
+        return Err(DexError::invalid(
+            name,
+            "followme needs a status move at the user, helpinghand one at an adjacentAlly",
+        ));
+    }
+    let seeds_elsewhere = source
+        .secondaries
+        .iter()
+        .any(|secondary| secondary.volatile_status == Some(VolatileStatus::LeechSeed));
+    if seeds_elsewhere || (source.volatile_status == Some(VolatileStatus::LeechSeed) && damaging) {
+        return Err(DexError::invalid(
+            name,
+            "leechseed is only a status move's primary volatileStatus",
+        ));
+    }
+    if source.guard && (damaging || source.side_condition.is_none()) {
+        return Err(DexError::invalid(
+            name,
+            "guard needs a status move that sets a sideCondition",
+        ));
+    }
     if primary_or_secondary_lock {
         return Err(DexError::invalid(
             name,
             "lockedmove can only be a self.volatileStatus",
+        ));
+    }
+    if source.calls.is_some() && (damaging || source.target != MoveTarget::User) {
+        return Err(DexError::invalid(
+            name,
+            "a calling move must be a status move that targets its user",
+        ));
+    }
+    if source.substitute_blocks_boosts && (damaging || source.boosts.is_none()) {
+        return Err(DexError::invalid(
+            name,
+            "substituteBlocksBoosts needs a status move with boosts",
         ));
     }
     if damaging && source.terrain.is_some() {
@@ -1427,6 +1971,17 @@ fn validate_fraction(fraction: Fraction, owner: &str) -> Result<Fraction, DexErr
         ));
     }
     Ok(fraction)
+}
+
+/// [`resolve`] for an optional reference.
+fn resolve_optional<Id: Copy>(
+    ids: &NameMap<Id>,
+    kind: &'static str,
+    name: Option<&str>,
+    referenced_by: &str,
+) -> Result<Option<Id>, DexError> {
+    name.map(|name| resolve(ids, kind, name, referenced_by))
+        .transpose()
 }
 
 fn resolve<Id: Copy>(
@@ -1604,6 +2159,22 @@ mod tests {
             error,
             DexError::DuplicateName { kind: "type", .. }
         ));
+    }
+
+    #[test]
+    fn rejects_learnset_sources_outside_showdowns_notation() {
+        for source in ["9L0", "9L101", "9X", "10M", "L5", "9M1"] {
+            let json = format!(
+                r#"{{"types":[{{"name":"Fire"}}],"species":[{{"name":"Blob","types":["Fire"],
+                "baseStats":{{"hp":1,"atk":1,"def":1,"spa":1,"spd":1,"spe":1}},
+                "learnset":{{"Glow":["{source}"]}}}}],"moves":[{{"name":"Glow","type":"Fire",
+                "category":"Special","basePower":40,"accuracy":true,"pp":10}}]}}"#
+            );
+            assert!(
+                matches!(Dex::from_json(&json), Err(DexError::InvalidValue { .. })),
+                "{source} should be rejected"
+            );
+        }
     }
 
     #[test]

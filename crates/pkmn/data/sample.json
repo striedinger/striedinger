@@ -185,7 +185,8 @@
         "Fairy": 1,
         "Fighting": 1,
         "Ghost": 2,
-        "Psychic": 3
+        "Psychic": 3,
+        "prankster": 3
       }
     },
     {
@@ -379,6 +380,44 @@
   ],
   "species": [
     {
+      "name": "Emberkit",
+      "types": ["Fire"],
+      "baseStats": {
+        "hp": 45,
+        "atk": 55,
+        "def": 40,
+        "spa": 60,
+        "spd": 45,
+        "spe": 70
+      },
+      "learnset": {
+        "Pounce": ["9L1"],
+        "Ember Snap": ["9L1"],
+        "Blaze Burst": ["9L12"],
+        "Dizzy Dance": ["9E"],
+        "Rally Cry": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"]
+      },
+      "abilities": {
+        "0": "Kindling Heart",
+        "H": "Grit"
+      }
+    },
+    {
       "name": "Cindercub",
       "types": ["Fire"],
       "baseStats": {
@@ -388,6 +427,50 @@
         "spa": 85,
         "spd": 65,
         "spe": 95
+      },
+      "learnset": {
+        "Blaze Burst": ["9L6"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Ember Snap": ["9L1"],
+        "Glare Down": ["9M"],
+        "Haymaker": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Night Bite": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Scorch Veil": ["9L12"],
+        "Second Wind": ["9M"],
+        "Sow Caltrops": ["9M"],
+        "Stand-In": ["9M"],
+        "Sunlance": ["9T"],
+        "Sunny Call": ["9L18"],
+        "Swift Strike": ["9M"],
+        "Tail Flurry": ["9E"],
+        "Tremor": ["9M"]
+      },
+      "prevo": "Emberkit",
+      "evoLevel": 16,
+      "abilities": {
+        "0": "Kindling Heart",
+        "H": "Grit"
       }
     },
     {
@@ -400,6 +483,52 @@
         "spa": 85,
         "spd": 80,
         "spe": 60
+      },
+      "learnset": {
+        "Aqua Lunge": ["9L6"],
+        "Blizzard Breath": ["9M"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dizzy Dance": ["9T"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Frost Fang": ["9M"],
+        "Glare Down": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Mind Ground": ["9M"],
+        "Mind Pulse": ["9M"],
+        "Night Bite": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rain Call": ["9L12"],
+        "Raise Mirror Wall": ["9M"],
+        "Raise Prism Veil": ["9M"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Riptide": ["9L1"],
+        "Second Wind": ["9M"],
+        "Snow Call": ["9M"],
+        "Spin Clear": ["9E"],
+        "Stand-In": ["9M"],
+        "Swift Strike": ["9M"]
+      },
+      "abilities": {
+        "0": "Undertow Heart",
+        "1": "Rain Runner",
+        "H": "Cloudburst"
       }
     },
     {
@@ -412,6 +541,51 @@
         "spa": 60,
         "spd": 75,
         "spe": 55
+      },
+      "learnset": {
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Flit Strike": ["9M"],
+        "Glare Down": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Pincer Slash": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Sap Siphon": ["9L6"],
+        "Second Wind": ["9M"],
+        "Shell Charge": ["9E"],
+        "Sludge Spit": ["9M"],
+        "Sow Caltrops": ["9M"],
+        "Spin Clear": ["9T"],
+        "Spore Cloud": ["9L12"],
+        "Sprout Ground": ["9L18"],
+        "Stand-In": ["9M"],
+        "Sunlance": ["9L24"],
+        "Swift Strike": ["9M"],
+        "Thorn Volley": ["9L1"],
+        "Tremor": ["9M"],
+        "Venom Mist": ["9M"]
+      },
+      "abilities": {
+        "0": "Barbed Hide",
+        "H": "Steadfast"
       }
     },
     {
@@ -424,6 +598,56 @@
         "spa": 100,
         "spd": 70,
         "spe": 110
+      },
+      "learnset": {
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Clear Gust": ["9M"],
+        "Dizzy Dance": ["9T"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Flit Strike": ["9E"],
+        "Gale Dive": ["9M"],
+        "Glare Down": ["9M"],
+        "Glimmer Beam": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Mind Ground": ["9M"],
+        "Mind Pulse": ["9M"],
+        "Mist Ground": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Raise Mirror Wall": ["9M"],
+        "Raise Prism Veil": ["9M"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Second Wind": ["9M"],
+        "Sky Plunge": ["9M"],
+        "Stand-In": ["9M"],
+        "Static Ground": ["9L12"],
+        "Static Jolt": ["9L1"],
+        "Swift Strike": ["9M"],
+        "Tail Flurry": ["9T"],
+        "Tailwind Step": ["9M"],
+        "Volt Snare": ["9L6"],
+        "Wind Cutter": ["9M"]
+      },
+      "abilities": {
+        "0": "Static Coat",
+        "1": "Stormcatcher",
+        "H": "Live Wire"
       }
     },
     {
@@ -436,6 +660,53 @@
         "spa": 40,
         "spd": 60,
         "spe": 40
+      },
+      "learnset": {
+        "Alloy Ram": ["9M"],
+        "Blaze Burst": ["9M"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Ember Snap": ["9M"],
+        "Glare Down": ["9M"],
+        "Haymaker": ["9M"],
+        "Howl Away": ["9T"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Rockfall": ["9L6"],
+        "Sand Call": ["9L1"],
+        "Scatter Stones": ["9L12"],
+        "Scorch Veil": ["9M"],
+        "Second Wind": ["9M"],
+        "Shell Charge": ["9E"],
+        "Sow Caltrops": ["9L24"],
+        "Spin Clear": ["9T"],
+        "Stand-In": ["9M"],
+        "Sunny Call": ["9M"],
+        "Swift Strike": ["9M"],
+        "Tremor": ["9L18"]
+      },
+      "abilities": {
+        "0": "Hard Shell",
+        "1": "Steadfast",
+        "H": "Dust Devil"
       }
     },
     {
@@ -448,6 +719,53 @@
         "spa": 60,
         "spd": 65,
         "spe": 105
+      },
+      "learnset": {
+        "Alloy Ram": ["9M"],
+        "Brace Wall": ["9L54", "9M"],
+        "Chime Roulette": ["9M"],
+        "Clear Gust": ["9L60"],
+        "Dizzy Dance": ["9L42"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Flit Strike": ["9M"],
+        "Gale Dive": ["9L60"],
+        "Glare Down": ["9L48", "9M"],
+        "Howl Away": ["9L60", "9T"],
+        "Hunker Down": ["9L30", "9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Night Bite": ["9M"],
+        "Pincer Slash": ["9M"],
+        "Pounce": ["9L1", "9M"],
+        "Rally Cry": ["9L24", "9M"],
+        "Reckless Rush": ["9L12", "9M"],
+        "Second Wind": ["9L36", "9M"],
+        "Shell Charge": ["9L60"],
+        "Sky Plunge": ["9L60"],
+        "Spin Clear": ["9L60"],
+        "Stand-In": ["9L60", "9M"],
+        "Swift Strike": ["9L6", "9M"],
+        "Tail Flurry": ["9L18", "9E"],
+        "Tailwind Step": ["9L60"],
+        "Wind Cutter": ["9L60"]
+      },
+      "abilities": {
+        "0": "Featherfall",
+        "1": "Menace",
+        "H": "Overdrive"
       }
     },
     {
@@ -460,6 +778,51 @@
         "spa": 70,
         "spd": 70,
         "spe": 75
+      },
+      "learnset": {
+        "Aqua Lunge": ["9M"],
+        "Blizzard Breath": ["9L6"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Frenzy Claw": ["9E"],
+        "Frost Fang": ["9L1"],
+        "Glare Down": ["9M"],
+        "Howl Away": ["9T"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Night Bite": ["9L18"],
+        "Phantom Wail": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rain Call": ["9M"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Riptide": ["9M"],
+        "Second Wind": ["9M"],
+        "Shade Claw": ["9M"],
+        "Snow Call": ["9L12"],
+        "Sow Caltrops": ["9M"],
+        "Stand-In": ["9M"],
+        "Swift Strike": ["9M"],
+        "Tremor": ["9M"]
+      },
+      "abilities": {
+        "0": "Menace",
+        "H": "Grit"
       }
     },
     {
@@ -472,6 +835,56 @@
         "spa": 100,
         "spd": 90,
         "spe": 85
+      },
+      "learnset": {
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dizzy Dance": ["9E"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Glare Down": ["9M"],
+        "Glimmer Beam": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Mind Ground": ["9M"],
+        "Mind Pulse": ["9M"],
+        "Mist Ground": ["9M"],
+        "Phantom Wail": ["9L6"],
+        "Pounce": ["9M", "9L1"],
+        "Raise Mirror Wall": ["9M"],
+        "Raise Prism Veil": ["9M"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Sap Siphon": ["9M"],
+        "Second Wind": ["9M"],
+        "Shade Claw": ["9L1"],
+        "Sludge Spit": ["9L18"],
+        "Spore Cloud": ["9M"],
+        "Sprout Ground": ["9M"],
+        "Stand-In": ["9M"],
+        "Sunlance": ["9M"],
+        "Swift Strike": ["9M"],
+        "Thorn Volley": ["9M"],
+        "Venom Mist": ["9L12"],
+        "Volt Snare": ["9T"]
+      },
+      "abilities": {
+        "0": "Featherfall",
+        "1": "Mischief",
+        "H": "Loose Limbs"
       }
     },
     {
@@ -484,6 +897,52 @@
         "spa": 45,
         "spd": 75,
         "spe": 65
+      },
+      "learnset": {
+        "Alloy Ram": ["9L12"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Clear Gust": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Flit Strike": ["9L6"],
+        "Gale Dive": ["9M"],
+        "Glare Down": ["9M"],
+        "Haymaker": ["9M"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Pincer Slash": ["9L1"],
+        "Pounce": ["9M", "9L1"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Rockfall": ["9M"],
+        "Sand Call": ["9M"],
+        "Scatter Stones": ["9M"],
+        "Second Wind": ["9M"],
+        "Sky Plunge": ["9M"],
+        "Stand-In": ["9M"],
+        "Swift Strike": ["9M", "9E"],
+        "Tail Flurry": ["9T"],
+        "Tailwind Step": ["9M"],
+        "Wind Cutter": ["9M"]
+      },
+      "abilities": {
+        "0": "Hard Shell",
+        "1": "Grit",
+        "H": "Overdrive"
       }
     },
     {
@@ -496,6 +955,59 @@
         "spa": 105,
         "spd": 105,
         "spe": 70
+      },
+      "learnset": {
+        "Blaze Burst": ["9M"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Clear Gust": ["9T"],
+        "Dizzy Dance": ["9E"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Ember Snap": ["9M"],
+        "Glare Down": ["9M"],
+        "Glimmer Beam": ["9L1"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Mind Ground": ["9L30"],
+        "Mind Pulse": ["9L12"],
+        "Mist Ground": ["9L6"],
+        "Pounce": ["9M", "9L1"],
+        "Raise Mirror Wall": ["9L18"],
+        "Raise Prism Veil": ["9L24"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Sap Siphon": ["9M"],
+        "Scorch Veil": ["9M"],
+        "Second Wind": ["9M"],
+        "Spore Cloud": ["9M"],
+        "Sprout Ground": ["9M"],
+        "Stand-In": ["9M"],
+        "Static Ground": ["9M"],
+        "Static Jolt": ["9M"],
+        "Sunlance": ["9M"],
+        "Sunny Call": ["9M"],
+        "Swift Strike": ["9M"],
+        "Thorn Volley": ["9M"],
+        "Volt Snare": ["9M"]
+      },
+      "abilities": {
+        "0": "Purebred",
+        "1": "Mischief",
+        "H": "Loose Limbs"
       }
     },
     {
@@ -508,6 +1020,55 @@
         "spa": 60,
         "spd": 70,
         "spe": 85
+      },
+      "learnset": {
+        "Alloy Ram": ["9M"],
+        "Blaze Burst": ["9M"],
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Ember Snap": ["9M"],
+        "Frenzy Claw": ["9L18"],
+        "Glare Down": ["9M"],
+        "Howl Away": ["9T"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Rockfall": ["9M"],
+        "Sand Call": ["9M"],
+        "Scatter Stones": ["9M"],
+        "Scorch Veil": ["9M"],
+        "Second Wind": ["9M"],
+        "Shell Charge": ["9T"],
+        "Sow Caltrops": ["9L6"],
+        "Stand-In": ["9M"],
+        "Sunny Call": ["9M"],
+        "Swift Strike": ["9M"],
+        "Tail Flurry": ["9E"],
+        "Tail Toss": ["9L24"],
+        "Tremor": ["9L1"],
+        "Wyrm Fang": ["9L12"]
+      },
+      "abilities": {
+        "0": "Dust Devil",
+        "1": "Featherfall",
+        "H": "Menace"
       }
     },
     {
@@ -520,6 +1081,49 @@
         "spa": 45,
         "spd": 70,
         "spe": 85
+      },
+      "learnset": {
+        "Brace Wall": ["9M"],
+        "Chime Roulette": ["9M"],
+        "Dream Chatter": ["9M"],
+        "Echo Step": ["9M"],
+        "Glare Down": ["9M"],
+        "Haymaker": ["9L1"],
+        "Howl Away": ["9T"],
+        "Hunker Down": ["9M"],
+        "Lure Call": ["9M"],
+        "Cheer On": ["9M"],
+        "Rampart Wall": ["9M"],
+        "Twist Room": ["9M"],
+        "Ambush Strike": ["9M"],
+        "Drain Seed": ["9M"],
+        "Scatter Barbs": ["9M"],
+        "Weave Snare": ["9M"],
+        "Goad": ["9M"],
+        "Reprise": ["9M"],
+        "Seal Move": ["9M"],
+        "Swipe Away": ["9M"],
+        "Sleight": ["9M"],
+        "Relay": ["9M"],
+        "Night Bite": ["9M"],
+        "Pounce": ["9M", "9L1"],
+        "Rally Cry": ["9M"],
+        "Reckless Rush": ["9M"],
+        "Rockfall": ["9M"],
+        "Sand Call": ["9M"],
+        "Scatter Stones": ["9M"],
+        "Second Wind": ["9M"],
+        "Shell Charge": ["9E"],
+        "Sow Caltrops": ["9M"],
+        "Stand-In": ["9M"],
+        "Swift Strike": ["9M"],
+        "Tail Flurry": ["9T"],
+        "Tremor": ["9M"]
+      },
+      "abilities": {
+        "0": "Grit",
+        "1": "Steadfast",
+        "H": "Menace"
       }
     }
   ],
@@ -533,7 +1137,8 @@
       "pp": 35,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -546,7 +1151,8 @@
       "priority": 1,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -559,7 +1165,8 @@
       "recoil": [33, 100],
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -572,7 +1179,8 @@
       "multihit": [2, 5],
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -584,6 +1192,9 @@
       "target": "self",
       "boosts": {
         "atk": 2
+      },
+      "flags": {
+        "metronome": 1
       }
     },
     {
@@ -596,6 +1207,9 @@
       "boosts": {
         "def": 1,
         "spd": 1
+      },
+      "flags": {
+        "metronome": 1
       }
     },
     {
@@ -607,6 +1221,9 @@
       "target": "self",
       "boosts": {
         "spe": 2
+      },
+      "flags": {
+        "metronome": 1
       }
     },
     {
@@ -616,7 +1233,10 @@
       "accuracy": true,
       "pp": 5,
       "target": "self",
-      "heal": [1, 2]
+      "heal": [1, 2],
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Dizzy Dance",
@@ -626,7 +1246,8 @@
       "pp": 10,
       "volatileStatus": "confusion",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -639,7 +1260,8 @@
         "atk": -1
       },
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -651,7 +1273,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -674,7 +1297,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -685,7 +1309,8 @@
       "pp": 15,
       "status": "brn",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -695,7 +1320,10 @@
       "accuracy": true,
       "pp": 5,
       "target": "self",
-      "weather": "Sun"
+      "weather": "Sun",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Riptide",
@@ -705,7 +1333,8 @@
       "accuracy": 100,
       "pp": 15,
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -717,7 +1346,8 @@
       "pp": 10,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -727,7 +1357,10 @@
       "accuracy": true,
       "pp": 5,
       "target": "self",
-      "weather": "Rain"
+      "weather": "Rain",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Thorn Volley",
@@ -738,7 +1371,8 @@
       "pp": 20,
       "multihit": [2, 5],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -750,7 +1384,8 @@
       "pp": 10,
       "drain": [1, 2],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -761,7 +1396,8 @@
       "pp": 15,
       "status": "slp",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -778,7 +1414,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -790,7 +1427,8 @@
       "ignoreImmunity": false,
       "status": "par",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -802,7 +1440,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -829,8 +1468,10 @@
         }
       ],
       "flags": {
-        "protect": 1
-      }
+        "protect": 1,
+        "metronome": 1
+      },
+      "target": "allAdjacentFoes"
     },
     {
       "name": "Snow Call",
@@ -839,7 +1480,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "weather": "Snow"
+      "weather": "Snow",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Haymaker",
@@ -850,7 +1494,8 @@
       "pp": 5,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "self": {
         "boosts": {
@@ -867,7 +1512,8 @@
       "pp": 10,
       "status": "tox",
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -884,7 +1530,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -895,8 +1542,10 @@
       "accuracy": 100,
       "pp": 10,
       "flags": {
-        "protect": 1
-      }
+        "protect": 1,
+        "metronome": 1
+      },
+      "target": "allAdjacent"
     },
     {
       "name": "Sand Call",
@@ -905,7 +1554,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "weather": "Sandstorm"
+      "weather": "Sandstorm",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Gale Dive",
@@ -917,7 +1569,8 @@
       "recoil": [33, 100],
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -929,7 +1582,8 @@
       "pp": 15,
       "critRatio": 2,
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -948,7 +1602,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -961,7 +1616,8 @@
       "critRatio": 2,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -978,8 +1634,10 @@
         }
       ],
       "flags": {
-        "protect": 1
-      }
+        "protect": 1,
+        "metronome": 1
+      },
+      "target": "allAdjacentFoes"
     },
     {
       "name": "Shade Claw",
@@ -991,7 +1649,8 @@
       "critRatio": 2,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1010,7 +1669,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1022,7 +1682,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1040,7 +1701,8 @@
       "pp": 15,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1058,7 +1720,8 @@
       "pp": 25,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "secondaries": [
         {
@@ -1087,7 +1750,8 @@
         }
       ],
       "flags": {
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       }
     },
     {
@@ -1099,7 +1763,10 @@
       "priority": 4,
       "target": "self",
       "stallingMove": true,
-      "volatileStatus": "protect"
+      "volatileStatus": "protect",
+      "flags": {
+        "failcopycat": 1
+      }
     },
     {
       "name": "Stand-In",
@@ -1108,7 +1775,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "volatileStatus": "substitute"
+      "volatileStatus": "substitute",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Scatter Stones",
@@ -1117,7 +1787,10 @@
       "accuracy": true,
       "pp": 20,
       "target": "foeSide",
-      "sideCondition": "Jagged Stones"
+      "sideCondition": "Jagged Stones",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Sow Caltrops",
@@ -1126,7 +1799,10 @@
       "accuracy": true,
       "pp": 20,
       "target": "foeSide",
-      "sideCondition": "Caltrops"
+      "sideCondition": "Caltrops",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Raise Mirror Wall",
@@ -1135,7 +1811,10 @@
       "accuracy": true,
       "pp": 20,
       "target": "allySide",
-      "sideCondition": "Mirror Wall"
+      "sideCondition": "Mirror Wall",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Raise Prism Veil",
@@ -1144,7 +1823,10 @@
       "accuracy": true,
       "pp": 30,
       "target": "allySide",
-      "sideCondition": "Prism Veil"
+      "sideCondition": "Prism Veil",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Flit Strike",
@@ -1155,7 +1837,8 @@
       "pp": 20,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "selfSwitch": true
     },
@@ -1166,7 +1849,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Charged Field"
+      "terrain": "Charged Field",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Sprout Ground",
@@ -1175,7 +1861,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Overgrowth"
+      "terrain": "Overgrowth",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Mist Ground",
@@ -1184,7 +1873,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Mist Field"
+      "terrain": "Mist Field",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Mind Ground",
@@ -1193,7 +1885,10 @@
       "accuracy": true,
       "pp": 10,
       "target": "self",
-      "terrain": "Mind Field"
+      "terrain": "Mind Field",
+      "flags": {
+        "metronome": 1
+      }
     },
     {
       "name": "Frenzy Claw",
@@ -1204,11 +1899,13 @@
       "pp": 10,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "self": {
         "volatileStatus": "lockedmove"
-      }
+      },
+      "target": "randomNormal"
     },
     {
       "name": "Sunlance",
@@ -1219,7 +1916,8 @@
       "pp": 10,
       "flags": {
         "charge": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "chargeSkippedIn": ["Sun"]
     },
@@ -1233,7 +1931,8 @@
       "flags": {
         "contact": 1,
         "charge": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "semiInvulnerable": true
     },
@@ -1247,7 +1946,8 @@
       "flags": {
         "contact": 1,
         "charge": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "chargeBoosts": {
         "def": 1
@@ -1261,7 +1961,8 @@
       "pp": 20,
       "priority": -6,
       "flags": {
-        "bypasssub": 1
+        "bypasssub": 1,
+        "metronome": 1
       },
       "forceSwitch": true
     },
@@ -1275,7 +1976,8 @@
       "priority": -6,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "forceSwitch": true
     },
@@ -1288,11 +1990,13 @@
       "pp": 40,
       "flags": {
         "contact": 1,
-        "protect": 1
+        "protect": 1,
+        "metronome": 1
       },
       "clearSideConditions": {
-        "user": ["Jagged Stones", "Caltrops"]
+        "user": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"]
       },
+      "clearUserVolatiles": ["leechseed"],
       "secondaries": [
         {
           "chance": 100,
@@ -1312,16 +2016,242 @@
       "pp": 15,
       "flags": {
         "protect": 1,
-        "bypasssub": 1
+        "bypasssub": 1,
+        "metronome": 1
       },
       "boosts": {
         "evasion": -1
       },
       "clearSideConditions": {
-        "user": ["Jagged Stones", "Caltrops"],
-        "target": ["Jagged Stones", "Caltrops", "Mirror Wall", "Prism Veil"]
+        "user": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare"],
+        "target": ["Jagged Stones", "Caltrops", "Barbs", "Silk Snare", "Mirror Wall", "Prism Veil"]
       },
-      "clearTerrain": true
+      "clearTerrain": true,
+      "substituteBlocksBoosts": true
+    },
+    {
+      "name": "Chime Roulette",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "flags": {
+        "nosleeptalk": 1,
+        "failcopycat": 1,
+        "failencore": 1
+      },
+      "calls": "random"
+    },
+    {
+      "name": "Dream Chatter",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "target": "self",
+      "flags": {
+        "nosleeptalk": 1,
+        "failcopycat": 1,
+        "failencore": 1
+      },
+      "sleepUsable": true,
+      "calls": "ownMove"
+    },
+    {
+      "name": "Echo Step",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "self",
+      "flags": {
+        "nosleeptalk": 1,
+        "failcopycat": 1,
+        "failencore": 1
+      },
+      "calls": "lastMove"
+    },
+    {
+      "name": "Lure Call",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "priority": 2,
+      "target": "self",
+      "volatileStatus": "followme",
+      "flags": {
+        "failcopycat": 1
+      }
+    },
+    {
+      "name": "Cheer On",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "priority": 5,
+      "target": "adjacentAlly",
+      "volatileStatus": "helpinghand",
+      "flags": {
+        "bypasssub": 1,
+        "failcopycat": 1
+      }
+    },
+    {
+      "name": "Rampart Wall",
+      "type": "Rock",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 10,
+      "priority": 3,
+      "target": "allySide",
+      "sideCondition": "Rampart",
+      "guard": true
+    },
+    {
+      "name": "Twist Room",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 5,
+      "priority": -7,
+      "target": "self",
+      "pseudoWeather": "Twisted Room",
+      "flags": {
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Ambush Strike",
+      "type": "Dark",
+      "category": "Physical",
+      "basePower": 70,
+      "accuracy": 100,
+      "pp": 5,
+      "priority": 1,
+      "failsUnlessTargetAttacks": true,
+      "flags": {
+        "contact": 1,
+        "protect": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Drain Seed",
+      "type": "Grass",
+      "category": "Status",
+      "accuracy": 90,
+      "pp": 10,
+      "volatileStatus": "leechseed",
+      "failsAgainstType": "Grass",
+      "flags": {
+        "protect": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Scatter Barbs",
+      "type": "Poison",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Barbs",
+      "flags": {
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Weave Snare",
+      "type": "Bug",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 20,
+      "target": "foeSide",
+      "sideCondition": "Silk Snare",
+      "flags": {
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Goad",
+      "type": "Dark",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 20,
+      "volatileStatus": "taunt",
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Reprise",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 5,
+      "volatileStatus": "encore",
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1,
+        "metronome": 1,
+        "failencore": 1
+      }
+    },
+    {
+      "name": "Seal Move",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 20,
+      "volatileStatus": "disable",
+      "flags": {
+        "protect": 1,
+        "bypasssub": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Swipe Away",
+      "type": "Dark",
+      "category": "Physical",
+      "basePower": 65,
+      "accuracy": 100,
+      "pp": 20,
+      "itemEffect": "knockOff",
+      "flags": {
+        "contact": 1,
+        "protect": 1,
+        "metronome": 1
+      }
+    },
+    {
+      "name": "Sleight",
+      "type": "Psychic",
+      "category": "Status",
+      "accuracy": 100,
+      "pp": 10,
+      "itemEffect": "swap",
+      "flags": {
+        "protect": 1,
+        "failcopycat": 1
+      }
+    },
+    {
+      "name": "Relay",
+      "type": "Normal",
+      "category": "Status",
+      "accuracy": true,
+      "pp": 40,
+      "target": "self",
+      "selfSwitch": "copyvolatile",
+      "flags": {
+        "metronome": 1
+      }
     }
   ],
   "abilities": [
@@ -1459,7 +2389,10 @@
       "name": "Purebred",
       "handlers": [
         {
-          "modifyStab": { "modifier": [2, 1], "teraModifier": [9, 4] }
+          "modifyStab": {
+            "modifier": [2, 1],
+            "teraModifier": [9, 4]
+          }
         }
       ]
     },
@@ -1530,6 +2463,18 @@
       "handlers": [
         {
           "startTerrain": "Charged Field"
+        }
+      ]
+    },
+    {
+      "name": "Mischief",
+      "handlers": [
+        {
+          "modifyPriority": {
+            "amount": 1,
+            "conditions": [{ "category": "Status" }],
+            "prankster": true
+          }
         }
       ]
     }
@@ -1683,17 +2628,44 @@
     {
       "name": "Mirror Wall",
       "duration": 5,
+      "residualOrder": 26,
+      "residualSubOrder": 1,
       "damageModifier": {
         "category": "Physical",
-        "modifier": [1, 2]
+        "modifier": [1, 2],
+        "doublesModifier": [2732, 4096]
       }
     },
     {
       "name": "Prism Veil",
       "duration": 5,
+      "residualOrder": 26,
+      "residualSubOrder": 2,
       "damageModifier": {
         "category": "Special",
-        "modifier": [1, 2]
+        "modifier": [1, 2],
+        "doublesModifier": [2732, 4096]
+      }
+    },
+    {
+      "name": "Rampart",
+      "duration": 1,
+      "blocksSpreadMoves": true
+    },
+    {
+      "name": "Barbs",
+      "switchInStatus": {
+        "layers": ["psn", "tox"],
+        "groundedType": "Ground",
+        "absorbedBy": "Poison",
+        "ignoredBy": ["Steel"]
+      }
+    },
+    {
+      "name": "Silk Snare",
+      "switchInBoosts": {
+        "boosts": { "spe": -1 },
+        "groundedType": "Ground"
       }
     }
   ],
@@ -1712,7 +2684,14 @@
       "basePowerModifiers": {
         "Grass": [5325, 4096]
       },
-      "residualHeal": [1, 16]
+      "residualHeal": [1, 16],
+      "moveBasePowerModifiers": [
+        {
+          "move": "Tremor",
+          "modifier": [1, 2],
+          "grounded": "target"
+        }
+      ]
     },
     {
       "name": "Mist Field",
@@ -1730,6 +2709,16 @@
         "Psychic": [5325, 4096]
       },
       "blocksPriority": true
+    }
+  ],
+  "pseudoWeathers": [
+    {
+      "name": "Twisted Room",
+      "duration": 5,
+      "reversesSpeed": true,
+      "endsWhenRepeated": true,
+      "residualOrder": 27,
+      "residualSubOrder": 1
     }
   ]
 }

@@ -7,6 +7,7 @@ This pnpm/Turborepo workspace contains:
 - `crates/murmur-core`: Murmur's Rust core: audio, local speech-to-text and LLM cleanup.
 - `crates/murmur-bindgen`: generates Murmur's Swift bindings from the compiled core.
 - `crates/pkmn`: a deterministic, data-driven creature battle engine written in Rust.
+- `apps/pkmn-oracle`: records reference battles from Pokémon Showdown for pkmn's differential test.
 - `packages/i18n`: framework-independent locale detection, catalog composition, and translation helpers.
 - `packages/ui`: shared shadcn components, Tailwind CSS 4 theme tokens, and tweakcn-compatible theme presets.
 

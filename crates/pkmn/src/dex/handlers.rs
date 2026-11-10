@@ -116,6 +116,18 @@ pub enum HandlerSource {
     /// `onAfterMoveSecondarySelf`: the holder loses this fraction of its max HP after a
     /// damaging move, like Life Orb.
     AfterMoveRecoil(Fraction),
+    /// `onModifyPriority`: changes the priority of the holder's moves, like Prankster.
+    ModifyPriority {
+        /// Added to the move's priority.
+        amount: i8,
+        /// Conditions that must all hold, like `{"category": "Status"}`.
+        #[serde(default)]
+        conditions: Vec<ConditionSource>,
+        /// Marks the move `pranksterBoosted`, as Prankster does: it then fails against foes
+        /// whose type lists `prankster` as an immunity in `damageTaken`, like Dark.
+        #[serde(default)]
+        prankster: bool,
+    },
 }
 
 /// A modifier condition, referencing types and weather by name.
@@ -229,6 +241,15 @@ pub enum Handler {
     CureStatus,
     /// See [`HandlerSource::AfterMoveRecoil`].
     AfterMoveRecoil(Fraction),
+    /// See [`HandlerSource::ModifyPriority`].
+    ModifyPriority {
+        /// Added to the move's priority.
+        amount: i8,
+        /// Conditions that must all hold.
+        conditions: Vec<Condition>,
+        /// Whether the move becomes `pranksterBoosted`.
+        prankster: bool,
+    },
 }
 
 /// One bit per handler kind, so the engine can skip creatures with nothing to contribute.
@@ -268,6 +289,8 @@ impl HandlerMask {
     pub const UPDATE: Self = Self(1 << 14);
     /// `AfterMoveRecoil`.
     pub const AFTER_MOVE: Self = Self(1 << 15);
+    /// `ModifyPriority`.
+    pub const MODIFY_PRIORITY: Self = Self(1 << 16);
 
     /// Whether any kind in `other` is present.
     #[must_use]
@@ -307,6 +330,7 @@ impl Handler {
             Self::EndureFromFull => HandlerMask::DAMAGE,
             Self::HealAtThreshold { .. } | Self::CureStatus => HandlerMask::UPDATE,
             Self::AfterMoveRecoil(_) => HandlerMask::AFTER_MOVE,
+            Self::ModifyPriority { .. } => HandlerMask::MODIFY_PRIORITY,
         }
     }
 }
@@ -375,6 +399,66 @@ impl Dex {
     fn compile_handler(&self, source: &HandlerSource, owner: &str) -> Result<Handler, DexError> {
         let modifier =
             |fraction: &Fraction| validate_fraction(*fraction, owner).map(Fraction::to_modifier);
+        let conditions =
+            |conditions: &[ConditionSource]| self.compile_conditions(conditions, owner);
+        Ok(match source {
+            HandlerSource::ModifyStat {
+                stat,
+                modifier: value,
+                conditions: when,
+            } => {
+                if *stat == Stat::Hp {
+                    return Err(DexError::invalid(owner, "modifyStat cannot change HP"));
+                }
+                Handler::ModifyStat {
+                    stat: *stat,
+                    modifier: modifier(value)?,
+                    conditions: conditions(when)?,
+                }
+            }
+            HandlerSource::BasePower {
+                modifier: value,
+                conditions: when,
+            } => Handler::BasePower {
+                modifier: modifier(value)?,
+                conditions: conditions(when)?,
+            },
+            HandlerSource::ModifyDamage {
+                modifier: value,
+                conditions: when,
+            } => Handler::ModifyDamage {
+                modifier: modifier(value)?,
+                conditions: conditions(when)?,
+            },
+            HandlerSource::SourceModifyDamage {
+                modifier: value,
+                conditions: when,
+            } => Handler::SourceModifyDamage {
+                modifier: modifier(value)?,
+                conditions: conditions(when)?,
+            },
+            HandlerSource::ModifyStab {
+                modifier: value,
+                tera_modifier,
+            } => Handler::ModifyStab {
+                modifier: modifier(value)?,
+                tera_modifier: modifier(tera_modifier.as_ref().unwrap_or(value))?,
+            },
+            HandlerSource::ModifyPriority {
+                amount,
+                conditions: when,
+                prankster,
+            } => self.compile_modify_priority(*amount, when, *prankster, owner)?,
+            other => self.compile_effect_handler(other, owner)?,
+        })
+    }
+
+    /// The handlers that do something rather than scale a number.
+    fn compile_effect_handler(
+        &self,
+        source: &HandlerSource,
+        owner: &str,
+    ) -> Result<Handler, DexError> {
         let fraction = |fraction: &Fraction| validate_fraction(*fraction, owner);
         let boosts = |boosts: &Boosts| {
             if boosts.is_empty() {
@@ -387,48 +471,6 @@ impl Dex {
             }
         };
         Ok(match source {
-            HandlerSource::ModifyStat {
-                stat,
-                modifier: value,
-                conditions,
-            } => {
-                if *stat == Stat::Hp {
-                    return Err(DexError::invalid(owner, "modifyStat cannot change HP"));
-                }
-                Handler::ModifyStat {
-                    stat: *stat,
-                    modifier: modifier(value)?,
-                    conditions: self.compile_conditions(conditions, owner)?,
-                }
-            }
-            HandlerSource::BasePower {
-                modifier: value,
-                conditions,
-            } => Handler::BasePower {
-                modifier: modifier(value)?,
-                conditions: self.compile_conditions(conditions, owner)?,
-            },
-            HandlerSource::ModifyDamage {
-                modifier: value,
-                conditions,
-            } => Handler::ModifyDamage {
-                modifier: modifier(value)?,
-                conditions: self.compile_conditions(conditions, owner)?,
-            },
-            HandlerSource::SourceModifyDamage {
-                modifier: value,
-                conditions,
-            } => Handler::SourceModifyDamage {
-                modifier: modifier(value)?,
-                conditions: self.compile_conditions(conditions, owner)?,
-            },
-            HandlerSource::ModifyStab {
-                modifier: value,
-                tera_modifier,
-            } => Handler::ModifyStab {
-                modifier: modifier(value)?,
-                tera_modifier: modifier(tera_modifier.as_ref().unwrap_or(value))?,
-            },
             HandlerSource::IgnoreBurnPenalty => Handler::IgnoreBurnPenalty,
             HandlerSource::Immunity(type_name) => {
                 Handler::Immunity(self.resolve_type(type_name, owner)?)
@@ -472,6 +514,32 @@ impl Dex {
             },
             HandlerSource::CureStatus => Handler::CureStatus,
             HandlerSource::AfterMoveRecoil(value) => Handler::AfterMoveRecoil(fraction(value)?),
+            HandlerSource::ModifyStat { .. }
+            | HandlerSource::BasePower { .. }
+            | HandlerSource::ModifyDamage { .. }
+            | HandlerSource::SourceModifyDamage { .. }
+            | HandlerSource::ModifyStab { .. }
+            | HandlerSource::ModifyPriority { .. } => self.compile_handler(source, owner)?,
+        })
+    }
+
+    fn compile_modify_priority(
+        &self,
+        amount: i8,
+        conditions: &[ConditionSource],
+        prankster: bool,
+        owner: &str,
+    ) -> Result<Handler, DexError> {
+        if amount == 0 {
+            return Err(DexError::invalid(
+                owner,
+                "modifyPriority needs a non-zero amount",
+            ));
+        }
+        Ok(Handler::ModifyPriority {
+            amount,
+            conditions: self.compile_conditions(conditions, owner)?,
+            prankster,
         })
     }
 

@@ -3,6 +3,10 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  # Pokémon Showdown's server and build tooling; pkmn's oracle only runs its prebuilt simulator.
+  better-sqlite3: false
+  esbuild: false
+  sqlite3: false
   # Transformers.js runs in the browser here, so its Node.js native bindings are never built.
   onnxruntime-node: false
   protobufjs: false

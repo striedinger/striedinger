@@ -37,6 +37,40 @@ pub struct DexSource {
     /// Terrains.
     #[serde(default)]
     pub terrains: Vec<TerrainSource>,
+    /// Field-wide conditions beside weather and terrain, like Trick Room (Showdown's
+    /// `pseudoWeather`).
+    #[serde(default)]
+    pub pseudo_weathers: Vec<PseudoWeatherSource>,
+}
+
+/// A field-wide condition beside weather and terrain (Showdown's `pseudoWeather`).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PseudoWeatherSource {
+    /// Display name, also used to reference the condition.
+    pub name: String,
+    /// Turns it lasts.
+    #[serde(default = "default_terrain_duration")]
+    pub duration: u8,
+    /// Slower creatures act first, like Trick Room: action speed becomes 10000 minus speed.
+    #[serde(default)]
+    pub reverses_speed: bool,
+    /// Setting it again ends it, like Trick Room (Showdown's `onFieldRestart`); otherwise the
+    /// move fails.
+    #[serde(default)]
+    pub ends_when_repeated: bool,
+    /// Showdown's `onFieldResidualOrder`; without one, it ends among the effects that only
+    /// count down.
+    #[serde(default)]
+    pub residual_order: Option<u8>,
+    /// Showdown's `onFieldResidualSubOrder`; defaults to 5, Showdown's default for field
+    /// conditions.
+    #[serde(default = "default_field_residual_sub_order")]
+    pub residual_sub_order: u8,
+}
+
+fn default_field_residual_sub_order() -> u8 {
+    5
 }
 
 /// Side conditions a move removes.
@@ -81,6 +115,33 @@ pub struct TerrainSource {
     /// Moves with positive priority fail against grounded targets.
     #[serde(default)]
     pub blocks_priority: bool,
+    /// Base power multipliers for particular moves, like Grassy Terrain halving Earthquake
+    /// against a grounded target.
+    #[serde(default)]
+    pub move_base_power_modifiers: Vec<TerrainMoveModifierSource>,
+}
+
+/// A terrain's base power multiplier for one move.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TerrainMoveModifierSource {
+    /// The move, by name.
+    #[serde(rename = "move")]
+    pub move_name: String,
+    /// The multiplier.
+    pub modifier: Fraction,
+    /// Who must be grounded for it to apply.
+    pub grounded: Grounded,
+}
+
+/// Which creature a terrain effect needs on the ground.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Grounded {
+    /// The move's user, like Expanding Force.
+    User,
+    /// The move's target, like Grassy Terrain's halving of Earthquake.
+    Target,
 }
 
 fn default_terrain_duration() -> u8 {
@@ -99,9 +160,31 @@ pub struct SideConditionSource {
     /// Damage to each creature that switches in on this side, like Stealth Rock or Spikes.
     #[serde(default)]
     pub switch_in_damage: Option<SwitchInDamageSource>,
+    /// A status for each creature that switches in on this side, like Toxic Spikes.
+    #[serde(default)]
+    pub switch_in_status: Option<SwitchInStatusSource>,
+    /// Stat stages for each creature that switches in on this side, like Sticky Web.
+    #[serde(default)]
+    pub switch_in_boosts: Option<SwitchInBoostsSource>,
     /// Halves (or otherwise scales) damage of one category against this side, like Reflect.
     #[serde(default)]
     pub damage_modifier: Option<ScreenSource>,
+    /// Showdown's `onSideResidualSubOrder`, which places the countdown among others at
+    /// residual order 26: Reflect is 1, Light Screen 2. Defaults to 4, Showdown's default for
+    /// side conditions.
+    #[serde(default = "default_side_residual_sub_order")]
+    pub residual_sub_order: u8,
+    /// Showdown's `onSideResidualOrder`, like 26 for screens. Without one, a timed condition
+    /// ends among the effects that only count down, after every ordered handler.
+    #[serde(default)]
+    pub residual_order: Option<u8>,
+    /// Spread moves fail against creatures on this side, like Wide Guard.
+    #[serde(default)]
+    pub blocks_spread_moves: bool,
+}
+
+fn default_side_residual_sub_order() -> u8 {
+    4
 }
 
 /// Damage a hazard deals to a creature switching in.
@@ -120,6 +203,35 @@ pub struct SwitchInDamageSource {
     pub grounded_type: Option<String>,
 }
 
+/// A status a hazard inflicts on a creature switching in, like Toxic Spikes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SwitchInStatusSource {
+    /// The status by layer count: setting the hazard again adds a layer, up to this list's
+    /// length.
+    pub layers: Vec<Status>,
+    /// Only grounded creatures are affected; see [`SwitchInDamageSource::grounded_type`].
+    #[serde(default)]
+    pub grounded_type: Option<String>,
+    /// A grounded creature of this type removes the hazard instead, like a Poison type.
+    #[serde(default)]
+    pub absorbed_by: Option<String>,
+    /// Creatures of these types are skipped, like Steel.
+    #[serde(default)]
+    pub ignored_by: Vec<String>,
+}
+
+/// Stat stages a hazard gives a creature switching in, like Sticky Web.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SwitchInBoostsSource {
+    /// The stages.
+    pub boosts: Boosts,
+    /// Only grounded creatures are affected; see [`SwitchInDamageSource::grounded_type`].
+    #[serde(default)]
+    pub grounded_type: Option<String>,
+}
+
 /// A screen's damage reduction.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -128,6 +240,10 @@ pub struct ScreenSource {
     pub category: MoveCategory,
     /// The multiplier for non-critical hits.
     pub modifier: Fraction,
+    /// The multiplier in doubles, where Showdown's Reflect is ×2732/4096; defaults to
+    /// `modifier`.
+    #[serde(default)]
+    pub doubles_modifier: Option<Fraction>,
 }
 
 /// A type, described like Showdown's `TypeChart` entries: how much damage it takes.
@@ -210,6 +326,23 @@ pub struct SpeciesSource {
     pub types: Vec<String>,
     /// Base stats.
     pub base_stats: StatTable,
+    /// Showdown's `learnset`: each move the species can learn, by name, with how it learns it,
+    /// in Showdown's source notation: a generation, then `L` and a level (level-up), `M`
+    /// (machine), `T` (tutor), `E` (egg), or `S` and an index (event), like `"9L15"` or
+    /// `"9M"`. Without one, [`PokemonSet::validate`](crate::PokemonSet::validate) allows any
+    /// move.
+    #[serde(default)]
+    pub learnset: Option<BTreeMap<String, Vec<String>>>,
+    /// Showdown's `abilities`: the abilities it may have, by slot (`0`, `1`, `H` for hidden,
+    /// `S` for special). Without them, any ability is allowed.
+    #[serde(default)]
+    pub abilities: Option<BTreeMap<String, String>>,
+    /// The species it evolves from, whose learnset it inherits (Showdown's `prevo`).
+    #[serde(default)]
+    pub prevo: Option<String>,
+    /// The level it evolves at, which a set of it must reach (Showdown's `evoLevel`).
+    #[serde(default)]
+    pub evo_level: Option<u8>,
 }
 
 /// A move, in the shape of Showdown's move data.
@@ -290,15 +423,35 @@ pub struct MoveSource {
     /// used on consecutive turns.
     #[serde(default)]
     pub stalling_move: bool,
-    /// After the move works, the user switches out, like U-turn.
+    /// After the move works, the user switches out, like U-turn; `"copyvolatile"` also passes
+    /// its stat stages and volatile statuses to the replacement, like Baton Pass.
     #[serde(default)]
-    pub self_switch: bool,
+    pub self_switch: SelfSwitch,
+    /// What the move does with held items, like Knock Off or Trick (code in Showdown's move
+    /// callbacks).
+    #[serde(default)]
+    pub item_effect: Option<ItemEffect>,
     /// After the move works, the target is dragged out for a random replacement, like Roar.
     #[serde(default)]
     pub force_switch: bool,
     /// A terrain, by name, that the move sets.
     #[serde(default)]
     pub terrain: Option<String>,
+    /// A pseudo-weather, by name, that the move sets, like Trick Room.
+    #[serde(default)]
+    pub pseudo_weather: Option<String>,
+    /// Fails unless the target is about to use a damaging move this turn, like Sucker Punch
+    /// (code in Showdown's `onTry`).
+    #[serde(default)]
+    pub fails_unless_target_attacks: bool,
+    /// Targets of this type are immune, like Grass against Leech Seed (code in Showdown's
+    /// `onTryImmunity`).
+    #[serde(default)]
+    pub fails_against_type: Option<String>,
+    /// Volatile statuses removed from the user after the move works, like Rapid Spin's Leech
+    /// Seed (code in Showdown's `onAfterHit`).
+    #[serde(default)]
+    pub clear_user_volatiles: Vec<VolatileStatus>,
     /// Stat stages the user gains on a `charge` move's first turn, like Skull Bash.
     #[serde(default)]
     pub charge_boosts: Option<Boosts>,
@@ -314,6 +467,87 @@ pub struct MoveSource {
     /// Ends the terrain after the move works, like Defog.
     #[serde(default)]
     pub clear_terrain: bool,
+    /// A substitute blocks the move's primary `boosts` even when the move bypasses it, like
+    /// Defog's evasion drop (code in Showdown's `onHit`).
+    #[serde(default)]
+    pub substitute_blocks_boosts: bool,
+    /// The move uses another move instead (code in Showdown's `onHit`, marked `callsMove`).
+    #[serde(default)]
+    pub calls: Option<CallsMove>,
+    /// The move can be used while asleep, like Sleep Talk.
+    #[serde(default)]
+    pub sleep_usable: bool,
+    /// A guard like Wide Guard: fails unless another creature will still act this turn, and
+    /// counts toward the user's consecutive Protect-like moves (Showdown's `onTry` and
+    /// `stall`).
+    #[serde(default)]
+    pub guard: bool,
+}
+
+/// What a move does with held items.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ItemEffect {
+    /// ×1.5 base power against a target holding an item, which the hit then removes, like
+    /// Knock Off (Showdown's `onBasePower` and `onAfterHit`).
+    KnockOff,
+    /// The user and the target trade items, like Trick; fails if neither holds one
+    /// (Showdown's `onHit`).
+    Swap,
+}
+
+/// Showdown's `selfSwitch`: `true`, or `"copyvolatile"`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SelfSwitch {
+    /// The user stays in.
+    #[default]
+    No,
+    /// The user switches out.
+    Yes,
+    /// The user switches out, passing its stat stages and volatile statuses.
+    CopyVolatile,
+}
+
+impl Serialize for SelfSwitch {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::No => serializer.serialize_bool(false),
+            Self::Yes => serializer.serialize_bool(true),
+            Self::CopyVolatile => serializer.serialize_str("copyvolatile"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for SelfSwitch {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Written {
+            Switches(bool),
+            Kind(String),
+        }
+        match Written::deserialize(deserializer)? {
+            Written::Switches(false) => Ok(Self::No),
+            Written::Switches(true) => Ok(Self::Yes),
+            Written::Kind(kind) if kind == "copyvolatile" => Ok(Self::CopyVolatile),
+            Written::Kind(kind) => Err(serde::de::Error::custom(format!(
+                "selfSwitch must be true, false, or \"copyvolatile\", not {kind:?}"
+            ))),
+        }
+    }
+}
+
+/// Which move a calling move uses.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CallsMove {
+    /// A random move with the `metronome` flag, from the whole dex, like Metronome.
+    Random,
+    /// A random move of the user's own, other than `nosleeptalk` and `charge` moves; it works
+    /// only while the user sleeps, like Sleep Talk.
+    OwnMove,
+    /// The last move anyone used, unless it is `failcopycat`, like Copycat.
+    LastMove,
 }
 
 fn default_crit_ratio() -> u8 {
@@ -346,6 +580,18 @@ pub struct MoveFlags {
     /// The move ignores a substitute, like sound moves.
     #[serde(default, deserialize_with = "deserialize_flag")]
     pub bypasssub: bool,
+    /// Metronome can call the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub metronome: bool,
+    /// Sleep Talk cannot call the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub nosleeptalk: bool,
+    /// Copycat fails instead of copying the move.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub failcopycat: bool,
+    /// Encore fails against a creature whose last move this was.
+    #[serde(default, deserialize_with = "deserialize_flag")]
+    pub failencore: bool,
 }
 
 /// Effects on the move's user.

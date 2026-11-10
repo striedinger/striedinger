@@ -25,7 +25,9 @@ pub mod dex;
 pub mod prng;
 pub mod stats;
 
-pub use battle::{Battle, BattleState, Choice, Event, Outcome, PokemonSet, Request, SideId};
+pub use battle::{
+    Battle, BattleState, Choice, Event, GameType, Outcome, PokemonSet, Position, Request, SideId,
+};
 pub use dex::{Dex, DexSource};
 
 /// A small original content pack with the full type chart, four weathers, and sample species,
