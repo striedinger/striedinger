@@ -2,9 +2,6 @@
   "name": "web",
   "version": "0.0.0",
   "private": true,
-  "engines": {
-    "node": ">=26.13.0 <27"
-  },
   "scripts": {
     "build": "next typegen && tsrs --noEmit && next build",
     "dev": "next dev --experimental-https",
@@ -43,5 +40,8 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=26.13.0 <27"
   }
 }

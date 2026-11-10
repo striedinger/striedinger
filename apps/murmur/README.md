@@ -6,12 +6,12 @@ run on your machine. Nothing goes to the cloud.
 
 ## How to use it
 
-| Action | What happens |
-|---|---|
-| Hold **Right ⌥** | Push-to-talk in the current mode; release to paste |
-| Double-tap **Right ⌥** | Hands-free; tap once more to finish |
+| Action                                | What happens                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Hold **Right ⌥**                      | Push-to-talk in the current mode; release to paste                                       |
+| Double-tap **Right ⌥**                | Hands-free; tap once more to finish                                                      |
 | Select text, hold **Right ⌥ + Shift** | Speak an edit ("make this shorter", "translate to Spanish"); the selection gets replaced |
-| **Esc** while recording | Cancel |
+| **Esc** while recording               | Cancel                                                                                   |
 
 Choose the mode in the menu bar: **Raw**, **Clean up**, **Email** or **Bullet list**.
 You can add your own modes in `config.toml`.
@@ -68,6 +68,7 @@ open build/Murmur.app
 ```
 
 On first launch, grant:
+
 1. **Microphone**: you'll see a prompt.
 2. **Accessibility**: System Settings → Privacy & Security → Accessibility → enable Murmur.
    This is needed for the global hotkey and for pasting. Murmur picks it up within 2 s,
@@ -85,6 +86,7 @@ first run. Use **Menu bar → Open Settings…** and then **Reload Settings** af
 - `[[app_rules]]`: a tone per app (bundle id). Find an app's id with
   `osascript -e 'id of app "Slack"'`
 - `llm.enabled = false`: run raw speech-to-text only (lighter and faster)
+- `MURMUR_GPU_LAYERS=0` (environment variable): run the cleanup model on the CPU only, without editing the config. Useful for diagnosing GPU problems
 - To try other LLMs, drop any GGUF instruct model into `models/` and point `llm.model_path` at it.
   3–8B models are a good balance. Smaller ones (1–2B) are faster but follow instructions less reliably.
 
@@ -118,8 +120,8 @@ these jobs, so forks never get the SDK.
    - from a Mac: `xtool sdk build /Applications/Xcode.app out --arch x86_64` (or `arm64`
      for an ARM Linux host), then copy `out/darwin.xtoolsdk` over; or
    - from Xcode.xip on Linux: `xtool sdk install ~/Downloads/Xcode.xip`.
-   `scripts/publish-darwin-sdk.sh` builds it from Xcode.xip and keeps it in a private repo
-   of yours, so your other machines can download it.
+     `scripts/publish-darwin-sdk.sh` builds it from Xcode.xip and keeps it in a private repo
+     of yours, so your other machines can download it.
 3. `xtool sdk install darwin.xtoolsdk`, then run `apps/murmur/scripts/build-mac.sh`.
 
 Apple's license allows its SDK only on Apple-branded hardware, so using it on Linux is your

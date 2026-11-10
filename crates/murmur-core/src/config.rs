@@ -47,6 +47,11 @@ pub struct Mode {
     /// Instruction for this mode. Appended to the shared system prompt.
     #[serde(default)]
     pub instruction: String,
+    /// Show the model worked cleanup examples. Right for modes that keep the speaker's
+    /// wording; leave it off for modes that rewrite (email, bullets), which the
+    /// near-verbatim examples would pull toward echoing the dictation.
+    #[serde(default)]
+    pub examples: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,6 +89,7 @@ use_llm = false
 id = "clean"
 name = "Clean up"
 use_llm = true
+examples = true
 instruction = "Fix punctuation, capitalization and obvious recognition errors. Remove filler words (um, uh, like, you know) and false starts. When the speaker corrects themselves, keep only the correction. Keep their wording and tone otherwise."
 
 [[modes]]

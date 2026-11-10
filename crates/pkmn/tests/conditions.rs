@@ -49,7 +49,7 @@ fn protect_blocks_moves_aimed_at_the_user() {
         pokemon: P1A,
         volatile: VolatileStatus::Protect
     }));
-    assert!(damage_to(&events, P1, DamageSource::Move).is_empty());
+    assert_eq!(damage_to(&events, P1, DamageSource::Move), [] as [u16; 0]);
 }
 
 #[test]

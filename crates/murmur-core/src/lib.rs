@@ -58,7 +58,9 @@ pub struct ModeInfo {
 pub struct Engine {
     dir: PathBuf,
     config: RwLock<Config>,
-    recorder: audio::Recorder,
+    /// None when no microphone could be opened. Dictation then hears silence, and
+    /// `process_audio` still works (tests, files).
+    recorder: Option<audio::Recorder>,
     stt: Mutex<stt::Stt>,
     llm: Option<llm::Llm>,
     history: History,
@@ -89,7 +91,9 @@ impl Engine {
         });
         let stt = stt.map_err(MurmurError::setup)?;
         let llm = llm.map_err(MurmurError::setup)?;
-        let recorder = audio::Recorder::new().map_err(MurmurError::setup)?;
+        let recorder = audio::Recorder::new()
+            .inspect_err(|error| eprintln!("[murmur] microphone unavailable: {error}"))
+            .ok();
         let history = History::open(&dir.join("history.sqlite")).map_err(MurmurError::setup)?;
 
         Ok(Arc::new(Self {
@@ -103,16 +107,24 @@ impl Engine {
     }
 
     pub fn start_recording(&self) {
-        self.recorder.start();
+        if let Some(recorder) = &self.recorder {
+            recorder.start();
+        }
     }
 
     pub fn cancel_recording(&self) {
-        self.recorder.cancel();
+        if let Some(recorder) = &self.recorder {
+            recorder.cancel();
+        }
     }
 
     /// 0.0–1.0, poll ~20×/s for a level meter.
     pub fn input_level(&self) -> f32 {
-        self.recorder.level()
+        self.recorder.as_ref().map_or(0.0, audio::Recorder::level)
+    }
+
+    pub fn microphone_available(&self) -> bool {
+        self.recorder.is_some()
     }
 
     /// Stops recording, transcribes, and runs the mode's cleanup.
@@ -122,7 +134,17 @@ impl Engine {
         mode_id: Option<String>,
         app: Option<String>,
     ) -> Result<DictationResult, MurmurError> {
-        let samples = self.recorder.stop();
+        self.process_audio(self.stop_recorder(), mode_id, app)
+    }
+
+    /// Transcribes and cleans up 16 kHz mono audio that didn't come from the microphone,
+    /// such as a file or a test sample.
+    pub fn process_audio(
+        &self,
+        samples: Vec<f32>,
+        mode_id: Option<String>,
+        app: Option<String>,
+    ) -> Result<DictationResult, MurmurError> {
         let speech = audio::trim_silence(&samples);
 
         let mode_id = mode_id.unwrap_or_else(|| self.config.read().unwrap().default_mode.clone());
@@ -170,7 +192,7 @@ impl Engine {
 
     /// Spoken command over selected text: "make this shorter", "translate to Spanish".
     pub fn command(&self, selection: String, app: Option<String>) -> Result<String, MurmurError> {
-        let samples = self.recorder.stop();
+        let samples = self.stop_recorder();
         let spoken = self
             .stt
             .lock()
@@ -193,8 +215,14 @@ impl Engine {
             "The transcript is the user's selected text. Apply this edit request to it and return \
              only the edited text: {spoken}"
         );
-        llm.process(&selection, &instruction, tone.as_deref(), &vocabulary)
-            .map_err(MurmurError::processing)
+        llm.process(
+            &selection,
+            &instruction,
+            tone.as_deref(),
+            &vocabulary,
+            false,
+        )
+        .map_err(MurmurError::processing)
     }
 
     pub fn modes(&self) -> Vec<ModeInfo> {
@@ -242,9 +270,15 @@ fn load_llm(dir: &std::path::Path, config: &Config) -> anyhow::Result<Option<llm
     if !config.llm.enabled {
         return Ok(None);
     }
+    // MURMUR_GPU_LAYERS overrides the setting without editing config.toml, for diagnosing
+    // GPU problems (0 runs the cleanup model on the CPU only).
+    let gpu_layers = std::env::var("MURMUR_GPU_LAYERS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .unwrap_or(config.llm.gpu_layers);
     let llm = llm::Llm::load(
         &Config::resolve(dir, &config.llm.model_path),
-        config.llm.gpu_layers,
+        gpu_layers,
         config.llm.context_size,
         config.llm.max_tokens,
     )?;
@@ -252,7 +286,13 @@ fn load_llm(dir: &std::path::Path, config: &Config) -> anyhow::Result<Option<llm
         .mode(&config.default_mode)
         .filter(|mode| mode.use_llm)
     {
-        llm.process("Hello there.", &mode.instruction, None, &config.vocabulary)?;
+        llm.process(
+            "Hello there.",
+            &mode.instruction,
+            None,
+            &config.vocabulary,
+            mode.examples,
+        )?;
     }
     Ok(Some(llm))
 }
@@ -263,9 +303,17 @@ struct ModeRequest {
     instruction: String,
     tone: Option<String>,
     vocabulary: Vec<String>,
+    examples: bool,
 }
 
 impl Engine {
+    fn stop_recorder(&self) -> Vec<f32> {
+        self.recorder
+            .as_ref()
+            .map(audio::Recorder::stop)
+            .unwrap_or_default()
+    }
+
     fn apply_mode(
         &self,
         text: &str,
@@ -289,6 +337,7 @@ impl Engine {
                 instruction: mode.instruction.clone(),
                 tone: cfg.tone_for(app).map(str::to_string),
                 vocabulary: cfg.vocabulary.clone(),
+                examples: mode.examples,
             };
             (llm, request)
         };
@@ -297,6 +346,7 @@ impl Engine {
             &request.instruction,
             request.tone.as_deref(),
             &request.vocabulary,
+            request.examples,
         )
         .map_err(MurmurError::processing)
     }

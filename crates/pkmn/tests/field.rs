@@ -78,7 +78,7 @@ fn terrain_blocks_statuses_and_priority_against_grounded_targets() {
     let mut battle = with_terrain(battle, "Mind Field");
     let events = play(&mut battle, MOVE, MOVE);
     assert!(events.contains(&Event::Fail { pokemon: P1A }));
-    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_eq!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
 }
 
 #[test]
@@ -149,7 +149,7 @@ fn charge_moves_spend_a_turn_charging_and_lock_the_user_in() {
             .iter()
             .any(|event| matches!(event, Event::Prepare { pokemon: P1A, .. }))
     );
-    assert!(damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_eq!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
     let Some(Request::Move {
         moves, switches, ..
     }) = battle.request(P1)
@@ -166,7 +166,7 @@ fn charge_moves_spend_a_turn_charging_and_lock_the_user_in() {
     assert!(switches.is_empty(), "a charging creature cannot switch");
 
     let events = play(&mut battle, MOVE, MOVE);
-    assert!(!damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_ne!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
     assert_eq!(pp(&battle), full.map(|pp| pp - 1), "PP is spent once");
 }
 
@@ -193,7 +193,7 @@ fn weather_can_skip_a_charge() {
             .iter()
             .any(|event| matches!(event, Event::Prepare { .. }))
     );
-    assert!(!damage_to(&events, P2, DamageSource::Move).is_empty());
+    assert_ne!(damage_to(&events, P2, DamageSource::Move), [] as [u16; 0]);
 }
 
 #[test]
@@ -314,14 +314,20 @@ fn spinning_clears_the_user_s_hazards() {
         19,
     );
     play(&mut battle, MOVE, MOVE);
-    assert!(!battle.state().side(P1).conditions.is_empty());
+    assert_ne!(
+        battle.state().side(P1).conditions,
+        [] as [pkmn::battle::SideConditionState; 0]
+    );
     let events = play(&mut battle, MOVE, Choice::Move(1));
     assert!(
         events
             .iter()
             .any(|event| matches!(event, Event::SideEnd { side: P1, .. }))
     );
-    assert!(battle.state().side(P1).conditions.is_empty());
+    assert_eq!(
+        battle.state().side(P1).conditions,
+        [] as [pkmn::battle::SideConditionState; 0]
+    );
 }
 
 #[test]
