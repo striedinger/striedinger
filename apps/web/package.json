@@ -22,7 +22,7 @@
     "gtfs-realtime-bindings": "^2.2.0",
     "heic-to": "^1.6.6",
     "mediabunny": "^1.62.1",
-    "next": "16.4.3",
+    "next": "16.4.5",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299",
     "qpdf-run": "0.2.1",
