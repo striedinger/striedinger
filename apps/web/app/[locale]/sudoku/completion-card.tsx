@@ -61,7 +61,6 @@ export function CompletionCard({
     }
   }
 
-  // Every failure lands in the error state, so the promise never rejects.
   function handleShare() {
     void shareResult();
   }

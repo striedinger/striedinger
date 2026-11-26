@@ -1,6 +1,3 @@
-// Typography for note bodies, matching the Notes paragraph styles: Title, Heading,
-// Subheading, Body, Monostyled, block quotes, bulleted, dashed, and numbered lists, and
-// round checklist buttons that fill with the Notes tint when checked.
 export const noteContentClassName = [
   "text-ios-body break-words whitespace-pre-wrap text-ios-label caret-ios-tint outline-none selection:bg-ios-tint/30",
   "[&_p]:min-h-5.5 [&_h1+*]:mt-1 [&_h2]:mt-1.5 [&_h3]:mt-1",

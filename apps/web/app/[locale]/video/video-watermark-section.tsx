@@ -65,7 +65,6 @@ export function VideoWatermarkSection({
         </li>
         <li className="flex min-h-13 items-center gap-3 px-4 py-2">
           {watermark.logo ? (
-            // The logo is a small PNG made from the person's own upload.
             // oxlint-disable-next-line nextjs/no-img-element
             <img
               src={watermark.logo.url}

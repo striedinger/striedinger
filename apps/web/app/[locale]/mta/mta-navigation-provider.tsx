@@ -28,7 +28,6 @@ const MtaNavigationContext = createContext<MtaNavigationContextValue | null>(nul
 
 export function MtaNavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  // Staying on the current path keeps a localized page (such as /es/mta) in its language.
   const pathname = usePathname();
   const [isNavigating, startNavigation] = useTransition();
   const [pendingRoute, setPendingRoute] = useOptimistic<string | null | undefined>(undefined);

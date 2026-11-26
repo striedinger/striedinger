@@ -37,8 +37,6 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
       let cancelled = false;
       let loadingTask: PDFDocumentLoadingTask | undefined;
 
-      // The cleanup sets `cancelled` during the awaits below; reading it through a call keeps
-      // TypeScript from narrowing the later checks away.
       function isCancelled() {
         return cancelled;
       }
@@ -49,7 +47,6 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
         setPreview(undefined);
         setMountedPageCount(pageBatchSize);
         try {
-          // pdf.js starts downloading while the file is read.
           const [buffer] = await Promise.all([
             file.arrayBuffer(),
             import("pdfjs-dist/legacy/build/pdf.mjs"),
@@ -67,7 +64,6 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
           const loadedDocument = await task.promise;
           if (isCancelled()) return;
 
-          // Only the first page is measured up front; the rest size themselves as they render.
           const firstPage = await loadedDocument.getPage(1);
           const viewport = firstPage.getViewport({ scale: 1 });
           firstPage.cleanup();
@@ -141,7 +137,6 @@ export function PdfPreview({ file, labels, onPasswordResult, password }: PdfPrev
             })}
             {visiblePageCount < pageCount ? (
               <div
-                // A new sentinel per batch, so it reports again if it is still in range.
                 key={visiblePageCount}
                 aria-hidden="true"
                 className="h-px w-full"

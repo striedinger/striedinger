@@ -53,7 +53,6 @@ export function MessageList({
   useEffect(function followLatestMessageWhenResized() {
     const scroller = scrollRef.current;
     if (!scroller || typeof ResizeObserver === "undefined") return;
-    // The view shrinks when the keyboard opens; keep the latest message above it.
     const observer = new ResizeObserver(function revealLatestMessageAfterResize() {
       if (shouldFollowMessages.current) scroller.scrollTo({ top: scroller.scrollHeight });
     });

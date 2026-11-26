@@ -12,7 +12,6 @@ import { NotesSkeleton } from "./notes-skeleton";
 
 export const viewport: Viewport = {
   viewportFit: "cover",
-  // Browsers that support it shrink the layout above the keyboard instead of covering it.
   interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
@@ -36,7 +35,6 @@ export default async function NotesLayout({ children }: NotesLayoutProps) {
       className={notesFrameClassName}
       appSwitcher={{ currentHref: "/notes", labels: appSwitcherLabels }}
     >
-      {/* The open folder and note come from the URL, which is only known per request. */}
       <Suspense fallback={<NotesSkeleton />}>
         <NotesLoader />
       </Suspense>

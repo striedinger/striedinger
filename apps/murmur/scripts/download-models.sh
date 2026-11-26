@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Downloads the default models into Murmur's data folder (~1 GB STT + ~2.5 GB LLM).
 set -euo pipefail
 
 case "$(uname -s)" in

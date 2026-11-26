@@ -111,7 +111,6 @@ export function VideoTrimBar({
     if (direction === 0) return;
     event.preventDefault();
     if (target === "start" && keyframes) {
-      // Snapped starts move a keyframe at a time; smaller steps would snap straight back.
       moveTarget(
         target,
         stepKeyframe(keyframes, trim.start, direction, trim.end - minimumClipSeconds),
@@ -152,7 +151,6 @@ export function VideoTrimBar({
         <div className="relative flex size-full overflow-hidden rounded-ios-sm bg-ios-fill">
           {thumbnails.map(function renderThumbnail(thumbnail) {
             return (
-              // Filmstrip frames are decorative blob data from the person's own video.
               // oxlint-disable-next-line nextjs/no-img-element
               <img
                 key={thumbnail.time}

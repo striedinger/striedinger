@@ -115,14 +115,12 @@ declare global {
 self.addEventListener(
   "message",
   function handleRasterizeRequest(event: MessageEvent<RasterizeWorkerRequest>) {
-    // rasterizeInWorker reports its own failures back to the page.
     void rasterizeInWorker(event.data);
   },
 );
 
 async function rasterizeInWorker(request: RasterizeWorkerRequest) {
   try {
-    // pdf.js runs its parser in this worker too, instead of starting a nested worker.
     globalThis.pdfjsWorker ??= await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
     const bytes = await rasterizePdfDocument(
       new Uint8Array(request.data),
@@ -131,7 +129,6 @@ async function rasterizeInWorker(request: RasterizeWorkerRequest) {
         createCanvas(width, height) {
           return new OffscreenCanvas(width, height);
         },
-        // Without a DOM, glyphs are drawn as paths instead of loading web fonts.
         documentOptions: {
           BinaryDataFactory: WorkerBinaryDataFactory,
           CanvasFactory: OffscreenCanvasFactory,

@@ -82,7 +82,6 @@ export function PdfTranslationCard({
     translate();
   });
 
-  // The card opens from a tap on Translate and is keyed by file, so it starts once.
   useEffect(function translateWhenOpened() {
     startTranslation();
   }, []);
@@ -118,7 +117,6 @@ export function PdfTranslationCard({
             type="button"
             className={iosChipButtonClassName}
             onClick={function handleCopyClick() {
-              // copyText reports failure as false instead of rejecting.
               void copyTranslation();
             }}
           >

@@ -36,7 +36,6 @@ function describeLanguage(whisperCode: string, locale: string) {
   }
 }
 
-// One worker per page keeps Whisper loaded between runs.
 let transcriptionWorker: Worker | null = null;
 
 function getTranscriptionWorker() {
@@ -67,7 +66,6 @@ export function CaptionGenerator({
     }
     function handleReply(event: MessageEvent<TranscriptionReply>) {
       const reply = event.data;
-      // The worker may still be finishing a job this card no longer wants.
       if (reply.id !== id) return;
       if (reply.kind === "download") {
         setStatus(
@@ -113,12 +111,10 @@ export function CaptionGenerator({
     send({ end: trim.end, file, id, kind: "transcribe", start: trim.start });
     return function stopTranscription() {
       worker.removeEventListener("message", handleReply);
-      // Closing the card stops the job at its next stage instead of leaving Whisper running.
       send({ id, kind: "cancel" });
     };
   });
 
-  // The card opens from a tap on Generate Captions, so transcription starts right away.
   useEffect(function transcribeOnOpen() {
     return startTranscription();
   }, []);

@@ -81,7 +81,6 @@ function renderMark(
   const image = new OffscreenCanvas(width + padding * 2, height + padding * 2);
   const context = image.getContext("2d");
   if (!context) return null;
-  // A soft shadow keeps white marks readable over bright footage, as the preview's does.
   context.shadowColor = "rgba(0, 0, 0, 0.45)";
   context.shadowBlur = Math.max(2, height * 0.15);
   if (logo) context.drawImage(logo, padding, padding, logoWidth, height);

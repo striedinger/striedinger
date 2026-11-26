@@ -25,7 +25,6 @@ export function IosIntentPrefetchLink({
   return (
     <Link
       {...props}
-      // `null` restores the default prefetch once intent is shown; `false` holds it off.
       prefetch={hasIntent ? null : false}
       onFocus={function prefetchOnFocus(event) {
         setHasIntent(true);

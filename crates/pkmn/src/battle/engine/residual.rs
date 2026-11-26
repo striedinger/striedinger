@@ -32,7 +32,6 @@ impl Engine<'_> {
                 .any(|condition| condition.duration.is_some())
         });
         if weather || timed_conditions || has_work.iter().any(|&work| work) {
-            // Speed only decides anything when more than one side has a handler.
             let order = if weather || timed_conditions || has_work == [true, true] {
                 self.speed_order()
             } else {
@@ -58,7 +57,6 @@ impl Engine<'_> {
                 }
             }
         }
-        // A rampage ending rolls confusion's duration, so two rampages run in speed order.
         let locked = SideId::BOTH.map(|side| self.active(side).volatiles.locked_move.is_some());
         let order = if locked == [true, true] {
             self.speed_order()
@@ -183,7 +181,6 @@ impl Engine<'_> {
                 }
             }
         }
-        // Showdown's weather handler ends with an `Update`, before the faint check.
         self.update();
         self.faint_messages()
     }
@@ -223,7 +220,6 @@ impl Engine<'_> {
                 self.faint_messages()
             }
             Phase::Heal | Phase::Boosts => {
-                // Grassy Terrain's heal is order 5, sub-order 2: before Leftovers' 4.
                 if phase == Phase::Heal
                     && let Some(terrain) = self.state.field.terrain
                     && let Some(fraction) = self

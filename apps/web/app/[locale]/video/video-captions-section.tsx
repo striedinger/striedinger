@@ -74,7 +74,6 @@ export function VideoCaptionsSection({
 }: VideoCaptionsSectionProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const sortedCaptions = sortCaptions(captions);
-  // Re-renders only when playback crosses into another caption, not on every frame.
   const showingCaptionId = usePlayheadSelection(playhead, function findShowingCaption(time) {
     return findCaptionAt(captions, time)?.id ?? null;
   });
@@ -100,7 +99,6 @@ export function VideoCaptionsSection({
 
   function replaceWithGenerated(generated: VideoCaption[], language: string | null) {
     onLanguageDetected(language);
-    // Generated captions replace the ones in the transcribed range and keep the rest.
     onCaptionsChange([
       ...captions.filter(function isOutsideRange(caption) {
         return caption.end <= trim.start || caption.start >= trim.end;

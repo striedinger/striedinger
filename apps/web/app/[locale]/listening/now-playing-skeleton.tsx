@@ -31,7 +31,6 @@ export function NowPlayingSkeleton() {
               <IosSkeleton className="h-[0.8em] w-1/2 rounded-full" />
             </div>
           </div>
-          {/* The scrubber and its two times, as PlaybackProgress lays them out. */}
           <div className="flex flex-col gap-1.5">
             <IosSkeleton className="h-1.25 w-full rounded-full" />
             <div className="flex h-3.25 justify-between">

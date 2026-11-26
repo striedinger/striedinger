@@ -15,7 +15,6 @@ vi.mock("./optimize-image", function mockOptimizeImage() {
   };
 });
 
-// Each label reads as its own key, so assertions name the label they expect.
 const aiLabels = {
   downloading: "Downloading {percent}",
   failed: "Failed",

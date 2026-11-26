@@ -39,8 +39,6 @@ interface NowPlayingCardProps {
   statusLabel: string;
 }
 
-// The blurred backdrop and the artwork share one source, size, and quality, so the browser
-// downloads the cover once.
 const artworkSizes = "(max-width: 40rem) 30vw, 17.5rem";
 const artworkQuality = 75;
 
@@ -121,7 +119,6 @@ export function NowPlayingCard({ elapsedMs, labels, state, statusLabel }: NowPla
 
           {track && elapsedMs !== null && track.durationMs > 0 ? (
             <PlaybackProgress
-              // A new reading remounts the bar, so it jumps to a new song's start.
               key={`${track.spotifyUrl}-${elapsedMs}`}
               durationMs={track.durationMs}
               elapsedMs={elapsedMs}

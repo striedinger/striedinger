@@ -30,7 +30,6 @@ interface SudokuGameProps {
 }
 
 const difficulties: readonly SudokuDifficulty[] = ["easy", "medium", "hard"];
-// Daily puzzles are dated in UTC, so the date shows the same day everywhere.
 const puzzleDateFormat: Intl.DateTimeFormatOptions = { dateStyle: "long", timeZone: "UTC" };
 
 export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
@@ -174,7 +173,6 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
         <div className="flex min-w-0 flex-1 flex-col justify-center rounded-ios-lg bg-ios-grouped-cell px-3.5">
           <Text className="truncate text-ios-footnote text-ios-secondary-label">{labels.time}</Text>
           <SudokuTimer
-            // A new run starts from zero instead of flashing the last run's time for a frame.
             key={startedAt ?? "not-started"}
             completedSeconds={completedSeconds}
             startedAt={startedAt}
@@ -204,7 +202,6 @@ export function SudokuGame({ labels, locale, puzzles }: SudokuGameProps) {
         ) : null}
       </div>
 
-      {/* The board is a square as large as the remaining space allows. */}
       <div className="@container-size flex min-h-0 flex-1 items-center justify-center">
         <div className="relative aspect-square w-[min(100cqw,100cqh)]">
           <div

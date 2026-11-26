@@ -3,13 +3,9 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// The ONNX Runtime WebAssembly builds that run Whisper captions on the device. They are served
-// from this site instead of a CDN and fetched only when someone generates captions: the
-// WebGPU-capable build where WebGPU exists, and the smaller CPU-only build everywhere else.
 const transformersRequire = createRequire(
   fileURLToPath(import.meta.resolve("@huggingface/transformers")),
 );
-// The package does not export package.json, so walk up from its entry point.
 let runtimeDirectory = dirname(transformersRequire.resolve("onnxruntime-web"));
 while (!runtimeDirectory.endsWith("onnxruntime-web")) runtimeDirectory = dirname(runtimeDirectory);
 const RUNTIME_VERSION = /** @type {{ version: string }} */ (

@@ -49,7 +49,6 @@ export function IosToolScreen({
       <IosNavigationBar
         title={title}
         leading={<IosAppSwitcherButton />}
-        // Without its own actions, the bar keeps a slot a client page can fill (IosToolActions).
         trailing={trailing ?? <span className="contents" {...{ [iosToolActionsSlot]: "" }} />}
       />
       <div

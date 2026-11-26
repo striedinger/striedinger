@@ -292,8 +292,6 @@ fn dragging_out_cancels_the_target_s_move() {
             .iter()
             .any(|event| matches!(event, Event::Switch { side: P2, .. }))
         {
-            // Both moves have priority -6, so the faster Zaplet acts first, and dragging
-            // Craghorn out cancels its Howl Away.
             assert_eq!(movers(&events), [P1]);
             return;
         }
@@ -407,7 +405,6 @@ fn terastallizing_into_an_original_type_doubles_stab_and_raises_weak_moves() {
         P2,
         DamageSource::Move,
     )[0];
-    // 40 → 60 base power, and ×1.5 → ×2 STAB: about ×2 overall.
     assert!(
         (1.9..2.1).contains(&ratio(tera, plain)),
         "{plain} -> {tera}"
@@ -427,14 +424,11 @@ fn adaptability_style_stab_needs_a_current_type() {
         damage_to(&play(&mut battle, choice, MOVE), P2, DamageSource::Move)[0]
     };
     let adapted = hit("Water", MOVE);
-    // A Water Tera type drops Normal from Galewing's types: ×2 → ×1.5.
     let lost = hit("Water", Choice::Terastallize(0));
     assert!(
         (1.28..1.39).contains(&ratio(adapted, lost)),
         "{adapted} -> {lost}"
     );
-    // A Normal Tera type keeps it, and the data's `teraModifier` gives ×2.25. The weak move is
-    // also raised from 40 to 60 base power.
     let doubled = hit("Normal", Choice::Terastallize(0));
     assert!(
         (1.6..1.8).contains(&ratio(doubled, adapted)),

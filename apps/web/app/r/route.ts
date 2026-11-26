@@ -63,7 +63,6 @@ export async function GET(request: NextRequest) {
   const clientIdentifier = getClientIdentifierFromHeaders(headerList);
 
   after(async () => {
-    // Anyone can hit this route, so each client gets a bounded number of stored visits.
     const isLoggingLimited = await isRateLimited({
       identifier: clientIdentifier,
       maximumRequests: maximumLoggedVisitsPerWindow,
@@ -73,8 +72,5 @@ export async function GET(request: NextRequest) {
     if (!isLoggingLimited) await recordVisit(crypto.randomUUID(), visit);
   });
 
-  // Card crawlers blindly follow redirects, so the platform builds the card
-  // from the target's own metadata and displays the target's domain. Humans
-  // get the same redirect.
   return NextResponse.redirect(targetUrl, 302);
 }

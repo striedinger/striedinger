@@ -91,7 +91,6 @@ async function loadStockSymbols({
     const response = await fetchTwelveData(url, apiKey, 4_000);
     if (!response.ok) return fallBackToLocalMatches(localMatches);
     const payload = (await response.json()) as TwelveDataSearchResponse;
-    // Rate limits and key errors arrive as a 200 with an error body.
     if (payload.status === "error" || !Array.isArray(payload.data)) {
       return fallBackToLocalMatches(localMatches);
     }

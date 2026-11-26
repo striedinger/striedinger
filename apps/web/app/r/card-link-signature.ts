@@ -1,8 +1,6 @@
 import "server-only";
 import { getUpstashRestCredentials } from "../../lib/upstash-rest-credentials";
 
-// Changing the label rotates every signature, so links signed under the old one fall back to
-// the confirmation page.
 const keyDerivationLabel = "card-link-v1";
 const textEncoder = new TextEncoder();
 
@@ -45,7 +43,6 @@ export async function isValidCardLinkSignature(
   const signingKey = await getSigningKey();
   if (!signingKey) return false;
 
-  // Web Crypto's verify compares in constant time, so the response time leaks nothing.
   return crypto.subtle.verify(
     "HMAC",
     signingKey,

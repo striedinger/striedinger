@@ -1,4 +1,4 @@
-//! SQLite storage and migrations for catalog snapshots and physical copies.
+//! `SQLite` storage and migrations for catalog snapshots and physical copies.
 use anyhow::{Result, ensure};
 use pkmn_tcg_dex_core::{Card, CollectionStore, OwnedCopy};
 use rusqlite::{Connection, params};
@@ -20,8 +20,6 @@ impl SqliteStore {
         let version: i64 = connection.query_row("PRAGMA user_version", [], |r| r.get(0))?;
         ensure!(version <= 1, "Database was created by a newer application");
         if version == 0 {
-            // Another process may migrate after the initial read. Serialize and
-            // recheck while holding the write lock, before creating any tables.
             let tx =
                 connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
             let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;

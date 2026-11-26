@@ -232,7 +232,6 @@ function getCandidates(board: readonly number[], cellIndex: number): number[] {
   const boxColumn = Math.floor(column / BOX_SIZE) * BOX_SIZE;
 
   for (let index = 0; index < BOARD_SIZE; index += 1) {
-    // Indexes stay on the board; an empty cell is 0 either way.
     usedValues.add(board[row * BOARD_SIZE + index] ?? 0);
     usedValues.add(board[index * BOARD_SIZE + column] ?? 0);
     usedValues.add(
@@ -275,7 +274,6 @@ function shuffle<Value>(values: readonly Value[], random: () => number): Value[]
 
   for (let index = shuffledValues.length - 1; index > 0; index -= 1) {
     const targetIndex = Math.floor(random() * (index + 1));
-    // Both indexes are within the array, so neither value is missing.
     [shuffledValues[index], shuffledValues[targetIndex]] = [
       shuffledValues[targetIndex] as Value,
       shuffledValues[index] as Value,

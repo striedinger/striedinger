@@ -8,7 +8,6 @@ const rateLimitWindowMilliseconds = 60_000;
 export async function enforcePreviewRateLimit(identifier: string) {
   if (
     await isRateLimited({
-      // Each preview fetches a remote page, so an unreachable store must not lift the limit.
       failClosed: true,
       identifier,
       maximumRequests: maximumRequestsPerWindow,

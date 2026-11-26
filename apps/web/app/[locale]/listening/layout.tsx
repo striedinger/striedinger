@@ -13,7 +13,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// Spotify's green tints the equalizer and logo.
 const listeningFrameClassName = "[--ios-tint:#1db954] dark:[--ios-tint:#1ed760]";
 
 /**

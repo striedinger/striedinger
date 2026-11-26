@@ -23,7 +23,6 @@ interface NetworkInformationLike {
   type?: string;
 }
 
-// Some APIs are missing in insecure contexts or older browsers even though the DOM types declare them.
 type NavigatorExtensions = Omit<Navigator, "mediaDevices" | "storage"> & {
   bluetooth?: { getAvailability?: () => Promise<boolean> };
   connection?: NetworkInformationLike;
@@ -166,7 +165,6 @@ export function serializeDiagnosticValue(value: unknown, unavailable: string): s
     serialized = "[function]";
   } else if (typeof value === "object") {
     try {
-      // JSON.stringify returns undefined when a toJSON method does, despite its declared type.
       serialized =
         (JSON.stringify(value, null, 2) as string | undefined) ??
         Object.prototype.toString.call(value);
@@ -285,9 +283,7 @@ async function collectClientHints(
       "uaFullVersion",
       "wow64",
     ]);
-  } catch {
-    // Low-entropy values are still useful when high-entropy hints are unavailable.
-  }
+  } catch {}
 
   return [
     row("API Status", labels.supported),
@@ -545,7 +541,6 @@ function collectAdditionalNavigatorProperties(
 
 function canAccessStorage(storageName: "localStorage" | "sessionStorage") {
   try {
-    // Reading the property throws when storage is blocked, and it can be undefined in unusual hosts.
     return (window[storageName] as Storage | undefined) !== undefined;
   } catch {
     return false;

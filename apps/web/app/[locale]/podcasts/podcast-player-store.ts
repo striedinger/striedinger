@@ -129,7 +129,6 @@ function getServerPlayerItemsSnapshot() {
 function setPlayerState(update: Partial<PodcastPlayerState>) {
   playerState = { ...getPlayerSnapshot(), ...update };
   for (const listener of stateListeners) listener();
-  // A new episode or a closed player moves the playhead too.
   if (readLivePlaybackTime() !== playbackTimeSnapshot) notifyTimeListeners();
 }
 
@@ -529,9 +528,7 @@ function updateMediaSessionMetadata(item: PodcastQueueItem) {
   for (const [action, handler] of handlers) {
     try {
       navigator.mediaSession.setActionHandler(action, handler);
-    } catch {
-      // Browsers may expose Media Session without supporting every action.
-    }
+    } catch {}
   }
 }
 
@@ -550,9 +547,7 @@ function synchronizeMediaSessionState() {
         playbackRate: audio.playbackRate,
         position: Math.min(audio.currentTime, audio.duration),
       });
-    } catch {
-      // Some browsers reject position updates while metadata is still loading.
-    }
+    } catch {}
   }
 }
 

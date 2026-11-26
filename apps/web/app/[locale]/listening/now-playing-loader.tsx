@@ -27,8 +27,6 @@ export async function NowPlayingLoader({ locale }: NowPlayingLoaderProps) {
   ]);
   // oxlint-disable-next-line react-hooks-js/purity, react/purity -- Server component; runs once per request.
   const now = Date.now();
-  // Measured against the server clock that took the reading, so the page never compares it
-  // with the viewer's clock.
   const elapsedMs = getElapsedMs(state, now);
   const labels: NowPlayingLabels = {
     title: translate("What Hugo is listening to"),
@@ -90,6 +88,5 @@ function formatTimeAgo(timestamp: number, now: number, locale: Locale) {
   for (const { unit, milliseconds } of timeUnits) {
     if (elapsed >= milliseconds) return format.format(-Math.floor(elapsed / milliseconds), unit);
   }
-  // A song that ended moments ago still reads as a minute ago, not "now".
   return format.format(-Math.max(1, Math.floor(elapsed / minuteMilliseconds)), "minute");
 }

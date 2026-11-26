@@ -62,7 +62,6 @@ export function IosListRow({
           href={href}
           aria-current={selected ? "page" : undefined}
           className={rowClassName}
-          // Next's link props reject an explicit undefined handler.
           {...(onClick ? { onClick } : {})}
         >
           {content}

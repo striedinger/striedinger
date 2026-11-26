@@ -56,7 +56,6 @@ export function VideoWatermarkOverlay({
       style={style}
     >
       {watermark.logo ? (
-        // The logo is a small PNG made from the person's own upload.
         // oxlint-disable-next-line nextjs/no-img-element
         <img src={watermark.logo.url} alt="" className="h-full w-auto" draggable={false} />
       ) : null}

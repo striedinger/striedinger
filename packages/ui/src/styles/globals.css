@@ -1,9 +1,6 @@
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "./theme.css";
-/* The complete base for a stylesheet: preflight, design tokens, color variables, and base
- * styles. An app stylesheet imports it and adds `@source` paths for the files it covers, so
- * every page loads one stylesheet with no utility sent twice. */
 
 :root {
   --radius: 0.75rem;

@@ -8,7 +8,6 @@ import { parseCurrentlyPlaying, parseRecentlyPlayed } from "./parse-listening-st
 const spotifyApiUrl = "https://api.spotify.com/v1";
 const spotifyTokenUrl = "https://accounts.spotify.com/api/token";
 const requestTimeoutMs = 4_000;
-// Renew a little before Spotify's expiry so a request never starts with a token about to lapse.
 const tokenRenewalMarginMs = 60_000;
 
 /**
@@ -71,8 +70,6 @@ function fetchWithToken(accessToken: string, path: string) {
   });
 }
 
-// Kept in memory, not in the Next.js cache, so the token and the secrets that mint it never
-// become cache keys or entries, and a rejected token can be dropped at once.
 let cachedAccessToken: { value: string; expiresAt: number } | null = null;
 
 async function getAccessToken({ clientId, clientSecret, refreshToken }: SpotifyCredentials) {

@@ -1,4 +1,3 @@
-// Every environment variable the app reads, so a misspelled name fails the typecheck.
 declare namespace NodeJS {
   interface ProcessEnv {
     readonly BING_SITE_VERIFICATION?: string;

@@ -11,7 +11,6 @@ describe("export size", function () {
 
   it("scales by the shorter edge and keeps dimensions even for encoders", function () {
     expect(resolveExportDimensions(3840, 2160, "1080")).toEqual({ height: 1080, width: 1920 });
-    // A portrait phone video keeps its orientation.
     expect(resolveExportDimensions(1080, 1920, "720")).toEqual({ height: 1280, width: 720 });
     expect(resolveExportDimensions(1001, 563, "720")).toBeNull();
   });
@@ -27,7 +26,6 @@ describe("export size", function () {
     expect(estimateExportBytes({ ...video, clipDuration: 15, resolution: "original" })).toBe(
       30_000_000,
     );
-    // 3 Mb/s of video and 128 kb/s of audio for 10 seconds.
     expect(estimateExportBytes({ ...video, clipDuration: 10, resolution: "720" })).toBe(3_910_000);
   });
 });

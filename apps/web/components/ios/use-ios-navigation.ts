@@ -71,14 +71,11 @@ export function useIosNavigation<Route>({
   parseRoute,
   shouldAnimate = alwaysAnimate,
 }: IosNavigationOptions<Route>) {
-  // The pathname, unlike search parameters, is known while static pages prerender.
   const pathname = usePathname();
   const [navigation, setNavigation] = useState<NavigationState<Route>>(function readInitialRoute() {
     return { history: "none", route: parseRoute({ pathname }) };
   });
   const currentRouteRef = useRef(navigation.route);
-  // How many entries the app pushed below the current one. Loading data through the router
-  // replaces the entry's state, so the depth is also tracked here.
   const historyDepthRef = useRef(0);
   const readHref = useEffectEvent(createHref);
   const readRoute = useEffectEvent(parseRoute);
@@ -107,10 +104,6 @@ export function useIosNavigation<Route>({
     [navigation],
   );
 
-  // Back and forward show the restored screen, sliding in the matching direction unless the
-  // browser already animated its own gesture, as Safari does for an edge swipe. React renders
-  // transitions started during `popstate` synchronously, which skips view transitions, so the
-  // screen changes right after the event instead.
   useEffect(function followHistoryTraversal() {
     let pendingTimeout = 0;
     function showHistoryEntry(event: PopStateEvent) {

@@ -134,7 +134,6 @@ export function NotesApp({ aiLabels, locale, messages, welcomeNoteHtml }: NotesA
       const previousNoteId = previousNoteIdRef.current;
       previousNoteIdRef.current = route.noteId;
       if (!previousNoteId || previousNoteId === route.noteId) return;
-      // The editor saves pending typing while it unmounts; check emptiness after that update.
       window.setTimeout(function discardPreviousNote() {
         store.discardNoteIfEmpty(previousNoteId);
       }, 0);
@@ -174,7 +173,6 @@ export function NotesApp({ aiLabels, locale, messages, welcomeNoteHtml }: NotesA
 
   function createNote(folderId: string) {
     const targetFolderId = folderNames.has(folderId) ? folderId : defaultFolderId;
-    // Focusing synchronously keeps the software keyboard open while the new note animates in.
     keyboardWarmupRef.current?.focus({ preventScroll: true });
     const note = store.createNote(targetFolderId);
     setAutoFocusNoteId(note.id);

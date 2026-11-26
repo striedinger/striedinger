@@ -16,14 +16,12 @@ enum TextInserter {
 
         pb.clearContents()
         pb.setString(text, forType: .string)
-        // Ask clipboard managers not to record this transient write.
         pb.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
         let ourChange = pb.changeCount
 
         sendCommand(key: kVK_ANSI_V)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // If the user copied something in the meantime, leave it alone.
             guard pb.changeCount == ourChange else { return }
             pb.clearContents()
             if !saved.isEmpty { pb.writeObjects(saved) }
@@ -40,7 +38,6 @@ enum TextInserter {
         let before = pb.changeCount
         sendCommand(key: kVK_ANSI_C)
 
-        // Wait briefly for the copy to land.
         let deadline = Date().addingTimeInterval(0.25)
         while pb.changeCount == before && Date() < deadline {
             RunLoop.current.run(until: Date().addingTimeInterval(0.01))

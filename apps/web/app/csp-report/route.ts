@@ -6,7 +6,6 @@ import { readCspViolations } from "./read-csp-violations";
 
 const maximumBodyBytes = 64 * 1024;
 const maximumRememberedViolations = 500;
-// Browsers repeat a violation on every page view, so each instance logs one only once.
 const loggedViolationKeys = new Set<string>();
 
 /**

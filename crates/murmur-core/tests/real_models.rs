@@ -174,7 +174,6 @@ fn real_models_end_to_end() {
                 .expect("dictation succeeds")
         };
         let result = run();
-        // The same request again: shows what the prompt cache saves on a warm prefix.
         let repeat = run();
 
         let verdict = (case.check)(&result);
@@ -226,7 +225,7 @@ fn speak(text: &str, wav: &Path) -> Vec<f32> {
 
 /// Minimal reader for the 16-bit PCM mono WAV files `say` writes.
 fn read_wav_i16(bytes: &[u8]) -> Vec<f32> {
-    let mut offset = 12; // "RIFF" <size> "WAVE"
+    let mut offset = 12;
     while offset + 8 <= bytes.len() {
         let id = &bytes[offset..offset + 4];
         let size = u32::from_le_bytes(bytes[offset + 4..offset + 8].try_into().unwrap()) as usize;

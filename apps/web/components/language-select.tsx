@@ -44,7 +44,6 @@ export function LanguageSelect({ focusOnMount, label, locale, openOnMount }: Lan
     },
     [focusOnMount],
   );
-  // Shows the chosen language right away while the translated page loads.
   const [displayedLocale, setDisplayedLocale] = useOptimistic(locale);
 
   function handleLanguageChange(selectedLocale: Locale | null) {

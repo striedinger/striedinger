@@ -1,7 +1,3 @@
-// Chrome's built-in AI APIs, which run Gemini Nano on the device. They exist only in browsers
-// that ship them, so every global here may be missing at runtime: check with `in` first.
-// https://developer.chrome.com/docs/ai/built-in-apis
-
 type AIAvailability = "unavailable" | "downloadable" | "downloading" | "available";
 
 interface AIDownloadProgressEvent extends Event {

@@ -4,7 +4,6 @@ interface EqualizerBarsProps {
   isPlaying: boolean;
 }
 
-// Staggered so the bars never move together.
 const barDelays = [
   "[animation-delay:-0.45s]",
   "[animation-delay:-0.15s]",

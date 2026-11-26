@@ -66,8 +66,6 @@ export function LanguagePicker({ label, locale }: LanguagePickerProps) {
     </button>
   );
 
-  // The page wraps the picker in its text styles, so the client bundle carries no Text
-  // component or class merging.
   return activation ? (
     <Suspense fallback={placeholder}>
       <LanguageSelect

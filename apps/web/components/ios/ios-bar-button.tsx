@@ -22,7 +22,6 @@ export function IosBarButton({
   variant = "glass",
   ...props
 }: IosBarButtonProps) {
-  // A lone symbol sits in a circle; text, with or without a symbol, gets capsule padding.
   const isSymbolOnly = isValidElement(children);
 
   return (

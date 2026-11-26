@@ -34,7 +34,6 @@ describe("note HTML", function () {
 
     expect(summarizeNoteHtml(html).thumbnail).toBe(thumbnail);
     expect(html).not.toContain("tracker.example");
-    // Photos from before thumbnails existed still show in the list.
     expect(summarizeNoteHtml(`<img src="${photo}">`).thumbnail).toBe(photo);
   });
 

@@ -35,7 +35,6 @@ export function NoteGalleryCard({
       >
         <span className="relative block aspect-[0.85] w-full overflow-hidden rounded-ios-md border-[0.5px] border-ios-separator bg-ios-grouped-cell text-left shadow-ios-raised transition-transform duration-150 group-focus-visible:ring-2 group-focus-visible:ring-ios-tint group-active:scale-[0.97] group-aria-current:ring-[3px] group-aria-current:ring-ios-tint motion-reduce:transition-none">
           {note.thumbnail ? (
-            // Note images are local data URLs, so next/image optimization does not apply.
             // oxlint-disable-next-line nextjs/no-img-element
             <img
               src={note.thumbnail}

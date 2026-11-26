@@ -38,7 +38,6 @@ function drawWaveform(canvas: HTMLCanvasElement, peaks: Float32Array) {
   const context = canvas.getContext("2d");
   if (!context) return;
   context.fillStyle = "rgb(255 255 255 / 0.85)";
-  // One bar every three device pixels, each showing the loudest peak it covers.
   const barWidth = Math.max(1, Math.round(2 * pixelRatio));
   const barStep = barWidth + Math.max(1, Math.round(pixelRatio));
   for (let x = 0; x < width; x += barStep) {

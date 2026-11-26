@@ -40,7 +40,6 @@ interface SpotifyItem {
 
 const artworkHost = "i.scdn.co";
 const spotifyHost = "open.spotify.com";
-// Large enough for the artwork on a high-density phone without downloading the 640px original.
 const preferredArtworkWidth = 300;
 
 /** Reads `GET /v1/me/player/currently-playing`; null means nothing is loaded in the player. */

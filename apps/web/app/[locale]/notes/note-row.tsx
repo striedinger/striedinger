@@ -142,7 +142,6 @@ export function NoteRow({
               ) : null}
             </span>
             {note.thumbnail ? (
-              // Note images are local data URLs, so next/image optimization does not apply.
               // oxlint-disable-next-line nextjs/no-img-element
               <img
                 src={note.thumbnail}

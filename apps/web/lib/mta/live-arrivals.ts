@@ -62,9 +62,6 @@ export async function getNearbyStations(
     longitude: roundCoordinate(longitude),
     selectedRoute: selectedRoute ?? "",
   });
-  // A cached result can be a couple of minutes old, so countdowns are measured from now rather
-  // than from when the feed was read, and trains that have left are dropped. Cached objects
-  // may be shared between requests, so they are copied rather than changed.
   const now = Date.now();
   const currentStations: NearbyStation[] = [];
   for (const station of cachedStations) {

@@ -15,8 +15,6 @@ interface CardResultProps {
   targetUrl: string;
 }
 
-// The shared social card keeps the platform's look; its heading takes the grouped-section
-// header style so it lines up with the sections below.
 const socialCardClassName =
   "flex flex-col [&_h2]:px-5 [&_h2]:text-ios-subheadline [&_h2]:leading-5 [&_h2]:font-semibold [&_h2]:tracking-[-0.23px] [&_h2]:text-ios-secondary-label [&>section]:gap-1.5";
 
@@ -78,7 +76,6 @@ export async function CardResult({ targetUrl }: CardResultProps) {
 }
 
 async function getTrackedUrl(preview: Extract<CardPreview, { status: "ready" }>) {
-  // A ready preview fetched the target, so it is already a valid http(s) URL.
   const targetUrl = canonicalizeCardTarget(preview.targetUrl) ?? preview.targetUrl;
   return `${siteUrl}${await createCardLinkPath(targetUrl)}`;
 }

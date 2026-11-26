@@ -17,7 +17,6 @@ export function createStocksHref(pathname: string, state: StocksUrlState) {
   if (state.symbol) parameters.set("symbol", state.symbol);
   if (state.timeframe !== defaultStockTimeframe) parameters.set("timeframe", state.timeframe);
   if (state.query) parameters.set("q", state.query);
-  // Symbols never need escaping, so the list stays readable as `AAPL,MSFT`.
   const search = parameters.toString().replaceAll("%2C", ",");
   return search ? `${pathname}?${search}` : pathname;
 }

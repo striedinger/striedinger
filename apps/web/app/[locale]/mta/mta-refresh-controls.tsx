@@ -29,8 +29,6 @@ export function MtaRefreshControls({ initialUpdatedAt, labels, locale }: MtaRefr
     return Date.now() - new Date(initialUpdatedAt).getTime() >= refreshIntervalMilliseconds;
   });
 
-  // Arrivals refresh every minute while the page is visible, pause while it is hidden, and
-  // refresh right away on return if the minute has passed.
   useEffect(function refreshArrivalsWhileVisible() {
     let intervalId: number | undefined;
     function startRefreshing() {

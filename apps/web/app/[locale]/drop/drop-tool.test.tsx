@@ -571,7 +571,6 @@ async function waitForForRoom() {
   });
 }
 
-// An async act callback makes act wait for the promise work it starts, such as queued sends.
 async function actAndSettle(callback: () => void) {
   // oxlint-disable-next-line typescript/require-await -- Only an async callback selects act's asynchronous flushing.
   await act(async function runCallback() {

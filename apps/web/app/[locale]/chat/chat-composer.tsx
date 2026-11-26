@@ -34,9 +34,7 @@ export function ChatComposer({ disabled, labels, onSend }: ChatComposerProps) {
   async function sendDraft() {
     try {
       if (await onSend(draft)) setDraft("");
-    } catch {
-      // A failed send keeps the draft in the field so it can be sent again.
-    }
+    } catch {}
   }
 
   return (
@@ -91,7 +89,6 @@ function sendOnEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
   event.currentTarget.form?.requestSubmit();
 }
 
-// Tapping send keeps focus in the field, so the keyboard stays up between messages.
 function keepFieldFocused(event: PointerEvent<HTMLButtonElement>) {
   event.preventDefault();
 }

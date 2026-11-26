@@ -44,10 +44,7 @@ export function StockDetailContent({
   const series = getDisplayedSeries(detail ? use(detail) : undefined, stock.symbol, isNavigating);
   const firstPoint = series?.points[0];
   const latestPoint = series?.points.at(-1);
-  // The trading day is measured from the open, matching the watchlist; longer spans from the
-  // first close.
   const baseline = firstPoint && (series.timeframe === "1D" ? firstPoint.open : firstPoint.close);
-  // A zero baseline has no meaningful percent change, so it is treated like a missing one.
   const hasBaseline = baseline !== undefined && baseline !== 0;
   const change = latestPoint && hasBaseline ? latestPoint.close - baseline : 0;
   const isUp = change >= 0;

@@ -82,7 +82,6 @@ export default async function OpenGraphPreviewPage({ searchParams }: OpenGraphPr
   return (
     <>
       <JsonLd value={structuredData} />
-      {/* Only the form reads the URL, so the rest of the page prerenders. */}
       <Suspense fallback={<OgPreviewFormSkeleton />}>
         <OgPreviewFromUrl
           action={localizePath("/og", locale)}

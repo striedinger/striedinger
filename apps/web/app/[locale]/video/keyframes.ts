@@ -20,7 +20,6 @@ export function stepKeyframe(
   direction: -1 | 1,
   latest: number,
 ) {
-  // A small tolerance keeps a start that sits on a keyframe from counting as between two.
   const tolerance = 1e-6;
   if (direction > 0) {
     const next = keyframes.find(function isAfter(keyframe) {

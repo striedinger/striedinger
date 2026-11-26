@@ -23,7 +23,6 @@ import { RecentMessageIds } from "./recent-message-ids";
 import { decodePairingBundle, encodePairingBundle, waitForIceGathering } from "./signaling";
 
 const maximumMessagesPerPeerPerSecond = 30;
-// Peer ids are UUIDs, so this can never match a connection's sender id.
 const ownSenderId = "own";
 
 const maximumRememberedMessageIds = 1_000;
@@ -207,8 +206,6 @@ export function useNearbyChat(labels: ChatLabels) {
     channel.addEventListener("close", function removePeer() {
       peers.current.delete(peerId);
       setPeerCount(peers.current.size);
-      // A dropped peer's connection would otherwise hold its network resources until the page
-      // closes, and browsers limit how many can be open.
       connection.close();
     });
     channel.addEventListener("message", function receiveMessage(event) {
@@ -231,9 +228,7 @@ export function useNearbyChat(labels: ChatLabels) {
       const visibleMessage = attributeReceivedMessage(message, sender, labels.anonymousAlias);
       appendMessage(visibleMessage);
       await broadcastMessage(createRelayedMessage(visibleMessage), sourcePeerId);
-    } catch {
-      // Ignore malformed or unauthenticated packets without disrupting the room.
-    }
+    } catch {}
   }
 
   async function broadcastMessage(message: ChatMessage, excludedPeerId?: string) {

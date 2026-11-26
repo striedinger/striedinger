@@ -125,8 +125,6 @@ impl<'a> Engine<'a> {
                 .iter()
                 .any(|choice| matches!(choice, Choice::Terastallize(_)))
             {
-                // Showdown's queue order: switches (103), then Terastallization (106), then
-                // moves.
                 for side in SideId::BOTH {
                     if matches!(queue[side.index()], Some(QueuedAction::Switch(_)))
                         && self.act(side, &mut queue)
@@ -151,7 +149,6 @@ impl<'a> Engine<'a> {
             return;
         }
         self.update();
-        // A mid-turn switch (after a move like U-turn) resumes the paused turn.
         match self.state.queue.take() {
             Some(queue) => self.continue_turn(queue),
             None => self.next_turn(),
@@ -161,7 +158,6 @@ impl<'a> Engine<'a> {
     fn action_for(&self, side: SideId, choice: Choice) -> Option<QueuedAction> {
         match choice {
             Choice::Switch(slot) => Some(QueuedAction::Switch(slot)),
-            // A validated move choice that is not selectable can only be Struggle's slot 0.
             Choice::Move(slot) | Choice::Terastallize(slot)
                 if self.active(side).can_select_move(self.dex, slot) =>
             {
@@ -196,8 +192,6 @@ impl<'a> Engine<'a> {
     /// Runs queued actions until the turn ends, the battle ends, or a side must switch
     /// mid-turn, in which case the rest of the queue waits in the state.
     fn continue_turn(&mut self, mut queue: [Option<QueuedAction>; 2]) {
-        // The next actor is picked from the remaining actions each time, re-reading speed after
-        // every action as Generation 8 onward does.
         while let Some(side) = self.next_actor(&queue) {
             if self.act(side, &mut queue) {
                 return;
@@ -262,7 +256,6 @@ impl<'a> Engine<'a> {
                         engine.priority(side, action),
                     )
                 };
-                // Speed is only computed when switching and priority do not decide.
                 match key(self, SideId::P1, first).cmp(&key(self, SideId::P2, second)) {
                     Ordering::Greater => Some(SideId::P1),
                     Ordering::Less => Some(SideId::P2),
@@ -322,7 +315,6 @@ impl<'a> Engine<'a> {
         let team = &mut self.state.sides[side.index()];
         team.active = slot;
         team.switch_flag = false;
-        // Showdown swaps the incoming creature into the active position of `side.pokemon`.
         if let Some(position) = team.switch_order.iter().position(|&member| member == slot) {
             team.switch_order.swap(0, position);
         }
@@ -427,7 +419,6 @@ impl<'a> Engine<'a> {
             [true, true] => self.speed_order(),
             _ => SideId::BOTH,
         };
-        // Entry hazards land before abilities, so a creature they knock out never starts.
         for side in order {
             if entering[side.index()] {
                 self.entry_hazards(side);
@@ -488,7 +479,6 @@ impl<'a> Engine<'a> {
             }
             let layer = usize::from(condition.layers.max(1)) - 1;
             let fraction = hazard.layers[layer.min(hazard.layers.len() - 1)];
-            // Showdown ignores immunities here: `runEffectiveness`, clamped to ±6.
             let effectiveness = hazard.type_id.map_or(0, |type_id| {
                 pokemon
                     .types()
@@ -525,7 +515,6 @@ impl<'a> Engine<'a> {
                 continue;
             }
             for (effect, handler) in self.handlers(side) {
-                // A one-shot handler may have used the item up earlier in this loop.
                 if !self.holds(side, effect) {
                     continue;
                 }

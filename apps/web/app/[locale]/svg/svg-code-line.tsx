@@ -27,7 +27,6 @@ export const SvgCodeLine = memo(function SvgCodeLine({ encodedTokens }: SvgCodeL
     const separator = pair.indexOf("\u0001");
     const kind = pair.slice(0, separator) as SvgTokenKind;
     return (
-      // Tokens never reorder within a line, so their position identifies them.
       // oxlint-disable-next-line react/no-array-index-key
       <span key={index} className={tokenClassNames[kind]}>
         {pair.slice(separator + 1)}

@@ -3,8 +3,6 @@ import type { NextConfig } from "next";
 const publicMetadataCacheControl =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-// Limits what a page can embed, be embedded by, and submit to, without restricting scripts:
-// a script policy would need a per-request nonce, which would make prerendered pages dynamic.
 function createContentSecurityPolicy(frameAncestors: string) {
   return [
     `frame-ancestors ${frameAncestors}`,
@@ -14,8 +12,6 @@ function createContentSecurityPolicy(frameAncestors: string) {
   ].join("; ");
 }
 
-// Reported, not enforced: browsers send what this stricter policy would block to /csp-report,
-// which shows whether it could be enforced (with per-request nonces in place of 'unsafe-inline').
 const reportOnlyContentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
@@ -23,7 +19,6 @@ const reportOnlyContentSecurityPolicy = [
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   "font-src 'self' data:",
-  // Speech models download from Hugging Face; Drop signals through Nostr relays over wss.
   "connect-src 'self' https://huggingface.co https://*.huggingface.co https://*.hf.co wss:",
   "worker-src 'self' blob:",
   "frame-src 'none'",
@@ -62,7 +57,6 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // X shows the Now Playing card as a player, which embeds this page in a frame.
         source: "/:locale(es|de|it|fr|pt|zh|ja)?/listening",
         headers: [
           {
@@ -92,8 +86,6 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: publicMetadataCacheControl }],
       },
       {
-        // The listening card shows the current song, so the edge keeps it for seconds rather
-        // than a day. Listed after the general rule above, so this value wins.
         source: "/:locale(es|de|it|fr|pt|zh|ja)?/listening/opengraph-image",
         headers: [
           {
@@ -121,13 +113,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Workers started from the cross-origin isolated video editor must opt in as well.
         source: "/_next/static/chunks/:path*",
         headers: [{ key: "Cross-Origin-Embedder-Policy", value: "credentialless" }],
       },
       {
-        // Cross-origin isolation lets the speech model use every CPU core through shared
-        // memory. `credentialless` keeps cross-origin downloads, such as the model, working.
         source: "/:locale(es|de|it|fr|pt|zh|ja)?/video",
         headers: [
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
@@ -144,14 +133,12 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // The worker is this app's own code, which can change without a new codec version.
         source: "/vendor/jsquash-avif/:version/worker.js",
         headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }],
       },
     ];
   },
   transpilePackages: ["@workspace/icons", "@workspace/i18n", "@workspace/ui"],
-  // The build script type-checks with tsrs first and stops on any error, so Next skips its own check.
   typescript: { ignoreBuildErrors: true },
 };
 

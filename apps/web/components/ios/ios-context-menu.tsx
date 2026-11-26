@@ -45,7 +45,6 @@ export function IosContextMenu({ children, className, sections, style }: IosCont
   const [anchor, setAnchor] = useState<IosMenuVirtualAnchor | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // A row can unmount mid-press, as when a list updates; its pending long press must not fire.
   useEffect(function cancelPressOnUnmount() {
     return function clearPendingPress() {
       const press = pressRef.current;
@@ -102,8 +101,6 @@ export function IosContextMenu({ children, className, sections, style }: IosCont
   }
 
   return (
-    // Long press, right click, and the context menu key are delegated from the interactive
-    // content inside; the same actions also stay available from visible buttons.
     // oxlint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       data-open={isOpen || undefined}

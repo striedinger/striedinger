@@ -27,7 +27,6 @@ export async function generateMetadata({ params }: PodcastShowPageProps): Promis
 }
 
 export default function PodcastShowRoute({ params }: PodcastShowPageProps) {
-  // The screen renders from what the app already knows while the show streams in.
   const show = params.then(function loadShow({ show: segment }) {
     return loadPodcastShowForSegment(segment);
   });

@@ -176,7 +176,6 @@ export function VideoWorkspace({
         }
       }
       let waveformWorker: Worker | null = null;
-      // The waveform decodes all of the audio, so it waits for the filmstrip rather than slowing it.
       function measureWaveform() {
         if (!isCurrent || !opened?.info.hasAudio) return;
         const worker = new Worker(new URL("./waveform-worker.ts", import.meta.url), {
@@ -274,8 +273,6 @@ export function VideoWorkspace({
       ? { ...resizeDimensions, bitrate: resolveExportBitrate(resolution, info.frameRate) }
       : null;
   const hasWatermark = watermark.text.trim() !== "" || watermark.logo !== null;
-  // Re-encoding cuts on any frame. Copying starts at a keyframe, so the start snaps to the one
-  // the export will actually begin at.
   const snapKeyframes =
     exactCuts || resize !== null || hasWatermark || (captionMode === "burned" && hasCaptionText)
       ? null
@@ -323,7 +320,6 @@ export function VideoWorkspace({
   }
 
   function addCaption() {
-    // New captions start at the playhead and stay inside the trimmed clip.
     const start = Math.min(
       Math.max(playhead.get(), trim.start),
       Math.max(trim.start, trim.end - 0.5),
@@ -383,7 +379,6 @@ export function VideoWorkspace({
   async function saveVideo() {
     if (exportState.kind !== "done") return;
     const exported = exportState.file;
-    // On phones the share sheet offers Save Video to the photo library.
     if ("canShare" in navigator && navigator.canShare({ files: [exported] })) {
       try {
         await navigator.share({ files: [exported] });

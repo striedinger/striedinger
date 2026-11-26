@@ -74,8 +74,6 @@ impl Engine {
         let dir = PathBuf::from(data_dir);
         let config = Config::load_or_create(&dir).map_err(MurmurError::setup)?;
 
-        // Load both models at once. They're independent and each takes seconds, so
-        // startup time is the slower of the two instead of their sum.
         let (stt, llm) = std::thread::scope(|scope| {
             let llm_loader = scope.spawn(|| load_llm(&dir, &config));
             let stt = stt::Stt::load(
@@ -166,10 +164,10 @@ impl Engine {
         let output = self.apply_mode(&raw, &mode_id, app.as_deref())?;
         let llm_ms = t.elapsed().as_millis() as u64;
 
-        if !raw.is_empty() {
-            if let Err(e) = self.history.add(app.as_deref(), &mode_id, &raw, &output) {
-                eprintln!("[murmur] history write failed: {e}");
-            }
+        if !raw.is_empty()
+            && let Err(e) = self.history.add(app.as_deref(), &mode_id, &raw, &output)
+        {
+            eprintln!("[murmur] history write failed: {e}");
         }
         Ok(DictationResult {
             raw,
@@ -270,8 +268,6 @@ fn load_llm(dir: &std::path::Path, config: &Config) -> anyhow::Result<Option<llm
     if !config.llm.enabled {
         return Ok(None);
     }
-    // MURMUR_GPU_LAYERS overrides the setting without editing config.toml, for diagnosing
-    // GPU problems (0 runs the cleanup model on the CPU only).
     let gpu_layers = std::env::var("MURMUR_GPU_LAYERS")
         .ok()
         .and_then(|value| value.parse().ok())

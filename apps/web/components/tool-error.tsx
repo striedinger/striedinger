@@ -54,7 +54,6 @@ export function ToolError({ error, retry }: ToolErrorProps) {
           >
             {messages.retry}
           </button>
-          {/* A full page load resets whatever state broke the page. */}
           {/* oxlint-disable-next-line nextjs/no-html-link-for-pages */}
           <a
             href="/"

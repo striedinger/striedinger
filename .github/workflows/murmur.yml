@@ -3,21 +3,18 @@ name: Murmur
 on:
   push:
     branches: [main]
-    paths:
+    paths: &murmur-paths
       - "Cargo.toml"
       - "Cargo.lock"
+      - "rust-toolchain.toml"
       - "rustfmt.toml"
-      - "crates/**"
+      - "clippy.toml"
+      - "crates/murmur-core/**"
+      - "crates/murmur-bindgen/**"
       - "apps/murmur/**"
       - ".github/workflows/murmur.yml"
   pull_request:
-    paths:
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rustfmt.toml"
-      - "crates/**"
-      - "apps/murmur/**"
-      - ".github/workflows/murmur.yml"
+    paths: *murmur-paths
   workflow_dispatch:
 
 permissions:
@@ -25,11 +22,12 @@ permissions:
 
 concurrency:
   group: murmur-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
+  SAVE_CACHE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
 jobs:
   core:
@@ -39,24 +37,27 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # ALSA headers for cpal, and clang for the llama.cpp bindings. CMake is preinstalled.
+      - run: rustup toolchain install
+      - run: cargo fmt -p murmur-core -p murmur-bindgen -- --check
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libclang-dev
-      - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - id: cargo-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
+          path: &core-cache-paths |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             ~/.cache/sherpa-rs
             target
-          # sherpa-rs downloads onnxruntime into its own cache, outside target/. Caching
-          # target/ without it leaves build scripts pointing at libraries that aren't there.
-          key: cargo-core-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
-          restore-keys: cargo-core-v2-${{ runner.os }}-
-      - run: cargo fmt --all --check
+          key: cargo-core-v3-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: cargo-core-v3-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-
       - run: cargo clippy -p murmur-core -p murmur-bindgen --all-targets --locked -- -D warnings
       - run: cargo test -p murmur-core --locked
+      - if: env.SAVE_CACHE == 'true' && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: *core-cache-paths
+          key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
 
   mac:
     name: macOS app (build and bundle)
@@ -65,20 +66,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: rustup toolchain install stable --profile minimal && rustup default stable
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - run: rustup toolchain install
+      - id: cargo-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
+          path: &mac-cache-paths |
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             ~/Library/Caches/sherpa-rs
             target
-          # See the core job: sherpa-rs's download cache must travel with target/.
-          key: cargo-mac-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
-          restore-keys: cargo-mac-v2-${{ runner.os }}-
-      # Compiles the Rust core with Metal, generates the Swift bindings, compiles the
-      # Swift shell, and assembles an ad-hoc signed Murmur.app. Models aren't needed to build.
+          key: cargo-mac-v3-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: cargo-mac-v3-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-
       - run: apps/murmur/scripts/build-mac.sh
       - name: Check the bundle
         run: |
@@ -87,15 +86,14 @@ jobs:
           codesign --verify --strict --verbose=2 "$app"
           plutil -lint "$app/Contents/Info.plist"
           for lproj in "$app"/Contents/Resources/*.lproj; do plutil -lint "$lproj"/*.strings; done
-          # Every bundled dylib must resolve through @rpath, not a path on the build machine.
           ! otool -L "$app"/Contents/Frameworks/*.dylib "$app/Contents/MacOS/Murmur" \
             | grep -E '^\s+/(Users|opt|private|var)/'
+      - if: env.SAVE_CACHE == 'true' && steps.cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: *mac-cache-paths
+          key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
 
-  # Cross-building from Linux with xtool needs Apple's Darwin SDK. Rather than storing
-  # the SDK anywhere, a macOS runner (Apple hardware with Xcode preinstalled) builds it
-  # fresh each run and hands it to the Linux job as a short-lived artifact, which the
-  # cleanup job deletes once the run ends. Push and manual runs only, never pull requests,
-  # so forks can't trigger the SDK build or get at the artifact.
   darwin-sdk:
     name: Darwin SDK from the runner's Xcode (xtool)
     if: github.event_name != 'pull_request'
@@ -112,8 +110,6 @@ jobs:
           echo "path=$xcode" >> "$GITHUB_OUTPUT"
           echo "swift-version=$swift_version" >> "$GITHUB_OUTPUT"
       - run: brew install xtool-org/tap/xtool
-      # x86_64: the Linux runner's architecture. The SDK includes the macOS sysroot and an
-      # ld64-compatible toolset that run on that Linux host.
       - run: xtool sdk build "${{ steps.xcode.outputs.path }}" "$RUNNER_TEMP/sdk" --arch x86_64
       - run: tar --zstd -cf "$RUNNER_TEMP/darwin.xtoolsdk.tar.zst" -C "$RUNNER_TEMP/sdk" darwin.xtoolsdk
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -127,11 +123,8 @@ jobs:
     name: macOS app cross-built on Linux (xtool)
     needs: darwin-sdk
     runs-on: ubuntu-latest
-    # The SDK's Swift modules come from the runner's Xcode, so the Linux compiler must be
-    # the same Swift version.
     container: swift:${{ needs.darwin-sdk.outputs.swift-version }}-noble
     env:
-      # Not RCODESIGN_*: rcodesign reads every RCODESIGN_ variable as a config setting.
       APPLE_CODESIGN_RELEASE: "0.29.0"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -141,7 +134,8 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends curl ca-certificates git zstd cmake make llvm libclang-dev
-          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --target aarch64-apple-darwin
+          curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+          "$HOME/.cargo/bin/rustup" toolchain install
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           curl -fsSL "https://github.com/xtool-org/xtool/releases/latest/download/xtool-x86_64.AppImage" -o /usr/local/bin/xtool
           chmod +x /usr/local/bin/xtool
@@ -153,7 +147,6 @@ jobs:
           path: /tmp
       - name: Install the Darwin SDK
         env:
-          # AppImages need FUSE, which containers lack; extract and run instead.
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
           tar --zstd -xf /tmp/darwin.xtoolsdk.tar.zst -C /tmp
@@ -161,8 +154,6 @@ jobs:
           swift sdk list
       - name: Build Murmur.app
         run: apps/murmur/scripts/build-mac.sh
-      # rcodesign's own verify doesn't handle ad-hoc signatures, so the real check happens
-      # on macOS below. This artifact is only Murmur's code and its open-source libraries.
       - run: tar -cf /tmp/murmur-linux-cross.tar -C apps/murmur/build Murmur.app
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -186,10 +177,6 @@ jobs:
           ! otool -L Murmur.app/Contents/Frameworks/*.dylib Murmur.app/Contents/MacOS/Murmur \
             | grep -E '^\s+/(root|home|__w|github|tmp)/'
       - name: Launch it
-        # Loading every bundled library and starting the menu bar app proves the cross-built
-        # binaries actually run. Without models the engine reports a setup error in the menu,
-        # and the app keeps running, so being stopped by the 10 s alarm (SIGALRM, exit 142)
-        # means success; a crash or dyld error exits early with another code.
         run: |
           set +e
           perl -e 'alarm 10; exec @ARGV' Murmur.app/Contents/MacOS/Murmur

@@ -32,7 +32,6 @@ export function StockDetailActions({
   const [copiedSymbol, setCopiedSymbol] = useState<string | null>(null);
 
   async function shareStock() {
-    // A shared chart opens the stock; the sharer's watchlist stays theirs.
     const url = new URL(window.location.href);
     url.search = "";
     url.searchParams.set("symbol", resolvedStock.symbol);
@@ -51,9 +50,7 @@ export function StockDetailActions({
       await navigator.clipboard.writeText(shareData.url);
       setCopiedSymbol(resolvedStock.symbol);
       playStockHaptic("success");
-    } catch {
-      // Clipboard access can be denied; there is no further fallback.
-    }
+    } catch {}
   }
 
   return (
@@ -73,7 +70,6 @@ export function StockDetailActions({
         aria-label={labels.share}
         className="text-ios-tint"
         onClick={function shareStockFromButton() {
-          // shareStock handles its own failures.
           void shareStock();
         }}
       >

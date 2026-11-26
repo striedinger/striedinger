@@ -39,8 +39,6 @@ const NowPlayingSheet = lazy(function importNowPlayingSheet() {
   });
 });
 
-// A tap that opens Now Playing can be followed by stray pointer events on touch screens;
-// they should not count as dismissing the sheet it just opened.
 const openingGracePeriodMilliseconds = 450;
 
 let appOpenedAt: number | null = null;
@@ -65,7 +63,6 @@ function readServerTime() {
  */
 export function PodcastsChrome({ aiLabels, children, locale, messages }: PodcastsChromeProps) {
   const iosRouter = useIosRouter();
-  // Only whether an episode is loaded, so queue edits leave the chrome alone.
   const { currentEpisodeId } = usePlayingEpisode();
   const now = useSyncExternalStore(subscribeToNothing, readAppOpenedAt, readServerTime);
   const [isNowPlayingOpen, setIsNowPlayingOpen] = useState(false);
@@ -78,7 +75,6 @@ export function PodcastsChrome({ aiLabels, children, locale, messages }: Podcast
   const searchInput = useSearchInput(urlSearchQuery, search);
   const isNowPlayingVisible = isNowPlayingOpen && currentEpisodeId !== null;
 
-  // Like iOS 26, the tab bar shrinks while scrolling down and returns when scrolling up.
   useEffect(function minimizeTabBarWhileScrolling() {
     const content = contentRef.current;
     if (!content) return;

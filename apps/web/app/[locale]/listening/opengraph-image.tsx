@@ -15,7 +15,6 @@ interface OpenGraphImageProps {
 
 export const alt = "Press play to see what Hugo is listening to on Spotify";
 export const size = listeningImageSize;
-// A photographic card compresses to a fraction of the PNG the renderer makes.
 export const contentType = "image/jpeg";
 const jpegQuality = 82;
 
@@ -23,8 +22,6 @@ const equalizerBarHeights = [12, 22, 16, 26];
 const spotifyGreen = "#1ed760";
 const glassFill = "rgba(255, 255, 255, 0.14)";
 const glassEdge = "inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.14)";
-// X draws its play button over the center of the image, so the cover sits there and the play
-// button lands on it like a record's; every word stays above or below it.
 const coverSize = 340;
 const coverTop = (listeningImageSize.height - coverSize) / 2;
 const fallbackBackground =

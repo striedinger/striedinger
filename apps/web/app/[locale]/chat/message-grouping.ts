@@ -1,6 +1,5 @@
 import type { VisibleChatMessage } from "./types";
 
-// Like Messages, a centered timestamp separates messages sent after a pause.
 const timestampGapMilliseconds = 15 * 60 * 1_000;
 
 export interface MessagePlacement {

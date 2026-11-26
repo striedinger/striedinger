@@ -5,7 +5,7 @@
 //! Samples are downmixed to mono and resampled to 16 kHz on stop.
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, bounded, unbounded};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -87,7 +87,6 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
     let level_cb = level.clone();
     let err_fn = |e| eprintln!("[murmur] audio stream error: {e}");
 
-    // Push mono frames into the buffer while recording.
     let on_frames = move |mono: &mut dyn Iterator<Item = f32>| {
         if !rec_cb.load(Ordering::Relaxed) {
             return;
@@ -138,9 +137,6 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
             return;
         }
     };
-    // Keep the stream running permanently so recording starts with zero latency.
-    // (macOS shows the mic indicator the whole time. To avoid that, call
-    // stream.play()/pause() on Start/Stop instead, at the cost of ~100 ms.)
     if let Err(e) = stream.play() {
         let _ = ready.send(Err(e.into()));
         return;
@@ -156,8 +152,6 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
             Cmd::Stop(reply) => {
                 recording.store(false, Ordering::Relaxed);
                 level.store(0, Ordering::Relaxed);
-                // Resample straight from the buffer, then clear it. Clearing keeps its
-                // capacity, so the next recording doesn't reallocate while you talk.
                 let mut buf = buffer.lock().unwrap();
                 let samples = resample(&buf, src_rate, TARGET_RATE);
                 buf.clear();
@@ -195,14 +189,13 @@ fn resample(input: &[f32], from: u32, to: u32) -> Vec<f32> {
 
 /// Trims leading/trailing near-silence so the models see less dead air.
 pub fn trim_silence(samples: &[f32]) -> &[f32] {
-    const WIN: usize = 320; // 20 ms at 16 kHz
+    const WIN: usize = 320;
     const THRESH: f32 = 0.01;
     let loud = |w: &[f32]| (w.iter().map(|s| s * s).sum::<f32>() / w.len() as f32).sqrt() > THRESH;
     let first = samples.chunks(WIN).position(loud);
     let last = samples.chunks(WIN).rposition(loud);
     match (first, last) {
         (Some(f), Some(l)) => {
-            // keep 200 ms of padding either side
             let start = f.saturating_sub(10) * WIN;
             let end = ((l + 11) * WIN).min(samples.len());
             &samples[start..end]
@@ -225,7 +218,6 @@ mod tests {
 
     #[test]
     fn trimming_keeps_speech_with_padding_and_drops_dead_air() {
-        // 1 s silence, 0.5 s "speech", 1 s silence at 16 kHz.
         let mut samples = vec![0.0f32; 16_000];
         samples.extend(std::iter::repeat_n(0.3f32, 8_000));
         samples.extend(std::iter::repeat_n(0.0f32, 16_000));

@@ -77,12 +77,10 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
   const [fileName, setFileName] = useState("drawing.svg");
   const [background, setBackground] = useState<SvgPreviewBackground>("grid");
   const [toastMessage, setToastMessage] = useState("");
-  // The preview keeps the last drawing that parsed while new markup is typed.
   const [previewSource, setPreviewSource] = useState<string | null>(sampleSvg);
   const [isOptimizing, startOptimizing] = useTransition();
   const [isExporting, startExporting] = useTransition();
   const [isAiOpen, setIsAiOpen] = useState(false);
-  // On-device AI controls appear only once the browser confirms it can run them.
   const canEdit = useOnDeviceAi(
     defineOnDeviceAiProbe("LanguageModel", `svg-edit:${locale}`, function checkEditing() {
       return LanguageModel.availability(getSvgEditOptions(locale));
@@ -93,9 +91,7 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
       return LanguageModel.availability(getSvgDescribeOptions(locale));
     }),
   );
-  // Parsing a large drawing on every keystroke would delay typing, so it trails the input.
   const deferredSource = useDeferredValue(source);
-  // One parse of a very large file can't be interrupted, so those wait for a pause in typing.
   const [settledLargeSource, setSettledLargeSource] = useState(source);
   const isLargeSource = deferredSource.length > largeSourceCharacters;
   const inspectedSource = isLargeSource ? settledLargeSource : deferredSource;
@@ -357,7 +353,6 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
               accept=".svg,image/svg+xml"
               className="sr-only"
               onChange={function handleFileChange(event) {
-                // openFile reports its own failures in a toast.
                 void openFile(event);
               }}
             />
@@ -397,7 +392,6 @@ export function SvgEditor({ aiLabels, labels, locale }: SvgEditorProps) {
                     id: "copy",
                     label: labels.copy,
                     onSelect() {
-                      // copyText reports failure as false instead of rejecting.
                       void copySource();
                     },
                   },

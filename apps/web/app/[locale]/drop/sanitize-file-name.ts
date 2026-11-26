@@ -1,9 +1,6 @@
 const maximumFileNameLength = 255;
 const fallbackFileName = "file";
-// Control, format (bidi overrides, zero-width characters), and line or paragraph separators
-// let a peer disguise a name such as "report‮fdp.exe" as "reportexe.pdf".
 const invisibleCharacters = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu;
-// Collapsed so padding cannot push the real extension out of the truncated display.
 const whitespaceRuns = /\s+/gu;
 
 /** Makes a peer-provided file name safe to display and to suggest as a download name. */

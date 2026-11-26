@@ -58,8 +58,6 @@ async function loadPopularPodcasts(): Promise<Podcast[]> {
   "use cache";
   cacheTag("podcast-charts");
 
-  // The chart prerenders with pages, so an unavailable feed renders an empty chart and is
-  // retried within a minute instead of failing the build.
   const payload = await fetchChart().catch(function useUnavailableChart() {
     return null;
   });

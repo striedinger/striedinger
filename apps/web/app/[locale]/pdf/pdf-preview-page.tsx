@@ -43,7 +43,6 @@ export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPrevi
     function renderPage() {
       const canvas = canvasRef.current;
       if (!isNearViewport) {
-        // Shrinking the canvas releases its backing store; the reserved size keeps the layout.
         if (canvas) {
           canvas.width = 0;
           canvas.height = 0;
@@ -53,8 +52,6 @@ export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPrevi
       let cancelled = false;
       let cancelRender: (() => void) | undefined;
 
-      // The cleanup sets `cancelled` during the awaits below; reading it through a call keeps
-      // TypeScript from narrowing the later checks away.
       function isCancelled() {
         return cancelled;
       }
@@ -102,7 +99,6 @@ export function PdfPreviewPage({ document, estimatedSize, pageNumber }: PdfPrevi
     [document, isNearViewport, pageNumber],
   );
 
-  // A page that scrolled away has given up its pixels, whatever it last finished drawing.
   const isShowing = status === "ready" && isNearViewport;
 
   return (

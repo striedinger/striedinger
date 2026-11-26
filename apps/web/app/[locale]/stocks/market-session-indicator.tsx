@@ -35,7 +35,6 @@ export function MarketSessionIndicator({ exchange, labels }: MarketSessionIndica
     function updateMarketSession() {
       if (!isSupportedExchange) return;
       function refreshSession() {
-        // A hidden tab shows nothing, so it skips ticks and catches up when shown again.
         if (document.hidden) return;
         setSession(getUnitedStatesMarketSession(new Date()));
       }

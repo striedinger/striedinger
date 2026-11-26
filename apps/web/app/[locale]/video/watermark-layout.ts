@@ -37,7 +37,6 @@ export function placeWatermark(clipTime: number, motion: WatermarkMotion) {
   const time = Math.max(0, clipTime);
   const stop = Math.floor(time / watermarkHopSeconds);
   const intoStop = time - stop * watermarkHopSeconds;
-  // The first stop is fully visible from the first frame; later ones fade in.
   const fadeIn = stop === 0 ? 1 : intoStop / fadeSeconds;
   const fadeOut = (watermarkHopSeconds - intoStop) / fadeSeconds;
   return {

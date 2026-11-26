@@ -61,7 +61,6 @@ export async function rasterizePdfDocument<Canvas extends PageCanvas>(
       try {
         context.fillStyle = "#ffffff";
         context.fillRect(0, 0, canvas.width, canvas.height);
-        // pdf.js only reads the canvas size, so an OffscreenCanvas works in place of a DOM one.
         await page.render({ canvas: canvas as HTMLCanvasElement, canvasContext: context, viewport })
           .promise;
         const jpeg = await environment.encodeJpeg(canvas, options.quality);

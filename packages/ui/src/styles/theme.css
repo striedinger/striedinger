@@ -1,5 +1,3 @@
-/* Design tokens shared by every stylesheet that generates Tailwind utilities, so a
- * utility such as `rounded-xl` or `animate-shimmer` means the same thing in each. */
 @theme inline {
   --animate-wave: wave 2.5s infinite;
   --animate-shimmer: shimmer 1.5s ease-in-out infinite;

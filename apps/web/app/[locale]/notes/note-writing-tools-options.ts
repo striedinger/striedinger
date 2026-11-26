@@ -1,5 +1,3 @@
-// The availability options for each writing tool, shared by the probes and the sessions.
-
 export function getProofreaderOptions(locale: string): ProofreaderOptions {
   return { expectedInputLanguages: [locale] };
 }

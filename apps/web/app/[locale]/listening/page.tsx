@@ -14,11 +14,9 @@ import { listeningImageSize } from "./listening-image";
 import { NowPlayingLoader } from "./now-playing-loader";
 import { NowPlayingSkeleton } from "./now-playing-skeleton";
 
-// X sizes the player to the post's width and keeps this aspect ratio.
 const playerSize = { width: 480, height: 270 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  // The card image's address names the current song, so the metadata is read per request.
   await connection();
   const locale = await getRequestLocale();
   const [translate, state] = await Promise.all([
@@ -30,9 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const imageAlt = translate("Press play to see what Hugo is listening to on Spotify");
   const pageMetadata = createPageMetadata({ title, description, locale, path: "/listening" });
   const playerUrl = `${siteUrl}${localizePath("/listening", locale)}`;
-  // The card image is 16:9 like the player, not the 1.91:1 the other pages use. Its address
-  // names the song it shows, so X, which caches images by address, never reuses another
-  // song's card.
   const imageUrl = `${playerUrl}/opengraph-image?track=${getTrackKey(state)}`;
 
   return {
@@ -41,7 +36,6 @@ export async function generateMetadata(): Promise<Metadata> {
       ...pageMetadata.openGraph,
       images: [{ url: imageUrl, ...listeningImageSize, alt: imageAlt }],
     },
-    // The reading changes by the minute, so there is nothing worth indexing.
     robots: { index: false, follow: true },
     twitter: {
       card: "player",
@@ -49,8 +43,6 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       images: [{ url: imageUrl, alt: imageAlt }],
-      // Next.js pairs every player with a `twitter:player:stream` tag, which X reads as a raw
-      // media file, so the player's own tags are written below instead.
       players: [],
     },
     other: {

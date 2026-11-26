@@ -43,8 +43,6 @@ export function proxy(request: NextRequest) {
 
   if (routeLocale) {
     const response = NextResponse.next(requestOverrides);
-    // Only a change of language writes the cookie: a Set-Cookie header on every response would
-    // keep shared caches from storing these statically generated pages.
     if (request.cookies.get(localeCookieName)?.value === routeLocale) return response;
     response.cookies.set(localeCookieName, routeLocale, {
       maxAge: 60 * 60 * 24 * 365,
@@ -58,8 +56,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.next(requestOverrides);
   }
 
-  // Unprefixed URLs render the visitor's language from the statically generated [locale] tree,
-  // so URLs never need a locale code.
   const destinationUrl = request.nextUrl.clone();
   destinationUrl.pathname = `/${negotiateLocale(request)}${pathname === "/" ? "" : pathname}`;
   const response = NextResponse.rewrite(destinationUrl, requestOverrides);
@@ -90,7 +86,6 @@ function isLocalizedRoute(pathname: string) {
 }
 
 function negotiateLocale(request: NextRequest): Locale {
-  // Social cards for unprefixed URLs are shared and cached, so they are always English.
   if (/\/(?:opengraph|twitter)-image$/.test(request.nextUrl.pathname)) return "en";
   const savedLocale = request.cookies.get(localeCookieName)?.value;
   if (savedLocale && isLocale(savedLocale)) return savedLocale;
@@ -105,7 +100,6 @@ function negotiateLocale(request: NextRequest): Locale {
   return resolveLocale(acceptedLanguages);
 }
 
-// Static assets, framework chunks, and vendored runtimes never need locale or host handling.
 export const config = {
   matcher: [
     "/((?!_next/|vendor/|.*\\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|wasm|webp|woff2?)$).*)",

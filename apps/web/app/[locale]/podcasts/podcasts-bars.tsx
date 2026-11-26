@@ -41,7 +41,6 @@ function createRouteHref(
   query: string,
   followedIds: readonly string[],
 ) {
-  // Show and episode paths carry slugs the route does not keep, so they are reused as is.
   if (route.podcastId) return `/podcasts/${segments.join("/")}`;
   if (route.libraryView) return getLibraryViewHref(route.libraryView);
   if (route.tab === "new") return getNewEpisodesHref(followedIds);
@@ -84,7 +83,6 @@ export function PodcastsBars({
       return podcast.id;
     }),
   );
-  // Shows and episodes belong to the tab that pushed them.
   const [stackTab, setStackTab] = useState<PodcastTab>(route.tab ?? "home");
   const [tabHrefs, setTabHrefs] = useState<TabHrefs>({});
   if (route.tab && route.tab !== stackTab) setStackTab(route.tab);
@@ -119,7 +117,6 @@ export function PodcastsBars({
       return;
     }
     const rememberedHref = tabHrefs[tab];
-    // The New tab's list depends on which shows are followed now.
     const isRememberedNewList = tab === "new" && rememberedHref?.startsWith(getTabRootHref("new"));
     iosRouter.push(rememberedHref && !isRememberedNewList ? rememberedHref : getTabRootHref(tab), {
       direction: "none",

@@ -56,7 +56,6 @@ export function ImageOptimizer({ aiLabels, labels, locale }: ImageOptimizerProps
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("auto");
   const [notice, setNotice] = useState<string>();
   const [describedItemId, setDescribedItemId] = useState<string | null>(null);
-  // Describing images appears only once the browser confirms it can do it on the device.
   const canDescribe = useOnDeviceAi(
     defineOnDeviceAiProbe("LanguageModel", `image-description:${locale}`, function checkImages() {
       return LanguageModel.availability(getImageDescriptionOptions(locale));

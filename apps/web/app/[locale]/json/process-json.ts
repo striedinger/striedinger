@@ -29,8 +29,6 @@ export function processJson(input: string): JsonWorkerResponse {
   if (result.status !== "valid") return { result };
 
   const previewable = canPreviewJson(result.value);
-  // Bound traversal before stringify: deeply nested valid JSON can overflow its stack.
-  // Do not structured-clone an unrenderable tree back to the main thread either.
   if (!previewable) return { result: { status: "valid", value: null, previewable } };
   const formattedInput = JSON.stringify(result.value, null, 2);
 

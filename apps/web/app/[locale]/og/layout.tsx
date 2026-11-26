@@ -10,7 +10,6 @@ export default function OgLayout({ children }: Readonly<{ children: ReactNode }>
     <NativeToolLayout
       href="/og"
       tintClassName="[--ios-tint:#5856d6] dark:[--ios-tint:#5e5ce6]"
-      // The format's name, as the app switcher shows it; the page title says what it does.
       title="Open Graph"
       contentWidth="42rem"
     >

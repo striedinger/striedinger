@@ -51,7 +51,6 @@ export function VideoPreview({
   return (
     <div
       className="relative mx-auto flex max-h-[min(60dvh,36rem)] w-full items-center justify-center overflow-hidden rounded-ios-2xl bg-black"
-      // A size container, so overlays can be sized relative to the frame like the export's.
       style={{ aspectRatio, containerType: "size" }}
     >
       <canvas

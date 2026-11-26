@@ -3,7 +3,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageDirectory = dirname(fileURLToPath(import.meta.resolve("@jsquash/avif")));
-// The image worker reads the same version, so a dependency bump moves both to a new path.
 const AVIF_VERSION = /** @type {{ version: string }} */ (
   JSON.parse(await readFile(join(packageDirectory, "package.json"), "utf8"))
 ).version;

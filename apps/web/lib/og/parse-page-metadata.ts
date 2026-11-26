@@ -4,9 +4,6 @@ import { PreviewError } from "./preview-error";
 
 const maximumTagValueLength = 4_096;
 const maximumDocumentMetadataTags = 98;
-// Real heads are a few kilobytes. The cap, together with patterns that stop at the next "<" and
-// bounded repetitions, keeps every scan below linear in the input, so a hostile page cannot pin
-// the CPU with an unterminated tag.
 const maximumHeadLength = 131_072;
 const metaTagPattern = /<meta\s[^<>]{0,2048}>/gi;
 const linkTagPattern = /<link\s[^<>]{0,2048}>/gi;
@@ -123,8 +120,6 @@ function extractDocumentTitle(head: string): string {
   const openTag = titleOpenTagPattern.exec(head);
   if (!openTag) return "";
 
-  // Searching for the closing tag once, after the first opening tag, stays linear where a lazy
-  // capture would rescan the rest of the head from every unclosed "<title".
   const titleAndRest = head.slice(openTag.index + openTag[0].length);
   const closeTagIndex = titleAndRest.search(titleCloseTagPattern);
   const title = closeTagIndex === -1 ? "" : titleAndRest.slice(0, closeTagIndex);
@@ -175,7 +170,6 @@ function decodeHtmlEntities(value: string): string {
           ? Number.parseInt(code.slice(2), 16)
           : // oxlint-disable-next-line unicorn/prefer-number-coercion -- parseInt stops at the first non-decimal digit the hex-tolerant pattern allows, where Number() would give NaN
             Number.parseInt(code.slice(1), 10);
-      // A page's out-of-range entity stays as written instead of failing the whole preview.
       return codePoint <= 0x10_ffff ? String.fromCodePoint(codePoint) : entity;
     },
   );

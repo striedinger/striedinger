@@ -78,7 +78,6 @@ export default async function SudokuPage() {
     <IosToolScreen
       title={labels.title}
       contentWidth="36rem"
-      // The board takes the room the title and controls leave, so the game fits without scrolling.
       contentClassName="min-h-104 flex-1 px-4 pb-safe-min-3.5"
       scrollClassName=""
     >

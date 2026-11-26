@@ -36,7 +36,6 @@ impl Stt {
         let mut recognizer = TransducerRecognizer::new(config)
             .map_err(|e| anyhow::anyhow!("Failed to load speech model: {e}"))?;
 
-        // Warm up so the first real dictation isn't slow.
         let _ = recognizer.transcribe(TARGET_RATE, &[0.0f32; TARGET_RATE as usize / 2]);
 
         Ok(Self { recognizer })

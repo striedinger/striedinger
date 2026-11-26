@@ -50,14 +50,12 @@ function notifyListeners() {
 }
 
 function startProbe(probe: OnDeviceAiProbe) {
-  // A missing API is not remembered: checking again costs one property lookup.
   if (results.has(probe.key) || pendingKeys.has(probe.key) || !hasOnDeviceAi(probe.api)) return;
   pendingKeys.add(probe.key);
   probe
     .check()
     .then(
       function isUsable(availability) {
-        // A model that still has to download counts: the first use starts the download.
         return availability !== "unavailable";
       },
       function treatErrorAsUnavailable() {

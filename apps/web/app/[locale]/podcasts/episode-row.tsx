@@ -34,8 +34,6 @@ export function EpisodeRow({
 }: EpisodeRowProps) {
   const { locale, messages, now } = usePodcasts();
   const menuSections = useEpisodeMenuSections({ extraActions, item, showsGoToShow });
-  // Each row reads only its own episode's state, so saving progress during playback
-  // re-renders the playing row rather than every row in every list.
   const isPlayed = useIsEpisodePlayed(item.episode.id);
   const progress = useEpisodeProgress(item.episode.id);
 

@@ -11,12 +11,8 @@ interface ImageFont {
 }
 
 const requestTimeoutMs = 3_000;
-// The backdrop is blurred at this width and scaled up, which blurs far more cheaply than
-// filtering the full card.
 const backdropSampleWidth = 32;
 const maximumCachedFonts = 64;
-// Inter matches the page's fallback for San Francisco. Scripts it does not cover load a Noto
-// face, so a Japanese or Korean song title never renders as empty boxes.
 const scriptFonts = [
   { family: "Noto Sans JP", pattern: /[぀-ヿ]/ },
   { family: "Noto Sans SC", pattern: /[一-鿿]/ },
@@ -27,7 +23,6 @@ const scriptFonts = [
   { family: "Noto Sans Devanagari", pattern: /[ऀ-ॿ]/ },
 ];
 
-// Subsets are keyed by their exact text, so a song's card reuses them until it changes.
 const fontCache = new Map<string, Promise<ArrayBuffer | null>>();
 
 /**
@@ -67,7 +62,6 @@ function loadFontSubset(family: string, weight: FontWeight, text: string) {
   if (!font) {
     if (fontCache.size >= maximumCachedFonts) fontCache.clear();
     font = fetchFontSubset(family, weight, characters).then(function forgetFailure(data) {
-      // A failed download is retried by the next image instead of being remembered.
       if (!data) fontCache.delete(key);
       return data;
     });
@@ -108,7 +102,6 @@ export async function loadArtwork(url: string, backdropSize: { width: number; he
     const contentType = response.headers.get("content-type") ?? "";
     if (!response.ok || !contentType.startsWith("image/")) return null;
     const cover = Buffer.from(await response.arrayBuffer());
-    // Two pipelines, because sharp runs only one resize per pipeline.
     const tinyBackdrop = await sharp(cover)
       .resize(
         backdropSampleWidth,

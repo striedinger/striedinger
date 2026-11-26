@@ -39,11 +39,9 @@ export function MessageTranslation({ labels, locale, text }: MessageTranslationP
     function translateWhenForeign() {
       let isCurrent = true;
       async function translate() {
-        // Short messages are too ambiguous to detect reliably, so they stay as written.
         if (text.trim().length < minimumDetectableCharacters) return;
         const language = await findTranslatableLanguage(text, locale);
         if (!isCurrent || !language) return;
-        // Downloading a language pack needs a tap, so only installed packs translate on their own.
         if (!language.isReady) {
           setState({ kind: "offer", sourceLanguage: language.sourceLanguage });
           return;

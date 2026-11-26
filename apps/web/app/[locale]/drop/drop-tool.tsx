@@ -29,7 +29,6 @@ interface DropToolProps {
 }
 
 const dropAppId = "co.striedinger.drop.v1";
-// A peer-claimed type such as text/html would let the blob URL render as a page on this origin.
 const receivedFileType = "application/octet-stream";
 
 interface DropSessionState {
@@ -88,7 +87,6 @@ export function DropTool({ labels }: DropToolProps) {
     function syncFragmentRoom() {
       if (cancelled) return;
       const fragmentCode = parseRoomCode(window.location.hash.slice(1));
-      // Resetting for the room already open would drop the connection without reconnecting.
       if (fragmentCode !== undefined && fragmentCode === activeRoomCode.current) return;
       const nextRoomCode = fragmentCode ?? createRoomCode();
       activeRoomCode.current = nextRoomCode;
@@ -115,7 +113,6 @@ export function DropTool({ labels }: DropToolProps) {
   useEffect(
     function connectToRoom() {
       if (!roomCode) return;
-      // A constant keeps the room code narrowed to a string inside the async connect below.
       const roomCodeToJoin = roomCode;
 
       let cancelled = false;
@@ -148,7 +145,6 @@ export function DropTool({ labels }: DropToolProps) {
           const action = joinedRoom.makeAction("file");
           activeSession.action = action;
 
-          // Runs before trystero buffers the payload, so oversized transfers never reach memory.
           action.onReceive = function admitIncomingFile({
             byteLength,
             metadata: rawMetadata,
@@ -163,8 +159,6 @@ export function DropTool({ labels }: DropToolProps) {
             const rejection = findIncomingRejection(activeSession, byteLength, metadata);
 
             if (rejection) {
-              // Honest senders never exceed the per-file limit or misstate the size, and stop
-              // after the first file refused for a full session, so the list stays bounded.
               if (rejection === "session-limit" && !activeSession.sessionLimitedPeers.has(peerId)) {
                 activeSession.sessionLimitedPeers.add(peerId);
               } else {
@@ -232,7 +226,6 @@ export function DropTool({ labels }: DropToolProps) {
             activeSession.peers.add(peerId);
             setPeerCount(activeSession.peers.size);
 
-            // Anyone holding the link can join, so earlier files wait for the sender to approve.
             if (activeSession.sharedFiles.length === 0) return;
             activeSession.withheldFileIds.set(
               peerId,
@@ -388,7 +381,6 @@ export function DropTool({ labels }: DropToolProps) {
   }
 
   function handleDismissLatePeers() {
-    // The files stay withheld from these peers; only the prompt goes away.
     session.current.latePeers.clear();
     setLatePeerFileCount(0);
   }
@@ -428,7 +420,6 @@ export function DropTool({ labels }: DropToolProps) {
     await copyInviteLink();
   }
 
-  // Copying and sharing settle their own failures, so these promises never reject.
   function handleCopy() {
     void copyInviteLink();
   }
@@ -539,7 +530,6 @@ function findIncomingRejection(
 }
 
 function createIncomingTransferKey(peerId: string, transferId: string) {
-  // Peers choose their own transfer ids, so scoping by sender keeps one from replacing another's.
   return JSON.stringify([peerId, transferId]);
 }
 
