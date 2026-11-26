@@ -3,13 +3,20 @@ use std::path::Path;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// One past dictation.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct HistoryItem {
+    /// Row id, unique and increasing.
     pub id: i64,
+    /// When it was dictated, in seconds since the Unix epoch.
     pub timestamp: i64,
+    /// Id of the app it was dictated into, if known.
     pub app: Option<String>,
+    /// Id of the mode used.
     pub mode: String,
+    /// What the speech model heard.
     pub raw: String,
+    /// What was pasted.
     pub output: String,
 }
 
@@ -47,7 +54,7 @@ impl History {
         raw: &str,
         output: &str,
     ) -> anyhow::Result<()> {
-        let ts = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64;
+        let ts = i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())?;
         self.conn.lock().unwrap().execute(
             "INSERT INTO history (ts, app, mode, raw, output) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![ts, app, mode, raw, output],

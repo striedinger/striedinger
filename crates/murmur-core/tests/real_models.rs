@@ -167,9 +167,9 @@ fn real_models_end_to_end() {
         let run = || {
             engine
                 .process_audio(
-                    samples.clone(),
+                    &samples,
                     Some(case.mode.into()),
-                    case.app.map(String::from),
+                    &case.app.map(String::from),
                 )
                 .expect("dictation succeeds")
         };

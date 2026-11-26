@@ -34,7 +34,7 @@ impl Recorder {
 
         thread::Builder::new()
             .name("murmur-audio".into())
-            .spawn(move || audio_thread(rx, ready_tx, level_thread))?;
+            .spawn(move || audio_thread(&rx, &ready_tx, &level_thread))?;
 
         ready_rx.recv()??;
         Ok(Self { tx, level })
@@ -62,89 +62,16 @@ impl Recorder {
     }
 }
 
-fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc<AtomicU32>) {
-    let host = cpal::default_host();
-    let Some(device) = host.default_input_device() else {
-        let _ = ready.send(Err(anyhow::anyhow!("No microphone found")));
-        return;
-    };
-    let config = match device.default_input_config() {
-        Ok(c) => c,
-        Err(e) => {
-            let _ = ready.send(Err(e.into()));
-            return;
-        }
-    };
-    let src_rate = config.sample_rate().0;
-    let channels = config.channels() as usize;
-
-    let buffer: Arc<Mutex<Vec<f32>>> =
-        Arc::new(Mutex::new(Vec::with_capacity(src_rate as usize * 60)));
+fn audio_thread(rx: &Receiver<Cmd>, ready: &Sender<anyhow::Result<()>>, level: &Arc<AtomicU32>) {
+    let buffer: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(Vec::new()));
     let recording = Arc::new(AtomicBool::new(false));
-
-    let buf_cb = buffer.clone();
-    let rec_cb = recording.clone();
-    let level_cb = level.clone();
-    let err_fn = |e| eprintln!("[murmur] audio stream error: {e}");
-
-    // Push mono frames into the buffer while recording.
-    let on_frames = move |mono: &mut dyn Iterator<Item = f32>| {
-        if !rec_cb.load(Ordering::Relaxed) {
-            return;
-        }
-        let mut buf = buf_cb.lock().unwrap();
-        let start = buf.len();
-        buf.extend(mono);
-        let chunk = &buf[start..];
-        if !chunk.is_empty() {
-            let rms = (chunk.iter().map(|s| s * s).sum::<f32>() / chunk.len() as f32).sqrt();
-            level_cb.store((rms * 8.0).min(1.0).to_bits(), Ordering::Relaxed);
-        }
-    };
-
-    let stream_config = config.config();
-    let stream = match config.sample_format() {
-        cpal::SampleFormat::F32 => device.build_input_stream(
-            &stream_config,
-            move |data: &[f32], _| {
-                on_frames(
-                    &mut data
-                        .chunks(channels)
-                        .map(|f| f.iter().sum::<f32>() / channels as f32),
-                )
-            },
-            err_fn,
-            None,
-        ),
-        cpal::SampleFormat::I16 => device.build_input_stream(
-            &stream_config,
-            move |data: &[i16], _| {
-                on_frames(&mut data.chunks(channels).map(|f| {
-                    f.iter().map(|s| *s as f32 / i16::MAX as f32).sum::<f32>() / channels as f32
-                }))
-            },
-            err_fn,
-            None,
-        ),
-        other => {
-            let _ = ready.send(Err(anyhow::anyhow!("Unsupported sample format {other:?}")));
+    let (stream, src_rate) = match open_microphone(&buffer, &recording, level) {
+        Ok(opened) => opened,
+        Err(error) => {
+            let _ = ready.send(Err(error));
             return;
         }
     };
-    let stream = match stream {
-        Ok(s) => s,
-        Err(e) => {
-            let _ = ready.send(Err(e.into()));
-            return;
-        }
-    };
-    // Keep the stream running permanently so recording starts with zero latency.
-    // (macOS shows the mic indicator the whole time. To avoid that, call
-    // stream.play()/pause() on Start/Stop instead, at the cost of ~100 ms.)
-    if let Err(e) = stream.play() {
-        let _ = ready.send(Err(e.into()));
-        return;
-    }
     let _ = ready.send(Ok(()));
 
     for cmd in rx {
@@ -174,30 +101,121 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
     drop(stream);
 }
 
+/// Opens the default input device and starts a stream that, while `recording` is set,
+/// appends mono samples to `buffer` and publishes their level. Returns the running stream
+/// and its sample rate.
+fn open_microphone(
+    buffer: &Arc<Mutex<Vec<f32>>>,
+    recording: &Arc<AtomicBool>,
+    level: &Arc<AtomicU32>,
+) -> anyhow::Result<(cpal::Stream, u32)> {
+    let host = cpal::default_host();
+    let device = host
+        .default_input_device()
+        .ok_or_else(|| anyhow::anyhow!("No microphone found"))?;
+    let config = device.default_input_config()?;
+    let src_rate = config.sample_rate().0;
+    let channels = usize::from(config.channels());
+    let channel_count = f32::from(config.channels());
+    // A minute of audio up front, so a typical dictation never reallocates mid-recording.
+    buffer.lock().unwrap().reserve(src_rate as usize * 60);
+
+    let buf_cb = buffer.clone();
+    let rec_cb = recording.clone();
+    let level_cb = level.clone();
+    let err_fn = |e| eprintln!("[murmur] audio stream error: {e}");
+
+    // Push mono frames into the buffer while recording.
+    let on_frames = move |mono: &mut dyn Iterator<Item = f32>| {
+        if !rec_cb.load(Ordering::Relaxed) {
+            return;
+        }
+        let mut buf = buf_cb.lock().unwrap();
+        let start = buf.len();
+        buf.extend(mono);
+        let chunk = &buf[start..];
+        if !chunk.is_empty() {
+            level_cb.store((rms(chunk) * 8.0).min(1.0).to_bits(), Ordering::Relaxed);
+        }
+    };
+
+    let stream_config = config.config();
+    let stream = match config.sample_format() {
+        cpal::SampleFormat::F32 => device.build_input_stream(
+            &stream_config,
+            move |data: &[f32], _| {
+                on_frames(
+                    &mut data
+                        .chunks(channels)
+                        .map(|f| f.iter().sum::<f32>() / channel_count),
+                );
+            },
+            err_fn,
+            None,
+        ),
+        cpal::SampleFormat::I16 => device.build_input_stream(
+            &stream_config,
+            move |data: &[i16], _| {
+                on_frames(&mut data.chunks(channels).map(|f| {
+                    f.iter()
+                        .map(|s| f32::from(*s) / f32::from(i16::MAX))
+                        .sum::<f32>()
+                        / channel_count
+                }));
+            },
+            err_fn,
+            None,
+        ),
+        other => anyhow::bail!("Unsupported sample format {other:?}"),
+    }?;
+    // Keep the stream running permanently so recording starts with zero latency.
+    // (macOS shows the mic indicator the whole time. To avoid that, call
+    // stream.play()/pause() on Start/Stop instead, at the cost of ~100 ms.)
+    stream.play()?;
+    Ok((stream, src_rate))
+}
+
 /// Linear-interpolation resampler. Plenty for speech going down to 16 kHz.
+///
+/// Positions are exact integer ratios: output sample `i` sits `i * from / to` samples into
+/// the input, so long recordings don't drift the way an accumulated float ratio can.
 fn resample(input: &[f32], from: u32, to: u32) -> Vec<f32> {
     if from == to || input.is_empty() {
         return input.to_vec();
     }
-    let ratio = from as f64 / to as f64;
-    let out_len = (input.len() as f64 / ratio) as usize;
+    let (from, to) = (from as usize, to as usize);
+    let out_len = input.len() * to / from;
     (0..out_len)
         .map(|i| {
-            let pos = i as f64 * ratio;
-            let idx = pos as usize;
-            let frac = (pos - idx as f64) as f32;
-            let a = input[idx];
-            let b = *input.get(idx + 1).unwrap_or(&a);
-            a + (b - a) * frac
+            let offset = i * from;
+            let index = offset / to;
+            #[expect(
+                clippy::cast_precision_loss,
+                reason = "both values are below the sample rate, well inside f32's exact integer range"
+            )]
+            let fraction = (offset % to) as f32 / to as f32;
+            let a = input[index];
+            let b = input.get(index + 1).copied().unwrap_or(a);
+            a + (b - a) * fraction
         })
         .collect()
+}
+
+/// Root mean square of `samples` (must not be empty): their loudness, 0.0 for silence.
+fn rms(samples: &[f32]) -> f32 {
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "an audio callback buffer or analysis window holds far fewer than 2^24 samples, so the count converts exactly"
+    )]
+    let count = samples.len() as f32;
+    (samples.iter().map(|s| s * s).sum::<f32>() / count).sqrt()
 }
 
 /// Trims leading/trailing near-silence so the models see less dead air.
 pub fn trim_silence(samples: &[f32]) -> &[f32] {
     const WIN: usize = 320; // 20 ms at 16 kHz
     const THRESH: f32 = 0.01;
-    let loud = |w: &[f32]| (w.iter().map(|s| s * s).sum::<f32>() / w.len() as f32).sqrt() > THRESH;
+    let loud = |window: &[f32]| rms(window) > THRESH;
     let first = samples.chunks(WIN).position(loud);
     let last = samples.chunks(WIN).rposition(loud);
     match (first, last) {
@@ -217,10 +235,25 @@ mod tests {
 
     #[test]
     fn resampling_48k_to_16k_keeps_duration() {
-        let one_second = [0.25f32; 48_000];
+        let one_second = vec![0.25f32; 48_000];
         let out = resample(&one_second, 48_000, TARGET_RATE);
         assert_eq!(out.len(), 16_000);
         assert!(out.iter().all(|s| (s - 0.25).abs() < 1e-6));
+    }
+
+    #[test]
+    fn resampling_44k1_to_16k_interpolates_between_input_samples() {
+        // A ramp stays a ramp: each output sample lands on the line between its neighbours.
+        let ramp: Vec<f32> = (0..44_100u16).map(|i| f32::from(i) / 44_100.0).collect();
+        let out = resample(&ramp, 44_100, TARGET_RATE);
+        assert_eq!(out.len(), 16_000);
+        for (i, sample) in out.iter().enumerate().step_by(997) {
+            let expected = f32::from(u16::try_from(i).unwrap()) / 16_000.0;
+            assert!(
+                (sample - expected).abs() < 1e-4,
+                "sample {i}: {sample} vs {expected}"
+            );
+        }
     }
 
     #[test]
@@ -241,6 +274,6 @@ mod tests {
 
     #[test]
     fn trimming_pure_silence_returns_nothing() {
-        assert!(trim_silence(&[0.001f32; 16_000]).is_empty());
+        assert!(trim_silence(&vec![0.001f32; 16_000]).is_empty());
     }
 }

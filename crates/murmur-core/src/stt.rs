@@ -27,7 +27,7 @@ impl Stt {
             joiner: f("joiner.int8.onnx")?,
             tokens: f("tokens.txt")?,
             num_threads: threads,
-            sample_rate: TARGET_RATE as i32,
+            sample_rate: i32::try_from(TARGET_RATE)?,
             feature_dim: 128,
             model_type: "nemo_transducer".into(),
             decoding_method: "greedy_search".into(),
@@ -37,7 +37,8 @@ impl Stt {
             .map_err(|e| anyhow::anyhow!("Failed to load speech model: {e}"))?;
 
         // Warm up so the first real dictation isn't slow.
-        let _ = recognizer.transcribe(TARGET_RATE, &[0.0f32; TARGET_RATE as usize / 2]);
+        let half_a_second = vec![0.0f32; TARGET_RATE as usize / 2];
+        let _ = recognizer.transcribe(TARGET_RATE, &half_a_second);
 
         Ok(Self { recognizer })
     }

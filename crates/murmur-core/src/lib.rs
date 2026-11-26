@@ -19,12 +19,22 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 
+/// Errors surfaced to the native shells. Each carries a message ready to show the user.
 #[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum MurmurError {
+    /// The engine couldn't start: a missing model, an unreadable config, a broken history
+    /// database.
     #[error("{msg}")]
-    Setup { msg: String },
+    Setup {
+        /// What went wrong.
+        msg: String,
+    },
+    /// A dictation or rewrite failed, for example because the cleanup model errored.
     #[error("{msg}")]
-    Processing { msg: String },
+    Processing {
+        /// What went wrong.
+        msg: String,
+    },
 }
 
 impl MurmurError {
@@ -36,24 +46,34 @@ impl MurmurError {
     }
 }
 
+/// The outcome of one dictation.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct DictationResult {
     /// What the speech model heard.
     pub raw: String,
     /// What to paste (equals `raw` for modes without the LLM).
     pub output: String,
+    /// Id of the mode that produced `output`.
     pub mode: String,
+    /// Time spent transcribing, in milliseconds.
     pub stt_ms: u64,
+    /// Time spent in the mode's cleanup, in milliseconds (near 0 without the LLM).
     pub llm_ms: u64,
 }
 
+/// A dictation mode as the shells list it in menus.
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct ModeInfo {
+    /// Stable id, passed back as `mode_id`.
     pub id: String,
+    /// Display name.
     pub name: String,
+    /// Whether the mode runs the cleanup model, which is slower than pasting the transcript.
     pub uses_llm: bool,
 }
 
+/// The dictation engine: microphone, speech model, cleanup model, settings and history.
+/// One per app.
 #[derive(uniffi::Object)]
 pub struct Engine {
     dir: PathBuf,
@@ -69,6 +89,11 @@ pub struct Engine {
 #[uniffi::export]
 impl Engine {
     /// Loads config and both models. Slow (a few seconds): call off the main thread.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the config can't be read or written, a model is missing or won't load,
+    /// or the history database can't be opened. A missing microphone is not an error.
     #[uniffi::constructor]
     pub fn new(data_dir: String) -> Result<Arc<Self>, MurmurError> {
         let dir = PathBuf::from(data_dir);
@@ -106,12 +131,14 @@ impl Engine {
         }))
     }
 
+    /// Starts capturing the microphone. Does nothing without one.
     pub fn start_recording(&self) {
         if let Some(recorder) = &self.recorder {
             recorder.start();
         }
     }
 
+    /// Stops capturing and discards the recording.
     pub fn cancel_recording(&self) {
         if let Some(recorder) = &self.recorder {
             recorder.cancel();
@@ -123,29 +150,46 @@ impl Engine {
         self.recorder.as_ref().map_or(0.0, audio::Recorder::level)
     }
 
+    /// Whether a microphone was opened at startup.
     pub fn microphone_available(&self) -> bool {
         self.recorder.is_some()
     }
 
     /// Stops recording, transcribes, and runs the mode's cleanup.
     /// `app` is the frontmost app's id, used for per-app tone.
+    ///
+    /// # Errors
+    ///
+    /// See [`Engine::process_audio`].
+    ///
+    /// # Panics
+    ///
+    /// See [`Engine::process_audio`].
     pub fn stop_and_process(
         &self,
         mode_id: Option<String>,
-        app: Option<String>,
+        app: &Option<String>,
     ) -> Result<DictationResult, MurmurError> {
-        self.process_audio(self.stop_recorder(), mode_id, app)
+        self.process_audio(&self.stop_recorder(), mode_id, app)
     }
 
     /// Transcribes and cleans up 16 kHz mono audio that didn't come from the microphone,
-    /// such as a file or a test sample.
+    /// such as a file or a test sample. `mode_id` defaults to the configured default mode.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the mode doesn't exist or the cleanup model fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the settings or speech model lock.
     pub fn process_audio(
         &self,
-        samples: Vec<f32>,
+        samples: &[f32],
         mode_id: Option<String>,
-        app: Option<String>,
+        app: &Option<String>,
     ) -> Result<DictationResult, MurmurError> {
-        let speech = audio::trim_silence(&samples);
+        let speech = audio::trim_silence(samples);
 
         let mode_id = mode_id.unwrap_or_else(|| self.config.read().unwrap().default_mode.clone());
         if speech.len() < (audio::TARGET_RATE as usize / 5) {
@@ -160,11 +204,11 @@ impl Engine {
 
         let t = Instant::now();
         let raw = self.stt.lock().unwrap().transcribe(speech);
-        let stt_ms = t.elapsed().as_millis() as u64;
+        let stt_ms = elapsed_ms(t);
 
         let t = Instant::now();
         let output = self.apply_mode(&raw, &mode_id, app.as_deref())?;
-        let llm_ms = t.elapsed().as_millis() as u64;
+        let llm_ms = elapsed_ms(t);
 
         if !raw.is_empty() {
             if let Err(e) = self.history.add(app.as_deref(), &mode_id, &raw, &output) {
@@ -181,17 +225,35 @@ impl Engine {
     }
 
     /// Runs a mode over existing text (e.g. the user's selection).
+    ///
+    /// # Errors
+    ///
+    /// Fails when the mode doesn't exist or the cleanup model fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the settings lock.
     pub fn rewrite(
         &self,
-        text: String,
-        mode_id: String,
-        app: Option<String>,
+        text: &str,
+        mode_id: &str,
+        app: &Option<String>,
     ) -> Result<String, MurmurError> {
-        self.apply_mode(&text, &mode_id, app.as_deref())
+        self.apply_mode(text, mode_id, app.as_deref())
     }
 
     /// Spoken command over selected text: "make this shorter", "translate to Spanish".
-    pub fn command(&self, selection: String, app: Option<String>) -> Result<String, MurmurError> {
+    /// Stops the recording and returns the edited selection, or the selection unchanged
+    /// when nothing was said or there is no cleanup model.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the cleanup model fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the settings or speech model lock.
+    pub fn command(&self, selection: String, app: &Option<String>) -> Result<String, MurmurError> {
         let samples = self.stop_recorder();
         let spoken = self
             .stt
@@ -225,6 +287,11 @@ impl Engine {
         .map_err(MurmurError::processing)
     }
 
+    /// The configured modes, in config order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the settings lock.
     pub fn modes(&self) -> Vec<ModeInfo> {
         self.config
             .read()
@@ -239,23 +306,39 @@ impl Engine {
             .collect()
     }
 
+    /// Id of the mode used by the main hotkey.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the settings lock.
     pub fn default_mode(&self) -> String {
         self.config.read().unwrap().default_mode.clone()
     }
 
+    /// Whether the cleanup model is loaded. Without it, LLM modes fall back to basic cleanup.
     pub fn llm_available(&self) -> bool {
         self.llm.is_some()
     }
 
+    /// Up to `limit` past dictations, newest first. Empty if the history can't be read.
     pub fn recent_history(&self, limit: u32) -> Vec<HistoryItem> {
         self.history.recent(limit).unwrap_or_default()
     }
 
+    /// Path of `config.toml`, for an "Open Settings" menu item.
     pub fn config_path(&self) -> String {
         self.dir.join("config.toml").to_string_lossy().into_owned()
     }
 
     /// Re-reads modes, vocabulary and app rules. Model path changes need a restart.
+    ///
+    /// # Errors
+    ///
+    /// Fails when the config can't be read or parsed; the previous settings stay in effect.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the settings lock.
     pub fn reload_config(&self) -> Result<(), MurmurError> {
         let cfg = Config::load_or_create(&self.dir).map_err(MurmurError::setup)?;
         *self.config.write().unwrap() = cfg;
@@ -350,6 +433,11 @@ impl Engine {
         )
         .map_err(MurmurError::processing)
     }
+}
+
+/// Milliseconds since `start`, saturating at `u64::MAX` (about 585 million years).
+fn elapsed_ms(start: Instant) -> u64 {
+    u64::try_from(start.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
 
 /// No-LLM fallback: capitalize the first letter and end with punctuation.
