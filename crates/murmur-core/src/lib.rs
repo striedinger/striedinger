@@ -182,7 +182,8 @@ impl Engine {
     ///
     /// # Panics
     ///
-    /// Panics if an earlier call panicked while holding the settings or speech model lock.
+    /// Panics if an earlier call panicked while holding the settings, speech model or
+    /// history lock.
     pub fn process_audio(
         &self,
         samples: &[f32],
@@ -321,6 +322,10 @@ impl Engine {
     }
 
     /// Up to `limit` past dictations, newest first. Empty if the history can't be read.
+    ///
+    /// # Panics
+    ///
+    /// Panics if an earlier call panicked while holding the history lock.
     pub fn recent_history(&self, limit: u32) -> Vec<HistoryItem> {
         self.history.recent(limit).unwrap_or_default()
     }
