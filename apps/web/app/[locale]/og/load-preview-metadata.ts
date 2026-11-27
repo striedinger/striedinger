@@ -51,7 +51,6 @@ async function fetchPreview(url: string): Promise<FetchedPreview> {
     const metadata = await sanitizePageMetadata(parsePageMetadata(page.html, page.url));
     return { status: "success", metadata };
   } catch (error) {
-    // A failed fetch may be temporary, so keep it only briefly.
     cacheLife({ stale: 10, revalidate: 30, expire: 60 });
     return { status: "error", error: error instanceof PreviewError ? error.code : "unreachable" };
   }

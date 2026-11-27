@@ -196,7 +196,6 @@ export function NowPlayingSheet({ onOpenChange, open }: NowPlayingSheetProps) {
                       value={player.volume}
                       valueText={`${Math.round(player.volume * 100)}%`}
                       keyboardStep={0.1}
-                      // Dragging sets the audio's volume directly; the store updates once on release.
                       onChange={previewVolume}
                       onCommit={setVolume}
                     />

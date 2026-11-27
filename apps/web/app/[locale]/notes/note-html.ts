@@ -118,7 +118,6 @@ export function summarizeNoteHtml(html: string): NoteSummary {
   template.innerHTML = html;
   const lines = collectTextLines(template.content);
   const image = template.content.querySelector("img");
-  // Photos added since thumbnails existed carry a small copy; older ones fall back to the photo.
   const thumbnail = image?.getAttribute("data-thumbnail") ?? image?.getAttribute("src") ?? null;
   return {
     title: (lines[0] ?? "").slice(0, 200),

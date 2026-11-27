@@ -76,7 +76,6 @@ export function OptimizerSettings({
               onChange={function changeQuality(event) {
                 onQualityChange(Number(event.target.value));
               }}
-              // Re-encode once the slider settles rather than for every step while dragging.
               onPointerUp={onQualitySettle}
               onKeyUp={onQualitySettle}
               className="h-7 min-w-0 flex-1 cursor-pointer accent-ios-tint"

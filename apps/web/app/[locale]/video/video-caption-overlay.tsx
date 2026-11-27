@@ -15,10 +15,8 @@ interface VideoCaptionOverlayProps {
 
 /** The caption at the playhead, drawn the way iOS shows subtitles. */
 export function VideoCaptionOverlay({ captions, playhead }: VideoCaptionOverlayProps) {
-  // Re-renders when the text on screen changes, not on every frame of playback.
   const caption = usePlayheadSelection(playhead, function findShowingText(time) {
     const text = findCaptionAt(captions, time)?.text.trim() ?? "";
-    // Whitespace-only captions show nothing.
     return text === "" ? null : text;
   });
   if (!caption) return null;

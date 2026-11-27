@@ -39,7 +39,6 @@ export async function StockDashboardLoader({
   searchParams,
 }: StockDashboardLoaderProps) {
   const { list, query, symbol, timeframe } = getStockPageState(await searchParams);
-  // Symbols outside the built-in set count against a per-visitor limit.
   const checkRateLimit = createSharedLinkRateLimitCheck();
   const quotedSymbols = (list ?? defaultStocks.map(getSymbol)).slice(0, maximumQuotedSymbols);
   const quotesPromise = loadQuotes(quotedSymbols, checkRateLimit);
@@ -144,7 +143,6 @@ async function loadDetail(
     return { stock: featuredStock, series: await loadSeries(featuredStock, timeframe) };
   }
   if (await checkRateLimit()) return null;
-  // The name lookup and the series run side by side; the series only needs the symbol.
   const [matches, series] = await Promise.all([
     searchStockSymbols(symbol).catch(function useNoMatches() {
       return [];

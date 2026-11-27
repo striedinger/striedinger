@@ -90,7 +90,6 @@ export function useNotesStore({ welcomeNoteHtml }: UseNotesStoreOptions) {
     [welcomeNoteHtml],
   );
 
-  // IndexedDB mirrors React state: only records whose identity changed are written.
   useEffect(
     function persistChangedNotes() {
       if (!isReady) return;
@@ -162,8 +161,6 @@ export function useNotesStore({ welcomeNoteHtml }: UseNotesStoreOptions) {
   function updateNoteHtml(noteId: string, html: string) {
     const summary = summarizeNoteHtml(html);
     const updatedAt = Date.now();
-    // A plain update, not a transition: the save that flushes while the editor closes must
-    // land before the check that discards notes left empty.
     updateNote(noteId, function applyHtml(note) {
       return note.html === html ? note : { ...note, ...summary, html, updatedAt };
     });

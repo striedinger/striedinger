@@ -112,7 +112,6 @@ export function createVideoPlayback({
     if (!frames || run !== generation) return;
     const result = await frames.next();
     if (run !== generation || result.done) return;
-    // Frames that are already late are drawn at once so the picture catches up.
     if (result.value.timestamp <= getTime()) {
       draw(result.value);
       return advanceFrame(run);
@@ -176,7 +175,6 @@ export function createVideoPlayback({
   }
 
   async function showStill(time: number) {
-    // Scrubbing asks for frames faster than they decode, so only the latest request runs next.
     pendingStillTime = time;
     if (isFetchingStill) return;
     isFetchingStill = true;
@@ -201,7 +199,6 @@ export function createVideoPlayback({
   function startPlayback() {
     const run = generation;
     void decodersClosed.then(function beginPlayback() {
-      // A later seek or pause supersedes this run before it starts.
       if (run !== generation || !audioContext) return undefined;
       isClockRunning = true;
       contextStartTime = audioContext.currentTime;
@@ -224,8 +221,6 @@ export function createVideoPlayback({
 
   function play() {
     if (isPlaying) return;
-    // iOS only lets audio start inside a tap, and mutes Web Audio with the ringer unless the page
-    // asks for media playback.
     const audioSession = (navigator as { audioSession?: { type: string } }).audioSession;
     if (audioSession) audioSession.type = "playback";
     if (startTime >= duration) startTime = 0;

@@ -17,7 +17,6 @@ export function readPodcastProgress(): PodcastProgress[] {
     if (!storedValue) return [];
     const parsedValue = JSON.parse(storedValue) as unknown;
     if (!isStoredProgress(parsedValue)) throw new Error("Invalid podcast progress");
-    // One unusable entry, such as a link with an unsafe scheme, should not erase the rest.
     return parsedValue.items.filter(isProgressItem).slice(0, maximumProgressItems);
   } catch {
     removeStoredValue(progressStorageKey);
@@ -30,7 +29,6 @@ export function savePodcastProgress(
   episode: PodcastEpisode,
   positionSeconds: number,
   durationSeconds: number,
-  // Callers holding the stored list pass it so playback saves skip re-parsing storage.
   currentItems: readonly PodcastProgress[] = readPodcastProgress(),
 ): PodcastProgress[] {
   const otherItems = currentItems.filter(function keepOtherEpisode(item) {

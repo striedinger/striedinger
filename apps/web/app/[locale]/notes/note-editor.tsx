@@ -82,8 +82,6 @@ export function NoteEditor({
     placeCaretAtEnd(editor);
   });
 
-  // A layout effect keeps the element reference available in cleanup, so typing that is
-  // still waiting on the debounce is saved before the editor leaves the screen.
   useLayoutEffect(
     function manageEditorLifecycle() {
       const editor = editorRef.current;
@@ -161,7 +159,6 @@ export function NoteEditor({
     });
     if (imageFiles.length === 0) return;
     event.preventDefault();
-    // Safari before 18.2 lacks caretPositionFromPoint.
     const caret =
       "caretPositionFromPoint" in document
         ? document.caretPositionFromPoint(event.clientX, event.clientY)

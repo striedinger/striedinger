@@ -17,7 +17,6 @@ vi.mock("./pdf-preview", function mockPdfPreview() {
   return { PdfPreview: vi.fn<() => null>().mockReturnValue(null) };
 });
 
-// Each label reads as its own key, so assertions name the label they expect.
 const labels = new Proxy(
   {},
   {

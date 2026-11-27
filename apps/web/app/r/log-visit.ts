@@ -4,7 +4,7 @@ import { getUpstashRestCredentials } from "../../lib/upstash-rest-credentials";
 const visitsListKey = "card:visits";
 const visitKeyPrefix = "card:visit:";
 const maximumStoredVisits = 10_000;
-const visitExpirySeconds = 2_592_000; // 30 days
+const visitExpirySeconds = 2_592_000;
 const crawlerPattern =
   /bot|crawler|spider|facebookexternalhit|slack|discord|whatsapp|telegram|linkedin|pinterest|embedly|cardyb|vkshare|tumblr|dataminr/i;
 

@@ -26,8 +26,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.button?.image = NSImage(systemSymbolName: "waveform", accessibilityDescription: "Murmur")
-        // The menu is rebuilt only when it opens, so dictation never pays for
-        // a history query or menu rebuild.
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -35,8 +33,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         requestPermissions()
         loadEngine()
     }
-
-    // MARK: Setup
 
     private func requestPermissions() {
         AVCaptureDevice.requestAccess(for: .audio) { granted in
@@ -97,8 +93,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    // MARK: Menu
-
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let status = NSMenuItem(title: statusText, action: nil, keyEquivalent: "")
@@ -109,7 +103,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let engine, let controller {
             let modeMenu = NSMenu()
             for mode in modes {
-                // Default mode names are translated; custom names have no catalog entry and show as written.
                 let title = NSLocalizedString(mode.name, comment: "Mode name")
                 let item = NSMenuItem(title: title, action: #selector(selectMode(_:)), keyEquivalent: "")
                 item.target = self

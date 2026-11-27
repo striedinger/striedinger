@@ -14,7 +14,6 @@ const blockedHostnameSuffixes = [".internal", ".local", ".localhost", ".home.arp
 const globalIpv6Addresses = new BlockList();
 globalIpv6Addresses.addSubnet("2000::", 3, "ipv6");
 const specialIpv6Addresses = new BlockList();
-// IANA special-purpose ranges, including tunneling and documentation networks.
 specialIpv6Addresses.addSubnet("2001::", 23, "ipv6");
 specialIpv6Addresses.addSubnet("2001:db8::", 32, "ipv6");
 specialIpv6Addresses.addSubnet("2002::", 16, "ipv6");
@@ -121,7 +120,6 @@ function assertPublicAddress(address: string) {
 }
 
 function isBlockedAddress(address: string): boolean {
-  // An empty address is not an IP, so it is blocked below.
   const [normalizedAddress = ""] = address.toLowerCase().split("%");
   const family = isIP(normalizedAddress);
 

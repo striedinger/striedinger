@@ -1,7 +1,3 @@
-// Signs in to Spotify once and prints the refresh token the listening page reads from
-// SPOTIFY_REFRESH_TOKEN. Add http://127.0.0.1:8888/callback as a redirect URI on the Spotify
-// app first, then run:
-//   SPOTIFY_CLIENT_ID=… SPOTIFY_CLIENT_SECRET=… node scripts/get-spotify-refresh-token.mjs
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 

@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
-# Builds Murmur.app: the Rust core, its Swift bindings, the Swift menu bar app, and the
-# signed bundle in apps/murmur/build/Murmur.app.
-#
-# On macOS it uses Xcode's tools. On Linux it cross-compiles with xtool's Darwin Swift
-# SDK (see apps/murmur/README.md, "Building on Linux"), clang + ld64.lld, and rcodesign.
-#
-#   apps/murmur/scripts/build-mac.sh
-#   ARCH=x86_64 apps/murmur/scripts/build-mac.sh       # Intel Macs (default: arm64)
-#   SIGN_IDENTITY="Apple Development: you@example.com" apps/murmur/scripts/build-mac.sh   # macOS only
-#
-# Tip: sign with a stable identity. macOS ties the Accessibility permission to the
-# signature, so with ad-hoc signing you'll have to re-grant it after every rebuild.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # apps/murmur
-REPO="$(cd "$ROOT/../.." && pwd)"          # monorepo root: Cargo workspace, crates/
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO="$(cd "$ROOT/../.." && pwd)"
 cd "$REPO"
 
 HOST="$(uname -s)"
-ARCH="${ARCH:-arm64}"                       # arm64 or x86_64
+ARCH="${ARCH:-arm64}"
 DEPLOYMENT_TARGET="13.0"
 case "$ARCH" in
   arm64) RUST_TARGET="aarch64-apple-darwin" ;;
@@ -34,23 +22,17 @@ APP="$ROOT/build/Murmur.app"
 FRAMEWORKS="$APP/Contents/Frameworks"
 export MACOSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 
-# ---- Host toolchain -------------------------------------------------------------------
-
 if [[ "$HOST" == "Darwin" ]]; then
   INSTALL_NAME_TOOL=install_name_tool
   OTOOL=otool
   SWIFT_SDK_ARGS=(--arch "$ARCH")
 else
-  # The SDK xtool installs: a Swift SDK bundle (darwin.artifactbundle) holding MacOSX.sdk
-  # and an ld64-compatible toolset. xtool puts it under the account's real home directory,
-  # which can differ from $HOME (in CI containers, for example). DARWIN_SDK_DIR overrides it.
   REAL_HOME="$(getent passwd "$(id -u)" | cut -d: -f6)"
   SDK_SEARCH=()
   for dir in "${DARWIN_SDK_DIR:-}" "${XDG_CONFIG_HOME:+$XDG_CONFIG_HOME/swiftpm/swift-sdks}" \
              "$HOME/.swiftpm/swift-sdks" "$REAL_HOME/.swiftpm/swift-sdks"; do
     [[ -n "$dir" && -d "$dir" ]] && SDK_SEARCH+=("$dir")
   done
-  # Ask SwiftPM first; it knows exactly where the installed SDK's macOS sysroot is.
   SDKROOT="$(swift sdk configure --show-configuration darwin "$SWIFT_TRIPLE" 2>/dev/null \
     | sed -nE 's/^sdkRootPath: (.+)$/\1/p' | head -n 1 || true)"
   if [[ -z "$SDKROOT" && ${#SDK_SEARCH[@]} -gt 0 ]]; then
@@ -67,8 +49,6 @@ else
   export SDKROOT
   echo "==> Using $SDKROOT"
   TOOLSET_BIN="$(dirname "$(dirname "$LD64")")"
-  # Resolve a tool from PATH, then the SDK's toolset, then a versioned name such as
-  # llvm-otool-18 (Debian/Ubuntu don't always install the unversioned links).
   find_tool() {
     local name="$1" found
     if found="$(command -v "$name")"; then echo "$found"; return; fi
@@ -87,8 +67,6 @@ else
   find_tool rcodesign >/dev/null
   SWIFT_SDK_ARGS=(--swift-sdk "$SWIFT_TRIPLE")
 
-  # Build scripts and proc macros compile for the Linux host. Use clang there too when
-  # there's no `cc` (the official Swift images ship clang but not gcc).
   if ! command -v cc >/dev/null; then
     HOST_TRIPLE="$(rustc -vV | sed -n 's/^host: //p')"
     HOST_ENV="${HOST_TRIPLE//-/_}"
@@ -96,10 +74,6 @@ else
     export "CC_$HOST_ENV=$CLANG" "CXX_$HOST_ENV=$CLANGXX"
   fi
 
-  # clang's Darwin driver links compiler-rt's builtins (libclang_rt.osx.a), which a Linux
-  # clang doesn't ship. Use Xcode's copy from the SDK bundle if xtool kept it; otherwise an
-  # empty stand-in. That's enough unless something needs a builtin, such as @available
-  # checks in C code, and then the link fails with an undefined __isPlatformVersionAtLeast.
   CLANG_RT_DIR="$(dirname "$(find -L "${SDK_SEARCH[@]}" -name libclang_rt.osx.a 2>/dev/null | head -n 1)")"
   if [[ "$CLANG_RT_DIR" == "." ]]; then
     CLANG_RT_DIR="$REPO/target/darwin-clang-rt"
@@ -110,7 +84,6 @@ else
     echo "==> Using compiler-rt from $CLANG_RT_DIR"
   fi
 
-  # Rust and cc-crate builds: clang targeting macOS against the SDK, linked by ld64.lld.
   TRIPLE_ENV="${RUST_TARGET//-/_}"
   TRIPLE_ENV_UPPER="$(echo "$TRIPLE_ENV" | tr '[:lower:]' '[:upper:]')"
   APPLE_FLAGS="--target=$CLANG_TARGET -isysroot $SDKROOT"
@@ -120,7 +93,6 @@ else
   export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_LINKER=$CLANG"
   export "CARGO_TARGET_${TRIPLE_ENV_UPPER}_RUSTFLAGS=-C link-arg=--target=$CLANG_TARGET -C link-arg=-isysroot -C link-arg=$SDKROOT -C link-arg=-fuse-ld=lld -C link-arg=--ld-path=$LD64 -C link-arg=-L$CLANG_RT_DIR"
 
-  # CMake builds (llama.cpp): a toolchain file that targets Darwin with the same tools.
   TOOLCHAIN="$REPO/target/darwin-$ARCH.cmake"
   mkdir -p "$REPO/target"
   cat > "$TOOLCHAIN" <<EOF
@@ -151,14 +123,12 @@ EOF
   export "CMAKE_TOOLCHAIN_FILE_$TRIPLE_ENV=$TOOLCHAIN"
 fi
 
-# ---- Rust core ------------------------------------------------------------------------
-
 echo "==> Building Rust core ($RUST_TARGET)"
 rustup target add "$RUST_TARGET" >/dev/null 2>&1 || true
+mkdir -p "$TARGET_DIR/deps"
 cargo build --release --locked -p murmur-core --target "$RUST_TARGET"
 
 echo "==> Generating Swift bindings"
-# The generator runs on the host and only reads the compiled library's metadata.
 BINDINGS="$REPO/target/murmur-bindings"
 rm -rf "$BINDINGS" "$GEN"
 cargo run --release --locked -q -p murmur-bindgen -- generate \
@@ -176,15 +146,12 @@ module murmur_coreFFI {
 }
 EOF
 
-# ---- Bundle the libraries -------------------------------------------------------------
-
 echo "==> Assembling app bundle"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$FRAMEWORKS" "$APP/Contents/Resources"
 cp "$ROOT/mac/Info.plist" "$APP/Contents/Info.plist"
 cp -R "$ROOT"/mac/resources/*.lproj "$APP/Contents/Resources/"
 
-# Copy the core dylib and any non-system dylibs it links (onnxruntime, sherpa-onnx…).
 cp "$TARGET_DIR/libmurmur_core.dylib" "$FRAMEWORKS/"
 "$INSTALL_NAME_TOOL" -id "@rpath/libmurmur_core.dylib" "$FRAMEWORKS/libmurmur_core.dylib"
 
@@ -219,23 +186,15 @@ bundle_deps() {
 }
 bundle_deps "$FRAMEWORKS/libmurmur_core.dylib"
 
-# ---- Swift app ------------------------------------------------------------------------
-
 echo "==> Building Swift app ($SWIFT_TRIPLE)"
 SWIFT_ARGS=(
   -c release --package-path "$ROOT/mac" "${SWIFT_SDK_ARGS[@]}"
   -Xlinker -L -Xlinker "$FRAMEWORKS"
   -Xlinker -rpath -Xlinker "@executable_path/../Frameworks"
 )
-# Without SDKROOT: SwiftPM compiles Package.swift for the host, and on Linux an exported
-# SDKROOT (set above for the Rust build) would point that host compile at the macOS SDK.
 env -u SDKROOT swift build "${SWIFT_ARGS[@]}"
 cp "$(env -u SDKROOT swift build "${SWIFT_ARGS[@]}" --show-bin-path)/Murmur" "$APP/Contents/MacOS/Murmur"
 
-# ---- Sign -----------------------------------------------------------------------------
-
-# No hardened runtime: it isn't needed for a personal build, and its library
-# validation would refuse the bundled dylibs under ad-hoc signing.
 if [[ "$HOST" == "Darwin" ]]; then
   echo "==> Signing ($SIGN_IDENTITY)"
   for lib in "$FRAMEWORKS"/*.dylib; do
@@ -244,7 +203,6 @@ if [[ "$HOST" == "Darwin" ]]; then
   codesign --force --sign "$SIGN_IDENTITY" "$APP"
 else
   echo "==> Signing (ad-hoc, rcodesign)"
-  # rcodesign signs nested code (Frameworks/*.dylib) before the bundle itself.
   rcodesign sign "$APP"
 fi
 

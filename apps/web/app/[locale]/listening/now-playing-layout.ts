@@ -2,9 +2,6 @@ import { cn } from "@workspace/ui/lib/utils";
 
 import { iosGlassClassName } from "../../../components/ios/ios-glass";
 
-// The card and its loading placeholder share this geometry, so the placeholder occupies the
-// same place at every size, from X's 343 × 193 card up to a full window.
-
 export const nowPlayingFrameClassName =
   "relative isolate flex size-full items-center justify-center overflow-hidden p-[clamp(0.875rem,4.2vw,2.5rem)]";
 

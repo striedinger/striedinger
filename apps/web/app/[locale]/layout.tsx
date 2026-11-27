@@ -12,7 +12,6 @@ import { getRequestLocale } from "../get-request-locale";
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    // The page backgrounds, so browser chrome blends with the page.
     { media: "(prefers-color-scheme: light)", color: "#fbf7f1" },
     { media: "(prefers-color-scheme: dark)", color: "#0d1117" },
   ],
@@ -89,8 +88,6 @@ interface LocaleRootLayoutProps {
   params: Promise<{ locale: string }>;
 }
 
-// Every page is prerendered once per locale. The proxy maps unprefixed URLs to the visitor's
-// language, so URLs never need a locale code.
 export function generateStaticParams() {
   return supportedLocales.map(function createLocaleParam(locale) {
     return { locale };

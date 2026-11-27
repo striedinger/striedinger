@@ -14,7 +14,6 @@ import { IosFileEmptyState } from "../../../components/ios/ios-file-empty-state"
 import { IosFloatingActionBar } from "../../../components/ios/ios-floating-action-bar";
 import { IosSkeleton } from "../../../components/ios/ios-skeleton";
 
-// Reading, previewing, and exporting video pulls in Mediabunny, so it loads once a video is chosen.
 const VideoWorkspace = lazy(function importVideoWorkspace() {
   return import("./video-workspace").then(function selectVideoWorkspace(module) {
     return { default: module.VideoWorkspace };

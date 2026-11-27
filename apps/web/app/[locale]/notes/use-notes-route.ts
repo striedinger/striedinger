@@ -9,7 +9,6 @@ interface RouteLocation {
 }
 
 const routeParameterPattern = /^[\w-]{1,64}$/;
-// Panes sit side by side from this width, so routes change in place instead of pushing.
 const stackedLayoutQuery = "(max-width: 767px)";
 
 /** Reads `/notes/[folderId]/[noteId]`, with or without a locale prefix. */

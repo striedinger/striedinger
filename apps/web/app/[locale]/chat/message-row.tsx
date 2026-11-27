@@ -79,7 +79,6 @@ function describeSender(labels: ChatLabels, message: VisibleChatMessage) {
   if (message.isOwn) return labels.you;
   if (message.relayedBy === undefined) return message.author;
   const { author, relayedBy } = message;
-  // One pass with a replacer, so a remote name containing "{peer}" or "$&" is inserted as text.
   return labels.relayedVia.replaceAll(/\{(?:name|peer)\}/gu, function insertName(placeholder) {
     return placeholder === "{name}" ? author : relayedBy;
   });

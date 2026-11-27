@@ -92,7 +92,6 @@ describe("SudokuGame", function () {
     expect(screen.getAllByText("50/100")).toHaveLength(2);
     expect(screen.getByText("Inputs: 2 · minimum: 1")).toBeInTheDocument();
 
-    // The restart alert loads on first use, which needs real timers to settle.
     vi.useRealTimers();
     fireEvent.click(screen.getByRole("button", { name: labels.restart }));
     expect(

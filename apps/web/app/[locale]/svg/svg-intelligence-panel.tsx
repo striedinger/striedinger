@@ -44,7 +44,6 @@ export function SvgIntelligencePanel({
 }: SvgIntelligencePanelProps) {
   const task = useOnDeviceAiTask();
   const [undoChange, setUndoChange] = useState<{ applied: string; previous: string } | null>(null);
-  // The model reads and rewrites the whole drawing, so large files exceed what it can hold.
   const isTooLarge = source.length > maximumAiSourceCharacters;
   const isBusy = task.status.kind === "working" || task.status.kind === "downloading";
 

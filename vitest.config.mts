@@ -14,10 +14,17 @@ export default defineConfig({
     projects: [
       {
         test: {
+          name: "scripts",
+          root: "./scripts",
+          environment: "node",
+          include: ["*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "ui",
           root: "./packages/ui",
           environment: "jsdom",
-          // Building a jsdom per file is most of the run time; the setup file resets modules instead.
           isolate: false,
           setupFiles: ["./vitest.setup.ts"],
           include: ["src/**/*.test.{ts,tsx}"],

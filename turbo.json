@@ -33,13 +33,35 @@
       ]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^typecheck", "typegen"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/tsconfig.json",
         "$TURBO_ROOT$/tsconfig.base.json",
         "$TURBO_ROOT$/test/**"
       ],
+      "outputs": []
+    },
+    "typegen": {
+      "outputs": [".next/types/**"]
+    },
+    "//#format:check": {
+      "outputs": []
+    },
+    "//#comments": {
+      "outputs": []
+    },
+    "//#oxlint": {
+      "dependsOn": ["web#typegen"],
+      "inputs": ["$TURBO_DEFAULT$", "!crates/**", "!apps/murmur/**", "!target/**"],
+      "outputs": []
+    },
+    "//#test": {
+      "inputs": ["$TURBO_DEFAULT$", "!crates/**", "!apps/murmur/**", "!target/**"],
+      "outputs": []
+    },
+    "//#knip": {
+      "inputs": ["$TURBO_DEFAULT$", "!crates/**", "!apps/murmur/**", "!target/**"],
       "outputs": []
     }
   }

@@ -39,7 +39,6 @@ export function PdfSummaryCard({
 
   function summarize() {
     void task.run(async function summarizeText({ monitor, signal }) {
-      // Creating the summarizer first keeps the tap's permission to download the model.
       const summarizer = await Summarizer.create({
         ...getPdfSummaryOptions(locale),
         sharedContext: `A PDF document named ${file.name}.`,
@@ -68,7 +67,6 @@ export function PdfSummaryCard({
     summarize();
   });
 
-  // The card opens from a tap on Summarize and is keyed by file, so it starts once.
   useEffect(function summarizeOnOpen() {
     startSummary();
   }, []);
@@ -91,7 +89,6 @@ export function PdfSummaryCard({
             type="button"
             className={iosChipButtonClassName}
             onClick={function handleCopyClick() {
-              // copyText reports failure as false instead of rejecting.
               void copySummary();
             }}
           >

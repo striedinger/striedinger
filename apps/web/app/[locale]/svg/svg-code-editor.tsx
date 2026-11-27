@@ -48,7 +48,6 @@ export function SvgCodeEditor({
           aria-hidden="true"
           className={cn(codeClassName, "pointer-events-none", !isHighlighted && "invisible")}
         >
-          {/* One block per line, so typing re-lays out only the line it changes. */}
           {(isHighlighted ? encodeSvgTokenLines(tokenizeSvg(value)) : value.split("\n")).map(
             function renderLine(line, index) {
               return (

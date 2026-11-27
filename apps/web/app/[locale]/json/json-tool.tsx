@@ -51,8 +51,6 @@ const maximumInputCharacters = 500_000;
 export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
   const [input, setInput] = useState("");
   const [validationResult, setValidationResult] = useState<JsonParseResult>({ status: "empty" });
-  // The preview keeps showing the last valid document while new text is checked, instead of
-  // emptying on every keystroke.
   const [previewResult, setPreviewResult] = useState<JsonParseResult>({ status: "empty" });
   const [isPreviewStale, setIsPreviewStale] = useState(false);
   const [treeVersion, setTreeVersion] = useState(0);
@@ -64,7 +62,6 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
     },
   );
   const [isAiOpen, setIsAiOpen] = useState(false);
-  // Questions about the document appear only once the browser confirms on-device AI.
   const canAsk = useOnDeviceAi(
     defineOnDeviceAiProbe("LanguageModel", `json-question:${locale}`, function checkQuestions() {
       return LanguageModel.availability(getJsonQuestionOptions(locale));
@@ -81,13 +78,10 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
     };
   }, []);
 
-  // The worker outlives any one effect run, so its replies go through an effect event that
-  // always sees the latest request.
   const applyValidationResult = useEffectEvent(function applyValidationResult(
     reply: JsonWorkerReply,
   ) {
     if (reply.id !== requestIdRef.current) return;
-    // Rendering a large tree is interruptible, so typing stays responsive.
     startTransition(function showValidationResult() {
       setValidationResult(reply.response.result);
       if (reply.response.result.status === "valid") setPreviewResult(reply.response.result);
@@ -122,7 +116,6 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
         getWorker().postMessage({ id: requestId, input } satisfies JsonWorkerRequest);
       }, 1_000);
 
-      // One worker is reused for every check; replies for text that has since changed are ignored.
       function getWorker() {
         if (workerRef.current) return workerRef.current;
         const jsonWorker = new Worker(new URL("./json-worker.ts", import.meta.url), {
@@ -172,8 +165,6 @@ export function JsonTool({ aiLabels, labels, locale }: JsonToolProps) {
     setIsPreviewStale(true);
   }
 
-  // Rebuilding a large tree can take a while, so the button flips at once and the tree
-  // re-renders in a transition that keeps the page responsive.
   function handleToggleAll() {
     startTransition(function rebuildTree() {
       toggleDisplayedExpanded(undefined);

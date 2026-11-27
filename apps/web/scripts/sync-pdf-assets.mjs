@@ -20,8 +20,6 @@ await Promise.all([
   ),
 ]);
 
-// pdf.js font, character map, and image decoder data, fetched only when "Smallest" mode
-// renders a document that needs them, such as one with fonts it does not embed.
 const PDFJS_VERSION = /** @type {{ version: string }} */ (
   JSON.parse(await readFile(fileURLToPath(import.meta.resolve("pdfjs-dist/package.json")), "utf8"))
 ).version;

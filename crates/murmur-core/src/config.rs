@@ -131,11 +131,7 @@ impl Config {
 
     pub fn resolve(dir: &Path, p: &str) -> PathBuf {
         let p = PathBuf::from(p);
-        if p.is_absolute() {
-            p
-        } else {
-            dir.join(p)
-        }
+        if p.is_absolute() { p } else { dir.join(p) }
     }
 
     pub fn mode(&self, id: &str) -> Option<&Mode> {

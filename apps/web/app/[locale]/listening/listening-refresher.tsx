@@ -13,8 +13,6 @@ interface ListeningRefresherProps {
 }
 
 const refreshIntervalMs = 15_000;
-// Spotify takes a moment to report the next song after one ends, and the server shares a
-// reading for a few seconds, so a song that should have ended is checked on more often.
 const trackChangeDelayMs = 1_500;
 const pastTrackEndIntervalMs = 4_000;
 

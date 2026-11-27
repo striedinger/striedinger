@@ -65,7 +65,6 @@ export function estimateExportBytes({
   resolution,
 }: ExportEstimateInput) {
   if (resolution === "original" || duration <= 0) {
-    // Copied or re-encoded at high quality, the clip keeps roughly the original's bitrate.
     return duration > 0 ? (fileSize * clipDuration) / duration : fileSize;
   }
   const audio = hasAudio ? (audioBitrate ?? fallbackAudioBitrate) : 0;

@@ -26,7 +26,6 @@ export function VideoCoverSection({
     <IosListSection className="px-0" header={labels.cover} footer={labels.coverFooter}>
       <li className="flex items-center gap-3 px-4 py-3">
         {cover ? (
-          // A blob URL of a frame from the person's own video; next/image cannot load it.
           // oxlint-disable-next-line nextjs/no-img-element
           <img
             src={cover.url}

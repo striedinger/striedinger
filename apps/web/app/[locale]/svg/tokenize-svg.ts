@@ -77,7 +77,6 @@ function tokenizeInsideTag(
     else if (value) push("value", text);
     else if (attribute) push("attribute", text);
     else {
-      // A stray `<` starts the next tag instead of belonging to this one.
       if (text === "<") return index - 1;
       push("text", text);
     }

@@ -1,4 +1,4 @@
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::path::Path;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,8 +20,6 @@ pub struct History {
 impl History {
     pub fn open(path: &Path) -> anyhow::Result<Self> {
         let conn = Connection::open(path)?;
-        // WAL + NORMAL sync: an insert no longer waits on a full fsync, which keeps the
-        // history write off the dictation's critical path.
         conn.execute_batch(
             "PRAGMA journal_mode = WAL;
             PRAGMA synchronous = NORMAL;

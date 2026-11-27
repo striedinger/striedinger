@@ -2,9 +2,6 @@ import type { Podcast, PodcastEpisode, PodcastQueueItem } from "./types";
 
 import { safeHttpsUrl, safeHttpUrl } from "../../../lib/podcasts/safe-url";
 
-// Stored shows and episodes come from localStorage, which anything running on this origin
-// can write, and their links reach window.open and audio.src, so schemes are checked again.
-
 export function isPodcast(value: unknown): value is Podcast {
   if (typeof value !== "object" || value === null) return false;
   const podcast = value as Partial<Podcast>;

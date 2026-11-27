@@ -32,7 +32,6 @@ const pendingAvifRequests = new Map<
 worker.addEventListener(
   "message",
   function handleOptimizeRequest(event: MessageEvent<OptimizeImageMessage>) {
-    // optimizeImage reports its own failures back to the page.
     void optimizeImage(event.data);
   },
 );
@@ -64,7 +63,6 @@ async function optimizeImage(request: OptimizeImageMessage) {
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = new OffscreenCanvas(width, height);
     const context = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
-    // The decoded bitmap can be tens of megabytes, so it is released even if drawing fails.
     try {
       if (!context) throw new Error("Canvas is unavailable in this browser.");
       context.drawImage(bitmap, 0, 0, width, height);

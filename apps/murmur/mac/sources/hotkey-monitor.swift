@@ -50,15 +50,12 @@ final class HotkeyMonitor {
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
-            // macOS disables slow taps; turn it straight back on.
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
 
         case .flagsChanged:
             let code = event.getIntegerValueField(.keyboardEventKeycode)
             guard code == Self.triggerKeyCode else { break }
             let down = event.flags.rawValue & Self.triggerFlagMask != 0
-            // Handle outside the tap callback: macOS disables taps that block, and
-            // grabbing the selection may post synthetic key events of its own.
             if down && !isDown {
                 isDown = true
                 let shift = event.flags.contains(.maskShift)
@@ -71,7 +68,7 @@ final class HotkeyMonitor {
         case .keyDown:
             if event.getIntegerValueField(.keyboardEventKeycode) == Self.escapeKeyCode,
                onEscape?() == true {
-                return nil // swallow
+                return nil
             }
 
         default:

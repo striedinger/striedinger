@@ -118,7 +118,6 @@ export function IosIntelligenceCard({
                   ? labels.onDevice
                   : ""}
         </Text>
-        {/* Announces each stage once, not every percent of a download. */}
         <span aria-live="polite" className="sr-only">
           {status.kind === "downloading"
             ? labels.downloading.replace("{percent}", "")

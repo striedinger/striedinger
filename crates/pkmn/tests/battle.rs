@@ -327,8 +327,6 @@ fn sleep_lasts_one_to_three_move_attempts() {
         }
         observed.insert(asleep);
     }
-    // The faster sleeper inflicts sleep before the target's first attempt, which counts too,
-    // so turns asleep after the first range from zero to two here.
     assert_eq!(observed.into_iter().collect::<Vec<_>>(), [0, 1, 2]);
 }
 

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { affectsWeb, buildDecision } from "./ignore-build.mjs";
+import { affectsWeb, affectsWebChecks, buildDecision } from "./ignore-build.mjs";
 
 const directories: string[] = [];
 
@@ -138,5 +138,30 @@ describe("Vercel web build gate", function () {
     expect(spawnSync(process.execPath, [script], { cwd: repo.cwd, env: environment }).status).toBe(
       1,
     );
+  });
+});
+
+describe("CI web check gate", function () {
+  it("skips native-only and other workflow changes", function () {
+    expect(
+      affectsWebChecks([
+        "crates/pkmn/src/lib.rs",
+        "Cargo.lock",
+        "rust-toolchain.toml",
+        "apps/murmur/README.md",
+        ".github/workflows/murmur.yml",
+      ]),
+    ).toBe(false);
+  });
+
+  it("runs for web changes and for changes to the gate itself", function () {
+    for (const path of [
+      "apps/web/app/page.tsx",
+      "pnpm-lock.yaml",
+      ".github/workflows/ci.yml",
+      "apps/web/scripts/ci-web-checks.mjs",
+    ]) {
+      expect(affectsWebChecks([path])).toBe(true);
+    }
   });
 });

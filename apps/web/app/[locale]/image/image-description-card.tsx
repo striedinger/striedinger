@@ -37,7 +37,6 @@ export function ImageDescriptionCard({
   const [isRenamed, setIsRenamed] = useState(false);
   const [textTranslation, setTextTranslation] = useState<ImageTextTranslation | null>(null);
   const isBusy = task.status.kind === "working" || task.status.kind === "downloading";
-  // The optimized copy is a format the model reads, even when the original is HEIC.
   const image = item.output ?? item.file;
   function describe() {
     void task
@@ -54,8 +53,6 @@ export function ImageDescriptionCard({
     describe();
   });
 
-  // The card opens from a tap on Describe, and its parent keys it by image, so the
-  // description starts once, right away.
   useEffect(function describeOnOpen() {
     startDescription();
   }, []);
@@ -90,7 +87,6 @@ export function ImageDescriptionCard({
               type="button"
               className={iosChipButtonClassName}
               onClick={function handleCopyClick() {
-                // copyText reports failure as false instead of rejecting.
                 void copyAltText();
               }}
             >

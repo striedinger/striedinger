@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 const nativeFiles = new Set([
   "Cargo.toml",
   "Cargo.lock",
+  "rust-toolchain.toml",
   "rustfmt.toml",
   "clippy.toml",
   ".clippy.toml",
@@ -11,8 +12,6 @@ const nativeFiles = new Set([
 
 /** @param {string[]} paths */
 export function affectsWeb(paths) {
-  // Unknown files build conservatively. If the web app begins consuming a local
-  // Rust crate, remove that crate from these exclusions before wiring it in.
   return paths.some(function affectsWebPath(path) {
     return !(
       path.startsWith("crates/") ||
@@ -23,6 +22,22 @@ export function affectsWeb(paths) {
       path === "AGENTS.md"
     );
   });
+}
+
+const webCheckFiles = new Set([".github/workflows/ci.yml"]);
+
+/**
+ * Whether CI's web lint, typecheck, test, and build steps need to run. Formatting covers the
+ * whole repository, so CI checks it regardless.
+ * @param {string[]} paths
+ */
+export function affectsWebChecks(paths) {
+  return (
+    affectsWeb(paths) ||
+    paths.some(function isWebCheckFile(path) {
+      return webCheckFiles.has(path);
+    })
+  );
 }
 
 /** @param {string[]} args @param {string} cwd */
@@ -55,8 +70,6 @@ export function buildDecision({ cwd = process.cwd(), environment = process.env }
     }
     base = git(["rev-parse", "--verify", `${previous}^{commit}`], cwd)?.trim();
   } else if (environment["VERCEL_ENV"] === "preview") {
-    // A first branch deployment has no previous SHA. Compare all branch changes
-    // against main, not just the latest commit, to avoid skipping earlier web work.
     base = git(["merge-base", "HEAD", "refs/remotes/origin/main"], cwd)?.trim();
     if (!base) {
       git(["fetch", "--no-tags", "--depth=50", "origin", "main:refs/remotes/origin/main"], cwd);
@@ -69,7 +82,6 @@ export function buildDecision({ cwd = process.cwd(), environment = process.env }
   if (!base || !validSha(base)) {
     return { build: true, reason: "No reliable deployment baseline; building conservatively." };
   }
-  // Disable rename detection so moves out of the web tree still count as deletions.
   const diff = git(["diff", "--no-renames", "--name-only", "-z", base, "HEAD"], cwd);
   if (diff === null) return { build: true, reason: "Cannot inspect Git changes." };
   const paths = diff.split("\0").filter(Boolean);
@@ -85,6 +97,5 @@ export function buildDecision({ cwd = process.cwd(), environment = process.env }
 if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
   const decision = buildDecision();
   console.log(decision.reason);
-  // Vercel's Ignored Build Step uses 0 to skip and 1 to continue building.
   process.exitCode = decision.build ? 1 : 0;
 }

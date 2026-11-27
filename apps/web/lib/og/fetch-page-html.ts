@@ -122,8 +122,6 @@ async function processResponse(
       throw new PreviewError("too-large");
     }
 
-    // Only the new text and enough before it to complete a split "</head>" are searched, so
-    // the scan stays linear across chunks.
     const searchStart = Math.max(0, html.length - headEndSearchOverlap);
     html += decoder.write(buffer);
 

@@ -12,8 +12,6 @@ export interface StoredNotes {
 
 let databasePromise: Promise<IDBDatabase | null> | null = null;
 
-// IndexedDB keeps notes and their images on this device. When it is unavailable (private
-// browsing, blocked storage, or tests) the app keeps working with in-memory state.
 function openDatabase(): Promise<IDBDatabase | null> {
   databasePromise ??= new Promise(function connect(resolve) {
     if (typeof indexedDB === "undefined") {
@@ -96,9 +94,7 @@ async function writeRecords(
         resolve();
       });
     });
-  } catch {
-    // Quota and storage failures leave the in-memory notes usable.
-  }
+  } catch {}
 }
 
 export function saveNotes(notes: readonly Note[]) {

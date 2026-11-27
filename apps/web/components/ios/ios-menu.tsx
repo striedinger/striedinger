@@ -60,7 +60,6 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
         ref: triggerRef,
         "aria-haspopup": "menu",
         "aria-expanded": isOpen,
-        // The trigger's own handlers still run; the menu just starts loading alongside them.
         onPointerEnter: function preloadOnHover() {
           trigger.props.onPointerEnter?.();
           preloadIosMenu();
@@ -75,7 +74,6 @@ export function IosMenu({ align = "end", sections, side = "bottom", trigger }: I
         },
         onClick: function toggleMenu(event: MouseEvent<HTMLElement>) {
           trigger.props.onClick?.(event);
-          // A press on the trigger first closes an open menu as an outside press; ignore the click.
           if (event.timeStamp - closedAtRef.current < reopenGuardMilliseconds) return;
           updateOpen(!isOpen, event.timeStamp);
         },

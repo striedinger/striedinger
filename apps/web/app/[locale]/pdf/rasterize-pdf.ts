@@ -47,7 +47,6 @@ function rasterizeInWorker(
   return new Promise<ArrayBuffer>(function waitForRasterizedPdf(resolve, reject) {
     worker.addEventListener("message", function handleWorkerMessage(event: MessageEvent<unknown>) {
       const message = event.data;
-      // pdf.js also announces itself from inside the worker; only our replies are handled.
       if (!isRasterizeWorkerMessage(message)) return;
       if (message.type === "progress") {
         onProgress?.(message.progress, message.stage);

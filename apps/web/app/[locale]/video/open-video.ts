@@ -62,7 +62,6 @@ export async function openVideo(file: File): Promise<OpenedVideo> {
       videoTrack.getSquarePixelWidth(),
       videoTrack.getSquarePixelHeight(),
     ]);
-    // Packet statistics come from container metadata, so both tracks are read side by side.
     const [packetStats, audioStats, audioCodec] = await Promise.all([
       videoTrack.computePacketStats(120).catch(function unknownRate() {
         return null;

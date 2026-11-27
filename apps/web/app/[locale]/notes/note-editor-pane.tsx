@@ -50,7 +50,6 @@ function loadFormatPanel() {
   return import("./note-format-panel");
 }
 
-// The format panel opens from the Aa button, so it loads on first use like the other panels.
 const NoteFormatPanel = lazy(function importFormatPanel() {
   return loadFormatPanel().then(function selectPanel(module) {
     return { default: module.NoteFormatPanel };
@@ -120,7 +119,6 @@ export function NoteEditorPane({
   const [isReadOnlyAlertOpen, setIsReadOnlyAlertOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isWritingToolsOpen, setIsWritingToolsOpen] = useState(false);
-  // Writing Tools appear only for the tools this browser confirms it can run on the device.
   const writingToolsAvailability = {
     proofread: useOnDeviceAi(
       defineOnDeviceAiProbe("Proofreader", `notes:${locale}`, function checkProofreader() {
@@ -144,8 +142,6 @@ export function NoteEditorPane({
     writingToolsAvailability.summarize;
   const isDeleted = note?.deletedAt !== null && note?.deletedAt !== undefined;
 
-  // The last selection inside the note survives taps on toolbars and menus, which can move
-  // focus or collapse the selection on touch devices, so commands still apply to it.
   useEffect(function rememberEditorSelection() {
     function storeSelection() {
       const selection = window.getSelection();
@@ -192,8 +188,6 @@ export function NoteEditorPane({
     editingControlPressedAtRef.current = event.timeStamp;
   }
 
-  // Editing controls act on the note, so pressing one keeps the note focused and keeps its
-  // selection and the software keyboard.
   const editingControlHandlers = {
     onMouseDown: keepEditorFocus,
     onPointerDown: rememberEditingControlPress,
@@ -314,7 +308,6 @@ export function NoteEditorPane({
           trailing={
             note ? (
               <>
-                {/* Wide layouts keep every note control in the top toolbar, like iPad. */}
                 {isDeleted ? null : (
                   <NoteFormatControls
                     className="max-md:hidden"
@@ -445,7 +438,6 @@ export function NoteEditorPane({
         {isWritingToolsOpen && note && !isDeleted ? (
           <Suspense fallback={null}>
             <NoteWritingToolsPanel
-              // A result belongs to the note it was made from, so another note starts fresh.
               key={note.id}
               aiLabels={aiLabels}
               availability={writingToolsAvailability}

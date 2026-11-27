@@ -35,8 +35,6 @@ async function measurePeaks({ bucketCount, duration, file }: WaveformRequest) {
       sample.copyTo(channel, { format: "f32-planar", frameCount: frames, planeIndex: 0 });
       const { sampleRate, timestamp } = sample;
       sample.close();
-      // A decoded chunk is milliseconds long and usually inside one bucket, so bucket edges are
-      // found once per run of frames rather than for every frame.
       let frame = 0;
       while (frame < frames) {
         const bucket = Math.floor((timestamp + frame / sampleRate) * bucketsPerSecond);

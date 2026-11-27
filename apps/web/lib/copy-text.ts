@@ -1,14 +1,11 @@
 export async function copyText(text: string) {
   try {
-    // The Clipboard API is missing outside secure contexts despite the DOM typing.
     const clipboard = navigator.clipboard as Clipboard | undefined;
     if (typeof clipboard?.writeText === "function") {
       await clipboard.writeText(text);
       return true;
     }
-  } catch {
-    // Continue to the selection-based fallback below.
-  }
+  } catch {}
 
   const previouslyFocusedElement = document.activeElement;
   const textArea = document.createElement("textarea");
@@ -22,7 +19,6 @@ export async function copyText(text: string) {
   textArea.select();
 
   try {
-    // A missing execCommand throws, which the catch below reports as a failed copy.
     // oxlint-disable-next-line typescript/no-deprecated -- intentional legacy fallback when the Clipboard API is unavailable
     return document.execCommand("copy");
   } catch {

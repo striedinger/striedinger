@@ -21,8 +21,6 @@ export function JavaScriptDiagnostics({ labels }: JavaScriptDiagnosticsProps) {
   const [sections, setSections] = useState<ReadonlyArray<DiagnosticSection> | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Placeholders reserve roughly the space of each section so details arrive without
-  // pushing the rest of the page down.
   const placeholderSections = [
     { title: labels.documentAndJavaScript, rowCount: 14 },
     { title: labels.screenAndWindow, rowCount: 14 },

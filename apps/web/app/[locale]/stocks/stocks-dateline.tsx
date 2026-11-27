@@ -19,7 +19,6 @@ function getNoDate() {
 
 /** Today's date under the large title, as iOS Stocks shows it, in the visitor's time zone. */
 export function StocksDateline({ locale }: { locale: string }) {
-  // The page prerenders, so the date is read in the browser; the line keeps its height until then.
   const today = useSyncExternalStore(subscribeToNothing, getToday, getNoDate);
   return (
     <Text className="h-8.5 px-4 text-ios-title1 font-bold text-ios-secondary-label">

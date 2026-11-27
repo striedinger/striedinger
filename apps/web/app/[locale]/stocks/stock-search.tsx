@@ -192,7 +192,6 @@ export function StockSearch({
           role="listbox"
           className={cn(
             "absolute top-[calc(100%+0.5rem)] right-0 left-0 max-h-80 overflow-y-auto rounded-ios-xl p-1.5",
-            // Opaque, so the watchlist underneath never shows through the results.
             "bg-ios-grouped-cell shadow-ios-floating",
           )}
         >

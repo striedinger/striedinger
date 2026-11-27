@@ -1,6 +1,3 @@
-// Formatting commands for the contenteditable note body. They use the browser's editing
-// commands so each change joins the native undo stack, then normalize the markup Notes needs.
-
 import type { PreparedNoteImage } from "./note-image";
 
 import { isSafeNoteImageSource } from "./note-html";
@@ -34,8 +31,6 @@ export const emptyFormatState: NoteFormatState = {
 };
 
 function runCommand(command: string, value?: string) {
-  // execCommand is deprecated but remains the only API that edits contenteditable content
-  // while preserving the browser's native undo and redo history.
   // oxlint-disable-next-line typescript/no-deprecated -- Feature check for the editing API above.
   if (typeof document.execCommand !== "function") return false;
   // oxlint-disable-next-line typescript/no-deprecated -- No standard API edits contenteditable with native undo.
@@ -211,8 +206,6 @@ export function insertPlainText(text: string) {
 
 /** An emptied note starts again with a Title line, as it does in Notes. */
 export function ensureTitleLine(editor: HTMLElement) {
-  // Runs on every keystroke, so a note with more than one block returns before reading any
-  // text: building a long note's textContent each time would cost more than the check.
   if (editor.childElementCount > 1) return;
   if (editor.textContent || editor.querySelector("img, li")) return;
   if (editor.firstElementChild?.tagName === "H1") return;

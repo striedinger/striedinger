@@ -1,4 +1,3 @@
-// Kept apart from the editor's other modules so workers import only what reading a file needs.
 import { MATROSKA, MP4, QTFF, WEBM } from "mediabunny";
 
 /** The containers phones and browsers record; reading only these keeps the code small. */

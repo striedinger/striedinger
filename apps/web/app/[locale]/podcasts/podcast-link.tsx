@@ -16,6 +16,7 @@ type PodcastLinkProps = Omit<ComponentPropsWithRef<typeof IosLink>, "href"> &
 
 type RouterPrefetchOptions = Parameters<ReturnType<typeof useRouter>["prefetch"]>[1];
 
+// oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- Next.js exports PrefetchKind only from an internal module; "full" is PrefetchKind.FULL.
 const fullPrefetch = { kind: "full" } as RouterPrefetchOptions;
 
 /**
@@ -38,8 +39,6 @@ export function PodcastLink({ item, onClick, podcast, ...props }: PodcastLinkPro
     <IosLink
       {...props}
       href={href}
-      // Shows and episodes render per request, so prefetching every visible link would send
-      // a request per row while scrolling; intent (hover, touch, focus) prefetches instead.
       prefetch={false}
       onPointerEnter={prefetchDestination}
       onTouchStart={prefetchDestination}

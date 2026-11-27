@@ -1,6 +1,3 @@
-// Translates received messages on the device. Translator sessions are created once per
-// language pair and reused for the whole conversation.
-
 const translatorPromises = new Map<string, Promise<TranslatorSession>>();
 let retainCount = 0;
 

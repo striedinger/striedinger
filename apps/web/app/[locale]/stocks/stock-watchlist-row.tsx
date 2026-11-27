@@ -73,7 +73,6 @@ export function StockWatchlistRow({
             },
           ]}
         >
-          {/* The whole row opens the stock; the change button sits above it. */}
           <button
             type="button"
             aria-labelledby={labelId}

@@ -50,7 +50,6 @@ impl Engine<'_> {
         foe_will_act: bool,
     ) -> Option<SideId> {
         if !self.before_move(side) {
-            // Showdown's `onMoveAborted`: a charge is lost; a rampage carries on.
             self.active_mut(side).volatiles.charging = None;
             return None;
         }
@@ -61,7 +60,6 @@ impl Engine<'_> {
         let move_id = match slot {
             Some(slot) => {
                 let move_slot = user.move_slots[slot].as_mut()?;
-                // A rampage or a charged move continues without spending PP.
                 if !continuing {
                     move_slot.pp = move_slot.pp.saturating_sub(1);
                 }
@@ -400,7 +398,6 @@ impl Engine<'_> {
                         HealSource::Effect(effect),
                     ) > 0
                 });
-                // A heal names its source; boosts and immunity are announced instead.
                 if boosts.is_some() || !healed {
                     self.announce(target, effect);
                 }
@@ -480,8 +477,6 @@ impl Engine<'_> {
                     self.move_effects(side, slot, target, move_data, false);
                 }
             }
-            // Showdown's `onAfterHit` and `onAfterSubDamage`, like Rapid Spin's: per hit, before
-            // recoil and Life Orb, while the user stands.
             if !self.active(side).is_fainted() {
                 self.clear_conditions(side, target, move_data);
             }
@@ -500,7 +495,6 @@ impl Engine<'_> {
         if total_damage > 0 {
             self.recoil(side, move_data, total_damage);
         }
-        // Showdown runs an `Update` after recoil, before `onAfterMoveSecondarySelf`.
         self.update();
         self.after_move_recoil(side);
         HitOutcome {
@@ -681,7 +675,6 @@ impl Engine<'_> {
                     volatile: VolatileStatus::Substitute,
                 });
             }
-            // Showdown's substitute handler rounds drain up.
             if let Some(drain) = move_data.drain
                 && absorbed > 0
             {

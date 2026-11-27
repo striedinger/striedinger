@@ -41,8 +41,6 @@ export const resolveCardPreview = cache(async function resolveCardPreview(
     return { status: "idle" };
   }
 
-  // Every new URL is a server-side fetch, so each visitor gets a few per minute. React's cache
-  // makes the page and its metadata share one check per request.
   try {
     await enforcePreviewRateLimit(await getClientIdentifier());
   } catch (error) {

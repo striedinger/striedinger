@@ -33,7 +33,6 @@ export async function loadWatermarkLogo(file: File): Promise<WatermarkLogo | nul
     if (!blob) return null;
     return { blob, height: canvas.height, url: URL.createObjectURL(blob), width: canvas.width };
   } catch {
-    // Undecodable files, and SVGs the browser refuses to export from a canvas, end up here.
     return null;
   } finally {
     URL.revokeObjectURL(sourceUrl);

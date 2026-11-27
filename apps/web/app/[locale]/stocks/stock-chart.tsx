@@ -86,10 +86,8 @@ export function StockChart({
 
   function moveSelection(event: PointerEvent<SVGSVGElement>) {
     if (!pointerIndices.current.has(event.pointerId)) {
-      // A mouse reads prices by hovering, without pressing.
       if (event.pointerType === "mouse" && pointerIndices.current.size === 0) {
         const index = readPointIndex(event);
-        // Pointer moves fire far more often than the hovered point changes.
         if (selection?.first !== index || selection.second !== null) {
           setSelection({ first: index, second: null });
         }
@@ -286,7 +284,6 @@ export function StockChart({
             />
           ) : null}
         </svg>
-        {/* Dots stay round over the stretched chart, so they are drawn in HTML. */}
         {(range && selection && selection.second !== null
           ? [selection.first, selection.second]
           : scrubIndex !== null

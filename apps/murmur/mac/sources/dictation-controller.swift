@@ -11,7 +11,7 @@ final class DictationController {
     private enum Phase {
         case idle
         case holding(since: Date, app: String?)
-        case tapPending(app: String?)        // short tap; waiting to see if a second tap follows
+        case tapPending(app: String?)
         case handsFree(app: String?)
         case command(selection: String, app: String?)
         case processing
@@ -43,8 +43,6 @@ final class DictationController {
         }
     }
 
-    // MARK: Hotkey events (main thread)
-
     func keyPressed(shiftHeld: Bool) {
         switch phase {
         case .idle:
@@ -58,7 +56,6 @@ final class DictationController {
             }
 
         case .tapPending(let app):
-            // Second tap: switch to hands-free. Recording has been running since the first tap.
             tapTimeout?.cancel()
             phase = .handsFree(app: app)
             overlay.show(.listening(handsFree: true))
@@ -75,7 +72,6 @@ final class DictationController {
         switch phase {
         case .holding(let since, let app):
             if Date().timeIntervalSince(since) < tapThreshold {
-                // Too short to be speech: maybe the first half of a double-tap.
                 phase = .tapPending(app: app)
                 let work = DispatchWorkItem { [weak self] in
                     guard let self, case .tapPending = self.phase else { return }
@@ -91,7 +87,7 @@ final class DictationController {
             finishCommand(selection: selection, app: app)
 
         default:
-            break // hands-free ignores releases
+            break
         }
     }
 
@@ -101,8 +97,6 @@ final class DictationController {
         cancel()
         return true
     }
-
-    // MARK: Session
 
     private func beginRecording(_ state: OverlayState) {
         engine.startRecording()
@@ -146,7 +140,6 @@ final class DictationController {
         overlay.show(.processing)
         queue.async { [engine] in
             let result = Result { try engine.command(selection: selection, app: app) }
-            // The selection is still active in the target app, so pasting replaces it.
             DispatchQueue.main.async { self.deliver(result) }
         }
     }

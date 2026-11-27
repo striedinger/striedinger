@@ -10,11 +10,12 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NEXT_TELEMETRY_DISABLED: 1
   TURBO_TELEMETRY_DISABLED: 1
+  SAVE_CACHE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
 jobs:
   check:
@@ -24,30 +25,33 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
+      - name: Select web checks
+        id: web
+        run: node apps/web/scripts/ci-web-checks.mjs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
       - run: pnpm install --frozen-lockfile
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - if: steps.web.outputs.run == 'true'
+        id: turbo-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .turbo/cache
           key: turbo-check-${{ runner.os }}-${{ github.sha }}
           restore-keys: turbo-check-${{ runner.os }}-
-      - run: pnpm check
-
-  pkmn:
-    name: pkmn (format, clippy, test)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: steps.web.outputs.run == 'true'
+        run: pnpm check
+      - if: steps.web.outputs.run != 'true'
+        run: pnpm format:check && pnpm comments
+      - if: steps.web.outputs.run == 'true' && env.SAVE_CACHE == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          persist-credentials: false
-      - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
-      - run: cargo fmt --all --check
-      - run: cargo clippy -p pkmn --all-targets --locked -- -D warnings
-      - run: cargo test -p pkmn --locked
+          path: .turbo/cache
+          key: ${{ steps.turbo-cache.outputs.cache-primary-key }}
 
   build:
     name: Production build
@@ -56,31 +60,47 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Select web build
+        id: web
+        run: node apps/web/scripts/ci-web-checks.mjs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      - if: steps.web.outputs.run == 'true'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - if: steps.web.outputs.run == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # Turbopack's build cache lives in .next/cache; keyed by the lockfile so dependency
-      # upgrades start fresh, then restored from the closest earlier commit.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - if: steps.web.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.web.outputs.run == 'true'
+        id: build-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             .turbo/cache
             apps/web/.next/cache
           key: build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-      - run: pnpm build
+      - if: steps.web.outputs.run == 'true'
+        run: pnpm build
+      - if: steps.web.outputs.run == 'true' && env.SAVE_CACHE == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
 
   rust:
     name: Rust format, lint, and tests
     runs-on: ubuntu-latest
     env:
-      # Keep cached artifacts small and lint/test build profiles consistent.
       CARGO_INCREMENTAL: "0"
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -92,19 +112,19 @@ jobs:
           python3 .github/scripts/rust-affected.py
       - name: No affected Rust packages
         if: steps.affected.outputs.run != 'true'
-        run: echo "No affected Pokémon crates; Rust checks are not needed."
+        run: echo "No affected Rust crates; Rust checks are not needed."
       - if: steps.affected.outputs.run == 'true'
-        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
-      # Fail formatting before downloading/restoring build dependencies.
+        run: rustup toolchain install
       - if: steps.affected.outputs.run == 'true'
-        run: cargo +stable fmt ${{ steps.affected.outputs.packages }} -- --check
+        run: cargo fmt ${{ steps.affected.outputs.packages }} -- --check
       - name: Identify Rust compiler
         if: steps.affected.outputs.run == 'true'
         id: rustc
-        run: echo "hash=$(rustc +stable -vV | sha256sum | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
-      - name: Cache Rust dependencies and build artifacts
+        run: echo "hash=$(rustc -vV | sha256sum | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Restore Rust dependencies and build artifacts
         if: steps.affected.outputs.run == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: rust-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.cargo/registry/index
@@ -112,13 +132,22 @@ jobs:
             ~/.cargo/registry/src
             ~/.cargo/git/db
             target
-          # A per-commit key saves updated artifacts; prefixes reuse earlier builds.
-          # Bump v1 if build-profile settings above change.
           key: rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
             rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-${{ hashFiles('Cargo.lock') }}-
             rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.rustc.outputs.hash }}-
       - if: steps.affected.outputs.run == 'true'
-        run: cargo +stable clippy ${{ steps.affected.outputs.packages }} --all-targets --locked -- -D warnings
+        run: cargo clippy ${{ steps.affected.outputs.packages }} --all-targets --locked -- -D warnings
       - if: steps.affected.outputs.run == 'true'
-        run: cargo +stable test ${{ steps.affected.outputs.packages }} --locked
+        run: cargo test ${{ steps.affected.outputs.packages }} --locked
+      - name: Save Rust dependencies and build artifacts
+        if: steps.affected.outputs.run == 'true' && env.SAVE_CACHE == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/src
+            ~/.cargo/git/db
+            target
+          key: ${{ steps.rust-cache.outputs.cache-primary-key }}

@@ -54,7 +54,6 @@ function createSitemapEntry(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Top shows have their own pages, which are worth indexing like the tools themselves.
   const popularPodcasts = await getPopularPodcasts();
   const pages = [
     ...publicPaths.map(function createPage(path) {

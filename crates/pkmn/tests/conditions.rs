@@ -125,7 +125,6 @@ fn substitutes_cost_a_quarter_and_absorb_hits() {
         } => Some(amount),
         _ => None,
     });
-    // Zaplet moves first, so its Volt Snare lands before the substitute goes up.
     assert_eq!(paid, Some(quarter));
     assert_eq!(
         battle.state().active(P1).volatiles.substitute,
@@ -245,7 +244,6 @@ fn spikes_style_hazards_stack_to_three_layers_and_skip_flying_types() {
 
 #[test]
 fn screens_halve_one_category_and_wear_off_after_five_turns() {
-    // Returns the damage of one physical hit and whether it was critical.
     let physical = |screen: bool, seed: u64| {
         let battle = start(
             &[set("Brawlstag", &["Pounce"])],

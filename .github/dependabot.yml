@@ -1,12 +1,29 @@
 version: 2
 updates:
-  # Actions are pinned to commit SHAs, so Dependabot proposes each new release as a pin update.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-  # The root Cargo workspace covers every crate under crates/.
+    groups:
+      actions:
+        patterns: ["*"]
   - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
+    groups:
+      cargo-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 1
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]

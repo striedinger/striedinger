@@ -195,8 +195,6 @@ impl Engine<'_> {
         ]);
         let mut base_power =
             apply_modifier(u32::from(move_data.base_power), base_power_modifier).max(1);
-        // Showdown raises weak moves of a Terastallized user's Tera type to 60 power, after
-        // every other base power modifier.
         if attacker.terastallized
             && move_data.move_type == Some(attacker.tera_type)
             && base_power < TERA_MINIMUM_POWER
@@ -245,8 +243,6 @@ impl Engine<'_> {
             (true, true) => TERA_STAB_MODIFIER,
             _ => STAB_MODIFIER,
         };
-        // Like Showdown's Adaptability, the replacement needs the move to match a current type,
-        // so a Terastallized user's original-type moves keep ×1.5.
         if !self.mask(side).intersects(HandlerMask::ATTACK_RULES) || !attacker.has_type(move_type) {
             return stab;
         }

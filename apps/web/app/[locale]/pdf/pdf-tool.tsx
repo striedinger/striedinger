@@ -27,7 +27,6 @@ import { PdfOptionsSection } from "./pdf-options-section";
 import { PdfStatusSection } from "./pdf-status-section";
 import { getPdfSummaryOptions } from "./pdf-summary-options";
 
-// The preview pulls in pdf.js rendering, so it loads once a file is chosen.
 const PdfPreview = lazy(function importPdfPreview() {
   return import("./pdf-preview").then(function selectPdfPreview(module) {
     return { default: module.PdfPreview };
@@ -90,7 +89,6 @@ export function PdfTool({ aiLabels, labels, locale }: PdfToolProps) {
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result>();
   const [openAiCard, setOpenAiCard] = useState<"summary" | "translation" | null>(null);
-  // Summaries appear only once the browser confirms it can write them on the device.
   const canSummarize = useOnDeviceAi(
     defineOnDeviceAiProbe("Summarizer", `pdf:${locale}`, function checkSummaries() {
       return Summarizer.availability(getPdfSummaryOptions(locale));

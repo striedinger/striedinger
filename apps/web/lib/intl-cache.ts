@@ -1,5 +1,3 @@
-// Constructing Intl formatters is expensive, and list rows format dates and durations on every
-// render. Formatters are cached per locale and option set.
 const formatterCache = new Map<string, unknown>();
 
 function getCachedFormatter<Formatter>(key: string, create: () => Formatter): Formatter {

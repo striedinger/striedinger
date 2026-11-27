@@ -65,7 +65,6 @@ export function StockDashboard({
   timeframe,
 }: StockDashboardProps) {
   const router = useRouter();
-  // Staying on the current path keeps a localized page (such as /es/stocks) in its language.
   const pathname = usePathname();
   const storedWatchlist = useStockWatchlist();
   const watchlist = storedWatchlist ?? [];
@@ -77,7 +76,6 @@ export function StockDashboard({
   const [isNavigating, startNavigation] = useTransition();
   const [optimisticTimeframe, setOptimisticTimeframe] = useOptimistic(timeframe);
   const lastRefreshAt = useRef(0);
-  // The saved watchlist's parameter once the browser has read it; every navigation carries it.
   const watchlistParameter =
     storedWatchlist === null ? listParameter : getListParameter(storedWatchlist);
   const urlState: StocksUrlState = {
@@ -103,7 +101,6 @@ export function StockDashboard({
   useEffect(
     function mirrorWatchlistIntoUrl() {
       if (!synchronizedHref) return;
-      // Its own transition, so quotes refreshing never dims an open chart.
       startTransition(function replaceList() {
         router.replace(synchronizedHref, { scroll: false });
       });

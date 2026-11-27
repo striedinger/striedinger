@@ -1,19 +1,9 @@
 #!/usr/bin/env bash
-# Builds xtool's Darwin Swift SDK from Xcode.xip and uploads it to a private GitHub repo of
-# yours, so your Linux machines can download it for build-mac.sh. CI doesn't need this: it
-# builds the SDK from the macOS runner's Xcode on each run.
-#
-#   apps/murmur/scripts/publish-darwin-sdk.sh ~/Downloads/Xcode_27.1.xip
-#
-# Needs xtool and an authenticated gh CLI. Run it on Linux (or WSL). Xcode.xip itself
-# isn't uploaded: it's ~4 GB and is Apple's to distribute. The SDK stays in a private
-# repo for the same reason; Apple's license allows the SDK only on Apple-branded hardware,
-# so whether to use it on Linux is your call.
 set -euo pipefail
 
 XIP="${1:?usage: publish-darwin-sdk.sh <path to Xcode.xip>}"
 REPO="${DARWIN_SDK_REPO:-striedinger/darwin-sdk}"
-ARCH="${SDK_HOST_ARCH:-x86_64}"       # the Linux host that will use it; CI runners are x86_64
+ARCH="${SDK_HOST_ARCH:-x86_64}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 

@@ -24,7 +24,6 @@ export function TrainFilter({
   selectedRoute,
 }: TrainFilterProps) {
   const { actions, state } = useMtaNavigation();
-  // A tapped filter shows as selected while the server loads its arrivals.
   const displayedRoute = state.pendingRoute === undefined ? selectedRoute : state.pendingRoute;
 
   function selectRoute(route: string | null) {

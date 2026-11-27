@@ -46,8 +46,6 @@ export function PairingPanel({
   const [inviteCode, setInviteCode] = useState("");
   const [previousPairingState, setPreviousPairingState] = useState(pairingState);
 
-  // When pairing finishes or is canceled, the panel starts over at the first step. Adjusting
-  // state during render skips the extra pass an effect would cost.
   if (pairingState !== previousPairingState) {
     setPreviousPairingState(pairingState);
     if (pairingState === "idle") {
@@ -72,7 +70,6 @@ export function PairingPanel({
     if (await copyText(pairingCode)) setDeliveryState("copied");
   }
 
-  // Sharing and copying both settle their own failures, so the promise never rejects.
   function handleSendCode() {
     void deliverCode();
   }

@@ -14,7 +14,6 @@ import { splitLongCaption } from "./captions";
 import { maximumTranscriptionSeconds } from "./transcription-messages";
 import { videoInputFormats } from "./video-input";
 
-// Whisper hears 16 kHz mono audio.
 const whisperSampleRate = 16_000;
 const modelId = "onnx-community/whisper-tiny";
 
@@ -50,7 +49,6 @@ function reply(message: TranscriptionReply) {
 }
 
 async function hasWebGpu() {
-  // Browsers without WebGPU have no `navigator.gpu`, whatever the library types say.
   const gpu = (navigator as { gpu?: { requestAdapter: () => Promise<unknown> } }).gpu;
   return Boolean(gpu && (await gpu.requestAdapter().catch(() => null)));
 }
@@ -189,7 +187,6 @@ async function detectLanguage(transcriber: Transcriber, audio: Float32Array) {
     ),
     input_features,
   });
-  // One position, so the logits are just the vocabulary's scores.
   const scores = logits.data as Float32Array;
   let language: string | null = null;
   let bestScore = Number.NEGATIVE_INFINITY;
@@ -213,7 +210,6 @@ async function transcribe({ end, file, id, start }: TranscriptionRequest) {
   }
   checkCanceled();
   downloadingJobId = id;
-  // The model downloads while the audio decodes.
   const [transcriber, audio] = await Promise.all([loadTranscriber(), readAudio(file, start, end)]);
   checkCanceled();
   if (!audio) {

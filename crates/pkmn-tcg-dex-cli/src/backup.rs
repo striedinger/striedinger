@@ -14,7 +14,6 @@ pub fn read_import(
     max_bytes: usize,
     max_copies: usize,
 ) -> Result<Vec<OwnedCopy>> {
-    // Bound even a growing file or a reader without size metadata.
     let mut bytes = Vec::new();
     BufReader::new(reader)
         .take(max_bytes as u64 + 1)

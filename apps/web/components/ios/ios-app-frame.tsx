@@ -14,8 +14,6 @@ import "./ios-utilities.css";
 import "./ios-view-transitions.css";
 import { useKeyboardInset } from "./use-keyboard-inset";
 
-// Apple's iOS system colors for the light and dark appearances. Native replicas use these
-// instead of the site palette so materials, labels, and separators match the real apps.
 const systemColorClasses = [
   "[--ios-background:#ffffff] dark:[--ios-background:#000000]",
   "[--ios-secondary-background:#f2f2f7] dark:[--ios-secondary-background:#1c1c1e]",
@@ -55,8 +53,6 @@ export function IosAppFrame({ appSwitcher, children, className, ...props }: IosA
   const [frameElement, setFrameElement] = useState<HTMLElement | null>(null);
   useKeyboardInset(frameElement);
 
-  // Native apps do not rubber-band the whole window or zoom on double tap; only their own
-  // scroll views bounce.
   useEffect(function lockDocumentScrolling() {
     const rootStyle = document.documentElement.style;
     const bodyStyle = document.body.style;

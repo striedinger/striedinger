@@ -42,7 +42,6 @@ export function ChatTool({ labels, locale }: ChatToolProps) {
   const chat = useNearbyChat(labels);
   const [isDeviceDrawerOpen, setIsDeviceDrawerOpen] = useState(false);
   const showsConversation = chat.peerCount > 0 || chat.messages.length > 0;
-  // Only one pairing panel may exist at a time, so the sheet closes with the conversation.
   if (isDeviceDrawerOpen && !showsConversation) setIsDeviceDrawerOpen(false);
   const showsDeviceDrawer = isDeviceDrawerOpen && showsConversation;
   const hasDeviceDrawerOpened = useHasOpened(showsDeviceDrawer);

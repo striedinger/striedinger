@@ -230,7 +230,6 @@ export function FoldersPane({
           containerClassName="min-w-0 flex-1 md:hidden"
           onValueChange={onSearchQueryChange}
         />
-        {/* Wide layouts search from the notes list and compose from the editor's toolbar. */}
         <IosBarButton
           aria-label={messages["New Note"]}
           className="text-ios-tint md:hidden"
@@ -243,7 +242,5 @@ export function FoldersPane({
   );
 }
 
-// Beside the notes list, folders appear as sidebar rows: no grouped card, separators, or
-// chevrons, and the selected folder is a rounded tinted capsule.
 const sidebarListClassName =
   "md:flex md:flex-col md:gap-0.5 md:overflow-visible md:rounded-none md:bg-transparent md:[&_button]:min-h-11 md:[&_button]:rounded-ios-md md:[&_button]:py-2.5 md:[&_button>svg:last-child]:hidden md:[&>li]:after:hidden";

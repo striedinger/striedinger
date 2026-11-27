@@ -5,7 +5,6 @@ import { useEffect, useSyncExternalStore } from "react";
 import { IosAppSwitcherButton } from "../../../components/ios/ios-app-switcher-button";
 import { useIosAppSwitcher } from "../../../components/ios/ios-app-switcher-context";
 
-// Safari has no requestIdleCallback, so it waits this long after the page settles instead.
 const idleFallbackDelayMs = 1_500;
 
 /**
@@ -46,7 +45,6 @@ function subscribeToNothing() {
   return function unsubscribe() {};
 }
 
-// Comparing the windows is allowed even when a cross-origin page frames this one.
 function isTopLevelWindow() {
   return window.self === window.top;
 }

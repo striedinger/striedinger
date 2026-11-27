@@ -1,6 +1,3 @@
-// Reads note text for Writing Tools and writes results back through the browser's editing
-// commands, so every change joins the native undo history and the note saves as usual.
-
 interface TextSegment {
   node: Text;
   /** The used text when it was read, to detect edits made since. */
@@ -58,8 +55,6 @@ function insertTextAt(range: Range, text: string) {
   const selection = window.getSelection();
   selection?.removeAllRanges();
   selection?.addRange(range);
-  // execCommand is deprecated but is the only way to edit contenteditable content while
-  // keeping the native undo history.
   // oxlint-disable-next-line typescript/no-deprecated -- No standard API edits contenteditable with native undo.
   document.execCommand("insertText", false, text);
 }

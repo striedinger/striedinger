@@ -70,7 +70,6 @@ export function useStockWatchlist() {
 
 export function saveStockWatchlist(watchlist: readonly StockIdentity[]) {
   writeStoredValue(storageKey, JSON.stringify(watchlist));
-  // Read back what storage holds, so a failed write keeps the new list in memory.
   cachedStoredValue = readStoredValue(storageKey);
   cachedWatchlist = watchlist;
   for (const listener of listeners) listener();

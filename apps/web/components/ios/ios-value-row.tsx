@@ -17,8 +17,6 @@ const statusClassNames: Readonly<Record<IosValueStatus, string>> = {
   warning: "bg-ios-orange",
 };
 
-// Beyond this many characters a value moves beneath its label, as long entries do in
-// Settings > General > About, so it can wrap without squeezing the label.
 const inlineCharacterLimit = 32;
 
 /** A read-only label and value row in an inset grouped list. */

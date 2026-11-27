@@ -8,7 +8,6 @@ describe("keyframe snapping", function () {
   it("snaps to the nearest keyframe the clip can still start at", function () {
     expect(snapToKeyframe(keyframes, 2.2, 10)).toBe(2.5);
     expect(snapToKeyframe(keyframes, 1.6, 10)).toBe(1);
-    // A keyframe past the end handle would leave no clip, so the nearest earlier one wins.
     expect(snapToKeyframe(keyframes, 3.9, 3)).toBe(2.5);
   });
 

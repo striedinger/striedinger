@@ -192,7 +192,6 @@ export function NoteWritingToolsPanel({
                 type="button"
                 className={iosChipButtonClassName}
                 onClick={function startCopying() {
-                  // copyText reports failure by resolving to false rather than rejecting.
                   void copyResult();
                 }}
               >
@@ -232,7 +231,6 @@ export function NoteWritingToolsPanel({
                   disabled={isBusy}
                   className={toolButtonClassName}
                   onClick={function startProofreading() {
-                    // task.run catches the model's errors and shows them in the card.
                     void proofread();
                   }}
                 >

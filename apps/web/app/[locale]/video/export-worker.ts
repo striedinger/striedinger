@@ -47,7 +47,6 @@ interface ExportTarget {
 async function createTarget(outputName: string): Promise<ExportTarget> {
   try {
     const directory = await navigator.storage.getDirectory();
-    // Cleanup is best effort; older Safari cannot list a directory, which must not cost OPFS.
     await removeEarlierExports(directory).catch(function keepEarlierExports() {
       return undefined;
     });
@@ -113,9 +112,7 @@ function describeSubtitleTrack(language: string | null) {
     const tag = toLanguageTag(language);
     const name = new Intl.DisplayNames([tag], { type: "language" }).of(tag);
     if (name) metadata.name = name;
-  } catch {
-    // Without a display name for the language, the track keeps only its code.
-  }
+  } catch {}
   return metadata;
 }
 
@@ -137,7 +134,6 @@ async function createTags(request: ExportRequest, inputTags: MetadataTags): Prom
       },
     ];
   }
-  // Clearing a field removes it from the file rather than keeping the original's value.
   const description = request.details.description.trim();
   const title = request.details.title.trim();
   if (description) tags.description = description;
@@ -162,7 +158,6 @@ function createFrameOverlay(
     ? createWatermarkPainter({ ...request.watermark, logo })
     : null;
   return function drawOverlay(sample: VideoSample) {
-    // Frames may be timed from the trim start or from the original video; the first frame tells.
     timeOffset ??= sample.timestamp < request.trim.start - 0.25 ? request.trim.start : 0;
     const sourceTime = sample.timestamp + timeOffset;
     const captionText = burnsCaptions
@@ -204,7 +199,6 @@ async function exportVideo(request: ExportRequest) {
     const drawsOverlay = burnsCaptions || request.watermark !== null;
     const highQuality = new Quality("high");
     const { resize } = request;
-    // Resizing re-encodes frames rotated upright, so the size is the one people see.
     const resizeOptions = resize
       ? {
           allowTransformationMetadata: false,
