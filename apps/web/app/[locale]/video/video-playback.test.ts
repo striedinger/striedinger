@@ -81,12 +81,12 @@ function latestAudioContext() {
 function createPlayback() {
   const canvas = { getContext: () => ({ drawImage() {} }), height: 0, width: 0 };
   return createVideoPlayback({
-    audioTrack: {} as InputAudioTrack,
+    audioTrack: Object.create(null) as InputAudioTrack,
     canvas: canvas as unknown as HTMLCanvasElement,
     duration: 10,
     height: 360,
     onPausedChange: vi.fn<(paused: boolean) => void>(),
-    videoTrack: {} as InputVideoTrack,
+    videoTrack: Object.create(null) as InputVideoTrack,
     width: 640,
   });
 }

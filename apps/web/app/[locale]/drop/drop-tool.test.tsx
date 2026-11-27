@@ -1,3 +1,5 @@
+import type { PeerInfo } from "trystero";
+
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,17 +13,40 @@ import {
 } from "./transfer-limits";
 
 const peerState = vi.hoisted(function createPeerState() {
+  const handlers: {
+    error: ((error: { code: string; peerId?: string }) => void) | null;
+    message: ((data: unknown, context: unknown) => void) | null;
+    peerJoin: ((context: { peerId: string }) => void) | null;
+    peerLeave: ((context: { peerId: string }) => void) | null;
+    receive: ((context: unknown) => boolean) | null;
+    receiveProgress: ((progress: number, context: unknown) => void) | null;
+  } = {
+    error: null,
+    message: null,
+    peerJoin: null,
+    peerLeave: null,
+    receive: null,
+    receiveProgress: null,
+  };
+  function register<Name extends keyof typeof handlers>(name: Name) {
+    return function subscribe(handler: NonNullable<(typeof handlers)[Name]>) {
+      handlers[name] = handler;
+      return function unsubscribe() {
+        handlers[name] = null;
+      };
+    };
+  }
   const action = {
-    onMessage: null,
-    onReceive: null,
-    onReceiveProgress: null,
+    onMessage: register("message"),
+    onReceive: register("receive"),
+    onReceiveProgress: register("receiveProgress"),
     send: vi.fn<(data?: unknown, options?: unknown) => Promise<void>>(function sendFile() {
       return Promise.resolve();
     }),
   };
-  const peers: Record<string, RTCPeerConnection> = {};
+  const peers: Record<string, PeerInfo> = {};
   const room = {
-    getPeers: vi.fn<() => Record<string, RTCPeerConnection>>(function getPeers() {
+    getPeers: vi.fn<() => Record<string, PeerInfo>>(function getPeers() {
       return peers;
     }),
     leave: vi.fn<() => Promise<void>>(function leave() {
@@ -30,11 +55,12 @@ const peerState = vi.hoisted(function createPeerState() {
     makeAction: vi.fn<() => typeof action>(function makeAction() {
       return action;
     }),
-    onPeerJoin: null as null | ((peerId: string) => void),
-    onPeerLeave: null as null | ((peerId: string) => void),
+    onError: register("error"),
+    onPeerJoin: register("peerJoin"),
+    onPeerLeave: register("peerLeave"),
   };
 
-  return { action, peers, room };
+  return { action, handlers, peers, room };
 });
 
 vi.mock("trystero", function mockTrystero() {
@@ -118,11 +144,9 @@ beforeEach(function resetPeerState() {
   peerState.action.send.mockImplementation(function sendFile() {
     return Promise.resolve();
   });
-  peerState.action.onMessage = null;
-  peerState.action.onReceive = null;
-  peerState.action.onReceiveProgress = null;
-  peerState.room.onPeerJoin = null;
-  peerState.room.onPeerLeave = null;
+  for (const name of Object.keys(peerState.handlers) as (keyof typeof peerState.handlers)[]) {
+    peerState.handlers[name] = null;
+  }
   for (const peerId of Object.keys(peerState.peers))
     Reflect.deleteProperty(peerState.peers, peerId);
 });
@@ -143,7 +167,7 @@ describe("DropTool", function () {
     expect(screen.getByText(/Ready to send/)).toBeInTheDocument();
 
     await actAndSettle(function connectPeer() {
-      peerState.room.onPeerJoin?.("peer-1");
+      peerState.handlers.peerJoin?.({ peerId: "peer-1" });
     });
 
     expect(peerState.action.send).not.toHaveBeenCalled();
@@ -165,7 +189,7 @@ describe("DropTool", function () {
     render(<DropTool labels={labels} />);
     await waitForForRoom();
     await actAndSettle(function connectFirstPeer() {
-      peerState.room.onPeerJoin?.("peer-1");
+      peerState.handlers.peerJoin?.({ peerId: "peer-1" });
     });
     const earlierFile = new File(["earlier"], "earlier.txt");
     selectFiles([earlierFile]);
@@ -177,7 +201,7 @@ describe("DropTool", function () {
     });
 
     await actAndSettle(function connectLatePeer() {
-      peerState.room.onPeerJoin?.("peer-2");
+      peerState.handlers.peerJoin?.({ peerId: "peer-2" });
     });
     fireEvent.click(screen.getByRole("button", { name: labels.notNow }));
 
@@ -208,7 +232,7 @@ describe("DropTool", function () {
       expect(screen.queryByText(file.name)).not.toBeInTheDocument();
     });
     await actAndSettle(function connectPeerInNewRoom() {
-      peerState.room.onPeerJoin?.("new-room-peer");
+      peerState.handlers.peerJoin?.({ peerId: "new-room-peer" });
     });
     expect(peerState.action.send).not.toHaveBeenCalled();
   });
@@ -222,7 +246,7 @@ describe("DropTool", function () {
 
     expect(screen.getByText(labels.fileTooLarge, { exact: false })).toBeInTheDocument();
     await actAndSettle(function connectPeer() {
-      peerState.room.onPeerJoin?.("peer-1");
+      peerState.handlers.peerJoin?.({ peerId: "peer-1" });
     });
     expect(peerState.action.send).not.toHaveBeenCalled();
   });
@@ -241,7 +265,7 @@ describe("DropTool", function () {
     render(<DropTool labels={labels} />);
     await waitForForRoom();
     await actAndSettle(function connectPeer() {
-      peerState.room.onPeerJoin?.("peer-1");
+      peerState.handlers.peerJoin?.({ peerId: "peer-1" });
     });
     selectFiles([new File(["one"], "one.txt"), new File(["two"], "two.txt")]);
 
@@ -263,7 +287,7 @@ describe("DropTool", function () {
     render(<DropTool labels={labels} />);
     await waitForForRoom();
     await actAndSettle(function connectPeer() {
-      peerState.room.onPeerJoin?.("peer-1");
+      peerState.handlers.peerJoin?.({ peerId: "peer-1" });
     });
     selectFiles([new File(["retry"], "retry.txt")]);
 
@@ -278,12 +302,12 @@ describe("DropTool", function () {
 
   it("disconnects a peer that announces an oversized incoming file", async function () {
     const close = vi.fn<() => void>();
-    peerState.peers["unsafe-peer"] = { close } as unknown as RTCPeerConnection;
+    peerState.peers["unsafe-peer"] = { connection: { close } } as unknown as PeerInfo;
     render(<DropTool labels={labels} />);
     await waitForForRoom();
 
     act(function reportUnsafeTransfer() {
-      const receiveProgress = peerState.action.onReceiveProgress as unknown as (
+      const receiveProgress = peerState.handlers.receiveProgress as unknown as (
         progress: number,
         context: { metadata: unknown; peerId: string },
       ) => void;
@@ -305,7 +329,7 @@ describe("DropTool", function () {
 
   it("rejects an incoming payload that does not match its declared size", async function () {
     const close = vi.fn<() => void>();
-    peerState.peers["unsafe-peer"] = { close } as unknown as RTCPeerConnection;
+    peerState.peers["unsafe-peer"] = { connection: { close } } as unknown as PeerInfo;
     render(<DropTool labels={labels} />);
     await waitForForRoom();
 
@@ -385,7 +409,7 @@ describe("DropTool", function () {
 
   it("refuses an oversized incoming file before it is buffered", async function () {
     const close = vi.fn<() => void>();
-    peerState.peers["unsafe-peer"] = { close } as unknown as RTCPeerConnection;
+    peerState.peers["unsafe-peer"] = { connection: { close } } as unknown as PeerInfo;
     render(<DropTool labels={labels} />);
     await waitForForRoom();
 
@@ -421,7 +445,7 @@ describe("DropTool", function () {
 
   it("disconnects a peer that keeps sending once the session is full", async function () {
     const close = vi.fn<() => void>();
-    peerState.peers["persistent-peer"] = { close } as unknown as RTCPeerConnection;
+    peerState.peers["persistent-peer"] = { connection: { close } } as unknown as PeerInfo;
     render(<DropTool labels={labels} />);
     await waitForForRoom();
 
@@ -463,6 +487,21 @@ describe("DropTool", function () {
     render(<DropTool labels={labels} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(labels.roomError);
+  });
+
+  it("reports a failed join but not a single peer's dropped connection", async function () {
+    render(<DropTool labels={labels} />);
+    await waitForForRoom();
+
+    act(function dropOnePeer() {
+      peerState.handlers.error?.({ code: "peer-connect-failed", peerId: "peer-1" });
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    act(function failToDecrypt() {
+      peerState.handlers.error?.({ code: "decrypt-failed", peerId: "peer-2" });
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(labels.roomError);
   });
 
   it("describes an invalid room code next to the input", async function () {
@@ -510,7 +549,7 @@ describe("DropTool", function () {
     render(<DropTool labels={labels} />);
     await waitForForRoom();
     await actAndSettle(function connectPeer() {
-      peerState.room.onPeerJoin?.("peer-1");
+      peerState.handlers.peerJoin?.({ peerId: "peer-1" });
     });
     selectFiles([new File(["progress"], "progress.txt")]);
 
@@ -538,7 +577,7 @@ function createMetadata(id: string, size: number) {
 }
 
 function receiveMessage(data: ArrayBuffer | Uint8Array, context: ReceiveContext) {
-  const onMessage = peerState.action.onMessage as unknown as (
+  const onMessage = peerState.handlers.message as unknown as (
     data: ArrayBuffer | Uint8Array,
     context: ReceiveContext,
   ) => void;
@@ -546,7 +585,7 @@ function receiveMessage(data: ArrayBuffer | Uint8Array, context: ReceiveContext)
 }
 
 function admitIncomingFile(byteLength: number, metadata: unknown, peerId: string) {
-  const onReceive = peerState.action.onReceive as unknown as (context: {
+  const onReceive = peerState.handlers.receive as unknown as (context: {
     byteLength: number;
     kind: "message";
     metadata: unknown;
@@ -567,7 +606,7 @@ async function waitForForRoom() {
     expect(screen.queryByText(labels.preparing)).not.toBeInTheDocument();
   });
   await waitFor(function waitForPeerHandler() {
-    expect(peerState.room.onPeerJoin).toBeTypeOf("function");
+    expect(peerState.handlers.peerJoin).toBeTypeOf("function");
   });
 }
 

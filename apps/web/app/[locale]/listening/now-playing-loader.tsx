@@ -25,7 +25,7 @@ export async function NowPlayingLoader({ locale }: NowPlayingLoaderProps) {
     getListeningState(),
     getListeningTranslator(locale),
   ]);
-  // oxlint-disable-next-line react-hooks-js/purity, react/purity -- Server component; runs once per request.
+  // oxlint-disable-next-line react-hooks-js/purity -- Server component; runs once per request.
   const now = Date.now();
   const elapsedMs = getElapsedMs(state, now);
   const labels: NowPlayingLabels = {

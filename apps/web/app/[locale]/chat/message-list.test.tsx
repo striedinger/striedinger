@@ -33,7 +33,7 @@ function renderMessageList(messages: VisibleChatMessage[]) {
 
 function getScrollView() {
   const scrollView = screen.getByRole("log", { name: "Messages" }).closest("[data-ios-scroll]");
-  if (!(scrollView instanceof HTMLElement)) throw new Error("Missing scroll view");
+  if (!(scrollView instanceof HTMLElement)) throw new TypeError("Missing scroll view");
   return scrollView;
 }
 

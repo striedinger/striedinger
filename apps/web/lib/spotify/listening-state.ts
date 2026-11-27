@@ -89,7 +89,7 @@ async function getAccessToken({ clientId, clientSecret, refreshToken }: SpotifyC
   });
   if (!response.ok) throw new Error(`Spotify token request failed with ${response.status}`);
   const payload = (await response.json()) as { access_token?: unknown; expires_in?: unknown };
-  if (typeof payload.access_token !== "string") throw new Error("Spotify returned no token");
+  if (typeof payload.access_token !== "string") throw new TypeError("Spotify returned no token");
   const lifetimeSeconds = typeof payload.expires_in === "number" ? payload.expires_in : 3_600;
   cachedAccessToken = {
     value: payload.access_token,

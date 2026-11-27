@@ -3,7 +3,7 @@
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
 
 import { cn } from "@workspace/ui/lib/utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { IosSwipeActionButton, type IosSwipeAction } from "./ios-swipe-action-button";
 
@@ -100,19 +100,22 @@ export function IosSwipeActions({
     else settle(null);
   }
 
+  const closeFromOutside = useEffectEvent(function closeFromOutside() {
+    settle(null);
+  });
+
   useEffect(
     function closeWhenInteractingElsewhere() {
       if (!openSide) return;
       function closeOnOutsidePointer(event: PointerEvent) {
         if (containerRef.current?.contains(event.target as Node)) return;
-        settle(null);
+        closeFromOutside();
       }
       document.addEventListener("pointerdown", closeOnOutsidePointer, true);
       return function stopListeningForOutsidePointer() {
         document.removeEventListener("pointerdown", closeOnOutsidePointer, true);
       };
     },
-    // oxlint-disable-next-line react/exhaustive-deps -- Only re-register when the open side changes.
     [openSide],
   );
 

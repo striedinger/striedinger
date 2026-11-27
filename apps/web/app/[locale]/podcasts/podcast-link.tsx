@@ -16,6 +16,7 @@ type PodcastLinkProps = Omit<ComponentPropsWithRef<typeof IosLink>, "href"> &
 
 type RouterPrefetchOptions = Parameters<ReturnType<typeof useRouter>["prefetch"]>[1];
 
+// oxlint-disable-next-line typescript/no-unsafe-enum-assignment -- Next.js exports PrefetchKind only from an internal module; "full" is PrefetchKind.FULL.
 const fullPrefetch = { kind: "full" } as RouterPrefetchOptions;
 
 /**

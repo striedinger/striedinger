@@ -1,6 +1,6 @@
 "use client";
 
-import type { DataPayload, MessageAction, Room } from "trystero";
+import type { DataPayload, MessageAction, Room, RoomErrorCode } from "trystero";
 
 import { ShareUpIcon } from "@workspace/icons/share-up-icon";
 import { useEffect, useRef, useState } from "react";
@@ -136,16 +136,18 @@ export function DropTool({ labels }: DropToolProps) {
 
           if (cancelled) return;
 
-          const joinedRoom = joinRoom({ appId: dropAppId, password: roomCodeToJoin }, roomId, {
-            onJoinError: function handleJoinError() {
-              if (!cancelled) setConnectionError(true);
-            },
+          const joinedRoom = joinRoom(
+            { appId: dropAppId, identity: "none", password: roomCodeToJoin },
+            roomId,
+          );
+          joinedRoom.onError(function handleJoinError(error) {
+            if (!cancelled && joinErrorCodes.has(error.code)) setConnectionError(true);
           });
           activeRoom = joinedRoom;
           const action = joinedRoom.makeAction("file");
           activeSession.action = action;
 
-          action.onReceive = function admitIncomingFile({
+          action.onReceive(function admitIncomingFile({
             byteLength,
             metadata: rawMetadata,
             peerId,
@@ -178,8 +180,8 @@ export function DropTool({ labels }: DropToolProps) {
             activeSession.receivedFileCount += 1;
             activeSession.receivedBytes += byteLength;
             return true;
-          };
-          action.onReceiveProgress = function updateIncomingProgress(progress, context) {
+          });
+          action.onReceiveProgress(function updateIncomingProgress(progress, context) {
             const metadata = readTransferMetadata(context.metadata);
 
             if (!metadata || metadata.size > maximumFileSizeBytes) {
@@ -194,8 +196,8 @@ export function DropTool({ labels }: DropToolProps) {
                 upsertIncomingTransfer(setTransfers, transferKey, metadata, progress);
               },
             );
-          };
-          action.onMessage = function receiveFile(data, context) {
+          });
+          action.onMessage(function receiveFile(data, context) {
             const metadata = readTransferMetadata(context.metadata);
 
             if (!metadata) {
@@ -221,8 +223,8 @@ export function DropTool({ labels }: DropToolProps) {
             const url = URL.createObjectURL(blob);
             activeSession.objectUrls.add(url);
             upsertIncomingTransfer(setTransfers, transferKey, metadata, 1, url);
-          };
-          joinedRoom.onPeerJoin = function addPeer(peerId) {
+          });
+          joinedRoom.onPeerJoin(function addPeer({ peerId }) {
             activeSession.peers.add(peerId);
             setPeerCount(activeSession.peers.size);
 
@@ -237,14 +239,14 @@ export function DropTool({ labels }: DropToolProps) {
             );
             activeSession.latePeers.add(peerId);
             setLatePeerFileCount(countFilesAwaitingLatePeers(activeSession));
-          };
-          joinedRoom.onPeerLeave = function removePeer(peerId) {
+          });
+          joinedRoom.onPeerLeave(function removePeer({ peerId }) {
             activeSession.peers.delete(peerId);
             activeSession.latePeers.delete(peerId);
             activeSession.withheldFileIds.delete(peerId);
             setPeerCount(activeSession.peers.size);
             setLatePeerFileCount(countFilesAwaitingLatePeers(activeSession));
-          };
+          });
         } catch {
           if (!cancelled) setConnectionError(true);
         }
@@ -533,6 +535,13 @@ function createIncomingTransferKey(peerId: string, transferId: string) {
   return JSON.stringify([peerId, transferId]);
 }
 
+const joinErrorCodes = new Set<RoomErrorCode>([
+  "decrypt-failed",
+  "identity-failed",
+  "relay-failed",
+  "room-full",
+]);
+
 function countFilesAwaitingLatePeers(session: DropSessionState) {
   const fileIds = new Set<string>();
 
@@ -543,7 +552,7 @@ function countFilesAwaitingLatePeers(session: DropSessionState) {
 }
 
 function closePeer(room: Room | undefined, peerId: string) {
-  room?.getPeers()[peerId]?.close();
+  room?.getPeers()[peerId]?.connection?.close();
 }
 
 function createFileBlob(data: DataPayload) {

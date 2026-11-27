@@ -12,14 +12,14 @@ crate-type = ["cdylib", "lib"]
 name = "murmur_core"
 
 [dependencies]
-uniffi = "0.28"
-thiserror = "1"
+uniffi = "0.33"
+thiserror = "2"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
-toml = "0.8"
-cpal = "0.15"
+toml = "1"
+cpal = "0.18"
 crossbeam-channel = "0.5"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite.workspace = true
 sherpa-rs = "0.6"
 llama-cpp-2 = "0.1"
 

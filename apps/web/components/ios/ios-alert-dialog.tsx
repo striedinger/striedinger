@@ -8,7 +8,7 @@ import { useOpenAfterMount } from "../use-open-after-mount";
 import { iosStrongGlassClassName } from "./ios-glass";
 import { useIosPortalContainer } from "./ios-portal-container";
 
-export interface IosAlertAction {
+interface IosAlertAction {
   disabled?: boolean;
   label: string;
   onSelect: () => void;

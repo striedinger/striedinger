@@ -1,7 +1,15 @@
 "use client";
 
 import { cn } from "@workspace/ui/lib/utils";
-import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
 
 import type { OnDeviceAiLabels } from "../../../components/ios/ios-intelligence-card";
 import type { Note, NoteFolder, NotesMessages } from "./types";
@@ -129,16 +137,19 @@ export function NotesApp({ aiLabels, locale, messages, welcomeNoteHtml }: NotesA
     ...userFolders,
   ];
 
+  const discardNoteIfEmpty = useEffectEvent(function discardNoteIfEmpty(noteId: string) {
+    store.discardNoteIfEmpty(noteId);
+  });
+
   useEffect(
     function discardEmptyNoteAfterLeaving() {
       const previousNoteId = previousNoteIdRef.current;
       previousNoteIdRef.current = route.noteId;
       if (!previousNoteId || previousNoteId === route.noteId) return;
       window.setTimeout(function discardPreviousNote() {
-        store.discardNoteIfEmpty(previousNoteId);
+        discardNoteIfEmpty(previousNoteId);
       }, 0);
     },
-    // oxlint-disable-next-line react/exhaustive-deps -- Only react to the open note changing.
     [route.noteId],
   );
 

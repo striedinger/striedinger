@@ -75,7 +75,7 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
             return;
         }
     };
-    let src_rate = config.sample_rate().0;
+    let src_rate = config.sample_rate();
     let channels = config.channels() as usize;
 
     let buffer: Arc<Mutex<Vec<f32>>> =
@@ -104,7 +104,7 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
     let stream_config = config.config();
     let stream = match config.sample_format() {
         cpal::SampleFormat::F32 => device.build_input_stream(
-            &stream_config,
+            stream_config,
             move |data: &[f32], _| {
                 on_frames(
                     &mut data
@@ -116,7 +116,7 @@ fn audio_thread(rx: Receiver<Cmd>, ready: Sender<anyhow::Result<()>>, level: Arc
             None,
         ),
         cpal::SampleFormat::I16 => device.build_input_stream(
-            &stream_config,
+            stream_config,
             move |data: &[i16], _| {
                 on_frames(&mut data.chunks(channels).map(|f| {
                     f.iter().map(|s| *s as f32 / i16::MAX as f32).sum::<f32>() / channels as f32
