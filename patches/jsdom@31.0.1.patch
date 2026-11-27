@@ -1,0 +1,11 @@
+diff --git a/lib/jsdom/browser/Window.js b/lib/jsdom/browser/Window.js
+index 51b23acc2cbcc5d0972c2d0a320ab0b86d0cdf0a..3ccef6732a950fec2f1ae67335b2210206a1cab6 100644
+--- a/lib/jsdom/browser/Window.js
++++ b/lib/jsdom/browser/Window.js
+@@ -1,4 +1,6 @@
+ "use strict";
++// Captured at load so test fake timers cannot replace the clock behind jsdom's own timers.
++const { setTimeout, clearTimeout, setInterval, clearInterval } = globalThis;
+ const vm = require("node:vm");
+ const webIDLConversions = require("webidl-conversions");
+ const whatwgURL = require("whatwg-url");

@@ -24,3 +24,8 @@ trustPolicyExclude:
   - semver@6.3.1
   # Built with provenance from oxc-project/tsrs's release workflow, like the releases before it.
   - tsrs@0.20.1-ts7.1.0-beta
+
+# jsdom starts its animation-frame and focus loop with the global setInterval, so a loop started
+# under Vitest fake timers is lost when real timers return, and animation frames stop firing.
+patchedDependencies:
+  jsdom@31.0.1: patches/jsdom@31.0.1.patch
