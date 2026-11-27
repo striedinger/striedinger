@@ -25,7 +25,7 @@ These guidelines apply to the entire monorepo. Update this file as the project‚Ä
 - `rust-toolchain.toml` pins the Rust toolchain for local work and CI, and the workspace `rust-version` matches it. Bump both together when adopting a new release.
 - CI saves caches only from pushes to `main`; pull requests restore from them. Add new caches with `actions/cache/restore` and a `main`-only `actions/cache/save`.
 - Keep Clippy's pedantic group enabled through `[workspace.lints]` and fix warnings instead of allowing them. Format with `cargo fmt`.
-- After Rust changes, run `cargo fmt --all --check`, then `cargo clippy -p <crate> --all-targets --locked -- -D warnings` and `cargo test -p <crate> --locked` for each changed crate. `murmur-core` also needs the ALSA and libclang headers its workflow installs.
+- After Rust changes, run `cargo fmt --all --check`, then `cargo clippy -p <crate> --all-targets --locked -- -D warnings` and `cargo test -p <crate> --locked` for each changed crate. `murmur-core` also needs the ALSA and libclang headers its workflow installs. Before its first build in a target directory, create `target/<profile>/deps` (or `target/<triple>/<profile>/deps`): `sherpa-rs-sys` copies its native libraries there, and Cargo 1.100's build-directory layout no longer creates it. `apps/murmur/scripts/build-mac.sh` and the Murmur workflows do this.
 - Keep engine crates free of I/O and presentation: they take inputs and return data or events, and frontends render them.
 - Treat Pok√©mon Showdown as the reference for `pkmn` mechanics: match its formulas, ordering, and random-number consumption, and document any deliberate difference.
 

@@ -125,6 +125,7 @@ fi
 
 echo "==> Building Rust core ($RUST_TARGET)"
 rustup target add "$RUST_TARGET" >/dev/null 2>&1 || true
+mkdir -p "$TARGET_DIR/deps"
 cargo build --release --locked -p murmur-core --target "$RUST_TARGET"
 
 echo "==> Generating Swift bindings"

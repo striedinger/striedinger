@@ -51,6 +51,8 @@ jobs:
             target
           key: cargo-core-v3-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
           restore-keys: cargo-core-v3-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-
+      - name: Create the deps directory sherpa-rs-sys copies its native libraries into
+        run: mkdir -p target/debug/deps
       - run: cargo clippy -p murmur-core -p murmur-bindgen --all-targets --locked -- -D warnings
       - run: cargo test -p murmur-core --locked
       - if: env.SAVE_CACHE == 'true' && steps.cargo-cache.outputs.cache-hit != 'true'
